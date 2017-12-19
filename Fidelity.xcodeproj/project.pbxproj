@@ -7,8 +7,44 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		8211EEAA1FE037390007C7F0 /* Quaternion.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8211EEA81FE037390007C7F0 /* Quaternion.cpp */; };
+		8211EEAB1FE037390007C7F0 /* Quaternion.hpp in Headers */ = {isa = PBXBuildFile; fileRef = 8211EEA91FE037390007C7F0 /* Quaternion.hpp */; };
+		8211EEAE1FE1C1560007C7F0 /* Radian.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8211EEAC1FE1C1560007C7F0 /* Radian.cpp */; };
+		8211EEAF1FE1C1560007C7F0 /* Radian.hpp in Headers */ = {isa = PBXBuildFile; fileRef = 8211EEAD1FE1C1560007C7F0 /* Radian.hpp */; };
+		8211EEB21FE2AB030007C7F0 /* Degree.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8211EEB01FE2AB030007C7F0 /* Degree.cpp */; };
+		8211EEB31FE2AB030007C7F0 /* Degree.hpp in Headers */ = {isa = PBXBuildFile; fileRef = 8211EEB11FE2AB030007C7F0 /* Degree.hpp */; };
+		8211EEB81FE2D7C80007C7F0 /* RadianTest.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8211EEB71FE2D7C80007C7F0 /* RadianTest.cpp */; };
+		8211EEBA1FE6ABC20007C7F0 /* DegreeTest.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8211EEB91FE6ABC20007C7F0 /* DegreeTest.cpp */; };
+		8211EEBC1FE7C00E0007C7F0 /* Math.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8211EEBB1FE7C00E0007C7F0 /* Math.cpp */; };
+		8211EEBE1FE7CD110007C7F0 /* QuaternionTest.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8211EEBD1FE7CD110007C7F0 /* QuaternionTest.cpp */; };
 		825865701FD9DC6E00D74AD7 /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8258656F1FD9DC6E00D74AD7 /* main.cpp */; };
+		825865C31FDB457F00D74AD7 /* Application.hpp in Headers */ = {isa = PBXBuildFile; fileRef = 825865A11FDB07A300D74AD7 /* Application.hpp */; };
+		825865C41FDB458200D74AD7 /* Application.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 825865A31FDB0B6A00D74AD7 /* Application.cpp */; };
+		825865C51FDB458700D74AD7 /* Types.h in Headers */ = {isa = PBXBuildFile; fileRef = 825865A21FDB081700D74AD7 /* Types.h */; };
+		825865CE1FDB4A5B00D74AD7 /* libEngine.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 825865BF1FDB452D00D74AD7 /* libEngine.a */; };
+		825865D11FDB4C6D00D74AD7 /* SDL2.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 8258659E1FDAEF5000D74AD7 /* SDL2.framework */; };
+		825865D91FDBDDF200D74AD7 /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 825865D81FDBDDF200D74AD7 /* main.cpp */; };
+		825865DD1FDBDE3C00D74AD7 /* libEngine.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 825865BF1FDB452D00D74AD7 /* libEngine.a */; };
+		825865E11FDC81D300D74AD7 /* Vector2.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 825865DF1FDC81D300D74AD7 /* Vector2.cpp */; };
+		825865E21FDC81D300D74AD7 /* Vector2.hpp in Headers */ = {isa = PBXBuildFile; fileRef = 825865E01FDC81D300D74AD7 /* Vector2.hpp */; };
+		825865E41FDC87FD00D74AD7 /* Vector2Test.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 825865E31FDC87FD00D74AD7 /* Vector2Test.cpp */; };
+		825865E81FDE973300D74AD7 /* Vector3.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 825865E61FDE973300D74AD7 /* Vector3.cpp */; };
+		825865E91FDE973300D74AD7 /* Vector3.hpp in Headers */ = {isa = PBXBuildFile; fileRef = 825865E71FDE973300D74AD7 /* Vector3.hpp */; };
+		825865EB1FDEC37B00D74AD7 /* Vector3Test.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 825865EA1FDEC37B00D74AD7 /* Vector3Test.cpp */; };
+		825865EE1FDEE67A00D74AD7 /* Vector4.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 825865EC1FDEE67A00D74AD7 /* Vector4.cpp */; };
+		825865EF1FDEE67A00D74AD7 /* Vector4.hpp in Headers */ = {isa = PBXBuildFile; fileRef = 825865ED1FDEE67A00D74AD7 /* Vector4.hpp */; };
+		825865F11FDF1E2900D74AD7 /* Vector4Test.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 825865F01FDF1E2900D74AD7 /* Vector4Test.cpp */; };
 /* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		825865CF1FDB4C4E00D74AD7 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 825865641FD9DC6E00D74AD7 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 825865BE1FDB452D00D74AD7;
+			remoteInfo = Engine;
+		};
+/* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
 		8258656A1FD9DC6E00D74AD7 /* CopyFiles */ = {
@@ -20,11 +56,49 @@
 			);
 			runOnlyForDeploymentPostprocessing = 1;
 		};
+		825865D41FDBDDF200D74AD7 /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = /usr/share/man/man1/;
+			dstSubfolderSpec = 0;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 1;
+		};
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		8258656C1FD9DC6E00D74AD7 /* Fidelity */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = Fidelity; sourceTree = BUILT_PRODUCTS_DIR; };
+		8211EEA81FE037390007C7F0 /* Quaternion.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Quaternion.cpp; sourceTree = "<group>"; };
+		8211EEA91FE037390007C7F0 /* Quaternion.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Quaternion.hpp; sourceTree = "<group>"; };
+		8211EEAC1FE1C1560007C7F0 /* Radian.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Radian.cpp; sourceTree = "<group>"; };
+		8211EEAD1FE1C1560007C7F0 /* Radian.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Radian.hpp; sourceTree = "<group>"; };
+		8211EEB01FE2AB030007C7F0 /* Degree.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Degree.cpp; sourceTree = "<group>"; };
+		8211EEB11FE2AB030007C7F0 /* Degree.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Degree.hpp; sourceTree = "<group>"; };
+		8211EEB61FE2BA950007C7F0 /* Math.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Math.hpp; sourceTree = "<group>"; };
+		8211EEB71FE2D7C80007C7F0 /* RadianTest.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = RadianTest.cpp; sourceTree = "<group>"; };
+		8211EEB91FE6ABC20007C7F0 /* DegreeTest.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = DegreeTest.cpp; sourceTree = "<group>"; };
+		8211EEBB1FE7C00E0007C7F0 /* Math.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Math.cpp; sourceTree = "<group>"; };
+		8211EEBD1FE7CD110007C7F0 /* QuaternionTest.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = QuaternionTest.cpp; sourceTree = "<group>"; };
+		8258656C1FD9DC6E00D74AD7 /* Test3D */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = Test3D; sourceTree = BUILT_PRODUCTS_DIR; };
 		8258656F1FD9DC6E00D74AD7 /* main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
+		8258657E1FDAD3EF00D74AD7 /* OpenGL.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = OpenGL.framework; path = System/Library/Frameworks/OpenGL.framework; sourceTree = SDKROOT; };
+		8258659E1FDAEF5000D74AD7 /* SDL2.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SDL2.framework; path = Frameworks/SDL2.framework; sourceTree = "<group>"; };
+		825865A11FDB07A300D74AD7 /* Application.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Application.hpp; sourceTree = "<group>"; };
+		825865A21FDB081700D74AD7 /* Types.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Types.h; sourceTree = "<group>"; };
+		825865A31FDB0B6A00D74AD7 /* Application.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Application.cpp; sourceTree = "<group>"; };
+		825865BF1FDB452D00D74AD7 /* libEngine.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libEngine.a; sourceTree = BUILT_PRODUCTS_DIR; };
+		825865C81FDB45C800D74AD7 /* Test3DApp.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Test3DApp.hpp; sourceTree = "<group>"; };
+		825865D61FDBDDF200D74AD7 /* Tests */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = Tests; sourceTree = BUILT_PRODUCTS_DIR; };
+		825865D81FDBDDF200D74AD7 /* main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
+		825865DF1FDC81D300D74AD7 /* Vector2.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Vector2.cpp; sourceTree = "<group>"; };
+		825865E01FDC81D300D74AD7 /* Vector2.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Vector2.hpp; sourceTree = "<group>"; };
+		825865E31FDC87FD00D74AD7 /* Vector2Test.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Vector2Test.cpp; sourceTree = "<group>"; };
+		825865E61FDE973300D74AD7 /* Vector3.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Vector3.cpp; sourceTree = "<group>"; };
+		825865E71FDE973300D74AD7 /* Vector3.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Vector3.hpp; sourceTree = "<group>"; };
+		825865EA1FDEC37B00D74AD7 /* Vector3Test.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Vector3Test.cpp; sourceTree = "<group>"; };
+		825865EC1FDEE67A00D74AD7 /* Vector4.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Vector4.cpp; sourceTree = "<group>"; };
+		825865ED1FDEE67A00D74AD7 /* Vector4.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Vector4.hpp; sourceTree = "<group>"; };
+		825865F01FDF1E2900D74AD7 /* Vector4Test.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Vector4Test.cpp; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -32,6 +106,23 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				825865D11FDB4C6D00D74AD7 /* SDL2.framework in Frameworks */,
+				825865CE1FDB4A5B00D74AD7 /* libEngine.a in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		825865BC1FDB452D00D74AD7 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		825865D31FDBDDF200D74AD7 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				825865DD1FDBDE3C00D74AD7 /* libEngine.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -41,33 +132,120 @@
 		825865631FD9DC6E00D74AD7 = {
 			isa = PBXGroup;
 			children = (
-				8258656E1FD9DC6E00D74AD7 /* Fidelity */,
+				825865A51FDB18A600D74AD7 /* Test3D */,
+				8258656E1FD9DC6E00D74AD7 /* Engine */,
+				825865D71FDBDDF200D74AD7 /* Tests */,
 				8258656D1FD9DC6E00D74AD7 /* Products */,
+				825865781FD9E1C000D74AD7 /* Frameworks */,
 			);
 			sourceTree = "<group>";
 		};
 		8258656D1FD9DC6E00D74AD7 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				8258656C1FD9DC6E00D74AD7 /* Fidelity */,
+				8258656C1FD9DC6E00D74AD7 /* Test3D */,
+				825865BF1FDB452D00D74AD7 /* libEngine.a */,
+				825865D61FDBDDF200D74AD7 /* Tests */,
 			);
 			name = Products;
 			sourceTree = "<group>";
 		};
-		8258656E1FD9DC6E00D74AD7 /* Fidelity */ = {
+		8258656E1FD9DC6E00D74AD7 /* Engine */ = {
+			isa = PBXGroup;
+			children = (
+				825865DE1FDC813900D74AD7 /* Maths */,
+				825865A01FDB077F00D74AD7 /* Core */,
+				825865A21FDB081700D74AD7 /* Types.h */,
+			);
+			path = Engine;
+			sourceTree = "<group>";
+		};
+		825865781FD9E1C000D74AD7 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				8258659E1FDAEF5000D74AD7 /* SDL2.framework */,
+				8258657E1FDAD3EF00D74AD7 /* OpenGL.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		825865A01FDB077F00D74AD7 /* Core */ = {
+			isa = PBXGroup;
+			children = (
+				825865A11FDB07A300D74AD7 /* Application.hpp */,
+				825865A31FDB0B6A00D74AD7 /* Application.cpp */,
+			);
+			path = Core;
+			sourceTree = "<group>";
+		};
+		825865A51FDB18A600D74AD7 /* Test3D */ = {
 			isa = PBXGroup;
 			children = (
 				8258656F1FD9DC6E00D74AD7 /* main.cpp */,
+				825865C81FDB45C800D74AD7 /* Test3DApp.hpp */,
 			);
-			path = Fidelity;
+			path = Test3D;
+			sourceTree = "<group>";
+		};
+		825865D71FDBDDF200D74AD7 /* Tests */ = {
+			isa = PBXGroup;
+			children = (
+				825865D81FDBDDF200D74AD7 /* main.cpp */,
+				825865E31FDC87FD00D74AD7 /* Vector2Test.cpp */,
+				825865EA1FDEC37B00D74AD7 /* Vector3Test.cpp */,
+				825865F01FDF1E2900D74AD7 /* Vector4Test.cpp */,
+				8211EEB71FE2D7C80007C7F0 /* RadianTest.cpp */,
+				8211EEB91FE6ABC20007C7F0 /* DegreeTest.cpp */,
+				8211EEBD1FE7CD110007C7F0 /* QuaternionTest.cpp */,
+			);
+			path = Tests;
+			sourceTree = "<group>";
+		};
+		825865DE1FDC813900D74AD7 /* Maths */ = {
+			isa = PBXGroup;
+			children = (
+				825865DF1FDC81D300D74AD7 /* Vector2.cpp */,
+				825865E01FDC81D300D74AD7 /* Vector2.hpp */,
+				825865E61FDE973300D74AD7 /* Vector3.cpp */,
+				825865E71FDE973300D74AD7 /* Vector3.hpp */,
+				825865EC1FDEE67A00D74AD7 /* Vector4.cpp */,
+				825865ED1FDEE67A00D74AD7 /* Vector4.hpp */,
+				8211EEA81FE037390007C7F0 /* Quaternion.cpp */,
+				8211EEA91FE037390007C7F0 /* Quaternion.hpp */,
+				8211EEAC1FE1C1560007C7F0 /* Radian.cpp */,
+				8211EEAD1FE1C1560007C7F0 /* Radian.hpp */,
+				8211EEB01FE2AB030007C7F0 /* Degree.cpp */,
+				8211EEB11FE2AB030007C7F0 /* Degree.hpp */,
+				8211EEB61FE2BA950007C7F0 /* Math.hpp */,
+				8211EEBB1FE7C00E0007C7F0 /* Math.cpp */,
+			);
+			path = Maths;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
 
+/* Begin PBXHeadersBuildPhase section */
+		825865BD1FDB452D00D74AD7 /* Headers */ = {
+			isa = PBXHeadersBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				8211EEAB1FE037390007C7F0 /* Quaternion.hpp in Headers */,
+				825865EF1FDEE67A00D74AD7 /* Vector4.hpp in Headers */,
+				825865C51FDB458700D74AD7 /* Types.h in Headers */,
+				825865E21FDC81D300D74AD7 /* Vector2.hpp in Headers */,
+				8211EEB31FE2AB030007C7F0 /* Degree.hpp in Headers */,
+				825865C31FDB457F00D74AD7 /* Application.hpp in Headers */,
+				825865E91FDE973300D74AD7 /* Vector3.hpp in Headers */,
+				8211EEAF1FE1C1560007C7F0 /* Radian.hpp in Headers */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXHeadersBuildPhase section */
+
 /* Begin PBXNativeTarget section */
-		8258656B1FD9DC6E00D74AD7 /* Fidelity */ = {
+		8258656B1FD9DC6E00D74AD7 /* Test3D */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 825865731FD9DC6E00D74AD7 /* Build configuration list for PBXNativeTarget "Fidelity" */;
+			buildConfigurationList = 825865731FD9DC6E00D74AD7 /* Build configuration list for PBXNativeTarget "Test3D" */;
 			buildPhases = (
 				825865681FD9DC6E00D74AD7 /* Sources */,
 				825865691FD9DC6E00D74AD7 /* Frameworks */,
@@ -76,10 +254,45 @@
 			buildRules = (
 			);
 			dependencies = (
+				825865D01FDB4C4E00D74AD7 /* PBXTargetDependency */,
 			);
-			name = Fidelity;
+			name = Test3D;
 			productName = Fidelity;
-			productReference = 8258656C1FD9DC6E00D74AD7 /* Fidelity */;
+			productReference = 8258656C1FD9DC6E00D74AD7 /* Test3D */;
+			productType = "com.apple.product-type.tool";
+		};
+		825865BE1FDB452D00D74AD7 /* Engine */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 825865C01FDB452D00D74AD7 /* Build configuration list for PBXNativeTarget "Engine" */;
+			buildPhases = (
+				825865BB1FDB452D00D74AD7 /* Sources */,
+				825865BC1FDB452D00D74AD7 /* Frameworks */,
+				825865BD1FDB452D00D74AD7 /* Headers */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = Engine;
+			productName = Engine;
+			productReference = 825865BF1FDB452D00D74AD7 /* libEngine.a */;
+			productType = "com.apple.product-type.library.static";
+		};
+		825865D51FDBDDF200D74AD7 /* Tests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 825865DA1FDBDDF200D74AD7 /* Build configuration list for PBXNativeTarget "Tests" */;
+			buildPhases = (
+				825865D21FDBDDF200D74AD7 /* Sources */,
+				825865D31FDBDDF200D74AD7 /* Frameworks */,
+				825865D41FDBDDF200D74AD7 /* CopyFiles */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = Tests;
+			productName = Tests;
+			productReference = 825865D61FDBDDF200D74AD7 /* Tests */;
 			productType = "com.apple.product-type.tool";
 		};
 /* End PBXNativeTarget section */
@@ -92,6 +305,14 @@
 				ORGANIZATIONNAME = "Warren Roberson";
 				TargetAttributes = {
 					8258656B1FD9DC6E00D74AD7 = {
+						CreatedOnToolsVersion = 9.2;
+						ProvisioningStyle = Automatic;
+					};
+					825865BE1FDB452D00D74AD7 = {
+						CreatedOnToolsVersion = 9.2;
+						ProvisioningStyle = Automatic;
+					};
+					825865D51FDBDDF200D74AD7 = {
 						CreatedOnToolsVersion = 9.2;
 						ProvisioningStyle = Automatic;
 					};
@@ -109,7 +330,9 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				8258656B1FD9DC6E00D74AD7 /* Fidelity */,
+				8258656B1FD9DC6E00D74AD7 /* Test3D */,
+				825865BE1FDB452D00D74AD7 /* Engine */,
+				825865D51FDBDDF200D74AD7 /* Tests */,
 			);
 		};
 /* End PBXProject section */
@@ -123,7 +346,44 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		825865BB1FDB452D00D74AD7 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				825865C41FDB458200D74AD7 /* Application.cpp in Sources */,
+				825865E81FDE973300D74AD7 /* Vector3.cpp in Sources */,
+				825865E11FDC81D300D74AD7 /* Vector2.cpp in Sources */,
+				8211EEBC1FE7C00E0007C7F0 /* Math.cpp in Sources */,
+				8211EEAA1FE037390007C7F0 /* Quaternion.cpp in Sources */,
+				8211EEAE1FE1C1560007C7F0 /* Radian.cpp in Sources */,
+				825865EE1FDEE67A00D74AD7 /* Vector4.cpp in Sources */,
+				8211EEB21FE2AB030007C7F0 /* Degree.cpp in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		825865D21FDBDDF200D74AD7 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				825865D91FDBDDF200D74AD7 /* main.cpp in Sources */,
+				8211EEB81FE2D7C80007C7F0 /* RadianTest.cpp in Sources */,
+				825865EB1FDEC37B00D74AD7 /* Vector3Test.cpp in Sources */,
+				825865E41FDC87FD00D74AD7 /* Vector2Test.cpp in Sources */,
+				825865F11FDF1E2900D74AD7 /* Vector4Test.cpp in Sources */,
+				8211EEBE1FE7CD110007C7F0 /* QuaternionTest.cpp in Sources */,
+				8211EEBA1FE6ABC20007C7F0 /* DegreeTest.cpp in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		825865D01FDB4C4E00D74AD7 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 825865BE1FDB452D00D74AD7 /* Engine */;
+			targetProxy = 825865CF1FDB4C4E00D74AD7 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		825865711FD9DC6E00D74AD7 /* Debug */ = {
@@ -232,13 +492,69 @@
 		825865741FD9DC6E00D74AD7 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CODE_SIGN_IDENTITY = "Mac Developer";
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = UBC3J5X794;
+				FRAMEWORK_SEARCH_PATHS = "$(PROJECT_DIR)/Frameworks";
+				HEADER_SEARCH_PATHS = "";
+				LIBRARY_SEARCH_PATHS = "${PROJECT_DIR}/Frameworks";
+				OTHER_LDFLAGS = "";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
+			};
+			name = Debug;
+		};
+		825865751FD9DC6E00D74AD7 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_IDENTITY = "Mac Developer";
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = UBC3J5X794;
+				FRAMEWORK_SEARCH_PATHS = "$(PROJECT_DIR)/Frameworks";
+				HEADER_SEARCH_PATHS = "";
+				LIBRARY_SEARCH_PATHS = "${PROJECT_DIR}/Frameworks";
+				OTHER_LDFLAGS = "";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
+			};
+			name = Release;
+		};
+		825865C11FDB452D00D74AD7 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = UBC3J5X794;
+				EXECUTABLE_PREFIX = lib;
+				FRAMEWORK_SEARCH_PATHS = "${PROJECT_DIR}/Frameworks/SDL2.framework/";
+				HEADER_SEARCH_PATHS = "${PROJECT_DIR}/Frameworks/SDL2.framework/Headers/";
+				LIBRARY_SEARCH_PATHS = "${PROJECT_DIR}/Frameworks";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Debug;
+		};
+		825865C21FDB452D00D74AD7 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = UBC3J5X794;
+				EXECUTABLE_PREFIX = lib;
+				FRAMEWORK_SEARCH_PATHS = "${PROJECT_DIR}/Frameworks/SDL2.framework/";
+				HEADER_SEARCH_PATHS = "${PROJECT_DIR}/Frameworks/SDL2.framework/Headers/";
+				LIBRARY_SEARCH_PATHS = "${PROJECT_DIR}/Frameworks";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Release;
+		};
+		825865DB1FDBDDF200D74AD7 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = UBC3J5X794;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Debug;
 		};
-		825865751FD9DC6E00D74AD7 /* Release */ = {
+		825865DC1FDBDDF200D74AD7 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
@@ -259,11 +575,29 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		825865731FD9DC6E00D74AD7 /* Build configuration list for PBXNativeTarget "Fidelity" */ = {
+		825865731FD9DC6E00D74AD7 /* Build configuration list for PBXNativeTarget "Test3D" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				825865741FD9DC6E00D74AD7 /* Debug */,
 				825865751FD9DC6E00D74AD7 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		825865C01FDB452D00D74AD7 /* Build configuration list for PBXNativeTarget "Engine" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				825865C11FDB452D00D74AD7 /* Debug */,
+				825865C21FDB452D00D74AD7 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		825865DA1FDBDDF200D74AD7 /* Build configuration list for PBXNativeTarget "Tests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				825865DB1FDBDDF200D74AD7 /* Debug */,
+				825865DC1FDBDDF200D74AD7 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
