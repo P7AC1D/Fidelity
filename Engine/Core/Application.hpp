@@ -1,7 +1,9 @@
 #pragma once
+#include <memory>
 #include <string>
 
 #include "Types.h"
+#include "SceneManager.hpp"
 
 struct SDL_Window;
 
@@ -20,7 +22,7 @@ public:
   virtual void OnStart() {}
   virtual void OnInput() {}
   virtual void OnDraw() {}
-  virtual void OnTick() {}
+  virtual void OnTick(uint32 dtMs) {}
   
   std::string GetName() const { return _desc.Name; }
   uint32 GetWidth() const { return _desc.Width; }
@@ -33,9 +35,13 @@ protected:
   
 private:
   bool Initialize();
+  uint32 GetTickDuration();
   
 private:
+  const SceneManager& _sceneManager;
   ApplicationDesc _desc;
   SDL_Window* _window;
   bool _isRunning;
+  uint32 _lastTimeInMs;
+  uint32 _currentTimeInMs;
 };

@@ -2,7 +2,9 @@
 
 #include <cassert>
 
+#include "Degree.hpp"
 #include "Math.hpp"
+#include "Matrix3.hpp"
 #include "Radian.hpp"
 #include "Vector3.hpp"
 
@@ -30,9 +32,18 @@ _w(_w)
 {
 }
 
+Quaternion::Quaternion(const Matrix3& rotMax)
+{
+}
+
 Quaternion::Quaternion(const Vector3& axis, const Radian& angle)
 {
   FromAxisAngle(axis, angle);
+}
+
+Quaternion::Quaternion(const Degree& xAngle, const Degree& yAngle, const Degree& zAngle)
+{
+  FromEulerAngles(xAngle.InRadians(), yAngle.InRadians(), zAngle.InRadians());
 }
 
 Quaternion::Quaternion(const Radian& xAngle, const Radian& yAngle, const Radian& zAngle)

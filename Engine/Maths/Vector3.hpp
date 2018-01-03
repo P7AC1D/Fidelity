@@ -6,6 +6,7 @@ class Vector2;
 class Vector3
 {
 public:
+  static Vector3 Zero;
   static Vector3 One;
   
   static float32 Dot(const Vector3& a, const Vector3& b);

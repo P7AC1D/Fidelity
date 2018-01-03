@@ -1,6 +1,7 @@
 #pragma once
 #include "Types.h"
 
+class Degree;
 class Matrix3;
 class Radian;
 class Vector3;
@@ -17,6 +18,7 @@ public:
   Quaternion(float32 w, float32 x, float32 y, float32 z);
   explicit Quaternion(const Matrix3& rotMat);
   explicit Quaternion(const Vector3& axis, const Radian& angle);
+  explicit Quaternion(const Degree& xAngle, const Degree& yAngle, const Degree& zAngle);
   explicit Quaternion(const Radian& xAngle, const Radian& yAngle, const Radian& zAngle);
   
   float32& operator[](uint32 i);
@@ -44,6 +46,7 @@ public:
   float32 Norm() const;
   void Normalize();
   
+  // TBD: Unit test these guys
   Quaternion Lerp(const Quaternion& a, const Quaternion& b, float32 t);
   Quaternion Slerp(const Quaternion& a, const Quaternion& b, float32 t);
   

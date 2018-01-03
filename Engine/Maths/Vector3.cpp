@@ -5,6 +5,7 @@
 
 #include "Vector2.hpp"
 
+Vector3 Vector3::Zero = Vector3(0.0f);
 Vector3 Vector3::One = Vector3(1.0f);
 
 float32 Vector3::Dot(const Vector3& a, const Vector3& b)

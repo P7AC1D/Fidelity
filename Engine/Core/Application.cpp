@@ -32,7 +32,10 @@ int32 Application::Run()
       }
     }
     
-    OnTick();
+    uint32 dtMs = GetTickDuration();
+    _sceneManager.UpdateScene(dtMs);
+    
+    OnTick(dtMs);
     SDL_GL_SwapWindow(_window);
   }
   
@@ -41,8 +44,11 @@ int32 Application::Run()
 }
 
 Application::Application(const ApplicationDesc &desc):
-  _desc(desc),
-  _isRunning(false)
+_sceneManager(*SceneManager::Instance()),
+_desc(desc),
+_isRunning(false),
+_lastTimeInMs(0),
+_currentTimeInMs(0)
 {
 }
 
@@ -64,4 +70,12 @@ bool Application::Initialize()
   }
   
   return true;
+}
+
+uint32 Application::GetTickDuration()
+{
+  _lastTimeInMs = _currentTimeInMs;
+  uint32 durationInMs = SDL_GetTicks();
+  _currentTimeInMs = _lastTimeInMs - durationInMs;
+  return _currentTimeInMs;
 }
