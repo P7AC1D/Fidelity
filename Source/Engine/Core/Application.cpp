@@ -6,14 +6,12 @@
 
 #include <SDL.h>
 
-#include "..\Core\InputManager.h"
-#include "..\Diagnostics\Logger.h"
-#include "..\Rendering\Renderer.h"
-#include "..\UI\UiManager.h"
-#include "..\Utility\AssetManager.h"
-#include "..\SceneManagement\SceneManager.h"
+#include "../Core/InputManager.h"
+#include "../Rendering/Renderer.h"
+#include "../UI/UIManager.h"
+#include "../Utility/AssetManager.h"
+#include "../SceneManagement/SceneManager.h"
 
-using namespace Diagnostics;
 using namespace Platform;
 using namespace Rendering;
 using namespace UI;
@@ -67,7 +65,7 @@ int32 Application::Run()
 
 Application::Application(const ApplicationDesc &desc) :
   _sceneManager(new SceneManager),
-  _inputManager(new InputManager),
+  _renderer(new Renderer(desc.Width, desc.Height)),
   _uiManager(new UIManager),
   _assetManager(new AssetManager("./../../ass/Textures/")),
   _desc(desc),
@@ -79,8 +77,6 @@ Application::Application(const ApplicationDesc &desc) :
 
 bool Application::Initialize()
 {
-  LogToConsole::ReportingLevel() = LogLevel::Verbose;
-
   if (SDL_Init(SDL_INIT_VIDEO) > 0)
   {
     std::string errorMessage = "Failed to initialize SDL: " + std::string(SDL_GetError());
@@ -95,10 +91,21 @@ bool Application::Initialize()
     SDL_ClearError();
     return false;
   }
+  
+  _glContext = SDL_GL_CreateContext(_window);
+  if (!_glContext)
+  {
+    std::string errorMessage = "Failed to create GL context: " + std::string(SDL_GetError());
+    SDL_ClearError();
+    return false;
+  }
+  
+  SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
+  SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);
+  SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
 
   if (!_renderer->Initialize())
   {
-    LOG_ERROR << "Could not intialize renderer";
     return false;
   }
 

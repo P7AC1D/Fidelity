@@ -3,8 +3,14 @@ cmake_minimum_required(VERSION 2.8)
 project(Fidelity)
 
 set(CMAKE_PREFIX_PATH ${CMAKE_CURRENT_LIST_DIR})
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_LIST_DIR}")
 
 find_package(SDL2 REQUIRED)
+
+IF (APPLE)
+find_package(OpenGL REQUIRED)
+ENDIF()
 
 IF (WIN32)
 set(GLEW_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/Externals/glew-2.1.0/include")

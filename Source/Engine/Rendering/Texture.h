@@ -2,7 +2,7 @@
 #include <string>
 
 #ifdef __APPLE__
-#include <GL/gl3.h>
+#include <OpenGL/gl3.h>
 #endif
 #ifdef _WIN32
 #include <GL/glew.h>
@@ -43,8 +43,7 @@ enum class TextureWrapMethod
   ClampToEdge = GL_CLAMP_TO_EDGE,
   ClampToBorder = GL_CLAMP_TO_BORDER,
   MirrorRepeat = GL_MIRRORED_REPEAT,
-  Repeat = GL_REPEAT,
-  MirrorClampToEdge = GL_MIRROR_CLAMP_TO_EDGE
+  Repeat = GL_REPEAT
 };
 
 class Texture

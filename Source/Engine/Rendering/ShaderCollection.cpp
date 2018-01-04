@@ -2,10 +2,7 @@
 
 #include <exception>
 
-#include "..\Diagnostics\Logger.h"
-#include "..\Rendering\Shader.h"
-
-using namespace Diagnostics;
+#include "../Rendering/Shader.h"
 
 namespace Rendering
 {
@@ -43,7 +40,7 @@ std::shared_ptr<Shader> ShaderCollection::LoadShader(const std::string& shaderNa
   }
   catch (std::exception exception)
   {
-    LOG_ERROR << "Failed to load shader " << shaderName << ": " << exception.what();
+    // LOG_ERROR << "Failed to load shader " << shaderName << ": " << exception.what();
     return nullptr;
   }
 }

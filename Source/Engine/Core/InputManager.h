@@ -24,10 +24,6 @@ public:
   InputManager();
   ~InputManager();
 
-  void SetMousePositionCallback(const std::function<void(float64& x, float64& y)>& mousePositionCallback);
-
-  void SetKeyDownEvent(int32 key, const std::function<void()>& onKeyDown);
-
   void SetKeyDown(int32 key);
   void SetKeyUp(int32 key);
   void SetMouseButtonDown(int32 button);
@@ -45,10 +41,7 @@ public:
 private:
   std::unordered_map<int32, bool> _keysPressed;
   std::unordered_map<int32, bool> _buttonsPressed;
-  std::unordered_map<int32, std::vector<std::function<void()>>> _keyEvents;
-  std::unordered_map<int32, std::vector<std::function<void()>>> _buttonEvents;
 
-  std::function<void(float64& x, float64& y)> _mousePositionCallback;
   float32 _mouseScrollOffset;
 };
 }

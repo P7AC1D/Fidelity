@@ -4,8 +4,6 @@
 #include "../Engine/Core/Application.h"
 #include "Test3D.h"
 
-using namespace Platform;
-
 int main()
 {
   ApplicationDesc applicationDesc;

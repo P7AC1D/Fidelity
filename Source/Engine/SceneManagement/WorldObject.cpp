@@ -1,7 +1,7 @@
 #include "WorldObject.h"
 
-#include "..\Components\Component.h"
-#include "..\Components\Transform.h"
+#include "../Components/Component.h"
+#include "../Components/Transform.h"
 
 using namespace Components;
 

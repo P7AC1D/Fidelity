@@ -5,8 +5,6 @@
 
 #include "../Core/Types.hpp"
 
-struct GLFWwindow;
-
 namespace Rendering
 {
 class Renderer;
@@ -28,11 +26,7 @@ namespace Utility
 class AssetManager;
 }
 
-namespace Platform
-{
-class InputManager;
-}
-
+typedef void* SDL_GLContext;
 struct SDL_Window;
 
 struct ApplicationDesc
@@ -73,13 +67,13 @@ private:
 protected:
   std::unique_ptr<SceneManagement::SceneManager> _sceneManager;
   std::unique_ptr<Rendering::Renderer> _renderer;
-  std::unique_ptr<Platform::InputManager> _inputManager;
   std::unique_ptr<UI::UIManager> _uiManager;
   std::unique_ptr<Utility::AssetManager> _assetManager;
 
 private:
   ApplicationDesc _desc;
   SDL_Window* _window;
+  SDL_GLContext _glContext;
   bool _isRunning;
   uint32 _lastTimeInMs;
   uint32 _currentTimeInMs;

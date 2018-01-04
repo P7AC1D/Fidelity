@@ -3,10 +3,10 @@
 #include <exception>
 
 #define STB_IMAGE_IMPLEMENTATION
-#include "STB\stb_image.h"
+#include "STB/stb_image.h"
 
-#include "..\Rendering\CubeMap.h"
-#include "..\Rendering\Texture.h"
+#include "../Rendering/CubeMap.h"
+#include "../Rendering/Texture.h"
 
 using namespace Rendering;
 

@@ -1,21 +1,20 @@
 #include "Renderer.h"
 
 #ifdef __APPLE__
-#include <GL/gl3.h>
+#include <OpenGL/gl3.h>
 #endif
 #ifdef _WIN32
 #include <GL/glew.h>
 #endif
 
-#include "..\Components\Transform.h"
-#include "..\Components\PointLight.h"
-#include "..\Diagnostics\Logger.h"
-#include "..\UI\Panel.h"
-#include "..\UI\UIManager.h"
-#include "..\SceneManagement\OrbitalCamera.h"
-#include "..\SceneManagement\Scene.h"
-#include "..\SceneManagement\SceneNode.h"
-#include "..\SceneManagement\WorldObject.h"
+#include "../Components/Transform.h"
+#include "../Components/PointLight.h"
+#include "../UI/Panel.h"
+#include "../UI/UIManager.h"
+#include "../SceneManagement/OrbitalCamera.h"
+#include "../SceneManagement/Scene.h"
+#include "../SceneManagement/SceneNode.h"
+#include "../SceneManagement/WorldObject.h"
 #include "ConstantBuffer.h"
 #include "CubeMap.h"
 #include "Material.h"
@@ -26,7 +25,6 @@
 #include "VertexBuffer.h"
 
 using namespace Components;
-using namespace Diagnostics;
 using namespace Rendering;
 using namespace UI;
 using namespace SceneManagement;
@@ -185,6 +183,7 @@ void Renderer::DrawUI(std::vector<std::shared_ptr<Panel>> panelCollection)
 
 bool Renderer::Initialize()
 {
+#ifdef _WIN32
   glewExperimental = GL_TRUE;
   GLenum error = glewInit();
   if (error != GLEW_OK)
@@ -192,6 +191,7 @@ bool Renderer::Initialize()
     LOG_ERROR << "Could not initialize GLEW: " + std::string((char*)glewGetErrorString(error));
     return false;
   }
+#endif
 
   glEnable(GL_DEPTH_TEST);
   glEnable(GL_CULL_FACE);
