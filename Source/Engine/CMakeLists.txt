@@ -1,0 +1,54 @@
+file(GLOB ComponentsSrc 
+	${CMAKE_CURRENT_SOURCE_DIR}/Components/*.h 
+	${CMAKE_CURRENT_SOURCE_DIR}/Components/*.hpp
+	${CMAKE_CURRENT_SOURCE_DIR}/Components/*.cpp
+	)
+	
+file(GLOB CoreSrc 
+	${CMAKE_CURRENT_SOURCE_DIR}/Core/*.h 
+	${CMAKE_CURRENT_SOURCE_DIR}/Core/*.hpp
+	${CMAKE_CURRENT_SOURCE_DIR}/Core/*.cpp
+	)
+	
+file(GLOB MathsSrc 
+	${CMAKE_CURRENT_SOURCE_DIR}/Maths/*.h 
+	${CMAKE_CURRENT_SOURCE_DIR}/Maths/*.hpp
+	${CMAKE_CURRENT_SOURCE_DIR}/Maths/*.cpp
+	)
+
+file(GLOB RenderingSrc 
+	${CMAKE_CURRENT_SOURCE_DIR}/Rendering/*.h 
+	${CMAKE_CURRENT_SOURCE_DIR}/Rendering/*.hpp
+	${CMAKE_CURRENT_SOURCE_DIR}/Rendering/*.cpp
+	)
+
+file(GLOB SceneManagementSrc 
+	${CMAKE_CURRENT_SOURCE_DIR}/SceneManagement/*.h 
+	${CMAKE_CURRENT_SOURCE_DIR}/SceneManagement/*.hpp
+	${CMAKE_CURRENT_SOURCE_DIR}/SceneManagement/*.cpp
+	)
+
+file(GLOB UiSrc 
+	${CMAKE_CURRENT_SOURCE_DIR}/UI/*.h 
+	${CMAKE_CURRENT_SOURCE_DIR}/UI/*.hpp
+	${CMAKE_CURRENT_SOURCE_DIR}/UI/*.cpp
+	)
+
+file(GLOB UtilitySrc 
+	${CMAKE_CURRENT_SOURCE_DIR}/Utility/*.h 
+	${CMAKE_CURRENT_SOURCE_DIR}/Utility/*.hpp
+	${CMAKE_CURRENT_SOURCE_DIR}/Utility/*.cpp
+	)
+
+source_group(Components FILES ${ComponentsSrc})
+source_group(Core FILES ${CoreSrc})
+source_group(Maths FILES ${MathsSrc})
+source_group(Rendering FILES ${RenderingSrc})
+source_group(SceneManagement FILES ${SceneManagementSrc})
+source_group(UI FILES ${UiSrc})
+source_group(Utility FILES ${UtilitySrc})
+
+include_directories(${SDL2_INCLUDE_DIRS})
+include_directories(${GLEW_INCLUDE_DIRS})
+
+add_library(Engine STATIC ${ComponentsSrc} ${CoreSrc} ${MathsSrc} ${RenderingSrc} ${SceneManagementSrc} ${UiSrc} ${UtilitySrc})

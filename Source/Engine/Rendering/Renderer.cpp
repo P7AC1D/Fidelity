@@ -1,0 +1,453 @@
+#include "Renderer.h"
+
+#ifdef __APPLE__
+#include <GL/gl3.h>
+#endif
+#ifdef _WIN32
+#include <GL/glew.h>
+#endif
+
+#include "..\Components\Transform.h"
+#include "..\Components\PointLight.h"
+#include "..\Diagnostics\Logger.h"
+#include "..\UI\Panel.h"
+#include "..\UI\UIManager.h"
+#include "..\SceneManagement\OrbitalCamera.h"
+#include "..\SceneManagement\Scene.h"
+#include "..\SceneManagement\SceneNode.h"
+#include "..\SceneManagement\WorldObject.h"
+#include "ConstantBuffer.h"
+#include "CubeMap.h"
+#include "Material.h"
+#include "Texture.h"
+#include "Shader.h"
+#include "ShaderCollection.h"
+#include "StaticMesh.h"
+#include "VertexBuffer.h"
+
+using namespace Components;
+using namespace Diagnostics;
+using namespace Rendering;
+using namespace UI;
+using namespace SceneManagement;
+
+namespace Rendering
+{
+enum class RenderingTechnique
+{
+  Coloured = 0,
+  Textured = 1,
+};
+
+enum class VertexArribLocation
+{
+  Position = 0,
+  Normal = 1,
+  Uv = 2,
+};
+
+enum class UniformBindingPoint
+{
+  Transforms = 0,
+  Light = 1,
+};
+
+Renderer::Renderer(int32 renderWidth, int32 renderHeight) :
+  _shaderCollection(new ShaderCollection("./../Engine/Shaders/")),
+  _renderWidth(renderWidth),
+  _renderHeight(renderHeight)
+{}
+
+Renderer::~Renderer()
+{
+}
+
+void Renderer::SetViewport(int32 renderWidth, int32 renderHeight)
+{
+  _renderWidth = renderWidth;
+  _renderHeight = renderHeight;
+  glViewport(0, 0, _renderWidth, _renderHeight);
+}
+
+void Renderer::SetClearColour(const Vector3& colour)
+{
+  glClearColor(colour[0], colour[1], colour[2], 0.0f);
+}
+
+void Renderer::PreRender()
+{
+  ClearBuffer(ClearType::All);
+}
+
+void Renderer::DrawScene(std::shared_ptr<Scene> scene)
+{
+  glDepthFunc(GL_LESS);
+
+  UploadCameraData(scene->GetCamera());
+  DrawSkyBox(scene);
+
+  auto rootNode = scene->GetRootNode();
+  auto staticMeshObjects = rootNode->GetAllObjectsWithComponent("StaticMesh");
+  auto lightObjects = rootNode->GetAllObjectsWithComponent("PointLight");
+  auto sortedObjectsByShader = SortByRenderingTechnique(staticMeshObjects);
+  for (auto lightObject : lightObjects)
+  {    
+    UploadLightData(lightObject);
+    for (auto sortedObjects : sortedObjectsByShader)
+    {
+      auto renderingTechnique = sortedObjects.first;
+      auto objects = sortedObjects.second;
+      switch (renderingTechnique)
+      {
+        case RenderingTechnique::Textured:
+          DrawTexturedObjects(objects, scene->GetAmbientLight());
+          break;
+      }
+    }
+    glDepthFunc(GL_EQUAL);
+    glEnable(GL_BLEND);
+    glBlendEquation(GL_FUNC_ADD);
+    glBlendFunc(GL_ONE, GL_ONE);
+  }
+  glDisable(GL_BLEND);
+}
+
+void Renderer::DrawUI(std::vector<std::shared_ptr<Panel>> panelCollection)
+{
+  if (!_guiQuadVertexData)
+  {
+    std::vector<Vector2> quadVertexData
+    {
+      Vector2(-1.0f, -1.0f),
+      Vector2(0.0f, 0.0f),
+
+      Vector2(1.0f, -1.0f),
+      Vector2(1.0f, 0.0f),
+
+      Vector2(-1.0f, 1.0f),
+      Vector2(0.0f, 1.0f),
+
+      Vector2(1.0f, -1.0f),
+      Vector2(1.0f, 0.0f),
+
+      Vector2(1.0f, 1.0f),
+      Vector2(1.0f, 1.0f),
+
+      Vector2(-1.0f, 1.0f),
+      Vector2(0.0f, 1.0f)
+    };
+
+    _guiQuadVertexData.reset(new VertexBuffer());
+    _guiQuadVertexData->UploadData<Vector2>(quadVertexData, BufferUsage::Static);
+
+    auto posLoc = static_cast<uint32>(VertexArribLocation::Position);
+    auto uvLoc = static_cast<uint32>(VertexArribLocation::Uv);
+
+    glBindVertexArray(_guiQuadVertexData->_vaoId);
+    glVertexAttribPointer(posLoc, 2, GL_FLOAT, GL_FALSE, 16, nullptr);
+    glEnableVertexAttribArray(posLoc);
+    glVertexAttribPointer(uvLoc, 2, GL_FLOAT, GL_FALSE, 16, (void*)8);
+    glEnableVertexAttribArray(uvLoc);
+    glBindVertexArray(0);
+  }
+  
+  auto shader = _shaderCollection->GetShader("Gui.glsl");
+  if (!shader)
+  {
+    return;
+  }
+  shader->Bind();
+
+  for (auto panel : panelCollection)
+  {
+    if (panel->_texture)
+    {
+      glActiveTexture(GL_TEXTURE0);
+      panel->_texture->Bind();
+      shader->SetUniformInt(shader->GetUniformLocation("textureMap"), GL_TEXTURE0);
+    }
+
+    float32 xScale = panel->_width / static_cast<float32>(_renderWidth);
+    float32 yScale = panel->_height / static_cast<float32>(_renderHeight);
+    float32 xOffset = 2.0f * panel->_xPos / _renderWidth - (1.0f - xScale);
+    float32 yOffset = 2.0f * panel->_yPos / _renderHeight - (1.0f - yScale);
+
+    shader->SetUniformFloat(shader->GetUniformLocation("xScale"), xScale);
+    shader->SetUniformFloat(shader->GetUniformLocation("yScale"), yScale);
+    shader->SetUniformFloat(shader->GetUniformLocation("xOffset"), xOffset);
+    shader->SetUniformFloat(shader->GetUniformLocation("yOffset"), yOffset);
+    
+    glBindVertexArray(_guiQuadVertexData->_vaoId);
+    glDrawArrays(GL_TRIANGLES, 0, 6);
+    glBindVertexArray(0);
+  }
+}
+
+bool Renderer::Initialize()
+{
+  glewExperimental = GL_TRUE;
+  GLenum error = glewInit();
+  if (error != GLEW_OK)
+  {
+    LOG_ERROR << "Could not initialize GLEW: " + std::string((char*)glewGetErrorString(error));
+    return false;
+  }
+
+  glEnable(GL_DEPTH_TEST);
+  glEnable(GL_CULL_FACE);
+  glCullFace(GL_BACK);
+  glFrontFace(GL_CCW);
+
+  glViewport(0, 0, _renderWidth, _renderHeight);
+  glClearColor(0.1f, 0.1f, 0.1f, 0.0f);
+  return true;
+}
+
+void Renderer::SetVertexAttribPointers(StaticMesh* staticMesh, int32 stride)
+{
+  if (!staticMesh)
+  {
+    return;
+  }
+
+  glBindVertexArray(staticMesh->_vertexBuffer->_vaoId);
+  if (staticMesh->_vertexDataFormat & VertexDataFormat::Position)
+  {
+    auto positionLocation = static_cast<int32>(VertexArribLocation::Position);
+    glVertexAttribPointer(positionLocation, 3, GL_FLOAT, GL_FALSE, stride, nullptr);
+    glEnableVertexAttribArray(positionLocation);
+  }
+  if (staticMesh->_vertexDataFormat & VertexDataFormat::Normal)
+  {
+    auto normalLocation = static_cast<int32>(VertexArribLocation::Normal);
+    glVertexAttribPointer(normalLocation, 3, GL_FLOAT, GL_FALSE, stride, (void*)12);
+    glEnableVertexAttribArray(normalLocation);
+  }
+  if (staticMesh->_vertexDataFormat & VertexDataFormat::Uv)
+  {
+    auto uvLocation = static_cast<int32>(VertexArribLocation::Uv);
+    glVertexAttribPointer(uvLocation, 2, GL_FLOAT, GL_FALSE, stride, (void*)24);
+    glEnableVertexAttribArray(uvLocation);
+  }
+  glBindVertexArray(0);
+}
+
+void Renderer::DrawSkyBox(std::shared_ptr<SceneManagement::Scene> scene)
+{
+  if (!_skyBoxVertexData)
+  {
+    static std::vector<Vector3> skyBoxVertices =
+    {
+      Vector3(-1.0f,  1.0f, -1.0f),
+      Vector3(-1.0f, -1.0f, -1.0f),
+      Vector3(1.0f, -1.0f, -1.0f),
+      Vector3(1.0f, -1.0f, -1.0f),
+      Vector3(1.0f,  1.0f, -1.0f),
+      Vector3(-1.0f,  1.0f, -1.0f),
+
+      Vector3(-1.0f, -1.0f,  1.0f),
+      Vector3(-1.0f, -1.0f, -1.0f),
+      Vector3(-1.0f,  1.0f, -1.0f),
+      Vector3(-1.0f,  1.0f, -1.0f),
+      Vector3(-1.0f,  1.0f,  1.0f),
+      Vector3(-1.0f, -1.0f,  1.0f),
+
+      Vector3(1.0f, -1.0f, -1.0f),
+      Vector3(1.0f, -1.0f,  1.0f),
+      Vector3(1.0f,  1.0f,  1.0f),
+      Vector3(1.0f,  1.0f,  1.0f),
+      Vector3(1.0f,  1.0f, -1.0f),
+      Vector3(1.0f, -1.0f, -1.0f),
+
+      Vector3(-1.0f, -1.0f,  1.0f),
+      Vector3(-1.0f,  1.0f,  1.0f),
+      Vector3(1.0f,  1.0f,  1.0f),
+      Vector3(1.0f,  1.0f,  1.0f),
+      Vector3(1.0f, -1.0f,  1.0f),
+      Vector3(-1.0f, -1.0f,  1.0f),
+
+      Vector3(-1.0f,  1.0f, -1.0f),
+      Vector3(1.0f,  1.0f, -1.0f),
+      Vector3(1.0f,  1.0f,  1.0f),
+      Vector3(1.0f,  1.0f,  1.0f),
+      Vector3(-1.0f,  1.0f,  1.0f),
+      Vector3(-1.0f,  1.0f, -1.0f),
+
+      Vector3(-1.0f, -1.0f, -1.0f),
+      Vector3(-1.0f, -1.0f,  1.0f),
+      Vector3(1.0f, -1.0f, -1.0f),
+      Vector3(1.0f, -1.0f, -1.0f),
+      Vector3(-1.0f, -1.0f,  1.0f),
+      Vector3(1.0f, -1.0f,  1.0f)
+    };
+    _skyBoxVertexData.reset(new VertexBuffer());
+    _skyBoxVertexData->UploadData<Vector3>(skyBoxVertices, BufferUsage::Static);
+
+    auto posLoc = static_cast<uint32>(VertexArribLocation::Position);
+
+    glBindVertexArray(_skyBoxVertexData->_vaoId);
+    glVertexAttribPointer(posLoc, 3, GL_FLOAT, GL_FALSE, 12, nullptr);
+    glEnableVertexAttribArray(posLoc);
+    glBindVertexArray(0);
+  }
+  auto shader = _shaderCollection->GetShader("SkyBox.glsl");
+  if (!shader)
+  {
+    return;
+  }
+  shader->SetUniformMat4(shader->GetUniformLocation("view"), Matrix4(scene->GetCamera()->GetViewMat()));
+  shader->SetUniformMat4(shader->GetUniformLocation("projection"), scene->GetCamera()->GetProjMat());
+  shader->SetUniformInt(shader->GetUniformLocation("skybox"), 0);
+
+  glDepthMask(GL_FALSE);
+  shader->Bind();
+  glBindVertexArray(_skyBoxVertexData->_vaoId);
+  glActiveTexture(GL_TEXTURE0);
+  glBindTexture(GL_TEXTURE_CUBE_MAP, scene->GetSkyBox()->_id);
+  glDrawArrays(GL_TRIANGLES, 0, 36);
+  glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
+  glBindVertexArray(0);
+  shader->Unbind();
+  glDepthMask(GL_TRUE);
+
+}
+
+void Renderer::DrawTexturedObjects(ObjectPtrArray objects, const Vector3& ambientColour)
+{
+  auto shader = _shaderCollection->GetShader("Textured.glsl");
+  if (!shader)
+  {
+    return;
+  }
+  shader->Bind();
+  shader->SetUniformVec3(shader->GetUniformLocation("ambientLight"), ambientColour);
+
+  shader->BindUniformBlock(shader->GetUniformBlockIndex("Transforms"), static_cast<int32>(UniformBindingPoint::Transforms), _cameraBuffer->_uboId, _cameraBuffer->_sizeBytes);
+  shader->BindUniformBlock(shader->GetUniformBlockIndex("Light"), static_cast<int32>(UniformBindingPoint::Light), _lightBuffer->_uboId, _lightBuffer->_sizeBytes);
+  for (auto object : objects)
+  {
+    auto staticMesh = std::dynamic_pointer_cast<StaticMesh>(object->GetComponent("StaticMesh"));
+    if (!staticMesh)
+    {
+      continue;
+    }
+
+    shader->SetUniformMat4(shader->GetUniformLocation("model"), object->GetTransform());
+
+    auto material = staticMesh->GetMaterial();
+
+    auto diffuseMap = material->GetTexture("DiffuseMap");
+    glActiveTexture(GL_TEXTURE0);
+    diffuseMap->Bind();
+    shader->SetUniformInt(shader->GetUniformLocation("material.diffuseMap"), 0);    
+
+    if (material->HasTexture("BumpMap"))
+    {
+      auto bumpMap = material->GetTexture("BumpMap");
+      glActiveTexture(GL_TEXTURE1);
+      bumpMap->Bind();
+      shader->SetUniformInt(shader->GetUniformLocation("material.bumpMap"), 1);
+    }    
+    
+    auto vertexData = staticMesh->GetVertexData();
+    glBindVertexArray(vertexData->_vaoId);
+    glDrawArrays(GL_TRIANGLES, 0, staticMesh->_vertexCount);
+    glBindVertexArray(0);
+    glBindTexture(GL_TEXTURE_2D, 0);
+  }
+}
+
+void Renderer::UploadCameraData(std::shared_ptr<OrbitalCamera> camera)
+{
+  if (_activeCamera != camera)
+  {
+    _activeCamera = camera;
+    _projectionMatrixDirty = true;
+    _viewMatrixDirty = true;
+  }
+
+  if (_cameraBuffer == nullptr)
+  {
+    _cameraBuffer.reset(new ConstantBuffer(144));
+    _projectionMatrixDirty = true;
+    _viewMatrixDirty = true;
+  }
+
+  if (_projectionMatrixDirty)
+  {
+    _cameraBuffer->UploadSubData(0, _activeCamera->GetProjMat());
+  }
+
+  if (_viewMatrixDirty)
+  {
+    _cameraBuffer->UploadSubData(64, _activeCamera->GetViewMat());
+    _cameraBuffer->UploadSubData(128, _activeCamera->GetPos());
+  }
+}
+
+void Renderer::UploadLightData(std::shared_ptr<WorldObject> lightObject)
+{
+  auto pointLight = std::dynamic_pointer_cast<PointLight>(lightObject->GetComponent("PointLight"));
+  if (pointLight == nullptr)
+  {
+    return;
+  }
+
+  if (_lightBuffer == nullptr)
+  {
+    _lightBuffer.reset(new ConstantBuffer(80));
+  }
+
+  _lightBuffer->UploadSubData(0, pointLight->GetPosition());
+  _lightBuffer->UploadSubData(16, pointLight->GetDiffuseColour());
+  _lightBuffer->UploadSubData(32, pointLight->GetSpecularColour());
+  _lightBuffer->UploadSubData(44, pointLight->GetConstContrib());
+  _lightBuffer->UploadSubData(48, pointLight->GetLinearContrib());
+  _lightBuffer->UploadSubData(52, pointLight->GetQuadraticContrib());
+}
+
+void Renderer::ClearBuffer(ClearType clearType)
+{
+  switch (clearType)
+  {
+    case ClearType::Color:
+      glClear(GL_COLOR_BUFFER_BIT);
+      break;
+    case ClearType::Depth:
+      glClear(GL_DEPTH_BUFFER_BIT);
+      break;
+    case ClearType::All:
+      glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+      break;
+  }
+}
+
+std::unordered_map<RenderingTechnique, ObjectPtrArray> Renderer::SortByRenderingTechnique(ObjectPtrArray objects)
+{
+  ObjectPtrArray texturedObjects;
+  ObjectPtrArray colouredObjects;
+  std::unordered_map<RenderingTechnique, ObjectPtrArray> objectMapping;
+  for (auto object : objects)
+  {
+    auto staticMesh = std::dynamic_pointer_cast<StaticMesh>(object->GetComponent("StaticMesh"));
+    if (!staticMesh)
+    {
+      continue;
+    }
+
+    auto material = staticMesh->GetMaterial();
+    if (material->HasTexture("DiffuseMap"))
+    {
+      texturedObjects.push_back(object);
+    }
+    else if (material->HasDiffuseColour())
+    {
+      colouredObjects.push_back(object);
+    }
+  }
+
+  objectMapping[RenderingTechnique::Coloured] = std::move(colouredObjects);
+  objectMapping[RenderingTechnique::Textured] = std::move(texturedObjects);
+  return std::move(objectMapping);
+}
+}
