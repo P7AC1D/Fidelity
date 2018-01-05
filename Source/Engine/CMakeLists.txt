@@ -40,6 +40,10 @@ file(GLOB UtilitySrc
 	${CMAKE_CURRENT_SOURCE_DIR}/Utility/*.cpp
 	)
 
+file(GLOB ShaderSrc 
+	${CMAKE_CURRENT_SOURCE_DIR}/Shaders/*.glsl
+	)
+
 source_group(Components FILES ${ComponentsSrc})
 source_group(Core FILES ${CoreSrc})
 source_group(Maths FILES ${MathsSrc})
@@ -47,6 +51,7 @@ source_group(Rendering FILES ${RenderingSrc})
 source_group(SceneManagement FILES ${SceneManagementSrc})
 source_group(UI FILES ${UiSrc})
 source_group(Utility FILES ${UtilitySrc})
+source_group(Shaders FILES ${ShaderSrc})
 
 include_directories(${SDL2_INCLUDE_DIR})
 include_directories(${GLEW_INCLUDE_DIRS})
@@ -55,4 +60,4 @@ IF (APPLE)
 include_directories(${OPENGL_INCLUDE_DIRS})
 ENDIF()
 
-add_library(Engine STATIC ${ComponentsSrc} ${CoreSrc} ${MathsSrc} ${RenderingSrc} ${SceneManagementSrc} ${UiSrc} ${UtilitySrc})
+add_library(Engine STATIC ${ComponentsSrc} ${CoreSrc} ${MathsSrc} ${RenderingSrc} ${SceneManagementSrc} ${UiSrc} ${UtilitySrc} ${ShaderSrc})
