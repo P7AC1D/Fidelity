@@ -1,11 +1,11 @@
 #pragma once
 #include "../Core/Types.hpp"
 #include "Radian.hpp"
+#include "Vector4.hpp"
 
 class Matrix3;
 class Quaternion;
 class Vector3;
-class Vector4;
 
 class Matrix4
 {
@@ -51,5 +51,5 @@ public:
   friend Vector4 operator*(const Vector4& lhs, const Matrix4& rhs);
   
 private:
-  float32 _m[4][4];
+  Vector4 _m[4];
 };

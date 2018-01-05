@@ -77,7 +77,7 @@ Vector4& Vector4::operator=(const Vector4& rhs)
   return *this;
 }
 
-Vector4 Vector4::operator+(const Vector4 &rhs)
+Vector4 Vector4::operator+(const Vector4 &rhs) const
 {
   float32 x = _x + rhs._x;
   float32 y = _y + rhs._y;
@@ -86,7 +86,7 @@ Vector4 Vector4::operator+(const Vector4 &rhs)
   return Vector4(x, y, z, w);
 }
 
-Vector4 Vector4::operator-(const Vector4 &rhs)
+Vector4 Vector4::operator-(const Vector4 &rhs) const
 {
   float32 x = _x - rhs._x;
   float32 y = _y - rhs._y;
@@ -95,7 +95,16 @@ Vector4 Vector4::operator-(const Vector4 &rhs)
   return Vector4(x, y, z, w);
 }
 
-Vector4 Vector4::operator+(float32 rhs)
+Vector4 Vector4::operator*(const Vector4& rhs) const
+{
+  float32 x = _x * rhs._x;
+  float32 y = _y * rhs._y;
+  float32 z = _z * rhs._z;
+  float32 w = _w * rhs._w;
+  return Vector4(x, y, z, w);
+}
+
+Vector4 Vector4::operator+(float32 rhs) const
 {
   float32 x = _x + rhs;
   float32 y = _y + rhs;
@@ -104,7 +113,7 @@ Vector4 Vector4::operator+(float32 rhs)
   return Vector4(x, y, z, w);
 }
 
-Vector4 Vector4::operator-(float32 rhs)
+Vector4 Vector4::operator-(float32 rhs) const
 {
   float32 x = _x - rhs;
   float32 y = _y - rhs;
@@ -113,7 +122,7 @@ Vector4 Vector4::operator-(float32 rhs)
   return Vector4(x, y, z, w);
 }
 
-Vector4 Vector4::operator*(float32 rhs)
+Vector4 Vector4::operator*(float32 rhs) const
 {
   float32 x = _x * rhs;
   float32 y = _y * rhs;

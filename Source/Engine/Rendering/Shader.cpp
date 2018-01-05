@@ -56,13 +56,13 @@ void Shader::SetUniformVec4(int32 location, const Vector4& value)
 void Shader::SetUniformMat3(int32 location, const Matrix3& value)
 {
   Bind();
-  glUniformMatrix3fv(location, 1, GL_FALSE, &value[0][0]);
+  glUniformMatrix3fv(location, 1, GL_TRUE, &value[0][0]);
 }
 
 void Shader::SetUniformMat4(int32 location, const Matrix4& value)
 {
   Bind();
-  glUniformMatrix4fv(location, 1, GL_FALSE, &value[0][0]);
+  glUniformMatrix4fv(location, 1, GL_TRUE, &value[0][0]);
 }
 
 void Shader::SetUniformVec3Array(int32 location, const std::vector<Vector3>& values)

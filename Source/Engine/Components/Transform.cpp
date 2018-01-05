@@ -5,7 +5,7 @@ namespace Components
 Transform::Transform() : 
   _scale(Vector3::Identity),
   _position(Vector3::Zero),
-  _rotation(Quaternion::Zero),
+  _rotation(Quaternion::Identity),
   _transform(Matrix4::Identity),
   _transformNeedsUpdate(true),
   Component("Transform")
@@ -80,7 +80,10 @@ Matrix4 Transform::Get()
 
 void Transform::UpdateTransform()
 {
-  _transform = Matrix4::Translation(_position) * Matrix4::Scaling(_scale) * Matrix4::Rotation(_rotation);
+  Matrix4 translation = Matrix4::Translation(_position);
+  Matrix4 scale = Matrix4::Scaling(_scale);
+  Matrix4 rotation = Matrix4::Rotation(_rotation);
+  _transform = translation * scale * rotation;
   _transformNeedsUpdate = false;
 }
 }

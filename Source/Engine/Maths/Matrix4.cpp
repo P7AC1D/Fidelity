@@ -7,7 +7,6 @@
 #include "Matrix3.hpp"
 #include "Quaternion.hpp"
 #include "Vector3.hpp"
-#include "Vector4.hpp"
 
 static float32 Minor(const Matrix4& _m, const uint32 r0, const uint32 r1, const uint32 r2,
                      const uint32 c0, const uint32 c1, const uint32 c2)
@@ -304,14 +303,14 @@ bool Matrix4::operator!=(const Matrix4& rhs) const
 Vector4& Matrix4::operator[](uint32 row)
 {
   assert(row < 4);
-  return *(Vector4*)_m[row];
+  return _m[row];
 }
 
 
 const Vector4& Matrix4::operator[](uint32 row) const
 {
   assert(row < 4);
-  return *(Vector4*)_m[row];
+  return _m[row];
 }
 
 float32 Matrix4::Determinate() const

@@ -20,12 +20,13 @@ public:
   Vector4(const Vector4& vec);
   
   Vector4& operator=(const Vector4& rhs);
-  Vector4 operator+(const Vector4& rhs);
-  Vector4 operator-(const Vector4& rhs);
+  Vector4 operator+(const Vector4& rhs) const;
+  Vector4 operator-(const Vector4& rhs) const;
+  Vector4 operator*(const Vector4& rhs) const;
   
-  Vector4 operator+(float32 rhs);
-  Vector4 operator-(float32 rhs);
-  Vector4 operator*(float32 rhs);
+  Vector4 operator+(float32 rhs) const;
+  Vector4 operator-(float32 rhs) const;
+  Vector4 operator*(float32 rhs) const;
   
   Vector4 operator+=(const Vector4& rhs);
   Vector4 operator-=(const Vector4& rhs);

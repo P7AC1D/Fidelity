@@ -234,6 +234,11 @@ void Renderer::SetVertexAttribPointers(StaticMesh* staticMesh, int32 stride)
 
 void Renderer::DrawSkyBox(std::shared_ptr<SceneManagement::Scene> scene)
 {
+  if (!scene->GetSkyBox())
+  {
+    return;
+  }
+
   if (!_skyBoxVertexData)
   {
     static std::vector<Vector3> skyBoxVertices =
@@ -295,7 +300,7 @@ void Renderer::DrawSkyBox(std::shared_ptr<SceneManagement::Scene> scene)
   {
     return;
   }
-  shader->SetUniformMat4(shader->GetUniformLocation("view"), Matrix4(scene->GetCamera()->GetViewMat()));
+  shader->SetUniformMat4(shader->GetUniformLocation("view"), scene->GetCamera()->GetViewMat());
   shader->SetUniformMat4(shader->GetUniformLocation("projection"), scene->GetCamera()->GetProjMat());
   shader->SetUniformInt(shader->GetUniformLocation("skybox"), 0);
 
@@ -375,13 +380,13 @@ void Renderer::UploadCameraData(std::shared_ptr<OrbitalCamera> camera)
 
   if (_projectionMatrixDirty)
   {
-    _cameraBuffer->UploadSubData(0, _activeCamera->GetProjMat());
+    _cameraBuffer->UploadData(0, 64, &_activeCamera->GetProjMat()[0]);
   }
 
   if (_viewMatrixDirty)
   {
-    _cameraBuffer->UploadSubData(64, _activeCamera->GetViewMat());
-    _cameraBuffer->UploadSubData(128, _activeCamera->GetPos());
+    _cameraBuffer->UploadData(64, 64, &_activeCamera->GetViewMat()[0]);
+    _cameraBuffer->UploadData(128, 12, &_activeCamera->GetPos()[0]);
   }
 }
 
@@ -398,12 +403,17 @@ void Renderer::UploadLightData(std::shared_ptr<WorldObject> lightObject)
     _lightBuffer.reset(new ConstantBuffer(80));
   }
 
-  _lightBuffer->UploadSubData(0, pointLight->GetPosition());
-  _lightBuffer->UploadSubData(16, pointLight->GetDiffuseColour());
-  _lightBuffer->UploadSubData(32, pointLight->GetSpecularColour());
-  _lightBuffer->UploadSubData(44, pointLight->GetConstContrib());
-  _lightBuffer->UploadSubData(48, pointLight->GetLinearContrib());
-  _lightBuffer->UploadSubData(52, pointLight->GetQuadraticContrib());
+  _lightBuffer->UploadData(0, 12, &pointLight->GetPosition()[0]);
+  _lightBuffer->UploadData(16, 12, &pointLight->GetDiffuseColour()[0]);
+  _lightBuffer->UploadData(32, 12, &pointLight->GetSpecularColour()[0]);
+
+  float32 constContrib = pointLight->GetConstContrib();
+  float32 linearContrib = pointLight->GetLinearContrib();
+  float32 quadContrib = pointLight->GetQuadraticContrib();
+
+  _lightBuffer->UploadData(44, 4, &constContrib);
+  _lightBuffer->UploadData(48, 4, &linearContrib);
+  _lightBuffer->UploadData(52, 4, &quadContrib);
 }
 
 void Renderer::ClearBuffer(ClearType clearType)
