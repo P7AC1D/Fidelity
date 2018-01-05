@@ -57,7 +57,7 @@ void Test3D::OnStart()
 
   auto floor = rootNode->CreateObject("floor");
   auto floorMesh = MeshFactory::CreateCube();
-  floor->SetScale(Vector3(10.0f, 0.01f, 10.0f));
+  floor->SetScale(Vector3(20.0f, 0.01f, 20.0f));
   floor->SetPosition(Vector3(0.0f, -2.0f, 0.0f));
   floorMesh->GetMaterial()->SetTexture("DiffuseMap", _assetManager->GetTexture("brick_floor_tileable_Base_Color.jpg", true));
   floorMesh->GetMaterial()->SetTexture("BumpMap", _assetManager->GetTexture("brick_floor_tileable_Glossiness.jpg"));
@@ -142,6 +142,6 @@ void Test3D::OnInput()
 
 void Test3D::OnTick(uint32 dtMs)
 {
-  _object->Rotate(Quaternion(Vector3(0.0f, 1.0f, 1.0f), Radian(0.5f * dtMs)));
-  _sceneNode->Rotate(Quaternion(Vector3(0.0f, 1.0f, 0.0f), Radian(0.5f * dtMs)));
+  _object->Rotate(Quaternion(Vector3(0.0f, 1.0f, 1.0f), Radian(0.0005f * dtMs)));
+  _sceneNode->Rotate(Quaternion(Vector3(0.0f, 1.0f, 0.0f), Radian(0.0005f * dtMs)));
 }

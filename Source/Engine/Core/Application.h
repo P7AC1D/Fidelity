@@ -75,6 +75,4 @@ private:
   SDL_Window* _window;
   SDL_GLContext _glContext;
   bool _isRunning;
-  uint32 _lastTimeInMs;
-  uint32 _currentTimeInMs;
 };

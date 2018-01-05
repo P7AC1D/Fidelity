@@ -65,9 +65,7 @@ Application::Application(const ApplicationDesc &desc) :
   _uiManager(new UIManager),
   _assetManager(new AssetManager("./../../../Assets/Textures/")),
   _desc(desc),
-  _isRunning(false),
-  _lastTimeInMs(0),
-  _currentTimeInMs(0)
+  _isRunning(false)
 {
 }
 
@@ -112,8 +110,10 @@ bool Application::Initialize()
 
 uint32 Application::GetTickDuration()
 {
-  _lastTimeInMs = _currentTimeInMs;
-  uint32 durationInMs = SDL_GetTicks();
-  _currentTimeInMs = _lastTimeInMs - durationInMs;
-  return _currentTimeInMs;
+  static uint32 dtMs = 0;
+  static uint32 lastTimeInMs = 0;
+  uint32 currentTimeInMs = SDL_GetTicks();
+  dtMs = currentTimeInMs - lastTimeInMs;
+  lastTimeInMs = currentTimeInMs;
+  return dtMs;
 }
