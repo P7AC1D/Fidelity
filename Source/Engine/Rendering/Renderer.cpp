@@ -188,7 +188,7 @@ bool Renderer::Initialize()
   GLenum error = glewInit();
   if (error != GLEW_OK)
   {
-    LOG_ERROR << "Could not initialize GLEW: " + std::string((char*)glewGetErrorString(error));
+    //LOG_ERROR << "Could not initialize GLEW: " + std::string((char*)glewGetErrorString(error));
     return false;
   }
 #endif
