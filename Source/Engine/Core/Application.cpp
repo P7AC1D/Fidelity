@@ -1,9 +1,5 @@
 #include "Application.h"
 
-#ifdef  _WIN32
-#define GLEW_STATIC 
-#endif 
-
 #include <SDL.h>
 
 #include "../Core/InputManager.h"
@@ -67,7 +63,7 @@ Application::Application(const ApplicationDesc &desc) :
   _sceneManager(new SceneManager),
   _renderer(new Renderer(desc.Width, desc.Height)),
   _uiManager(new UIManager),
-  _assetManager(new AssetManager("./../../ass/Textures/")),
+  _assetManager(new AssetManager("./../../../Assets/Textures/")),
   _desc(desc),
   _isRunning(false),
   _lastTimeInMs(0),
