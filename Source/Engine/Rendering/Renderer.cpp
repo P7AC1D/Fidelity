@@ -51,7 +51,7 @@ enum class UniformBindingPoint
 };
 
 Renderer::Renderer(int32 renderWidth, int32 renderHeight) :
-  _shaderCollection(new ShaderCollection("./../../../Source/Engine/Shaders/")),
+  _shaderCollection(new ShaderCollection("./../../Source/Engine/Shaders/")),
   _renderWidth(renderWidth),
   _renderHeight(renderHeight)
 {}
