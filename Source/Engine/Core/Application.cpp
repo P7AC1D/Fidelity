@@ -3,6 +3,8 @@
 #include <SDL.h>
 
 #include "../Core/InputManager.h"
+#include "../Input/EventDispatcher.hpp"
+#include "../Input/InputHandler.hpp"
 #include "../Rendering/Renderer.h"
 #include "../UI/UIManager.h"
 #include "../Utility/AssetManager.h"
@@ -38,8 +40,10 @@ int32 Application::Run()
         _isRunning = false;
         break;
       case SDL_KEYUP:
+        _inputHandler->SetKeyUp(ConvertSDLKeyCode(sdlEvent.key.keysym.sym));
+        break;
       case SDL_KEYDOWN:
-        OnInput();
+        _inputHandler->SetKeyDown(ConvertSDLKeyCode(sdlEvent.key.keysym.sym));
         break;
       }
     }
@@ -47,6 +51,7 @@ int32 Application::Run()
     uint32 dtMs = GetTickDuration();
     OnTick(dtMs);
 
+    _inputHandler->DispatchEvents(dtMs);
     _renderer->PreRender();
     _renderer->DrawUI(_uiManager->GetPanelCollection());
     _renderer->DrawScene(_sceneManager->GetActiveScene());
@@ -60,6 +65,8 @@ int32 Application::Run()
 }
 
 Application::Application(const ApplicationDesc &desc) :
+  _eventDispatcher(new EventDispatcher),
+  _inputHandler(new InputHandler(*_eventDispatcher.get())),
   _sceneManager(new SceneManager),
   _renderer(new Renderer(desc.Width, desc.Height)),
   _uiManager(new UIManager),
@@ -104,7 +111,6 @@ bool Application::Initialize()
   {
     return false;
   }
-
   return true;
 }
 

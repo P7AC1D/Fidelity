@@ -26,6 +26,9 @@ namespace Utility
 class AssetManager;
 }
 
+class EventDispatcher;
+class InputHandler;
+
 typedef void* SDL_GLContext;
 struct SDL_Window;
 
@@ -65,14 +68,16 @@ private:
   uint32 GetTickDuration();
 
 protected:
+  std::unique_ptr<EventDispatcher> _eventDispatcher;
+  std::unique_ptr<InputHandler> _inputHandler;
   std::unique_ptr<SceneManagement::SceneManager> _sceneManager;
   std::unique_ptr<Rendering::Renderer> _renderer;
   std::unique_ptr<UI::UIManager> _uiManager;
   std::unique_ptr<Utility::AssetManager> _assetManager;
 
 private:
-  ApplicationDesc _desc;
+  bool _isRunning;
   SDL_Window* _window;
   SDL_GLContext _glContext;
-  bool _isRunning;
+  ApplicationDesc _desc;
 };

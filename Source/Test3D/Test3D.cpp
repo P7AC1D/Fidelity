@@ -4,6 +4,8 @@
 #include "../Engine/Components/PointLight.h"
 #include "../Engine/Components/Transform.h"
 #include "../Engine/Core/InputManager.h"
+#include "../Engine/Input/InputHandler.hpp"
+#include "../Engine/Input/EventDispatcher.hpp"
 #include "../Engine/Maths/Quaternion.hpp"
 #include "../Engine/Maths/Radian.hpp"
 #include "../Engine/Maths/Vector3.hpp"
@@ -107,6 +109,20 @@ void Test3D::OnStart()
   //panel2->SetTexture(_assetManager->GetTexture("crate0_normal.png"));
   //_uiManager->AttachPanel(panel1);
   //_uiManager->AttachPanel(panel2);
+
+  _inputHandler->BindKeyToState("Forward", Key::W);
+  _inputHandler->BindKeyToState("Backward", Key::S);
+
+  _eventDispatcher->RegisterStateDispatch("Forward", [&](uint32 dt)
+  {
+    float32 dtInSec = static_cast<float32>(dt) / 1000.0f;
+    _camera->Zoom(dtInSec);
+  });
+  _eventDispatcher->RegisterStateDispatch("Backward", [&](uint32 dt)
+  {
+    float32 dtInSec = static_cast<float32>(dt) / 1000.0f;
+    _camera->Zoom(-dtInSec);
+  });
 }
 
 void Test3D::OnInput()
