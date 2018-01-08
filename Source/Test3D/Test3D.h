@@ -24,4 +24,6 @@ private:
   std::shared_ptr<SceneManagement::OrbitalCamera> _camera;
   std::shared_ptr<SceneManagement::WorldObject> _object;
   std::shared_ptr<SceneManagement::SceneNode> _sceneNode;
+  uint32 _prevMouseX;
+  uint32 _prevMouseY;
 };

@@ -31,20 +31,28 @@ int32 Application::Run()
 
   while (_isRunning)
   {
+    OnInput();
+    
     SDL_Event sdlEvent;
     if (SDL_PollEvent(&sdlEvent))
     {
       switch (sdlEvent.type)
       {
-      case SDL_QUIT:
-        _isRunning = false;
-        break;
-      case SDL_KEYUP:
-        _inputHandler->SetKeyUp(ConvertSDLKeyCode(sdlEvent.key.keysym.sym));
-        break;
-      case SDL_KEYDOWN:
-        _inputHandler->SetKeyDown(ConvertSDLKeyCode(sdlEvent.key.keysym.sym));
-        break;
+        case SDL_QUIT:
+          _isRunning = false;
+          break;
+        case SDL_KEYUP:
+          _inputHandler->SetKeyUp(ConvertSDLKeyCode(sdlEvent.key.keysym.sym));
+          break;
+        case SDL_KEYDOWN:
+          _inputHandler->SetKeyDown(ConvertSDLKeyCode(sdlEvent.key.keysym.sym));
+          break;
+        case SDL_MOUSEBUTTONUP:
+          _inputHandler->SetButtonUp(ConvertSDLButton(sdlEvent.button.button));
+          break;
+        case SDL_MOUSEBUTTONDOWN:
+          _inputHandler->SetButtonDown(ConvertSDLButton(sdlEvent.button.button));
+          break;
       }
     }
 

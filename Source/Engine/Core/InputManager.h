@@ -5,19 +5,10 @@
 
 #include "../Core/Types.hpp"
 
+class Vector2;
+
 namespace Platform
 {
-struct MousePosition
-{
-  MousePosition(float64 x, float64 y) :
-    XPosition(x),
-    YPosition(y)
-  {}
-
-  float64 XPosition;
-  float64 YPosition;
-};
-
 class InputManager
 {
 public:
@@ -33,7 +24,7 @@ public:
   bool IsKeyDown(int32 key);
   bool IsButtonDown(int32 button);
 
-  MousePosition GetMousePosition();
+  Vector2 GetMousePosition();
   float32 GetMouseScrollOffset() const;
 
   void Poll();

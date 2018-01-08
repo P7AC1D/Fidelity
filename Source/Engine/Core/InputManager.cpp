@@ -1,5 +1,9 @@
 #include "InputManager.h"
 
+#include <SDL.h>
+
+#include "../Maths/Vector2.hpp"
+
 namespace Platform
 {
 InputManager::InputManager() :
@@ -83,9 +87,12 @@ bool InputManager::IsButtonDown(int32 button)
   return iter->second;
 }
 
-MousePosition InputManager::GetMousePosition()
+Vector2 InputManager::GetMousePosition()
 {
-  return MousePosition(-1.0, -1.0);
+  int32 xPos = 0;
+  int32 yPos = 0;
+  SDL_GetMouseState(&xPos, &yPos);
+  return Vector2(xPos, yPos);
 }
 
 float32 InputManager::GetMouseScrollOffset() const

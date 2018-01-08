@@ -8,6 +8,7 @@
 #include "../Engine/Input/EventDispatcher.hpp"
 #include "../Engine/Maths/Quaternion.hpp"
 #include "../Engine/Maths/Radian.hpp"
+#include "../Engine/Maths/Vector2.hpp"
 #include "../Engine/Maths/Vector3.hpp"
 #include "../Engine/Rendering/Material.h"
 #include "../Engine/Rendering/MeshFactory.h"
@@ -112,17 +113,27 @@ void Test3D::OnStart()
 
   _inputHandler->BindKeyToState("Forward", Key::W);
   _inputHandler->BindKeyToState("Backward", Key::S);
+  _inputHandler->BindButtonToState("RotateCamera", Button::MouseButtonRight);
 
   _eventDispatcher->RegisterStateDispatch("Forward", [&](uint32 dt)
-  {
-    float32 dtInSec = static_cast<float32>(dt) / 1000.0f;
-    _camera->Zoom(dtInSec);
-  });
+                                          {
+                                            float32 dtInSec = static_cast<float32>(dt) / 1000.0f;
+                                            _camera->Zoom(dtInSec);
+                                          });
   _eventDispatcher->RegisterStateDispatch("Backward", [&](uint32 dt)
-  {
-    float32 dtInSec = static_cast<float32>(dt) / 1000.0f;
-    _camera->Zoom(-dtInSec);
-  });
+                                          {
+                                            float32 dtInSec = static_cast<float32>(dt) / 1000.0f;
+                                            _camera->Zoom(-dtInSec);
+                                          });
+  _eventDispatcher->RegisterStateDispatch("RotateCamera", [&](uint32 dt)
+                                          {
+                                            auto pos = _inputHandler->GetMousePosition();
+                                            float32 yaw = Radian(static_cast<float32>(_prevMouseX - pos[0]) * 0.1f).InRadians();
+                                            float32 pitch = Radian(static_cast<float32>(_prevMouseY - pos[1]) * 0.1f).InRadians();
+                                            _camera->Rotate(yaw, pitch);
+                                            _prevMouseX = pos[0];
+                                            _prevMouseY = pos[1];
+                                          });
 }
 
 void Test3D::OnInput()

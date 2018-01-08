@@ -1,6 +1,7 @@
 #pragma once
 #include <functional>
 #include <unordered_map>
+#include <string>
 #include <vector>
 
 #include "../Core/Types.hpp"
