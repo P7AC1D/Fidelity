@@ -111,63 +111,29 @@ void Test3D::OnStart()
   //_uiManager->AttachPanel(panel1);
   //_uiManager->AttachPanel(panel2);
 
-  _inputHandler->BindKeyToState("Forward", Key::W);
-  _inputHandler->BindKeyToState("Backward", Key::S);
-  _inputHandler->BindButtonToState("RotateCamera", Button::MouseButtonRight);
+  _inputHandler->BindButtonToState("Forward", Button::Key_W);
+  _inputHandler->BindButtonToState("Backward", Button::Key_S);
+  _inputHandler->BindButtonToState("RotateCamera", Button::Button_LMouse);
 
-  _eventDispatcher->RegisterStateDispatch("Forward", [&](uint32 dt)
-                                          {
-                                            float32 dtInSec = static_cast<float32>(dt) / 1000.0f;
-                                            _camera->Zoom(dtInSec);
-                                          });
-  _eventDispatcher->RegisterStateDispatch("Backward", [&](uint32 dt)
-                                          {
-                                            float32 dtInSec = static_cast<float32>(dt) / 1000.0f;
-                                            _camera->Zoom(-dtInSec);
-                                          });
-  _eventDispatcher->RegisterStateDispatch("RotateCamera", [&](uint32 dt)
-                                          {
-                                            auto pos = _inputHandler->GetMousePosition();
-                                            float32 yaw = Radian(static_cast<float32>(_prevMouseX - pos[0]) * 0.1f).InRadians();
-                                            float32 pitch = Radian(static_cast<float32>(_prevMouseY - pos[1]) * 0.1f).InRadians();
-                                            _camera->Rotate(yaw, pitch);
-                                            _prevMouseX = pos[0];
-                                            _prevMouseY = pos[1];
-                                          });
+  _eventDispatcher->Register("Forward", [&](const InputEvent& inputEvent, uint32 dt)
+                                        {
+                                          float32 dtInSec = static_cast<float32>(dt) / 1000.0f;
+                                          _camera->Zoom(dtInSec);
+                                        });
+  _eventDispatcher->Register("Backward", [&](const InputEvent& inputEvent, uint32 dt)
+                                         {
+                                           float32 dtInSec = static_cast<float32>(dt) / 1000.0f;
+                                           _camera->Zoom(-dtInSec);
+                                         });
+  _eventDispatcher->Register("RotateCamera", [&](const InputEvent& inputEvent, uint32 dt)
+                                             {
+                                               float32 yaw = Radian(static_cast<float32>(inputEvent.AxesDelta[0]) * 0.1f).InRadians();
+                                               float32 pitch = Radian(static_cast<float32>(inputEvent.AxesDelta[1]) * 0.1f).InRadians();
+                                               _camera->Rotate(yaw, pitch);
+                                             });
 }
 
-void Test3D::OnInput()
-{
-  //if (_inputManager->IsKeyDown(GLFW_KEY_D))
-  //{
-  //  _camera->Pan(0.1f, 0.0f);
-  //}
-  //else if (_inputManager->IsKeyDown(GLFW_KEY_A))
-  //{
-  //  _camera->Pan(-0.1f, 0.0f);
-  //}
-
-  //auto mouseScrollOffset = _inputManager->GetMouseScrollOffset();
-  //if (mouseScrollOffset != 0)
-  //{
-  //  _camera->Zoom(mouseScrollOffset);
-  //  _inputManager->SetMouseScrollOffset(0.0f);
-  //}
-
-  //static float64 prevXPos;
-  //static float64 prevYPos;
-  //auto mousePosition = _inputManager->GetMousePosition();
-  //if (_inputManager->IsButtonDown(GLFW_MOUSE_BUTTON_RIGHT))
-  //{      
-  //  float32 yaw = Radian(static_cast<float32>(prevXPos - mousePosition.XPosition)* 0.01f).InRadians();
-  //  float32 pitch = Radian(static_cast<float32>(prevYPos - mousePosition.YPosition) * 0.01f).InRadians();
-  //  _camera->Rotate(yaw, pitch);    
-  //}
-  //prevXPos = mousePosition.XPosition;
-  //prevYPos = mousePosition.YPosition;
-}
-
-void Test3D::OnTick(uint32 dtMs)
+void Test3D::OnUpdate(uint32 dtMs)
 {
   _object->Rotate(Quaternion(Vector3(0.0f, 1.0f, 1.0f), Radian(0.0005f * dtMs)));
   _sceneNode->Rotate(Quaternion(Vector3(0.0f, 1.0f, 0.0f), Radian(0.0005f * dtMs)));

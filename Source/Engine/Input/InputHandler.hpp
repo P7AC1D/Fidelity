@@ -1,53 +1,57 @@
 #pragma once
+#include <array>
 #include <unordered_map>
 #include <string>
-#include <vector>
 
 #include "../Core/Types.hpp"
-#include "Buttons.hpp"
-#include "Keys.hpp"
+#include "../Maths/Vector2i.hpp"
+#include "InputBindings.hpp"
 
 class EventDispatcher;
-class Vector2;
 
 typedef std::string Action;
 typedef std::string State;
+
+enum class ButtonEvent
+{
+  _null,
+
+  Pressed,
+  Released,
+};
+
+struct InputEvent
+{
+  Button Button = Button::_null;
+  ButtonEvent ButtonEvent = ButtonEvent::_null;
+  Axis Axis = Axis::_null;
+  Vector2i AxesDelta = Vector2i::Zero;
+};
 
 class InputHandler
 {
 public:
   InputHandler(const EventDispatcher& eventDispatcher);
 
-  void BindKeyToAction(Action action, Key key);
   void BindButtonToAction(Action action, Button button);
-  void BindKeyToState(State state, Key key);
   void BindButtonToState(State state, Button button);
+  void BindAxisToState(State state, Axis axis);
 
-  void SetKeyUp(Key key);
-  void SetButtonUp(Button button);
-  void SetKeyDown(Key key);
-  void SetButtonDown(Button button);
-  
-  Vector2 GetMousePosition() const;
-
-  void DispatchEvents(uint32 dtMs) const;
+  void Dispatch(const InputEvent& inputEvent, uint32 dtMs);
 
 private:
-  void DispatchKeyEvents(uint32 dtMs) const;
-  void DispatchButtonEvents(uint32 dtMs) const;
-  
-  void DispatchKeyActions(const std::vector<Key>& keysPressed) const;
-  void DispatchKeyStates(const std::vector<Key>& keysPressed, uint32 dt) const;
-  void DispatchButtonActions(const std::vector<Button>& buttonsPressed) const;
-  void DispatchButtonStates(const std::vector<Button>& buttonsPressed, uint32 dt) const;
+  void DispatchButtonActions(const InputEvent& inputEvent);
+  void DispatchButtonStates(const InputEvent& inputEvent, uint32 dtMs);
+  void DispatchAxisStates(const InputEvent& inputEvent, uint32 dtMs);
 
 private:
-  std::unordered_map<Key, bool> _keysPressed;
-  std::unordered_map<Button, bool> _buttonsPressed;
-  std::unordered_map<Key, Action> _actionKeyBindings;
-  std::unordered_map<Button, Action> _actionButtonBindings;
-  std::unordered_map<Key, State> _stateKeyBindings;
-  std::unordered_map<Button, State> _stateButtonBindings;
+  std::unordered_map<Button, Action> _buttonActionBindings;
+  std::unordered_map<Button, State> _buttonStateBindings;
+  std::unordered_map<Axis, State> _axisStateBindings;
+
+  std::array<bool, static_cast<size_t>(Button::_count)> _buttonsDown;
+  std::array<float32, static_cast<size_t>(Axis::_count)> _currentAxisValues;
+  std::array<float32, static_cast<size_t>(Axis::_count)> _prevAxisValues;
 
   const EventDispatcher& _eventDispatcher;
 };

@@ -45,9 +45,7 @@ public:
   virtual ~Application();
 
   virtual void OnStart() {}
-  virtual void OnInput() {}
-  virtual void OnDraw() {}
-  virtual void OnTick(uint32 dtMs) {}
+  virtual void OnUpdate(uint32 dtMs) {}
 
   std::string GetName() const { return _desc.Name; }
   uint32 GetWidth() const { return _desc.Width; }

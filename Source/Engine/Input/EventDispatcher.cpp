@@ -1,39 +1,35 @@
 #include "EventDispatcher.hpp"
 
-void EventDispatcher::RegisterActionDispatch(Action action, const std::function<void()>& actionCommand)
+void EventDispatcher::Register(Action action, const std::function<void(const InputEvent& inputEvent)>& actionCommand)
 {
   _actionCommandsMap[action].push_back(actionCommand);
 }
 
-void EventDispatcher::RegisterStateDispatch(State state, const std::function<void(uint32 dt)>& stateCommand)
+void EventDispatcher::Register(State state, const std::function<void(const InputEvent& inputEvent, uint32)>& stateCommand)
 {
   _stateCommandsMap[state].push_back(stateCommand);
 }
 
-void EventDispatcher::DispatchAction(Action action) const
+void EventDispatcher::Dispatch(State state, const InputEvent& inputEvent, uint32 dtMs) const
 {
-  auto iter = _actionCommandsMap.find(action);
-  if (iter == _actionCommandsMap.end())
+  auto iter = _stateCommandsMap.find(state);
+  if (iter != _stateCommandsMap.end())
   {
-    return;
-  }
-
-  for (auto& command : iter->second)
-  {
-    command();
+    for (auto& command : iter->second)
+    {
+      command(inputEvent, dtMs);
+    }
   }
 }
 
-void EventDispatcher::DispatchState(State state, uint32 dtMs) const
+void EventDispatcher::Dispatch(Action action, const InputEvent& inputEvent) const
 {
-  auto iter = _stateCommandsMap.find(state);
-  if (iter == _stateCommandsMap.end())
+  auto iter = _actionCommandsMap.find(action);
+  if (iter != _actionCommandsMap.end())
   {
-    return;
-  }
-
-  for (auto& command : iter->second)
-  {
-    command(dtMs);
+    for (auto& command : iter->second)
+    {
+      command(inputEvent);
+    }
   }
 }

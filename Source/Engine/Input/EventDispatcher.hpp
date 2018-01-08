@@ -5,20 +5,18 @@
 #include <vector>
 
 #include "../Core/Types.hpp"
-
-typedef std::string Action;
-typedef std::string State;
+#include "InputHandler.hpp"
 
 class EventDispatcher
 {
 public:
-  void RegisterActionDispatch(Action action, const std::function<void()>& actionCommand);
-  void RegisterStateDispatch(State state, const std::function<void(uint32)>& stateCommand);
+  void Register(Action action, const std::function<void(const InputEvent&)>& actionCommand);
+  void Register(State state, const std::function<void(const InputEvent&, uint32)>& stateCommand);
 
-  void DispatchAction(Action action) const;
-  void DispatchState(State state, uint32 dtMs) const;
+  void Dispatch(State state, const InputEvent& inputEvent, uint32 dtMs) const;
+  void Dispatch(Action action, const InputEvent& inputEvent) const;
 
 private:
-  std::unordered_map<Action, std::vector<std::function<void()>>> _actionCommandsMap;
-  std::unordered_map<State, std::vector<std::function<void(uint32)>>> _stateCommandsMap;
+  std::unordered_map<Action, std::vector<std::function<void(const InputEvent&, uint32)>>> _stateCommandsMap;
+  std::unordered_map<Action, std::vector<std::function<void(const InputEvent&)>>> _actionCommandsMap;
 };

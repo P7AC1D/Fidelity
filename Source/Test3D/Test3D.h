@@ -17,8 +17,7 @@ public:
   Test3D(const ApplicationDesc& desc);
 
   void OnStart() override;
-  void OnInput() override;
-  void OnTick(uint32 dtMs) override;
+  void OnUpdate(uint32 dtMs) override;
 
 private:
   std::shared_ptr<SceneManagement::OrbitalCamera> _camera;
