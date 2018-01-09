@@ -1,16 +1,16 @@
 #include "EventDispatcher.hpp"
 
-void EventDispatcher::Register(Action action, const std::function<void(const InputEvent& inputEvent)>& actionCommand)
+void EventDispatcher::Register(const Action& action, const std::function<void(const InputEvent& inputEvent)>& actionCommand)
 {
   _actionCommandsMap[action].push_back(actionCommand);
 }
 
-void EventDispatcher::Register(State state, const std::function<void(const InputEvent& inputEvent, uint32)>& stateCommand)
+void EventDispatcher::Register(const State& state, const std::function<void(const InputEvent& inputEvent, uint32)>& stateCommand)
 {
   _stateCommandsMap[state].push_back(stateCommand);
 }
 
-void EventDispatcher::Dispatch(State state, const InputEvent& inputEvent, uint32 dtMs) const
+void EventDispatcher::Dispatch(const State& state, const InputEvent& inputEvent, uint32 dtMs) const
 {
   auto iter = _stateCommandsMap.find(state);
   if (iter != _stateCommandsMap.end())
@@ -22,7 +22,7 @@ void EventDispatcher::Dispatch(State state, const InputEvent& inputEvent, uint32
   }
 }
 
-void EventDispatcher::Dispatch(Action action, const InputEvent& inputEvent) const
+void EventDispatcher::Dispatch(const Action& action, const InputEvent& inputEvent) const
 {
   auto iter = _actionCommandsMap.find(action);
   if (iter != _actionCommandsMap.end())

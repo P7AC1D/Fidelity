@@ -2,7 +2,6 @@
 
 #include <SDL.h>
 
-#include "../Core/InputManager.h"
 #include "../Input/EventDispatcher.hpp"
 #include "../Input/InputHandler.hpp"
 #include "../Rendering/Renderer.h"
@@ -10,7 +9,6 @@
 #include "../Utility/AssetManager.h"
 #include "../SceneManagement/SceneManager.h"
 
-using namespace Platform;
 using namespace Rendering;
 using namespace UI;
 using namespace Utility;
@@ -63,8 +61,6 @@ int32 Application::Run()
           InputEvent inputEvent;
           inputEvent.Button = SDLToButton(sdlEvent.button.button);
           inputEvent.ButtonEvent = ButtonEvent::Released;
-          inputEvent.Axis = Axis::MouseXY;
-          inputEvent.AxesDelta = _cursorPosition - Vector2i(sdlEvent.button.x, sdlEvent.button.y);
           _inputHandler->Dispatch(inputEvent, dtMs);
           break;
         }
@@ -73,21 +69,25 @@ int32 Application::Run()
           InputEvent inputEvent;
           inputEvent.Button = SDLToButton(sdlEvent.button.button);
           inputEvent.ButtonEvent = ButtonEvent::Pressed;
-          inputEvent.Axis = Axis::MouseXY;
-          inputEvent.AxesDelta = _cursorPosition - Vector2i(sdlEvent.button.x, sdlEvent.button.y);
           _inputHandler->Dispatch(inputEvent, dtMs);
           break;
         }
         case SDL_MOUSEMOTION:
         {
-          _cursorPosition = Vector2i(sdlEvent.motion.x, sdlEvent.motion.y);
+          InputEvent inputEvent;
+          inputEvent.Axis = Axis::MouseXY;
+          inputEvent.AxisPos = Vector2i(sdlEvent.motion.x, sdlEvent.motion.y);
+          inputEvent.AxisPosDelta = _cursorPosition - inputEvent.AxisPos;
+          _inputHandler->Dispatch(inputEvent, dtMs);
+
+          _cursorPosition = inputEvent.AxisPos;
           break;
         }
         case SDL_MOUSEWHEEL:
         {
           InputEvent inputEvent;
           inputEvent.Axis = Axis::MouseScrollXY;
-          inputEvent.AxesDelta = Vector2i(sdlEvent.wheel.x, sdlEvent.motion.y);
+          inputEvent.AxisPosDelta = Vector2i(sdlEvent.wheel.x, sdlEvent.motion.y);
           _inputHandler->Dispatch(inputEvent, dtMs);
           break;
         }

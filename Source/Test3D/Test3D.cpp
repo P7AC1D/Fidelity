@@ -3,7 +3,6 @@
 #include "../Engine/Components/Component.h"
 #include "../Engine/Components/PointLight.h"
 #include "../Engine/Components/Transform.h"
-#include "../Engine/Core/InputManager.h"
 #include "../Engine/Input/InputHandler.hpp"
 #include "../Engine/Input/EventDispatcher.hpp"
 #include "../Engine/Maths/Quaternion.hpp"
@@ -24,13 +23,13 @@
 
 using namespace Components;
 using namespace Rendering;
-using namespace Platform;
 using namespace UI;
 using namespace Utility;
 using namespace SceneManagement;
 
 Test3D::Test3D(const ApplicationDesc& desc):
-  Application(desc)
+  Application(desc),
+  _rotatingCamera(false)
 {
 }
 
@@ -113,24 +112,26 @@ void Test3D::OnStart()
 
   _inputHandler->BindButtonToState("Forward", Button::Key_W);
   _inputHandler->BindButtonToState("Backward", Button::Key_S);
-  _inputHandler->BindButtonToState("RotateCamera", Button::Button_LMouse);
+  _inputHandler->BindButtonToState("ActivateCameraLook", Button::Button_LMouse);
+  _inputHandler->BindAxisToState("CameraLook", Axis::MouseXY);
 
   _eventDispatcher->Register("Forward", [&](const InputEvent& inputEvent, uint32 dt)
-                                        {
-                                          float32 dtInSec = static_cast<float32>(dt) / 1000.0f;
-                                          _camera->Zoom(dtInSec);
-                                        });
+  {
+    _camera->Zoom(dt * 0.1f);
+  });
   _eventDispatcher->Register("Backward", [&](const InputEvent& inputEvent, uint32 dt)
-                                         {
-                                           float32 dtInSec = static_cast<float32>(dt) / 1000.0f;
-                                           _camera->Zoom(-dtInSec);
-                                         });
-  _eventDispatcher->Register("RotateCamera", [&](const InputEvent& inputEvent, uint32 dt)
-                                             {
-                                               float32 yaw = Radian(static_cast<float32>(inputEvent.AxesDelta[0]) * dt * 0.01f).InRadians();
-                                               float32 pitch = Radian(static_cast<float32>(inputEvent.AxesDelta[1]) * dt * 0.01f).InRadians();
-                                               _camera->Rotate(yaw, pitch);
-                                             });
+  {
+    _camera->Zoom(dt * -0.1f);
+  });
+  _eventDispatcher->Register("CameraLook", [&](const InputEvent& inputEvent, uint32 dt)
+  {
+    if (_inputHandler->IsButtonStateActive("ActivateCameraLook"))
+    {
+      float32 yaw = Radian(static_cast<float32>(inputEvent.AxisPosDelta[0]) * dt * 0.1f).InRadians();
+      float32 pitch = Radian(static_cast<float32>(inputEvent.AxisPosDelta[1]) * dt * 0.1f).InRadians();
+      _camera->Rotate(yaw, pitch);
+    }
+  });
 }
 
 void Test3D::OnUpdate(uint32 dtMs)

@@ -5,19 +5,23 @@
 InputHandler::InputHandler(const EventDispatcher& eventDispatcher)
 : _eventDispatcher(eventDispatcher)
 {
+  for (auto& button : _buttonsDown)
+  {
+    button = false;
+  }
 }
 
-void InputHandler::BindButtonToAction(Action action, Button button)
+void InputHandler::BindButtonToAction(const Action& action, Button button)
 {
   _buttonActionBindings[button] = action;
 }
 
-void InputHandler::BindButtonToState(State state, Button button)
+void InputHandler::BindButtonToState(const State& state, Button button)
 {
   _buttonStateBindings[button] = state;
 }
 
-void InputHandler::BindAxisToState(State state, Axis axis)
+void InputHandler::BindAxisToState(const State& state, Axis axis)
 {
   _axisStateBindings[axis] = state;
 }
@@ -34,6 +38,19 @@ void InputHandler::Dispatch(const InputEvent& inputEvent, uint32 dtMs)
   {
     DispatchAxisStates(inputEvent, dtMs);
   }
+}
+
+bool InputHandler::IsButtonStateActive(const State& state) const
+{
+  auto iter = std::find_if(_buttonStateBindings.begin(), _buttonStateBindings.end(), [&](const std::pair<Button, State>& value)
+  {
+    return value.second == state;
+  });
+  if (iter != _buttonStateBindings.end())
+  {
+    return _buttonsDown[static_cast<size_t>(iter->first)];
+  }
+  return false;
 }
 
 void InputHandler::DispatchButtonActions(const InputEvent& inputEvent)

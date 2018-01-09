@@ -25,7 +25,8 @@ struct InputEvent
   Button Button = Button::_null;
   ButtonEvent ButtonEvent = ButtonEvent::_null;
   Axis Axis = Axis::_null;
-  Vector2i AxesDelta = Vector2i::Zero;
+  Vector2i AxisPos = Vector2i::Zero;
+  Vector2i AxisPosDelta = Vector2i::Zero;
 };
 
 class InputHandler
@@ -33,11 +34,13 @@ class InputHandler
 public:
   InputHandler(const EventDispatcher& eventDispatcher);
 
-  void BindButtonToAction(Action action, Button button);
-  void BindButtonToState(State state, Button button);
-  void BindAxisToState(State state, Axis axis);
+  void BindButtonToAction(const Action& action, Button button);
+  void BindButtonToState(const State& state, Button button);
+  void BindAxisToState(const State& state, Axis axis);
 
   void Dispatch(const InputEvent& inputEvent, uint32 dtMs);
+
+  bool IsButtonStateActive(const State& state) const;
 
 private:
   void DispatchButtonActions(const InputEvent& inputEvent);
