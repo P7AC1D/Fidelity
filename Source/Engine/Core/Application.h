@@ -4,6 +4,7 @@
 #include <string>
 
 #include "../Core/Types.hpp"
+#include "../Maths/Vector2I.hpp"
 
 namespace Rendering
 {
@@ -78,4 +79,5 @@ private:
   SDL_Window* _window;
   SDL_GLContext _glContext;
   ApplicationDesc _desc;
+  Vector2i _cursorPosition;
 };

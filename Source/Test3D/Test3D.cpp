@@ -127,8 +127,8 @@ void Test3D::OnStart()
                                          });
   _eventDispatcher->Register("RotateCamera", [&](const InputEvent& inputEvent, uint32 dt)
                                              {
-                                               float32 yaw = Radian(static_cast<float32>(inputEvent.AxesDelta[0]) * 0.1f).InRadians();
-                                               float32 pitch = Radian(static_cast<float32>(inputEvent.AxesDelta[1]) * 0.1f).InRadians();
+                                               float32 yaw = Radian(static_cast<float32>(inputEvent.AxesDelta[0]) * dt * 0.01f).InRadians();
+                                               float32 pitch = Radian(static_cast<float32>(inputEvent.AxesDelta[1]) * dt * 0.01f).InRadians();
                                                _camera->Rotate(yaw, pitch);
                                              });
 }

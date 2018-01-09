@@ -45,7 +45,7 @@ int32 Application::Run()
         case SDL_KEYUP:
         {
           InputEvent inputEvent;
-          inputEvent.Button = SDLConversion(sdlEvent.key.keysym.sym);
+          inputEvent.Button = SDLToButton(sdlEvent.key.keysym.sym);
           inputEvent.ButtonEvent = ButtonEvent::Released;
           _inputHandler->Dispatch(inputEvent, dtMs);
           break;
@@ -53,7 +53,7 @@ int32 Application::Run()
         case SDL_KEYDOWN:
         {
           InputEvent inputEvent;
-          inputEvent.Button = SDLConversion(sdlEvent.key.keysym.sym);
+          inputEvent.Button = SDLToButton(sdlEvent.key.keysym.sym);
           inputEvent.ButtonEvent = ButtonEvent::Pressed;
           _inputHandler->Dispatch(inputEvent, dtMs);
           break;
@@ -61,25 +61,26 @@ int32 Application::Run()
         case SDL_MOUSEBUTTONUP:
         {
           InputEvent inputEvent;
-          inputEvent.Button = SDLConversion(sdlEvent.button.button);
+          inputEvent.Button = SDLToButton(sdlEvent.button.button);
           inputEvent.ButtonEvent = ButtonEvent::Released;
+          inputEvent.Axis = Axis::MouseXY;
+          inputEvent.AxesDelta = _cursorPosition - Vector2i(sdlEvent.button.x, sdlEvent.button.y);
           _inputHandler->Dispatch(inputEvent, dtMs);
           break;
         }
         case SDL_MOUSEBUTTONDOWN:
         {
           InputEvent inputEvent;
-          inputEvent.Button = SDLConversion(sdlEvent.button.button);
+          inputEvent.Button = SDLToButton(sdlEvent.button.button);
           inputEvent.ButtonEvent = ButtonEvent::Pressed;
+          inputEvent.Axis = Axis::MouseXY;
+          inputEvent.AxesDelta = _cursorPosition - Vector2i(sdlEvent.button.x, sdlEvent.button.y);
           _inputHandler->Dispatch(inputEvent, dtMs);
           break;
         }
         case SDL_MOUSEMOTION:
         {
-          InputEvent inputEvent;
-          inputEvent.Axis = Axis::MouseXY;
-          inputEvent.AxesDelta = Vector2i(sdlEvent.motion.xrel, sdlEvent.motion.yrel);
-          _inputHandler->Dispatch(inputEvent, dtMs);
+          _cursorPosition = Vector2i(sdlEvent.motion.x, sdlEvent.motion.y);
           break;
         }
         case SDL_MOUSEWHEEL:

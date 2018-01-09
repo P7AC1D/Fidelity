@@ -1,4 +1,5 @@
 #pragma once
+#include "../Core/Types.hpp"
 
 enum class Button
 {
@@ -17,7 +18,7 @@ enum class Button
   Key_F10,
   Key_F11,
   Key_F12,
-  Key_Tilde,
+  Key_BackQuote,
   Key_1,
   Key_2,
   Key_3,
@@ -85,8 +86,8 @@ enum class Button
   Key_Up,
   Key_Right,
   Key_Down,
-  Key_NumForwardSlash,
-  Key_NumAsterisk,
+  Key_NumDivide,
+  Key_NumMultiply,
   Key_NumMinus,
   Key_Num1,
   Key_Num2,
@@ -98,7 +99,7 @@ enum class Button
   Key_Num8,
   Key_Num9,
   Key_Num0,
-  Key_NumDel,
+  Key_NumPeriod,
   Key_NumPlus,
   Key_NumReturn,
 
@@ -121,4 +122,4 @@ enum class Axis
   _count
 };
 
-Button SDLConversion(int32 button);
+Button SDLToButton(int32 button);
