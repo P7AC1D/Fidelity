@@ -87,7 +87,7 @@ int32 Application::Run()
         {
           InputEvent inputEvent;
           inputEvent.Axis = Axis::MouseScrollXY;
-          inputEvent.AxisPosDelta = Vector2i(sdlEvent.wheel.x, sdlEvent.motion.y);
+          inputEvent.AxisPosDelta = Vector2i(sdlEvent.wheel.x, sdlEvent.wheel.y);
           _inputHandler->Dispatch(inputEvent, dtMs);
           break;
         }
@@ -156,11 +156,11 @@ bool Application::Initialize()
   return true;
 }
 
-uint32 Application::GetTickDuration()
+int32 Application::GetTickDuration()
 {
-  static uint32 dtMs = 0;
-  static uint32 lastTimeInMs = 0;
-  uint32 currentTimeInMs = SDL_GetTicks();
+  static int32 dtMs = 0;
+  static int32 lastTimeInMs = 0;
+  int32 currentTimeInMs = SDL_GetTicks();
   dtMs = currentTimeInMs - lastTimeInMs;
   lastTimeInMs = currentTimeInMs;
   return dtMs;

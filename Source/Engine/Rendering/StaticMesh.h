@@ -31,6 +31,8 @@ public:
   void SetNormalVertexData(const std::vector<Vector3>& normalData);
   void SetTextureVertexData(const std::vector<Vector2>& textureData);
 
+  void CalculateTangents(const std::vector<Vector3>& positionData, const std::vector<Vector2>& textureData);
+
   std::shared_ptr<Rendering::Material> GetMaterial();
   std::shared_ptr<Rendering::VertexBuffer> GetVertexData();
 
@@ -49,6 +51,8 @@ private:
   std::shared_ptr<Rendering::VertexBuffer> _vertexBuffer;
   std::vector<Vector3> _positionData;
   std::vector<Vector3> _normalData;
+  std::vector<Vector3> _tangentData;
+  std::vector<Vector3> _bitangentData;
   std::vector<Vector2> _textureData;
   int32 _vertexDataFormat;
   int32 _vertexCount;

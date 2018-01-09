@@ -41,7 +41,9 @@ enum class VertexArribLocation
 {
   Position = 0,
   Normal = 1,
-  Uv = 2,
+  Tangent = 2,
+  Bitangent = 3,
+  Uv = 4,
 };
 
 enum class UniformBindingPoint
@@ -319,7 +321,7 @@ void Renderer::DrawSkyBox(std::shared_ptr<SceneManagement::Scene> scene)
 
 void Renderer::DrawTexturedObjects(ObjectPtrArray objects, const Vector3& ambientColour)
 {
-  auto shader = _shaderCollection->GetShader("Textured.glsl");
+  auto shader = _shaderCollection->GetShader("NormalMapping.glsl");
   if (!shader)
   {
     return;
@@ -346,13 +348,21 @@ void Renderer::DrawTexturedObjects(ObjectPtrArray objects, const Vector3& ambien
     diffuseMap->Bind();
     shader->SetUniformInt(shader->GetUniformLocation("material.diffuseMap"), 0);    
 
-    if (material->HasTexture("BumpMap"))
+    if (material->HasTexture("SpecularMap"))
     {
-      auto bumpMap = material->GetTexture("BumpMap");
+      auto bumpMap = material->GetTexture("SpecularMap");
       glActiveTexture(GL_TEXTURE1);
       bumpMap->Bind();
-      shader->SetUniformInt(shader->GetUniformLocation("material.bumpMap"), 1);
-    }    
+      shader->SetUniformInt(shader->GetUniformLocation("material.specularMap"), 1);
+    }   
+
+    if (material->HasTexture("NormalMap"))
+    {
+      auto bumpMap = material->GetTexture("NormalMap");
+      glActiveTexture(GL_TEXTURE2);
+      bumpMap->Bind();
+      shader->SetUniformInt(shader->GetUniformLocation("material.normalMap"), 2);
+    }
     
     auto vertexData = staticMesh->GetVertexData();
     glBindVertexArray(vertexData->_vaoId);

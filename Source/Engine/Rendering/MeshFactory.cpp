@@ -151,6 +151,8 @@ std::shared_ptr<StaticMesh> MeshFactory::CreateCube()
   mesh->SetPositionVertexData(s_cubePoints);
   mesh->SetNormalVertexData(s_cubeNormals);
   mesh->SetTextureVertexData(s_cubeUvs);
+
+  mesh->CalculateTangents(s_cubePoints, s_cubeUvs);
   return mesh;
 }
 }

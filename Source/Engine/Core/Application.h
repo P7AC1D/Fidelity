@@ -64,7 +64,7 @@ private:
   Application& operator= (Application&&) = delete;
 
   bool Initialize();
-  uint32 GetTickDuration();
+  int32 GetTickDuration();
 
 protected:
   std::unique_ptr<EventDispatcher> _eventDispatcher;

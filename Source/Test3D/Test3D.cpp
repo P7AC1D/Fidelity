@@ -49,8 +49,9 @@ void Test3D::OnStart()
   auto cube = _sceneNode->CreateObject("cube");
   auto cubeMesh = MeshFactory::CreateCube();
   auto cubeMaterial = cubeMesh->GetMaterial();
-  cubeMaterial->SetTexture("DiffuseMap", _assetManager->GetTexture("container2.png", true));
-  cubeMaterial->SetTexture("BumpMap", _assetManager->GetTexture("container2_specular.png"));
+  cubeMaterial->SetTexture("DiffuseMap", _assetManager->GetTexture("crate0_diffuse.png", true));
+  cubeMaterial->SetTexture("SpecularMap", _assetManager->GetTexture("crate0_bump.png"));
+  cubeMaterial->SetTexture("NormalMap", _assetManager->GetTexture("crate0_normal.png"));
   cube->AddComponent(cubeMesh);
   
   _object = _sceneNode->CreateObject("cube2");
@@ -92,8 +93,8 @@ void Test3D::OnStart()
   lightC->AddComponent(lightComponentC);
 
   rootNode->AddObject(lightA);
-  rootNode->AddObject(lightB);
-  rootNode->AddObject(lightC);
+  /*rootNode->AddObject(lightB);
+  rootNode->AddObject(lightC);*/
 
   auto skyBox = _assetManager->GetCubeMap(std::vector<std::string>{ "/CubeMaps/right.jpg",
                                                                     "/CubeMaps/left.jpg",
@@ -110,20 +111,15 @@ void Test3D::OnStart()
   //_uiManager->AttachPanel(panel1);
   //_uiManager->AttachPanel(panel2);
 
-  _inputHandler->BindButtonToState("Forward", Button::Key_W);
-  _inputHandler->BindButtonToState("Backward", Button::Key_S);
   _inputHandler->BindButtonToState("ActivateCameraLook", Button::Button_LMouse);
+  _inputHandler->BindAxisToState("CameraZoom", Axis::MouseScrollXY);
   _inputHandler->BindAxisToState("CameraLook", Axis::MouseXY);
 
-  _eventDispatcher->Register("Forward", [&](const InputEvent& inputEvent, uint32 dt)
+  _eventDispatcher->Register("CameraZoom", [&](const InputEvent& inputEvent, int32 dt)
   {
-    _camera->Zoom(dt * 0.1f);
+    _camera->Zoom(dt * inputEvent.AxisPosDelta[1] * 0.1f);
   });
-  _eventDispatcher->Register("Backward", [&](const InputEvent& inputEvent, uint32 dt)
-  {
-    _camera->Zoom(dt * -0.1f);
-  });
-  _eventDispatcher->Register("CameraLook", [&](const InputEvent& inputEvent, uint32 dt)
+  _eventDispatcher->Register("CameraLook", [&](const InputEvent& inputEvent, int32 dt)
   {
     if (_inputHandler->IsButtonStateActive("ActivateCameraLook"))
     {
