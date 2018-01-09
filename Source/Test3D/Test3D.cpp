@@ -3,9 +3,11 @@
 #include "../Engine/Components/Component.h"
 #include "../Engine/Components/PointLight.h"
 #include "../Engine/Components/Transform.h"
-#include "../Engine/Core/InputManager.h"
+#include "../Engine/Input/InputHandler.hpp"
+#include "../Engine/Input/EventDispatcher.hpp"
 #include "../Engine/Maths/Quaternion.hpp"
 #include "../Engine/Maths/Radian.hpp"
+#include "../Engine/Maths/Vector2.hpp"
 #include "../Engine/Maths/Vector3.hpp"
 #include "../Engine/Rendering/Material.h"
 #include "../Engine/Rendering/MeshFactory.h"
@@ -21,13 +23,13 @@
 
 using namespace Components;
 using namespace Rendering;
-using namespace Platform;
 using namespace UI;
 using namespace Utility;
 using namespace SceneManagement;
 
 Test3D::Test3D(const ApplicationDesc& desc):
-  Application(desc)
+  Application(desc),
+  _rotatingCamera(false)
 {
 }
 
@@ -107,40 +109,32 @@ void Test3D::OnStart()
   //panel2->SetTexture(_assetManager->GetTexture("crate0_normal.png"));
   //_uiManager->AttachPanel(panel1);
   //_uiManager->AttachPanel(panel2);
+
+  _inputHandler->BindButtonToState("Forward", Button::Key_W);
+  _inputHandler->BindButtonToState("Backward", Button::Key_S);
+  _inputHandler->BindButtonToState("ActivateCameraLook", Button::Button_LMouse);
+  _inputHandler->BindAxisToState("CameraLook", Axis::MouseXY);
+
+  _eventDispatcher->Register("Forward", [&](const InputEvent& inputEvent, uint32 dt)
+  {
+    _camera->Zoom(dt * 0.1f);
+  });
+  _eventDispatcher->Register("Backward", [&](const InputEvent& inputEvent, uint32 dt)
+  {
+    _camera->Zoom(dt * -0.1f);
+  });
+  _eventDispatcher->Register("CameraLook", [&](const InputEvent& inputEvent, uint32 dt)
+  {
+    if (_inputHandler->IsButtonStateActive("ActivateCameraLook"))
+    {
+      float32 yaw = Radian(static_cast<float32>(inputEvent.AxisPosDelta[0]) * dt * 0.1f).InRadians();
+      float32 pitch = Radian(static_cast<float32>(inputEvent.AxisPosDelta[1]) * dt * 0.1f).InRadians();
+      _camera->Rotate(yaw, pitch);
+    }
+  });
 }
 
-void Test3D::OnInput()
-{
-  //if (_inputManager->IsKeyDown(GLFW_KEY_D))
-  //{
-  //  _camera->Pan(0.1f, 0.0f);
-  //}
-  //else if (_inputManager->IsKeyDown(GLFW_KEY_A))
-  //{
-  //  _camera->Pan(-0.1f, 0.0f);
-  //}
-
-  //auto mouseScrollOffset = _inputManager->GetMouseScrollOffset();
-  //if (mouseScrollOffset != 0)
-  //{
-  //  _camera->Zoom(mouseScrollOffset);
-  //  _inputManager->SetMouseScrollOffset(0.0f);
-  //}
-
-  //static float64 prevXPos;
-  //static float64 prevYPos;
-  //auto mousePosition = _inputManager->GetMousePosition();
-  //if (_inputManager->IsButtonDown(GLFW_MOUSE_BUTTON_RIGHT))
-  //{      
-  //  float32 yaw = Radian(static_cast<float32>(prevXPos - mousePosition.XPosition)* 0.01f).InRadians();
-  //  float32 pitch = Radian(static_cast<float32>(prevYPos - mousePosition.YPosition) * 0.01f).InRadians();
-  //  _camera->Rotate(yaw, pitch);    
-  //}
-  //prevXPos = mousePosition.XPosition;
-  //prevYPos = mousePosition.YPosition;
-}
-
-void Test3D::OnTick(uint32 dtMs)
+void Test3D::OnUpdate(uint32 dtMs)
 {
   _object->Rotate(Quaternion(Vector3(0.0f, 1.0f, 1.0f), Radian(0.0005f * dtMs)));
   _sceneNode->Rotate(Quaternion(Vector3(0.0f, 1.0f, 0.0f), Radian(0.0005f * dtMs)));

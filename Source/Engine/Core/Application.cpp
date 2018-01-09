@@ -2,13 +2,13 @@
 
 #include <SDL.h>
 
-#include "../Core/InputManager.h"
+#include "../Input/EventDispatcher.hpp"
+#include "../Input/InputHandler.hpp"
 #include "../Rendering/Renderer.h"
 #include "../UI/UIManager.h"
 #include "../Utility/AssetManager.h"
 #include "../SceneManagement/SceneManager.h"
 
-using namespace Platform;
 using namespace Rendering;
 using namespace UI;
 using namespace Utility;
@@ -29,23 +29,70 @@ int32 Application::Run()
 
   while (_isRunning)
   {
+    uint32 dtMs = GetTickDuration();
+    OnUpdate(dtMs);
+    
     SDL_Event sdlEvent;
     if (SDL_PollEvent(&sdlEvent))
     {
       switch (sdlEvent.type)
       {
-      case SDL_QUIT:
-        _isRunning = false;
-        break;
-      case SDL_KEYUP:
-      case SDL_KEYDOWN:
-        OnInput();
-        break;
-      }
-    }
+        case SDL_QUIT:
+          _isRunning = false;
+          break;
+        case SDL_KEYUP:
+        {
+          InputEvent inputEvent;
+          inputEvent.Button = SDLToButton(sdlEvent.key.keysym.sym);
+          inputEvent.ButtonEvent = ButtonEvent::Released;
+          _inputHandler->Dispatch(inputEvent, dtMs);
+          break;
+        }
+        case SDL_KEYDOWN:
+        {
+          InputEvent inputEvent;
+          inputEvent.Button = SDLToButton(sdlEvent.key.keysym.sym);
+          inputEvent.ButtonEvent = ButtonEvent::Pressed;
+          _inputHandler->Dispatch(inputEvent, dtMs);
+          break;
+        }          
+        case SDL_MOUSEBUTTONUP:
+        {
+          InputEvent inputEvent;
+          inputEvent.Button = SDLToButton(sdlEvent.button.button);
+          inputEvent.ButtonEvent = ButtonEvent::Released;
+          _inputHandler->Dispatch(inputEvent, dtMs);
+          break;
+        }
+        case SDL_MOUSEBUTTONDOWN:
+        {
+          InputEvent inputEvent;
+          inputEvent.Button = SDLToButton(sdlEvent.button.button);
+          inputEvent.ButtonEvent = ButtonEvent::Pressed;
+          _inputHandler->Dispatch(inputEvent, dtMs);
+          break;
+        }
+        case SDL_MOUSEMOTION:
+        {
+          InputEvent inputEvent;
+          inputEvent.Axis = Axis::MouseXY;
+          inputEvent.AxisPos = Vector2i(sdlEvent.motion.x, sdlEvent.motion.y);
+          inputEvent.AxisPosDelta = _cursorPosition - inputEvent.AxisPos;
+          _inputHandler->Dispatch(inputEvent, dtMs);
 
-    uint32 dtMs = GetTickDuration();
-    OnTick(dtMs);
+          _cursorPosition = inputEvent.AxisPos;
+          break;
+        }
+        case SDL_MOUSEWHEEL:
+        {
+          InputEvent inputEvent;
+          inputEvent.Axis = Axis::MouseScrollXY;
+          inputEvent.AxisPosDelta = Vector2i(sdlEvent.wheel.x, sdlEvent.motion.y);
+          _inputHandler->Dispatch(inputEvent, dtMs);
+          break;
+        }
+      }
+    }   
 
     _renderer->PreRender();
     _renderer->DrawUI(_uiManager->GetPanelCollection());
@@ -60,6 +107,8 @@ int32 Application::Run()
 }
 
 Application::Application(const ApplicationDesc &desc) :
+  _eventDispatcher(new EventDispatcher),
+  _inputHandler(new InputHandler(*_eventDispatcher.get())),
   _sceneManager(new SceneManager),
   _renderer(new Renderer(desc.Width, desc.Height)),
   _uiManager(new UIManager),
@@ -104,7 +153,6 @@ bool Application::Initialize()
   {
     return false;
   }
-
   return true;
 }
 

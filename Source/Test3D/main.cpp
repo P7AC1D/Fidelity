@@ -1,4 +1,3 @@
-#pragma once
 #include <memory>
 
 #include "../Engine/Core/Application.h"
@@ -8,8 +7,8 @@ int main()
 {
   ApplicationDesc applicationDesc;
   applicationDesc.Name = "SDL Application";
-  applicationDesc.Width = 1366;
-  applicationDesc.Height = 768;
+  applicationDesc.Width = 720;
+  applicationDesc.Height = 480;
   Application* sdlApp = new Test3D(applicationDesc);
   return sdlApp->Run();
 

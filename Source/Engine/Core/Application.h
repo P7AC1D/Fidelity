@@ -4,6 +4,7 @@
 #include <string>
 
 #include "../Core/Types.hpp"
+#include "../Maths/Vector2I.hpp"
 
 namespace Rendering
 {
@@ -26,6 +27,9 @@ namespace Utility
 class AssetManager;
 }
 
+class EventDispatcher;
+class InputHandler;
+
 typedef void* SDL_GLContext;
 struct SDL_Window;
 
@@ -42,9 +46,7 @@ public:
   virtual ~Application();
 
   virtual void OnStart() {}
-  virtual void OnInput() {}
-  virtual void OnDraw() {}
-  virtual void OnTick(uint32 dtMs) {}
+  virtual void OnUpdate(uint32 dtMs) {}
 
   std::string GetName() const { return _desc.Name; }
   uint32 GetWidth() const { return _desc.Width; }
@@ -65,14 +67,17 @@ private:
   uint32 GetTickDuration();
 
 protected:
+  std::unique_ptr<EventDispatcher> _eventDispatcher;
+  std::unique_ptr<InputHandler> _inputHandler;
   std::unique_ptr<SceneManagement::SceneManager> _sceneManager;
   std::unique_ptr<Rendering::Renderer> _renderer;
   std::unique_ptr<UI::UIManager> _uiManager;
   std::unique_ptr<Utility::AssetManager> _assetManager;
 
 private:
-  ApplicationDesc _desc;
+  bool _isRunning;
   SDL_Window* _window;
   SDL_GLContext _glContext;
-  bool _isRunning;
+  ApplicationDesc _desc;
+  Vector2i _cursorPosition;
 };
