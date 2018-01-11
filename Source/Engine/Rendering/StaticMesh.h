@@ -30,6 +30,7 @@ public:
   void SetPositionVertexData(const std::vector<Vector3>& positionData);
   void SetNormalVertexData(const std::vector<Vector3>& normalData);
   void SetTextureVertexData(const std::vector<Vector2>& textureData);
+  void SetIndexData(const std::vector<uint32>& indexData);
 
   void CalculateTangents(const std::vector<Vector3>& positionData, const std::vector<Vector2>& textureData);
 
@@ -54,6 +55,7 @@ private:
   std::vector<Vector3> _tangentData;
   std::vector<Vector3> _bitangentData;
   std::vector<Vector2> _textureData;
+  std::vector<uint32> _indexData;
   int32 _vertexDataFormat;
   int32 _vertexCount;
   bool _isInitialized;
