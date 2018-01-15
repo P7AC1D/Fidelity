@@ -157,7 +157,7 @@ void Renderer::DrawUI(std::vector<std::shared_ptr<Panel>> panelCollection)
     {
       glActiveTexture(GL_TEXTURE0);
       panel->_texture->Bind();
-      shader->SetUniformInt(shader->GetUniformLocation("textureMap"), GL_TEXTURE0);
+      shader->SetInt("textureMap", GL_TEXTURE0);
     }
 
     float32 xScale = panel->_width / static_cast<float32>(_renderWidth);
@@ -165,10 +165,10 @@ void Renderer::DrawUI(std::vector<std::shared_ptr<Panel>> panelCollection)
     float32 xOffset = 2.0f * panel->_xPos / _renderWidth - (1.0f - xScale);
     float32 yOffset = 2.0f * panel->_yPos / _renderHeight - (1.0f - yScale);
 
-    shader->SetUniformFloat(shader->GetUniformLocation("xScale"), xScale);
-    shader->SetUniformFloat(shader->GetUniformLocation("yScale"), yScale);
-    shader->SetUniformFloat(shader->GetUniformLocation("xOffset"), xOffset);
-    shader->SetUniformFloat(shader->GetUniformLocation("yOffset"), yOffset);
+    shader->SetFloat("xScale", xScale);
+    shader->SetFloat("yScale", yScale);
+    shader->SetFloat("xOffset", xOffset);
+    shader->SetFloat("yOffset", yOffset);
     
     glBindVertexArray(_guiQuadVertexData->_vaoId);
     glDrawArrays(GL_TRIANGLES, 0, 6);
@@ -295,9 +295,9 @@ void Renderer::DrawSkyBox(std::shared_ptr<SceneManagement::Scene> scene)
   {
     return;
   }
-  shader->SetUniformMat4(shader->GetUniformLocation("view"), scene->GetCamera()->GetViewMat());
-  shader->SetUniformMat4(shader->GetUniformLocation("projection"), scene->GetCamera()->GetProjMat());
-  shader->SetUniformInt(shader->GetUniformLocation("skybox"), 0);
+  shader->SetMat4("view", scene->GetCamera()->GetViewMat());
+  shader->SetMat4("projection", scene->GetCamera()->GetProjMat());
+  shader->SetInt("skybox", 0);
 
   glDepthMask(GL_FALSE);
   shader->Bind();
@@ -314,13 +314,13 @@ void Renderer::DrawSkyBox(std::shared_ptr<SceneManagement::Scene> scene)
 
 void Renderer::DrawTexturedObjects(ObjectPtrArray objects, const Vector3& ambientColour)
 {
-  auto shader = _shaderCollection->GetShader("Textured.glsl");
+  auto shader = _shaderCollection->GetShader("NormalMapping.glsl");
   if (!shader)
   {
     return;
   }
   shader->Bind();
-  shader->SetUniformVec3(shader->GetUniformLocation("ambientLight"), ambientColour);
+  shader->SetVec3("ambientLight", ambientColour);
 
   shader->BindUniformBlock(shader->GetUniformBlockIndex("Transforms"), static_cast<int32>(UniformBindingPoint::Transforms), _cameraBuffer->_uboId, _cameraBuffer->_sizeBytes);
   shader->BindUniformBlock(shader->GetUniformBlockIndex("Light"), static_cast<int32>(UniformBindingPoint::Light), _lightBuffer->_uboId, _lightBuffer->_sizeBytes);
@@ -336,35 +336,35 @@ void Renderer::DrawTexturedObjects(ObjectPtrArray objects, const Vector3& ambien
     for (size_t i = 0; i < meshCount; i++)
     {
       auto& staticMesh = model->GetMeshAtIndex(i);
-      shader->SetUniformMat4(shader->GetUniformLocation("model"), object->GetTransform());
+      shader->SetMat4("model", object->GetTransform());
 
       auto material = staticMesh.GetMaterial();
 
       auto diffuseMap = material->GetTexture("DiffuseMap");
       glActiveTexture(GL_TEXTURE0);
       diffuseMap->Bind();
-      shader->SetUniformInt(shader->GetUniformLocation("material.diffuseMap"), 0);
+      shader->SetInt("material.diffuseMap", 0);
 
       if (material->HasTexture("SpecularMap"))
       {
         auto bumpMap = material->GetTexture("SpecularMap");
         glActiveTexture(GL_TEXTURE1);
         bumpMap->Bind();
-        shader->SetUniformInt(shader->GetUniformLocation("material.specularMap"), 1);
+        shader->SetInt("material.specularMap", 1);
       }
 
-      if (material->HasTexture("NormalMap"))
-      {
-        auto bumpMap = material->GetTexture("NormalMap");
-        glActiveTexture(GL_TEXTURE2);
-        bumpMap->Bind();
-        shader->SetUniformInt(shader->GetUniformLocation("material.normalMap"), 2);
-      }
+      //if (material->HasTexture("NormalMap"))
+      //{
+      //  auto bumpMap = material->GetTexture("NormalMap");
+      //  glActiveTexture(GL_TEXTURE2);
+      //  bumpMap->Bind();
+      //  shader->SetUniformInt("material.normalMap", 2);
+      //}
 
-      shader->SetUniformFloat(shader->GetUniformLocation("material.specularExponent"), material->GetSpecularExponent());
-      shader->SetUniformVec3(shader->GetUniformLocation("material.ambientColour"), material->GetAmbientColour());
-      shader->SetUniformVec3(shader->GetUniformLocation("material.diffuseColour"), material->GetDiffuseColour());
-      shader->SetUniformVec3(shader->GetUniformLocation("material.specularColour"), material->GetSpecularColour());
+      shader->SetFloat("material.specularExponent", material->GetSpecularExponent());
+      shader->SetVec3("material.ambientColour", material->GetAmbientColour());
+      shader->SetVec3("material.diffuseColour", material->GetDiffuseColour());
+      shader->SetVec3("material.specularColour", material->GetSpecularColour());
 
       auto vertexData = staticMesh.GetVertexData();
       glBindVertexArray(vertexData->_vaoId);

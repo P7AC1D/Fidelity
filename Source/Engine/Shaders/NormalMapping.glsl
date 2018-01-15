@@ -2,6 +2,10 @@
 
 struct Material
 {
+  vec3 ambientColour;
+  vec3 diffuseColour;
+  vec3 specularColour;
+  float specularExponent;
   sampler2D diffuseMap;
   sampler2D specularMap;
   sampler2D normalMap;
@@ -91,12 +95,12 @@ float CalcDiffuseContribution(in vec4 normal)
   return clamp(dot(normal, -lightDir), 0.0f, 1.0f);
 }
 
-float CalcSpecularContribution(in vec4 normal)
+float CalcSpecularContribution(in vec4 normal, in float exponent)
 {
   vec4 lightDir = normalize(fsIn.TangentFragPos - fsIn.TangentLightPos);
   vec4 reflectDir = reflect(lightDir, normal);
   vec4 viewDir = normalize(fsIn.TangentViewPos - fsIn.TangentFragPos);
-  return pow(clamp(dot(reflectDir, viewDir), 0.0f, 1.0f), 32.0f);
+  return pow(clamp(dot(reflectDir, viewDir), 0.0f, 1.0f), exponent);
 }
 
 void main()
@@ -108,9 +112,9 @@ void main()
   float attenuation = CalcLightAttenuation();
   vec4 normal = vec4(normalize(normalSample * 2.0f - 1.0f), 0.0f);
 
-  vec3 diffuseColour = diffuseSample * CalcDiffuseContribution(normal) * attenuation * lightDiffuseColour;
-  vec3 specularColour = specularSample * CalcSpecularContribution(normal) * attenuation * lightSpecularColour;
-  vec3 ambientColour = diffuseSample * ambientLight;
+  vec3 diffuseColour = diffuseSample * CalcDiffuseContribution(normal) * attenuation * lightDiffuseColour * material.diffuseColour;
+  vec3 specularColour = specularSample * CalcSpecularContribution(normal, material.specularExponent) * attenuation * lightSpecularColour * material.specularColour;
+  vec3 ambientColour = diffuseSample * ambientLight * material.ambientColour;
 
   float gamma = 2.2;
   colour = vec4(diffuseColour + specularColour + ambientColour, 1.0f);

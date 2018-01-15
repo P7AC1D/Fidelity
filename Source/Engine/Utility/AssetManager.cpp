@@ -101,7 +101,7 @@ std::shared_ptr<CubeMap> AssetManager::GetCubeMap(const std::vector<std::string>
   return cubeMap;
 }
 
-std::shared_ptr<Model> AssetManager::GetModel(const std::string& relativePath, const std::string fileName)
+std::shared_ptr<Model> AssetManager::GetModel(const std::string& relativePath, const std::string fileName, bool generateTangents)
 {
   auto fullPath = _assetDirectory + relativePath + fileName;
   auto iter = _modelCache.find(fullPath);
@@ -110,7 +110,7 @@ std::shared_ptr<Model> AssetManager::GetModel(const std::string& relativePath, c
     return iter->second;
   }
 
-  std::shared_ptr<Model> model(ObjLoader::LoadFromFile(_assetDirectory + relativePath, fileName, *this));
+  std::shared_ptr<Model> model(ObjLoader::LoadFromFile(_assetDirectory + relativePath, fileName, generateTangents, *this));
   _modelCache[fullPath] = model;
   return model;
 }

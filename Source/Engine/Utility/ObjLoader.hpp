@@ -15,7 +15,7 @@ class AssetManager;
 class ObjLoader
 {
 public:
-  static Model* LoadFromFile(const std::string& filePath, const std::string& fileName, Utility::AssetManager& assetManager);
+  static Model* LoadFromFile(const std::string& filePath, const std::string& fileName, bool generateTangents, Utility::AssetManager& assetManager);
   
 private:
 };

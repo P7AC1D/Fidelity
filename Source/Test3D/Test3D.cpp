@@ -48,7 +48,7 @@ void Test3D::OnStart()
 
   auto cube = _sceneNode->CreateObject("cube");
   cube->SetScale(Vector3(0.5f, 0.5f, 0.5f));
-  auto cubeModel = _assetManager->GetModel("Models/Container/", "container.obj");
+  auto cubeModel = _assetManager->GetModel("Models/Container/", "container.obj", true);
   auto cubeMaterial = cubeModel->GetMeshAtIndex(0).GetMaterial();
   cubeMaterial->SetTexture("DiffuseMap", _assetManager->GetTexture("Textures/crate0_diffuse.png", true));
   cubeMaterial->SetTexture("SpecularMap", _assetManager->GetTexture("Textures/crate0_bump.png"));
@@ -125,8 +125,8 @@ void Test3D::OnStart()
   {
     if (_inputHandler->IsButtonStateActive("ActivateCameraLook"))
     {
-      float32 yaw = Radian(static_cast<float32>(inputEvent.AxisPosDelta[0]) * dt * 0.1f).InRadians();
-      float32 pitch = Radian(static_cast<float32>(inputEvent.AxisPosDelta[1]) * dt * 0.1f).InRadians();
+      float32 yaw = Radian(static_cast<float32>(inputEvent.AxisPosDelta[0]) * dt).InRadians();
+      float32 pitch = Radian(static_cast<float32>(inputEvent.AxisPosDelta[1]) * dt).InRadians();
       _camera->Rotate(yaw, pitch);
     }
   });

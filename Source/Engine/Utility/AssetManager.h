@@ -23,7 +23,7 @@ public:
 
   std::shared_ptr<Rendering::Texture> GetTexture(const std::string& textureName, bool gammaCorrection = false);
   std::shared_ptr<Rendering::CubeMap> GetCubeMap(const std::vector<std::string>& textureNames);
-  std::shared_ptr<Model> GetModel(const std::string& relativePath, const std::string fileName);
+  std::shared_ptr<Model> GetModel(const std::string& relativePath, const std::string fileName, bool generateTangents = false);
 
   AssetManager(AssetManager&) = delete;
   AssetManager(AssetManager&&) = delete;

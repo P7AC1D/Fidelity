@@ -30,6 +30,7 @@ struct MaterialData
   Vector3 SpecularColour;
   Vector3 EmittanceColour;
   std::string MapKd;
+  std::string MapKn;
 };
 
 void BuildVertexFromIndexTriplet(const std::string& line, const std::vector<Vector3>& positions,
@@ -127,7 +128,7 @@ std::vector<std::shared_ptr<MaterialData>> LoadMaterialsFromFile(std::ifstream& 
   return materials;
 }
 
-Model* ObjLoader::LoadFromFile(const std::string& filePath, const std::string& fileName, Utility::AssetManager& assetManager)
+Model* ObjLoader::LoadFromFile(const std::string& filePath, const std::string& fileName, bool generateTangents, Utility::AssetManager& assetManager)
 {
   std::ifstream fstream;
   fstream.open(filePath + fileName, std::fstream::in);
@@ -221,6 +222,11 @@ Model* ObjLoader::LoadFromFile(const std::string& filePath, const std::string& f
   activeMesh->SetPositionVertexData(positionsOut);
   activeMesh->SetNormalVertexData(normalsOut);
   activeMesh->SetTextureVertexData(texCoordsOut);
+  if (generateTangents)
+  {
+    activeMesh->CalculateTangents(positionsOut, texCoordsOut);
+  }
+
   model->PushMesh(*activeMesh);
   return model;
 }
