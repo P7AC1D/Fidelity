@@ -1,39 +1,227 @@
 #include "ObjLoader.hpp"
 
+#include <algorithm>
 #include <exception>
 #include <vector>
 
+#include "../Components/Model.hpp"
+#include "../Maths/Vector2.hpp"
+#include "../Maths/Vector3.hpp"
+#include "../Rendering/Material.h"
 #include "../Rendering/StaticMesh.h"
+#include "../Utility/AssetManager.h"
+#include "../Utility/StringUtil.h"
 
-StaticMesh* ObjLoader::LoadFromFile(const std::string& filePath, uint32 postProcessingFlags)
+using namespace Rendering;
+
+namespace Utility
+{
+struct MaterialData
+{
+  MaterialData(const std::string& name) :
+    Name(name)
+  {
+  }
+
+  std::string Name;
+  float32 SpecularExponent;
+  Vector3 AmbientColour;
+  Vector3 DiffuseColour;
+  Vector3 SpecularColour;
+  Vector3 EmittanceColour;
+  std::string MapKd;
+};
+
+void BuildVertexFromIndexTriplet(const std::string& line, const std::vector<Vector3>& positions,
+                                 const std::vector<Vector3>& normals, const std::vector<Vector2>& texCoords,
+                                 std::vector<Vector3>& positionsOut, std::vector<Vector3>& normalsOut,
+                                 std::vector<Vector2>& texCoordsOut)
+{
+  auto vertexTokens = StringUtil::Split(line, ' ');
+  if (vertexTokens.size() > 4)
+  {
+    throw std::runtime_error("Only triangulated faces are supported.");
+  }
+
+  for (uint32 i = 1; i < 4; i++)
+  {
+    auto indexToken = StringUtil::Split(vertexTokens[i], '/');
+    auto indexTokenCount = indexToken.size();
+    if (indexTokenCount == 1) // v
+    {
+      positionsOut.push_back(positions[std::stoi(indexToken[0]) - 1]);
+    }
+    else if (indexTokenCount == 2) // v/vt
+    {
+      positionsOut.push_back(positions[std::stoi(indexToken[0]) - 1]);
+      texCoordsOut.push_back(texCoords[std::stoi(indexToken[1]) - 1]);
+    }
+    else if (indexTokenCount == 3)
+    {
+      if (indexToken[1] == "") // v//vn
+      {
+        positionsOut.push_back(positions[std::stoi(indexToken[0]) - 1]);
+        normalsOut.push_back(normals[std::stoi(indexToken[2]) - 1]);
+      }
+      else // v/vt/vn
+      {
+        positionsOut.push_back(positions[std::stoi(indexToken[0]) - 1]);
+        texCoordsOut.push_back(texCoords[std::stoi(indexToken[1]) - 1]);
+        normalsOut.push_back(normals[std::stoi(indexToken[2]) - 1]);
+      }
+    }
+    else
+    {
+      throw std::runtime_error("Face vertices must only contain either positions, normals or texture-coordinates.");
+    }
+  }
+}
+
+std::vector<std::shared_ptr<MaterialData>> LoadMaterialsFromFile(std::ifstream& fstream)
+{
+  std::vector<std::shared_ptr<MaterialData>> materials;
+  std::shared_ptr<MaterialData> material;
+
+  std::string line;
+  while (std::getline(fstream, line))
+  {
+    auto tokens = StringUtil::Split(line, ' ');
+    if (tokens[0] == "#" && tokens[1] == "Material" && tokens[2] == "Count:")
+    {
+      materials.reserve(std::stoi(tokens[3]));
+    }
+    else if (tokens[0] == "newmtl")
+    {
+      material.reset(new MaterialData(tokens[1]));      
+      materials.push_back(material);
+    }
+    else if (tokens[0] == "Ns")
+    {
+      material->SpecularExponent = std::stof(tokens[1]);
+    }
+    else if (tokens[0] == "Ka")
+    {
+      material->AmbientColour = Vector3(std::stof(tokens[1]), std::stof(tokens[2]), std::stof(tokens[3]));
+    }
+    else if (tokens[0] == "Kd")
+    {
+      material->DiffuseColour = Vector3(std::stof(tokens[1]), std::stof(tokens[2]), std::stof(tokens[3]));
+    }
+    else if (tokens[0] == "Ks")
+    {
+      material->SpecularColour = Vector3(std::stof(tokens[1]), std::stof(tokens[2]), std::stof(tokens[3]));
+    }
+    else if (tokens[0] == "Ke")
+    {
+      material->EmittanceColour = Vector3(std::stof(tokens[1]), std::stof(tokens[2]), std::stof(tokens[3]));
+    }
+    else if (tokens[0] == "map_Kd")
+    {
+      material->MapKd = tokens[1];
+    }
+    else
+    {
+      // Ignore other types
+    }    
+  }
+  return materials;
+}
+
+Model* ObjLoader::LoadFromFile(const std::string& filePath, const std::string& fileName, Utility::AssetManager& assetManager)
 {
   std::ifstream fstream;
-  fstream.open(filePath, std::fstream::in);
+  fstream.open(filePath + fileName, std::fstream::in);
   if (!fstream.is_open())
   {
     throw std::runtime_error("Failed to open file '" + filePath + "'");
   }
+    
+  Model* model = new Model();
+  std::unique_ptr<StaticMesh> activeMesh = nullptr;
+
+  std::vector<std::shared_ptr<MaterialData>> materials;
   
-  const std::vector<Vector3> vertexPositions;
+  std::vector<Vector3> positions;
+  std::vector<Vector3> normals;
+  std::vector<Vector2> texCoords;
+
+  std::vector<Vector3> positionsOut;
+  std::vector<Vector3> normalsOut;
+  std::vector<Vector2> texCoordsOut;
   
   std::string line;
   while (std::getline(fstream, line))
   {
-    if (line[0] == 'v')
+    auto tokens = StringUtil::Split(line, ' ');
+    if (tokens[0] == "o")
     {
-      
+      positions.clear();
+      normals.clear();
+      texCoords.clear();
+
+      if (activeMesh != nullptr)
+      {
+        activeMesh->SetPositionVertexData(positionsOut);
+        activeMesh->SetNormalVertexData(normalsOut);
+        activeMesh->SetTextureVertexData(texCoordsOut);        
+        model->PushMesh(*activeMesh);
+      }
+
+      positionsOut.clear();
+      normalsOut.clear();
+      texCoordsOut.clear();
+
+      activeMesh.reset(new StaticMesh(tokens[1]));
+    }
+    else if (tokens[0] == "mtllib")
+    {
+      std::ifstream matFile;
+      matFile.open(filePath + tokens[1], std::fstream::in);
+      if (!matFile.is_open())
+      {
+        throw std::runtime_error("Failed to open file '" + filePath + "'");
+      }
+      materials = LoadMaterialsFromFile(matFile);
+    }
+    else if (tokens[0] == "v")
+    {
+      positions.emplace_back(std::stof(tokens[1]), std::stof(tokens[2]), std::stof(tokens[3]));
+    }
+    else if (tokens[0] == "vn")
+    {
+      normals.emplace_back(std::stof(tokens[1]), std::stof(tokens[2]), std::stof(tokens[3]));
+    }
+    else if (tokens[0] == "vt")
+    {
+      texCoords.emplace_back(std::stof(tokens[1]), std::stof(tokens[2]));
+    }
+    else if (tokens[0] == "usemtl")
+    {
+      auto iter = std::find_if(materials.begin(), materials.end(), [&](const std::shared_ptr<MaterialData>& material)
+      {
+        return material->Name == tokens[1];
+      });
+      if (iter == materials.end())
+      {
+        throw std::runtime_error("Could not find a material with name " + tokens[1]);
+      }
+      auto material = activeMesh->GetMaterial();
+      material->SetAmbientColour((*iter)->AmbientColour);
+      material->SetDiffuseColour((*iter)->DiffuseColour);
+      material->SetSpecularColour((*iter)->SpecularColour);
+      material->SetSpecularShininess((*iter)->SpecularExponent);
+      material->SetTexture("DiffuseMap", assetManager.GetTexture(filePath, (*iter)->MapKd));
+    }
+    else if (tokens[0] == "f")
+    {
+      BuildVertexFromIndexTriplet(line, positions, normals, texCoords, positionsOut, normalsOut, texCoordsOut);
     }
   }
+
+  activeMesh->SetPositionVertexData(positionsOut);
+  activeMesh->SetNormalVertexData(normalsOut);
+  activeMesh->SetTextureVertexData(texCoordsOut);
+  model->PushMesh(*activeMesh);
+  return model;
 }
-  
-std::string ObjLoader::ReadSource(std::ifstream& fstream)
-{
-  fstream.seekg(0, fstream.end);
-  std::streampos fileLength = fstream.tellg();
-  fstream.seekg(0, fstream.beg);
-  
-  std::vector<byte> source;
-  source.reserve(fileLength);
-  fstream.read(source.data(), fileLength);
-  return std::string(source.begin(), source.end());
 }

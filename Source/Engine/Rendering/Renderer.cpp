@@ -7,6 +7,7 @@
 #include <GL/glew.h>
 #endif
 
+#include "../Components/Model.hpp"
 #include "../Components/Transform.h"
 #include "../Components/PointLight.h"
 #include "../UI/Panel.h"
@@ -87,22 +88,14 @@ void Renderer::DrawScene(std::shared_ptr<Scene> scene)
   DrawSkyBox(scene);
 
   auto rootNode = scene->GetRootNode();
-  auto staticMeshObjects = rootNode->GetAllObjectsWithComponent("StaticMesh");
+  auto models = rootNode->GetAllObjectsWithComponent("Model");
   auto lightObjects = rootNode->GetAllObjectsWithComponent("PointLight");
-  auto sortedObjectsByShader = SortByRenderingTechnique(staticMeshObjects);
   for (auto lightObject : lightObjects)
   {    
     UploadLightData(lightObject);
-    for (auto sortedObjects : sortedObjectsByShader)
+    for (auto model : models)
     {
-      auto renderingTechnique = sortedObjects.first;
-      auto objects = sortedObjects.second;
-      switch (renderingTechnique)
-      {
-        case RenderingTechnique::Textured:
-          DrawTexturedObjects(objects, scene->GetAmbientLight());
-          break;
-      }
+      DrawTexturedObjects(models, scene->GetAmbientLight());
     }
     glDepthFunc(GL_EQUAL);
     glEnable(GL_BLEND);
@@ -321,7 +314,7 @@ void Renderer::DrawSkyBox(std::shared_ptr<SceneManagement::Scene> scene)
 
 void Renderer::DrawTexturedObjects(ObjectPtrArray objects, const Vector3& ambientColour)
 {
-  auto shader = _shaderCollection->GetShader("NormalMapping.glsl");
+  auto shader = _shaderCollection->GetShader("Textured.glsl");
   if (!shader)
   {
     return;
@@ -333,42 +326,52 @@ void Renderer::DrawTexturedObjects(ObjectPtrArray objects, const Vector3& ambien
   shader->BindUniformBlock(shader->GetUniformBlockIndex("Light"), static_cast<int32>(UniformBindingPoint::Light), _lightBuffer->_uboId, _lightBuffer->_sizeBytes);
   for (auto object : objects)
   {
-    auto staticMesh = std::dynamic_pointer_cast<StaticMesh>(object->GetComponent("StaticMesh"));
-    if (!staticMesh)
+    auto model = std::dynamic_pointer_cast<Model>(object->GetComponent("Model"));
+    if (!model)
     {
       continue;
     }
 
-    shader->SetUniformMat4(shader->GetUniformLocation("model"), object->GetTransform());
-
-    auto material = staticMesh->GetMaterial();
-
-    auto diffuseMap = material->GetTexture("DiffuseMap");
-    glActiveTexture(GL_TEXTURE0);
-    diffuseMap->Bind();
-    shader->SetUniformInt(shader->GetUniformLocation("material.diffuseMap"), 0);    
-
-    if (material->HasTexture("SpecularMap"))
+    auto meshCount = model->GetMeshCount();
+    for (size_t i = 0; i < meshCount; i++)
     {
-      auto bumpMap = material->GetTexture("SpecularMap");
-      glActiveTexture(GL_TEXTURE1);
-      bumpMap->Bind();
-      shader->SetUniformInt(shader->GetUniformLocation("material.specularMap"), 1);
-    }   
+      auto& staticMesh = model->GetMeshAtIndex(i);
+      shader->SetUniformMat4(shader->GetUniformLocation("model"), object->GetTransform());
 
-    if (material->HasTexture("NormalMap"))
-    {
-      auto bumpMap = material->GetTexture("NormalMap");
-      glActiveTexture(GL_TEXTURE2);
-      bumpMap->Bind();
-      shader->SetUniformInt(shader->GetUniformLocation("material.normalMap"), 2);
+      auto material = staticMesh.GetMaterial();
+
+      auto diffuseMap = material->GetTexture("DiffuseMap");
+      glActiveTexture(GL_TEXTURE0);
+      diffuseMap->Bind();
+      shader->SetUniformInt(shader->GetUniformLocation("material.diffuseMap"), 0);
+
+      if (material->HasTexture("SpecularMap"))
+      {
+        auto bumpMap = material->GetTexture("SpecularMap");
+        glActiveTexture(GL_TEXTURE1);
+        bumpMap->Bind();
+        shader->SetUniformInt(shader->GetUniformLocation("material.specularMap"), 1);
+      }
+
+      if (material->HasTexture("NormalMap"))
+      {
+        auto bumpMap = material->GetTexture("NormalMap");
+        glActiveTexture(GL_TEXTURE2);
+        bumpMap->Bind();
+        shader->SetUniformInt(shader->GetUniformLocation("material.normalMap"), 2);
+      }
+
+      shader->SetUniformFloat(5/*shader->GetAttributeLocation("material.specularExponent")*/, material->GetSpecularExponent());
+      shader->SetUniformVec3(1/*shader->GetAttributeLocation("material.ambientColour")*/, material->GetAmbientColour());
+      shader->SetUniformVec3(2/*shader->GetAttributeLocation("material.diffuseColour")*/, material->GetDiffuseColour());
+      shader->SetUniformVec3(4/*shader->GetAttributeLocation("material.specularColour")*/, material->GetSpecularColour());
+
+      auto vertexData = staticMesh.GetVertexData();
+      glBindVertexArray(vertexData->_vaoId);
+      glDrawArrays(GL_TRIANGLES, 0, staticMesh._vertexCount);
+      glBindVertexArray(0);
+      glBindTexture(GL_TEXTURE_2D, 0);
     }
-    
-    auto vertexData = staticMesh->GetVertexData();
-    glBindVertexArray(vertexData->_vaoId);
-    glDrawArrays(GL_TRIANGLES, 0, staticMesh->_vertexCount);
-    glBindVertexArray(0);
-    glBindTexture(GL_TEXTURE_2D, 0);
   }
 }
 
@@ -440,34 +443,5 @@ void Renderer::ClearBuffer(ClearType clearType)
       glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
       break;
   }
-}
-
-std::unordered_map<RenderingTechnique, ObjectPtrArray> Renderer::SortByRenderingTechnique(ObjectPtrArray objects)
-{
-  ObjectPtrArray texturedObjects;
-  ObjectPtrArray colouredObjects;
-  std::unordered_map<RenderingTechnique, ObjectPtrArray> objectMapping;
-  for (auto object : objects)
-  {
-    auto staticMesh = std::dynamic_pointer_cast<StaticMesh>(object->GetComponent("StaticMesh"));
-    if (!staticMesh)
-    {
-      continue;
-    }
-
-    auto material = staticMesh->GetMaterial();
-    if (material->HasTexture("DiffuseMap"))
-    {
-      texturedObjects.push_back(object);
-    }
-    else if (material->HasDiffuseColour())
-    {
-      colouredObjects.push_back(object);
-    }
-  }
-
-  objectMapping[RenderingTechnique::Coloured] = std::move(colouredObjects);
-  objectMapping[RenderingTechnique::Textured] = std::move(texturedObjects);
-  return std::move(objectMapping);
 }
 }

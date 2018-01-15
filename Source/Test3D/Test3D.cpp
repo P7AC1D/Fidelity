@@ -47,24 +47,26 @@ void Test3D::OnStart()
   scene->SetCamera(_camera);
 
   auto cube = _sceneNode->CreateObject("cube");
-  auto cubeMesh = MeshFactory::CreateCube();
-  auto cubeMaterial = cubeMesh->GetMaterial();
-  cubeMaterial->SetTexture("DiffuseMap", _assetManager->GetTexture("crate0_diffuse.png", true));
-  cubeMaterial->SetTexture("SpecularMap", _assetManager->GetTexture("crate0_bump.png"));
-  cubeMaterial->SetTexture("NormalMap", _assetManager->GetTexture("crate0_normal.png"));
-  cube->AddComponent(cubeMesh);
+  cube->SetScale(Vector3(0.5f, 0.5f, 0.5f));
+  auto cubeModel = _assetManager->GetModel("Models/Container/", "container.obj");
+  auto cubeMaterial = cubeModel->GetMeshAtIndex(0).GetMaterial();
+  cubeMaterial->SetTexture("DiffuseMap", _assetManager->GetTexture("Textures/crate0_diffuse.png", true));
+  cubeMaterial->SetTexture("SpecularMap", _assetManager->GetTexture("Textures/crate0_bump.png"));
+  cubeMaterial->SetTexture("NormalMap", _assetManager->GetTexture("Textures/crate0_normal.png"));
+  cube->AddComponent(cubeModel);
   
   _object = _sceneNode->CreateObject("cube2");
+  _object->SetScale(Vector3(0.5f, 0.5f, 0.5f));
   _object->SetPosition(Vector3(2.0f, 1.0f, 0.0f));
-  _object->AddComponent(cubeMesh);
+  _object->AddComponent(cubeModel);
 
-  auto floor = rootNode->CreateObject("floor");
-  auto floorMesh = MeshFactory::CreateCube();
+ /* auto floor = rootNode->CreateObject("floor");
+  auto floorModel = _assetManager->GetModel("Models/Container/container.obj");
   floor->SetScale(Vector3(20.0f, 0.01f, 20.0f));
   floor->SetPosition(Vector3(0.0f, -2.0f, 0.0f));
-  floorMesh->GetMaterial()->SetTexture("DiffuseMap", _assetManager->GetTexture("brick_floor_tileable_Base_Color.jpg", true));
-  floorMesh->GetMaterial()->SetTexture("BumpMap", _assetManager->GetTexture("brick_floor_tileable_Glossiness.jpg"));
-  floor->AddComponent(floorMesh);
+  floorModel->GetMeshAtIndex(0).GetMaterial()->SetTexture("DiffuseMap", _assetManager->GetTexture("Textures/brick_floor_tileable_Base_Color.jpg", true));
+  floorModel->GetMeshAtIndex(0).GetMaterial()->SetTexture("BumpMap", _assetManager->GetTexture("Textures/brick_floor_tileable_Glossiness.jpg"));
+  floor->AddComponent(floorModel);*/
 
   auto lightA = std::make_shared<WorldObject>("lightA");
   auto lightB = std::make_shared<WorldObject>("lightB");
@@ -96,13 +98,13 @@ void Test3D::OnStart()
   /*rootNode->AddObject(lightB);
   rootNode->AddObject(lightC);*/
 
-  auto skyBox = _assetManager->GetCubeMap(std::vector<std::string>{ "/CubeMaps/right.jpg",
-                                                                    "/CubeMaps/left.jpg",
-                                                                    "/CubeMaps/top.jpg",
-                                                                    "/CubeMaps/bottom.jpg",
-                                                                    "/CubeMaps/back.jpg",
-                                                                    "/CubeMaps/front.jpg" });
-  scene->SetSkyBox(skyBox);
+  /*auto skyBox = _assetManager->GetCubeMap(std::vector<std::string>{ "Textures/CubeMaps/right.jpg",
+                                                                    "Textures/CubeMaps/left.jpg",
+                                                                    "Textures/CubeMaps/top.jpg",
+                                                                    "Textures/CubeMaps/bottom.jpg",
+                                                                    "Textures/CubeMaps/back.jpg",
+                                                                    "Textures/CubeMaps/front.jpg" });
+  scene->SetSkyBox(skyBox);*/
 
   //auto panel1 = std::make_shared<Panel>("OSD1", 300, 300, GetWindowWidth() - 310, 10);
   //panel1->SetTexture(_assetManager->GetTexture("crate0_normal.png"));

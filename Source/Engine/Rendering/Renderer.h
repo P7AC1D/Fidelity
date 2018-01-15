@@ -67,9 +67,7 @@ private:
   void UploadLightData(std::shared_ptr<SceneManagement::WorldObject> lightObject);
 
   void ClearBuffer(ClearType clearType);
-
-  std::unordered_map<RenderingTechnique, ObjectPtrArray> SortByRenderingTechnique(ObjectPtrArray objects);
-
+  
   std::unique_ptr<ShaderCollection> _shaderCollection;
 
   std::unique_ptr<ConstantBuffer> _cameraBuffer;

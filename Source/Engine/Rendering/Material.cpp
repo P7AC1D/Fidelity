@@ -3,7 +3,7 @@
 namespace Rendering
 {
 Material::Material() :
-  _castShadows(true)
+_castShadows(true)
 {}
 
 void Material::SetDiffuseColour(const Vector3& colour)

@@ -6,13 +6,13 @@
 
 namespace Rendering
 {
-StaticMesh::StaticMesh(std::shared_ptr<Rendering::Material> material) :
+StaticMesh::StaticMesh(const std::string& meshName, std::shared_ptr<Rendering::Material> material) :
+  _name(meshName),
   _material(material),
   _vertexBuffer(nullptr),
   _vertexDataFormat(0),
   _vertexCount(0),
-  _isInitialized(false),
-  Component("StaticMesh")
+  _isInitialized(false)
 {}
 
 StaticMesh::~StaticMesh()

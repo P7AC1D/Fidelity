@@ -146,8 +146,7 @@ namespace Rendering
 {
 std::shared_ptr<StaticMesh> MeshFactory::CreateCube()
 {
-  auto material = std::make_shared<Material>();
-  auto mesh = std::make_shared<StaticMesh>(material);
+  auto mesh = std::make_shared<StaticMesh>("Cube");
   mesh->SetPositionVertexData(s_cubePoints);
   mesh->SetNormalVertexData(s_cubeNormals);
   mesh->SetTextureVertexData(s_cubeUvs);

@@ -4,6 +4,7 @@
 #include <string>
 
 #include "../Core/Types.hpp"
+#include "../Components/Model.hpp"
 
 namespace Rendering
 {
@@ -22,14 +23,22 @@ public:
 
   std::shared_ptr<Rendering::Texture> GetTexture(const std::string& textureName, bool gammaCorrection = false);
   std::shared_ptr<Rendering::CubeMap> GetCubeMap(const std::vector<std::string>& textureNames);
+  std::shared_ptr<Model> GetModel(const std::string& relativePath, const std::string fileName);
 
-private:
   AssetManager(AssetManager&) = delete;
   AssetManager(AssetManager&&) = delete;
   AssetManager& operator=(AssetManager&) = delete;
   AssetManager& operator= (AssetManager&&) = delete;
 
+  friend class ObjLoader;
+
+private:
+  std::shared_ptr<Rendering::Texture> GetTexture(const std::string& textureFullPath, const std::string& textureName, 
+                                                 bool gammaCorrection = false);
+
+private:
   std::string _assetDirectory;
   std::unordered_map<std::string, std::shared_ptr<Rendering::Texture>> _textureCache;
+  std::unordered_map<std::string, std::shared_ptr<Model>> _modelCache;
 };
 }

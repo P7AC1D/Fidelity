@@ -2,6 +2,10 @@
 
 struct Material
 {
+  vec3 ambientColour;
+  vec3 diffuseColour;
+  vec3 specularColour;
+  float specularExponent;
   sampler2D diffuseMap;
   sampler2D specularMap;
 };
@@ -71,12 +75,12 @@ float CalcDiffuseContribution()
   return clamp(dot(fsIn.normal, -lightDir), 0.0f, 1.0f);
 }
 
-float CalcSpecularContribution()
+float CalcSpecularContribution(in float specularExponent)
 {
   vec4 lightDir = normalize(fsIn.position - vec4(lightPosition, 1.0f));
   vec4 reflectDir = reflect(lightDir, fsIn.normal);
   vec4 viewDir = normalize(vec4(viewPosition, 1.0f) - fsIn.position);
-  return pow(clamp(dot(reflectDir, viewDir), 0.0f, 1.0f), 32.0f);
+  return pow(clamp(dot(reflectDir, viewDir), 0.0f, 1.0f), specularExponent);
 }
 
 void main()
@@ -84,12 +88,10 @@ void main()
   vec3 diffuseSample = texture(material.diffuseMap, fsIn.uv).xyz;
   vec3 specularSample = texture(material.specularMap, fsIn.uv).xyz;
   float attenuation = CalcLightAttenuation();
-  float diffuse = CalcDiffuseContribution();
-  float specular = CalcSpecularContribution();
 
-  vec3 diffuseColour = diffuseSample * CalcDiffuseContribution() * attenuation * lightDiffuseColour;
-  vec3 specularColour = specularSample * CalcSpecularContribution() * attenuation * lightSpecularColour;
-  vec3 ambientColour = diffuseSample * ambientLight;
+  vec3 diffuseColour = diffuseSample * CalcDiffuseContribution() * attenuation * lightDiffuseColour * material.diffuseColour;
+  vec3 specularColour = specularSample * CalcSpecularContribution(material.specularExponent) * attenuation * lightSpecularColour * material.specularColour;
+  vec3 ambientColour = diffuseSample * ambientLight * material.ambientColour;
 
   float gamma = 2.2;
   colour = vec4(diffuseColour + specularColour + ambientColour, 1.0f);

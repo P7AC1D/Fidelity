@@ -6,10 +6,10 @@
 #include "../Core/Types.hpp"
 #include "../Maths/Vector2.hpp"
 #include "../Maths/Vector3.hpp"
+#include "Material.h"
 
 namespace Rendering
 {
-class Material;
 class VertexBuffer;
 
 enum VertexDataFormat : int32
@@ -21,10 +21,10 @@ enum VertexDataFormat : int32
   Bitanget = 1 << 4
 };
 
-class StaticMesh : public Components::Component
+class StaticMesh
 {
 public:
-  StaticMesh(std::shared_ptr<Rendering::Material> material);
+  StaticMesh(const std::string& meshName, std::shared_ptr<Rendering::Material> material = std::make_shared<Rendering::Material>());
   ~StaticMesh();
 
   void SetPositionVertexData(const std::vector<Vector3>& positionData);
@@ -43,11 +43,7 @@ private:
   std::vector<float32> CreateRestructuredVertexDataArray(int32& stride) const;
   std::vector<float32> CreateVertexDataArray() const;
 
-  StaticMesh(StaticMesh&) = delete;
-  StaticMesh(StaticMesh&&) = delete;
-  StaticMesh& operator=(StaticMesh&) = delete;
-  StaticMesh& operator=(StaticMesh&&) = delete;
-
+  std::string _name;
   std::shared_ptr<Rendering::Material> _material;
   std::shared_ptr<Rendering::VertexBuffer> _vertexBuffer;
   std::vector<Vector3> _positionData;

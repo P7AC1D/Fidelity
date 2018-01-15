@@ -112,7 +112,7 @@ Application::Application(const ApplicationDesc &desc) :
   _sceneManager(new SceneManager),
   _renderer(new Renderer(desc.Width, desc.Height)),
   _uiManager(new UIManager),
-  _assetManager(new AssetManager("./../../Assets/Textures/")),
+  _assetManager(new AssetManager("./../../Assets/")),
   _desc(desc),
   _isRunning(false)
 {
