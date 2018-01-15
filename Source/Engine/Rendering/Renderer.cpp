@@ -361,10 +361,10 @@ void Renderer::DrawTexturedObjects(ObjectPtrArray objects, const Vector3& ambien
         shader->SetUniformInt(shader->GetUniformLocation("material.normalMap"), 2);
       }
 
-      shader->SetUniformFloat(5/*shader->GetAttributeLocation("material.specularExponent")*/, material->GetSpecularExponent());
-      shader->SetUniformVec3(1/*shader->GetAttributeLocation("material.ambientColour")*/, material->GetAmbientColour());
-      shader->SetUniformVec3(2/*shader->GetAttributeLocation("material.diffuseColour")*/, material->GetDiffuseColour());
-      shader->SetUniformVec3(4/*shader->GetAttributeLocation("material.specularColour")*/, material->GetSpecularColour());
+      shader->SetUniformFloat(shader->GetUniformLocation("material.specularExponent"), material->GetSpecularExponent());
+      shader->SetUniformVec3(shader->GetUniformLocation("material.ambientColour"), material->GetAmbientColour());
+      shader->SetUniformVec3(shader->GetUniformLocation("material.diffuseColour"), material->GetDiffuseColour());
+      shader->SetUniformVec3(shader->GetUniformLocation("material.specularColour"), material->GetSpecularColour());
 
       auto vertexData = staticMesh.GetVertexData();
       glBindVertexArray(vertexData->_vaoId);
