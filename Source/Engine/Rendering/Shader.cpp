@@ -106,7 +106,7 @@ void Shader::SetMat3(const std::string& uniformName, const Matrix3& value)
 
 void Shader::SetMat4(const std::string& uniformName, const Matrix4& value)
 {
-  auto location = GetUniformLocation(uniformName);
+  auto location = GetUniformLocation(uniformName);  
   Bind();
   GLCall(glUniformMatrix4fv(location, 1, GL_TRUE, &value[0][0]));
 }
@@ -306,7 +306,8 @@ void Shader::BuildUniformDeclaration()
     GLenum type;
     GLchar name[255];
     GLCall(glGetActiveUniform(_programId, i, 255, nullptr, &size, &type, name));
-    _uniforms.emplace(std::make_pair(name, ShaderUniform(i, size, ToShaderDataType(type), name)));
+    auto location = glGetUniformLocation(_programId, name);
+    _uniforms.emplace(std::make_pair(name, ShaderUniform(location, size, ToShaderDataType(type), name)));
   }
 }
 
@@ -319,6 +320,6 @@ int32 Shader::GetUniformLocation(const std::string& name)
     message << "Could not find uniform '" << name << "' for shader '" << _fileName << "'";
     throw std::runtime_error(message.str());
   }
-  return iter->second.Index;
+  return iter->second.Location;
 }
 }

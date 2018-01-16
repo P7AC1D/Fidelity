@@ -49,6 +49,7 @@ void Test3D::OnStart()
 
   //auto cube = _sceneNode->CreateObject("cube");
   //cube->SetScale(Vector3(0.5f, 0.5f, 0.5f));
+  //cube->SetPosition(Vector3(2.0f, 2.0f, 2.0f));
   //auto cubeModel = ObjLoader::LoadFromFile("./../../Assets/Models/Container/", "container.obj", *_assetManager);
   //auto cubeMaterial = cubeModel->GetMeshAtIndex(0).GetMaterial();
   //cubeMaterial->SetTexture("DiffuseMap", _assetManager->GetTexture("Textures/crate0_diffuse.png", true));
@@ -64,7 +65,6 @@ void Test3D::OnStart()
   auto treeModel = ObjLoader::LoadFromFile("./../../Assets/Models/LowPolyTree/", "lowpolotree_triangulated.obj", *_assetManager);
   
   auto tree = _sceneNode->CreateObject("tree");
-  tree->SetPosition(Vector3(0.0f, 0.0f, 0.0f));
 
   tree->AddComponent(treeModel);
 
@@ -133,8 +133,9 @@ void Test3D::OnStart()
   {
     if (_inputHandler->IsButtonStateActive("ActivateCameraLook"))
     {
-      float32 yaw = Radian(static_cast<float32>(inputEvent.AxisPosDelta[0]) * dt).InRadians();
-      float32 pitch = Radian(static_cast<float32>(inputEvent.AxisPosDelta[1]) * dt).InRadians();
+      float32 sensitivity = 0.1f;
+      float32 yaw = Radian(static_cast<float32>(inputEvent.AxisPosDelta[0]) * sensitivity * dt).InRadians();
+      float32 pitch = Radian(static_cast<float32>(inputEvent.AxisPosDelta[1]) * sensitivity * dt).InRadians();
       _camera->Rotate(yaw, pitch);
     }
   });
