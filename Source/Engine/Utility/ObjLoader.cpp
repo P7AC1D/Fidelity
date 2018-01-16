@@ -1,7 +1,9 @@
 #include "ObjLoader.hpp"
 
 #include <algorithm>
+#include <fstream>
 #include <exception>
+#include <memory>
 #include <vector>
 
 #include "../Components/Model.hpp"
@@ -128,7 +130,7 @@ std::vector<std::shared_ptr<MaterialData>> LoadMaterialsFromFile(std::ifstream& 
   return materials;
 }
 
-Model* ObjLoader::LoadFromFile(const std::string& filePath, const std::string& fileName, bool generateTangents, Utility::AssetManager& assetManager)
+std::shared_ptr<Model> ObjLoader::LoadFromFile(const std::string& filePath, const std::string& fileName, Utility::AssetManager& assetManager)
 {
   std::ifstream fstream;
   fstream.open(filePath + fileName, std::fstream::in);
@@ -137,10 +139,13 @@ Model* ObjLoader::LoadFromFile(const std::string& filePath, const std::string& f
     throw std::runtime_error("Failed to open file '" + filePath + "'");
   }
     
-  Model* model = new Model();
-  std::unique_ptr<StaticMesh> activeMesh = nullptr;
+  std::shared_ptr<Model> activeModel = nullptr;
+  std::shared_ptr<StaticMesh> activeMesh = nullptr;
+  std::shared_ptr<Material> activeMaterial = nullptr;
 
   std::vector<std::shared_ptr<MaterialData>> materials;
+  std::vector<Model> models;
+  models.reserve(4);
   
   std::vector<Vector3> positions;
   std::vector<Vector3> normals;
@@ -156,31 +161,32 @@ Model* ObjLoader::LoadFromFile(const std::string& filePath, const std::string& f
     auto tokens = StringUtil::Split(line, ' ');
     if (tokens[0] == "o")
     {
-      positions.clear();
-      normals.clear();
-      texCoords.clear();
-
-      if (activeMesh != nullptr)
+      if (activeModel != nullptr)
       {
+        positions.clear();
+        normals.clear();
+        texCoords.clear();
+
         activeMesh->SetPositionVertexData(positionsOut);
         activeMesh->SetNormalVertexData(normalsOut);
         activeMesh->SetTextureVertexData(texCoordsOut);        
-        model->PushMesh(*activeMesh);
+        activeModel->PushMesh(*activeMesh);
+        models.push_back(*activeModel);
+
+        positionsOut.clear();
+        normalsOut.clear();
+        texCoordsOut.clear();
       }
-
-      positionsOut.clear();
-      normalsOut.clear();
-      texCoordsOut.clear();
-
-      activeMesh.reset(new StaticMesh(tokens[1]));
+      activeModel.reset(new Model);
     }
     else if (tokens[0] == "mtllib")
     {
       std::ifstream matFile;
-      matFile.open(filePath + tokens[1], std::fstream::in);
+      std::string matFilePath = filePath + &line[7];
+      matFile.open(matFilePath, std::fstream::in);
       if (!matFile.is_open())
       {
-        throw std::runtime_error("Failed to open file '" + filePath + "'");
+        throw std::runtime_error("Failed to open file '" + matFilePath + "'");
       }
       materials = LoadMaterialsFromFile(matFile);
     }
@@ -206,6 +212,20 @@ Model* ObjLoader::LoadFromFile(const std::string& filePath, const std::string& f
       {
         throw std::runtime_error("Could not find a material with name " + tokens[1]);
       }
+
+      if (activeMesh != nullptr)
+      {
+        activeMesh->SetPositionVertexData(positionsOut);
+        activeMesh->SetNormalVertexData(normalsOut);
+        activeMesh->SetTextureVertexData(texCoordsOut);
+        activeModel->PushMesh(*activeMesh);
+
+        positionsOut.clear();
+        normalsOut.clear();
+        texCoordsOut.clear();
+      }
+
+      activeMesh.reset(new StaticMesh(tokens[1]));
       auto material = activeMesh->GetMaterial();
       material->SetAmbientColour((*iter)->AmbientColour);
       material->SetDiffuseColour((*iter)->DiffuseColour);
@@ -220,17 +240,19 @@ Model* ObjLoader::LoadFromFile(const std::string& filePath, const std::string& f
     {
       BuildVertexFromIndexTriplet(line, positions, normals, texCoords, positionsOut, normalsOut, texCoordsOut);
     }
+    else if (tokens[0] == "#")
+    {
+      // do nothing
+    }
   }
 
   activeMesh->SetPositionVertexData(positionsOut);
   activeMesh->SetNormalVertexData(normalsOut);
   activeMesh->SetTextureVertexData(texCoordsOut);
-  if (generateTangents)
-  {
-    activeMesh->CalculateTangents(positionsOut, texCoordsOut);
-  }
-
-  model->PushMesh(*activeMesh);
+  activeModel->PushMesh(*activeMesh);
+  models.push_back(*activeModel);
+  std::shared_ptr<Model> model(new Model(models[0]));
   return model;
 }
 }
+

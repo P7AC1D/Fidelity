@@ -13,9 +13,9 @@ layout(std140) uniform PointLight
   vec3 u_lightPosition;
   vec3 u_lightDiffuseColour;
   vec3 u_lightSpecularColour;
-  float u_lightConstContribution;
-  float u_lightLinearContribution;
-  float u_lightQuadraticContribution;
+  float u_lightConstAtt;
+  float u_lightLinearAtt;
+  float u_lightQuadAtt;
 };
 
 layout(std140) uniform Transforms
@@ -32,7 +32,6 @@ uniform vec3 u_ambientColour;
 #ifdef VERTEX_SHADER
 layout(location = 0) in vec3 a_position;
 layout(location = 1) in vec3 a_normal;
-layout(location = 4) in vec2 a_uv;
 
 out VSOut
 {
@@ -45,7 +44,6 @@ void main()
 {
   vsOut.Position = u_model * vec4(a_position, 1.0f);
   vsOut.Normal = u_model * vec4(a_normal, 0.0f);
-  vsOut.UV = a_uv;
 
   gl_Position = u_proj * u_view * vsOut.Position;
 }
@@ -64,7 +62,7 @@ out vec4 o_Colour;
 float LightAttenuation()
 {
   float distance = length(vec4(u_lightPosition, 1.0f) - fsIn.Position);
-  float f = u_lightConstContribution + u_lightLinearContribution * distance + u_lightQuadraticContribution * distance * distance;
+  float f = u_lightConstAtt + u_lightLinearAtt * distance + u_lightQuadAtt * distance * distance;
   return 1.0f / f;
 }
 

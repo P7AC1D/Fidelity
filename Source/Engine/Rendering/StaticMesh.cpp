@@ -21,6 +21,11 @@ StaticMesh::~StaticMesh()
 void StaticMesh::SetPositionVertexData(const std::vector<Vector3>& positionData)
 {
   auto vertexCount = static_cast<int32>(positionData.size());
+  if (vertexCount == 0)
+  {
+    return;
+  }
+
   _vertexCount = _vertexCount >= vertexCount || _vertexCount == 0 ? vertexCount : _vertexCount;
 
   _positionData = positionData;
@@ -31,6 +36,11 @@ void StaticMesh::SetPositionVertexData(const std::vector<Vector3>& positionData)
 void StaticMesh::SetNormalVertexData(const std::vector<Vector3>& normalData)
 {
   auto vertexCount = static_cast<int32>(normalData.size());
+  if (vertexCount == 0)
+  {
+    return;
+  }
+
   _vertexCount = _vertexCount >= vertexCount || _vertexCount == 0 ? vertexCount : _vertexCount;
 
   _normalData = normalData;
@@ -41,6 +51,11 @@ void StaticMesh::SetNormalVertexData(const std::vector<Vector3>& normalData)
 void StaticMesh::SetTextureVertexData(const std::vector<Vector2>& textureData)
 {
   auto vertexCount = static_cast<int32>(textureData.size());
+  if (vertexCount == 0)
+  {
+    return;
+  }
+
   _vertexCount = _vertexCount >= vertexCount || _vertexCount == 0 ? vertexCount : _vertexCount;
 
   _textureData = textureData;

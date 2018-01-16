@@ -1,10 +1,7 @@
 #pragma once
-#include <fstream>
+#include <memory>
 #include <string>
-
-#include "../Core/Types.hpp"
-#include "../Maths/Vector2.hpp"
-#include "../Maths/Vector3.hpp"
+#include <vector>
 
 class Model;
 
@@ -15,7 +12,7 @@ class AssetManager;
 class ObjLoader
 {
 public:
-  static Model* LoadFromFile(const std::string& filePath, const std::string& fileName, bool generateTangents, Utility::AssetManager& assetManager);
+  static std::shared_ptr<Model> LoadFromFile(const std::string& filePath, const std::string& fileName, Utility::AssetManager& assetManager);
   
 private:
 };

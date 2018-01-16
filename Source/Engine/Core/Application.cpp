@@ -40,6 +40,23 @@ int32 Application::Run()
         case SDL_QUIT:
           _isRunning = false;
           break;
+        case SDL_WINDOWEVENT:
+        {
+          switch (sdlEvent.window.event)
+          {
+            case SDL_WINDOWEVENT_ENTER:
+            {
+              _mouseFocus = true;
+              break;
+            }
+            case SDL_WINDOWEVENT_LEAVE:
+            {
+              _mouseFocus = false;
+              break;
+            }
+          }
+        }
+        break;
         case SDL_KEYUP:
         {
           InputEvent inputEvent;
@@ -74,13 +91,16 @@ int32 Application::Run()
         }
         case SDL_MOUSEMOTION:
         {
-          InputEvent inputEvent;
-          inputEvent.Axis = Axis::MouseXY;
-          inputEvent.AxisPos = Vector2i(sdlEvent.motion.x, sdlEvent.motion.y);
-          inputEvent.AxisPosDelta = _cursorPosition - inputEvent.AxisPos;
-          _inputHandler->Dispatch(inputEvent, dtMs);
+          if (_mouseFocus)
+          {
+            InputEvent inputEvent;
+            inputEvent.Axis = Axis::MouseXY;
+            inputEvent.AxisPos = Vector2i(sdlEvent.motion.x, sdlEvent.motion.y);
+            inputEvent.AxisPosDelta = _cursorPosition - inputEvent.AxisPos;
+            _inputHandler->Dispatch(inputEvent, dtMs);
 
-          _cursorPosition = inputEvent.AxisPos;
+            _cursorPosition = inputEvent.AxisPos;
+          }
           break;
         }
         case SDL_MOUSEWHEEL:
@@ -100,6 +120,9 @@ int32 Application::Run()
     _sceneManager->UpdateActiveScene();
 
     SDL_GL_SwapWindow(_window);
+    
+    std::string title = _desc.Name + ": " + std::to_string(dtMs) + "ms";
+    SDL_SetWindowTitle(_window, title.c_str());
   }
 
   SDL_DestroyWindow(_window);
@@ -114,7 +137,8 @@ Application::Application(const ApplicationDesc &desc) :
   _uiManager(new UIManager),
   _assetManager(new AssetManager("./../../Assets/")),
   _desc(desc),
-  _isRunning(false)
+  _isRunning(false),
+  _mouseFocus(true)
 {
 }
 

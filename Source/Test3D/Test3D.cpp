@@ -15,6 +15,7 @@
 #include "../Engine/UI/Panel.h"
 #include "../Engine/UI/UIManager.h"
 #include "../Engine/Utility/AssetManager.h"
+#include "../Engine/Utility/ObjLoader.hpp"
 #include "../Engine/SceneManagement/OrbitalCamera.h"
 #include "../Engine/SceneManagement/Scene.h"
 #include "../Engine/SceneManagement/SceneManager.h"
@@ -46,23 +47,26 @@ void Test3D::OnStart()
   _camera->SetPosition(Vector3(0.0f, 0.0f, 6.0f));
   scene->SetCamera(_camera);
 
-//  auto cube = _sceneNode->CreateObject("cube");
-//  cube->SetScale(Vector3(0.5f, 0.5f, 0.5f));
-//  auto cubeModel = _assetManager->GetModel("Models/Container/", "container.obj", true);
-//  auto cubeMaterial = cubeModel->GetMeshAtIndex(0).GetMaterial();
-//  cubeMaterial->SetTexture("DiffuseMap", _assetManager->GetTexture("Textures/crate0_diffuse.png", true));
-//  cubeMaterial->SetTexture("SpecularMap", _assetManager->GetTexture("Textures/crate0_bump.png"));
-//  cubeMaterial->SetTexture("NormalMap", _assetManager->GetTexture("Textures/crate0_normal.png"));
-//  cube->AddComponent(cubeModel);
-//
-//  _object = _sceneNode->CreateObject("cube2");
-//  _object->SetScale(Vector3(0.5f, 0.5f, 0.5f));
-//  _object->SetPosition(Vector3(2.0f, 1.0f, 0.0f));
-//  _object->AddComponent(cubeModel);
+  //auto cube = _sceneNode->CreateObject("cube");
+  //cube->SetScale(Vector3(0.5f, 0.5f, 0.5f));
+  //auto cubeModel = ObjLoader::LoadFromFile("./../../Assets/Models/Container/", "container.obj", *_assetManager);
+  //auto cubeMaterial = cubeModel->GetMeshAtIndex(0).GetMaterial();
+  //cubeMaterial->SetTexture("DiffuseMap", _assetManager->GetTexture("Textures/crate0_diffuse.png", true));
+  //cubeMaterial->SetTexture("SpecularMap", _assetManager->GetTexture("Textures/crate0_bump.png"));
+  //cubeMaterial->SetTexture("NormalMap", _assetManager->GetTexture("Textures/crate0_normal.png"));
+  //cube->AddComponent(cubeModel);
+
+  //_object = _sceneNode->CreateObject("cube2");
+  //_object->SetScale(Vector3(0.5f, 0.5f, 0.5f));
+  //_object->SetPosition(Vector3(2.0f, 1.0f, 0.0f));
+  //_object->AddComponent(cubeModel);
+
+  auto treeModel = ObjLoader::LoadFromFile("./../../Assets/Models/LowPolyTree/", "lowpolotree_triangulated.obj", *_assetManager);
   
   auto tree = _sceneNode->CreateObject("tree");
   tree->SetPosition(Vector3(0.0f, 0.0f, 0.0f));
-  tree->AddComponent(_assetManager->GetModel("Models/LowPolyTree/", "lowpolotree_triangulated.obj"));
+
+  tree->AddComponent(treeModel);
 
  /* auto floor = rootNode->CreateObject("floor");
   auto floorModel = _assetManager->GetModel("Models/Container/container.obj");
@@ -76,9 +80,9 @@ void Test3D::OnStart()
   auto lightB = std::make_shared<WorldObject>("lightB");
   auto lightC = std::make_shared<WorldObject>("lightC");
 
-  auto lightComponentA = std::make_shared<PointLight>(Vector3(0.0f, 2.0f, 0.0f),
-                                                      Vector3(0.8f, 0.0f, 0.0f),
-                                                      Vector3(0.8f, 0.0f, 0.0f),
+  auto lightComponentA = std::make_shared<PointLight>(Vector3(2.0f, 2.0f, 2.0f),
+                                                      Vector3(0.5f, 0.5f, 0.5f),
+                                                      Vector3(0.5f, 0.5f, 0.5f),
                                                       1.0f, 
                                                       0.045f,
                                                       0.0075f);
@@ -98,8 +102,8 @@ void Test3D::OnStart()
   lightB->AddComponent(lightComponentB);
   lightC->AddComponent(lightComponentC);
 
-  rootNode->AddObject(lightA);
-  /*rootNode->AddObject(lightB);
+  rootNode->AddObject(lightA);/*
+  rootNode->AddObject(lightB);
   rootNode->AddObject(lightC);*/
 
   /*auto skyBox = _assetManager->GetCubeMap(std::vector<std::string>{ "Textures/CubeMaps/right.jpg",
