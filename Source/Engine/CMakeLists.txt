@@ -48,6 +48,7 @@ file(GLOB UtilitySrc
 
 file(GLOB ShaderSrc 
 	${CMAKE_CURRENT_SOURCE_DIR}/Shaders/*.glsl
+	${CMAKE_CURRENT_SOURCE_DIR}/Shaders/*.shader
 	)
 
 source_group(Components FILES ${ComponentsSrc})
