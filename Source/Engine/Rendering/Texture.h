@@ -1,14 +1,8 @@
 #pragma once
 #include <string>
 
-#ifdef __APPLE__
-#include <OpenGL/gl3.h>
-#endif
-#ifdef _WIN32
-#include <GL/glew.h>
-#endif
-
 #include "../Core/Types.hpp"
+#include "OpenGL.h"
 
 namespace Rendering
 {

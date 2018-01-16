@@ -1,12 +1,5 @@
 #include "Renderer.h"
 
-#ifdef __APPLE__
-#include <OpenGL/gl3.h>
-#endif
-#ifdef _WIN32
-#include <GL/glew.h>
-#endif
-
 #include "../Components/Model.hpp"
 #include "../Components/Transform.h"
 #include "../Components/PointLight.h"
@@ -82,7 +75,7 @@ void Renderer::PreRender()
 
 void Renderer::DrawScene(std::shared_ptr<Scene> scene)
 {
-  glDepthFunc(GL_LESS);
+  GLCall(glDepthFunc(GL_LESS));
 
   UploadCameraData(scene->GetCamera());
   DrawSkyBox(scene);
@@ -97,12 +90,12 @@ void Renderer::DrawScene(std::shared_ptr<Scene> scene)
     {
       DrawTexturedObjects(models, scene->GetAmbientLight());
     }
-    glDepthFunc(GL_EQUAL);
-    glEnable(GL_BLEND);
-    glBlendEquation(GL_FUNC_ADD);
-    glBlendFunc(GL_ONE, GL_ONE);
+    GLCall(glDepthFunc(GL_EQUAL));
+    GLCall(glEnable(GL_BLEND));
+    GLCall(glBlendEquation(GL_FUNC_ADD));
+    GLCall(glBlendFunc(GL_ONE, GL_ONE));
   }
-  glDisable(GL_BLEND);
+  GLCall(glDisable(GL_BLEND));
 }
 
 void Renderer::DrawUI(std::vector<std::shared_ptr<Panel>> panelCollection)
@@ -136,12 +129,12 @@ void Renderer::DrawUI(std::vector<std::shared_ptr<Panel>> panelCollection)
     auto posLoc = static_cast<uint32>(VertexArribLocation::Position);
     auto uvLoc = static_cast<uint32>(VertexArribLocation::Uv);
 
-    glBindVertexArray(_guiQuadVertexData->_vaoId);
-    glVertexAttribPointer(posLoc, 2, GL_FLOAT, GL_FALSE, 16, nullptr);
-    glEnableVertexAttribArray(posLoc);
-    glVertexAttribPointer(uvLoc, 2, GL_FLOAT, GL_FALSE, 16, (void*)8);
-    glEnableVertexAttribArray(uvLoc);
-    glBindVertexArray(0);
+    GLCall(glBindVertexArray(_guiQuadVertexData->_vaoId));
+    GLCall(glVertexAttribPointer(posLoc, 2, GL_FLOAT, GL_FALSE, 16, nullptr));
+    GLCall(glEnableVertexAttribArray(posLoc));
+    GLCall(glVertexAttribPointer(uvLoc, 2, GL_FLOAT, GL_FALSE, 16, (void*)8));
+    GLCall(glEnableVertexAttribArray(uvLoc));
+    GLCall(glBindVertexArray(0));
   }
   
   auto shader = _shaderCollection->GetShader("Gui.glsl");
@@ -155,7 +148,7 @@ void Renderer::DrawUI(std::vector<std::shared_ptr<Panel>> panelCollection)
   {
     if (panel->_texture)
     {
-      glActiveTexture(GL_TEXTURE0);
+      GLCall(glActiveTexture(GL_TEXTURE0));
       panel->_texture->Bind();
       shader->SetInt("textureMap", GL_TEXTURE0);
     }
@@ -170,9 +163,9 @@ void Renderer::DrawUI(std::vector<std::shared_ptr<Panel>> panelCollection)
     shader->SetFloat("xOffset", xOffset);
     shader->SetFloat("yOffset", yOffset);
     
-    glBindVertexArray(_guiQuadVertexData->_vaoId);
-    glDrawArrays(GL_TRIANGLES, 0, 6);
-    glBindVertexArray(0);
+    GLCall(glBindVertexArray(_guiQuadVertexData->_vaoId));
+    GLCall(glDrawArrays(GL_TRIANGLES, 0, 6));
+    GLCall(glBindVertexArray(0));
   }
 }
 
@@ -188,13 +181,13 @@ bool Renderer::Initialize()
   }
 #endif
 
-  glEnable(GL_DEPTH_TEST);
-  glEnable(GL_CULL_FACE);
-  glCullFace(GL_BACK);
-  glFrontFace(GL_CCW);
+  GLCall(glEnable(GL_DEPTH_TEST));
+  GLCall(glEnable(GL_CULL_FACE));
+  GLCall(glCullFace(GL_BACK));
+  GLCall(glFrontFace(GL_CCW));
 
-  glViewport(0, 0, _renderWidth, _renderHeight);
-  glClearColor(0.25f, 0.25f, 0.25f, 0.0f);
+  GLCall(glViewport(0, 0, _renderWidth, _renderHeight));
+  GLCall(glClearColor(0.25f, 0.25f, 0.25f, 0.0f));
   return true;
 }
 
@@ -205,26 +198,26 @@ void Renderer::SetVertexAttribPointers(StaticMesh* staticMesh, int32 stride)
     return;
   }
 
-  glBindVertexArray(staticMesh->_vertexBuffer->_vaoId);
+  GLCall(glBindVertexArray(staticMesh->_vertexBuffer->_vaoId));
   if (staticMesh->_vertexDataFormat & VertexDataFormat::Position)
   {
     auto positionLocation = static_cast<int32>(VertexArribLocation::Position);
-    glVertexAttribPointer(positionLocation, 3, GL_FLOAT, GL_FALSE, stride, nullptr);
-    glEnableVertexAttribArray(positionLocation);
+    GLCall(glVertexAttribPointer(positionLocation, 3, GL_FLOAT, GL_FALSE, stride, nullptr));
+    GLCall(glEnableVertexAttribArray(positionLocation));
   }
   if (staticMesh->_vertexDataFormat & VertexDataFormat::Normal)
   {
     auto normalLocation = static_cast<int32>(VertexArribLocation::Normal);
-    glVertexAttribPointer(normalLocation, 3, GL_FLOAT, GL_FALSE, stride, (void*)12);
-    glEnableVertexAttribArray(normalLocation);
+    GLCall(glVertexAttribPointer(normalLocation, 3, GL_FLOAT, GL_FALSE, stride, (void*)12));
+    GLCall(glEnableVertexAttribArray(normalLocation));
   }
   if (staticMesh->_vertexDataFormat & VertexDataFormat::Uv)
   {
     auto uvLocation = static_cast<int32>(VertexArribLocation::Uv);
-    glVertexAttribPointer(uvLocation, 2, GL_FLOAT, GL_FALSE, stride, (void*)24);
-    glEnableVertexAttribArray(uvLocation);
+    GLCall(glVertexAttribPointer(uvLocation, 2, GL_FLOAT, GL_FALSE, stride, (void*)24));
+    GLCall(glEnableVertexAttribArray(uvLocation));
   }
-  glBindVertexArray(0);
+  GLCall(glBindVertexArray(0));
 }
 
 void Renderer::DrawSkyBox(std::shared_ptr<SceneManagement::Scene> scene)
@@ -285,10 +278,10 @@ void Renderer::DrawSkyBox(std::shared_ptr<SceneManagement::Scene> scene)
 
     auto posLoc = static_cast<uint32>(VertexArribLocation::Position);
 
-    glBindVertexArray(_skyBoxVertexData->_vaoId);
-    glVertexAttribPointer(posLoc, 3, GL_FLOAT, GL_FALSE, 12, nullptr);
-    glEnableVertexAttribArray(posLoc);
-    glBindVertexArray(0);
+    GLCall(glBindVertexArray(_skyBoxVertexData->_vaoId));
+    GLCall(glVertexAttribPointer(posLoc, 3, GL_FLOAT, GL_FALSE, 12, nullptr));
+    GLCall(glEnableVertexAttribArray(posLoc));
+    GLCall(glBindVertexArray(0));
   }
   auto shader = _shaderCollection->GetShader("SkyBox.glsl");
   if (!shader)
@@ -299,16 +292,16 @@ void Renderer::DrawSkyBox(std::shared_ptr<SceneManagement::Scene> scene)
   shader->SetMat4("projection", scene->GetCamera()->GetProjMat());
   shader->SetInt("skybox", 0);
 
-  glDepthMask(GL_FALSE);
+  GLCall(glDepthMask(GL_FALSE));
   shader->Bind();
-  glBindVertexArray(_skyBoxVertexData->_vaoId);
-  glActiveTexture(GL_TEXTURE0);
-  glBindTexture(GL_TEXTURE_CUBE_MAP, scene->GetSkyBox()->_id);
-  glDrawArrays(GL_TRIANGLES, 0, 36);
-  glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
-  glBindVertexArray(0);
+  GLCall(glBindVertexArray(_skyBoxVertexData->_vaoId));
+  GLCall(glActiveTexture(GL_TEXTURE0));
+  GLCall(glBindTexture(GL_TEXTURE_CUBE_MAP, scene->GetSkyBox()->_id));
+  GLCall(glDrawArrays(GL_TRIANGLES, 0, 36));
+  GLCall(glBindTexture(GL_TEXTURE_CUBE_MAP, 0));
+  GLCall(glBindVertexArray(0));
   shader->Unbind();
-  glDepthMask(GL_TRUE);
+  GLCall(glDepthMask(GL_TRUE));
 
 }
 
@@ -370,10 +363,10 @@ void Renderer::DrawTexturedObjects(ObjectPtrArray objects, const Vector3& ambien
       shader->SetVec3("u_material.SpecularColour", material->GetSpecularColour());
 
       auto vertexData = staticMesh.GetVertexData();
-      glBindVertexArray(vertexData->_vaoId);
-      glDrawArrays(GL_TRIANGLES, 0, staticMesh._vertexCount);
-      glBindVertexArray(0);
-      glBindTexture(GL_TEXTURE_2D, 0);
+      GLCall(glBindVertexArray(vertexData->_vaoId));
+      GLCall(glDrawArrays(GL_TRIANGLES, 0, staticMesh._vertexCount));
+      GLCall(glBindVertexArray(0));
+      GLCall(glBindTexture(GL_TEXTURE_2D, 0));
     }
   }
 }
@@ -437,13 +430,13 @@ void Renderer::ClearBuffer(ClearType clearType)
   switch (clearType)
   {
     case ClearType::Color:
-      glClear(GL_COLOR_BUFFER_BIT);
+      GLCall(glClear(GL_COLOR_BUFFER_BIT));
       break;
     case ClearType::Depth:
-      glClear(GL_DEPTH_BUFFER_BIT);
+      GLCall(glClear(GL_DEPTH_BUFFER_BIT));
       break;
     case ClearType::All:
-      glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+      GLCall(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
       break;
   }
 }
