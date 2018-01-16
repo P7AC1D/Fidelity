@@ -155,16 +155,16 @@ std::shared_ptr<StaticMesh> MeshFactory::CreateCube()
   return mesh;
 }
 
-std::shared_ptr<StaticMesh> CreatePlane(uint32 density)
+std::shared_ptr<StaticMesh> MeshFactory::CreatePlane(uint32 density)
 {
   std::vector<Vector3> positions;
   std::vector<Vector3> normals;
   std::vector<Vector2> texCoords;
 
   float32 interval = 1.0f / static_cast<float32>(density);
-  for (float32 i = -1.0f; i < 1.0f; i =+ interval)
+  for (float32 i = -1.0f; i < 1.0f; i += interval)
   {
-    for (float32 j = -1.0f; j < 1.0f; j =+ interval)
+    for (float32 j = -1.0f; j < 1.0f; j += interval)
     {
       positions.emplace_back(i, 0.0f, j);
       positions.emplace_back(i + interval, 0.0f, j);
@@ -187,4 +187,9 @@ std::shared_ptr<StaticMesh> CreatePlane(uint32 density)
       texCoords.emplace_back(1.0f, 1.0f);
     }
   }
+  auto mesh = std::make_shared<StaticMesh>("Cube");
+  mesh->SetPositionVertexData(positions);
+  mesh->SetNormalVertexData(normals);
+  mesh->SetTextureVertexData(texCoords);
+  return mesh;
 }

@@ -281,7 +281,7 @@ void Shader::Link()
     GLCall(glGetProgramiv(_programId, GL_INFO_LOG_LENGTH, &logLength));
 
     std::stringstream message;
-    message << "Failed to link shaders from '" << _fileName << "' bound to ID " + _programId;
+    message << "Failed to link shaders from '" << _fileName << "' bound to ID " << _programId;
 
     if (logLength > 0)
     {

@@ -10,11 +10,11 @@
 #include "../Engine/Maths/Vector2.hpp"
 #include "../Engine/Maths/Vector3.hpp"
 #include "../Engine/Rendering/Material.h"
-#include "../Engine/Rendering/MeshFactory.h"
 #include "../Engine/Rendering/StaticMesh.h"
 #include "../Engine/UI/Panel.h"
 #include "../Engine/UI/UIManager.h"
 #include "../Engine/Utility/AssetManager.h"
+#include "../Engine/Utility/MeshFactory.h"
 #include "../Engine/Utility/ObjLoader.hpp"
 #include "../Engine/SceneManagement/OrbitalCamera.h"
 #include "../Engine/SceneManagement/Scene.h"
@@ -65,8 +65,19 @@ void Test3D::OnStart()
   auto treeModel = ObjLoader::LoadFromFile("./../../Assets/Models/LowPolyTree/", "lowpolotree_triangulated.obj", *_assetManager);
   
   auto tree = _sceneNode->CreateObject("tree");
-
   tree->AddComponent(treeModel);
+  
+  auto floor = _sceneNode->CreateObject("floor");
+  floor->SetScale(Vector3(10.0f));
+  auto plane = MeshFactory::CreatePlane(10);
+  auto material = plane->GetMaterial();
+  material->SetAmbientColour(Vector3(1.0f));
+  material->SetDiffuseColour(Vector3(0.5f));
+  material->SetSpecularColour(Vector3(0.25f));
+  material->SetSpecularShininess(1.0f);
+  std::shared_ptr<Model> planeModel(new Model);
+  planeModel->PushMesh(*plane);
+  floor->AddComponent(planeModel);
 
  /* auto floor = rootNode->CreateObject("floor");
   auto floorModel = _assetManager->GetModel("Models/Container/container.obj");
