@@ -211,7 +211,10 @@ Model* ObjLoader::LoadFromFile(const std::string& filePath, const std::string& f
       material->SetDiffuseColour((*iter)->DiffuseColour);
       material->SetSpecularColour((*iter)->SpecularColour);
       material->SetSpecularShininess((*iter)->SpecularExponent);
-      material->SetTexture("DiffuseMap", assetManager.GetTexture(filePath, (*iter)->MapKd));
+      if ((*iter)->MapKd != "")
+      {
+        material->SetTexture("DiffuseMap", assetManager.GetTexture(filePath, (*iter)->MapKd));
+      }
     }
     else if (tokens[0] == "f")
     {

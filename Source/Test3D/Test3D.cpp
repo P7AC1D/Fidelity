@@ -46,19 +46,23 @@ void Test3D::OnStart()
   _camera->SetPosition(Vector3(0.0f, 0.0f, 6.0f));
   scene->SetCamera(_camera);
 
-  auto cube = _sceneNode->CreateObject("cube");
-  cube->SetScale(Vector3(0.5f, 0.5f, 0.5f));
-  auto cubeModel = _assetManager->GetModel("Models/Container/", "container.obj", true);
-  auto cubeMaterial = cubeModel->GetMeshAtIndex(0).GetMaterial();
-  cubeMaterial->SetTexture("DiffuseMap", _assetManager->GetTexture("Textures/crate0_diffuse.png", true));
-  cubeMaterial->SetTexture("SpecularMap", _assetManager->GetTexture("Textures/crate0_bump.png"));
-  cubeMaterial->SetTexture("NormalMap", _assetManager->GetTexture("Textures/crate0_normal.png"));
-  cube->AddComponent(cubeModel);
+//  auto cube = _sceneNode->CreateObject("cube");
+//  cube->SetScale(Vector3(0.5f, 0.5f, 0.5f));
+//  auto cubeModel = _assetManager->GetModel("Models/Container/", "container.obj", true);
+//  auto cubeMaterial = cubeModel->GetMeshAtIndex(0).GetMaterial();
+//  cubeMaterial->SetTexture("DiffuseMap", _assetManager->GetTexture("Textures/crate0_diffuse.png", true));
+//  cubeMaterial->SetTexture("SpecularMap", _assetManager->GetTexture("Textures/crate0_bump.png"));
+//  cubeMaterial->SetTexture("NormalMap", _assetManager->GetTexture("Textures/crate0_normal.png"));
+//  cube->AddComponent(cubeModel);
+//
+//  _object = _sceneNode->CreateObject("cube2");
+//  _object->SetScale(Vector3(0.5f, 0.5f, 0.5f));
+//  _object->SetPosition(Vector3(2.0f, 1.0f, 0.0f));
+//  _object->AddComponent(cubeModel);
   
-  _object = _sceneNode->CreateObject("cube2");
-  _object->SetScale(Vector3(0.5f, 0.5f, 0.5f));
-  _object->SetPosition(Vector3(2.0f, 1.0f, 0.0f));
-  _object->AddComponent(cubeModel);
+  auto tree = _sceneNode->CreateObject("tree");
+  tree->SetPosition(Vector3(0.0f, 0.0f, 0.0f));
+  tree->AddComponent(_assetManager->GetModel("Models/LowPolyTree/", "lowpolotree_triangulated.obj"));
 
  /* auto floor = rootNode->CreateObject("floor");
   auto floorModel = _assetManager->GetModel("Models/Container/container.obj");
@@ -134,6 +138,6 @@ void Test3D::OnStart()
 
 void Test3D::OnUpdate(uint32 dtMs)
 {
-  _object->Rotate(Quaternion(Vector3(0.0f, 1.0f, 1.0f), Radian(0.0005f * dtMs)));
-  _sceneNode->Rotate(Quaternion(Vector3(0.0f, 1.0f, 0.0f), Radian(0.0005f * dtMs)));
+  //_object->Rotate(Quaternion(Vector3(0.0f, 1.0f, 1.0f), Radian(0.0005f * dtMs)));
+  //_sceneNode->Rotate(Quaternion(Vector3(0.0f, 1.0f, 0.0f), Radian(0.0005f * dtMs)));
 }
