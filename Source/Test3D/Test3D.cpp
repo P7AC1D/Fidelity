@@ -91,10 +91,7 @@ void Test3D::OnStart()
   auto lightA = std::make_shared<WorldObject>("lightA");
   auto lightComponentA = std::make_shared<PointLight>(Vector3(3.0f, 3.0f, 3.0f),
                                                       Vector3(1.0f, 1.0f, 1.0f),
-                                                      Vector3(0.2f, 0.2f, 0.2f),
-                                                      1.0f, 
-                                                      0.0f,
-                                                      1.0f);
+                                                      7.0f);
   lightA->AddComponent(lightComponentA);
   rootNode->AddObject(lightA);
 

@@ -72,6 +72,7 @@ private:
 
   std::unique_ptr<ConstantBuffer> _cameraBuffer;
   std::unique_ptr<ConstantBuffer> _lightBuffer;
+  std::unique_ptr<ConstantBuffer> _ambientLightBuffer;
   std::shared_ptr<SceneManagement::OrbitalCamera> _activeCamera;
   bool _projectionMatrixDirty;
   bool _viewMatrixDirty;

@@ -11,12 +11,9 @@ struct Material
 
 layout(std140) uniform PointLight
 {
-  vec3 u_lightPosition;
-  vec3 u_lightDiffuseColour;
-  vec3 u_lightSpecularColour;
-  float u_lightConstAtt;
-  float u_lightLinearAtt;
-  float u_lightQuadAtt;
+  vec3 u_pLightPosition;
+  vec3 u_pLightColour;  
+  float u_pLightRadius;    
 };
 
 layout(std140) uniform Transforms
@@ -57,29 +54,31 @@ void main()
 #ifdef FRAGMENT_SHADER
 in VSOut
 {
-vec4 Position;
-vec4 Normal;
-vec2 UV;
+  vec4 Position;
+  vec4 Normal;
+  vec2 UV;
 } fsIn;
 
 out vec4 o_Colour;
 
 float LightAttenuation()
 {
-  float distance = length(vec4(u_lightPosition, 1.0f) - fsIn.Position);
-  float f = u_lightConstAtt + u_lightLinearAtt * distance + u_lightQuadAtt * distance * distance;
-  return 1.0f / f;
+  float dist = length(vec4(u_pLightPosition, 1.0f) - fsIn.Position);
+  float f = 1.0f - dist / (u_pLightRadius);
+  float atten = clamp(f, 0.0f, 1.0f);
+  atten *= atten;
+  return atten;
 }
 
 float DiffuseContribution()
 {
-  vec4 lightDir = normalize(fsIn.Position - vec4(u_lightPosition, 1.0f));
+  vec4 lightDir = normalize(fsIn.Position - vec4(u_pLightPosition, 1.0f));
   return clamp(dot(fsIn.Normal, -lightDir), 0.0f, 1.0f);
 }
 
 float SpecularContribution(in float specularExponent)
 {
-  vec4 lightDir = normalize(fsIn.Position - vec4(u_lightPosition, 1.0f));
+  vec4 lightDir = normalize(fsIn.Position - vec4(u_pLightPosition, 1.0f));
   vec4 reflectDir = reflect(lightDir, fsIn.Normal);
   vec4 viewDir = normalize(vec4(u_viewPosition, 1.0f) - fsIn.Position);
   return pow(clamp(dot(reflectDir, viewDir), 0.0f, 1.0f), specularExponent);
@@ -94,8 +93,8 @@ void main()
   }
 
   float attenuation = LightAttenuation();
-  vec3 diffuseColour = (DiffuseContribution() * attenuation) * (u_lightDiffuseColour * u_material.DiffuseColour * diffuseSample);
-  vec3 specularColour = (SpecularContribution(u_material.SpecularExponent) * attenuation) * (u_lightSpecularColour * u_material.SpecularColour);
+  vec3 diffuseColour = (DiffuseContribution() * attenuation) * (u_pLightColour * u_material.DiffuseColour * diffuseSample);
+  vec3 specularColour = (SpecularContribution(u_material.SpecularExponent) * attenuation) * (u_material.SpecularColour);
   vec3 ambientColour = u_ambientColour * u_material.AmbientColour;
 
   float gamma = 2.2;

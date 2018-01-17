@@ -410,20 +410,15 @@ void Renderer::UploadLightData(std::shared_ptr<WorldObject> lightObject)
 
   if (_lightBuffer == nullptr)
   {
-    _lightBuffer.reset(new ConstantBuffer(80));
+    _lightBuffer.reset(new ConstantBuffer(32));
   }
 
   _lightBuffer->UploadData(0, 12, &pointLight->GetPosition()[0]);
-  _lightBuffer->UploadData(16, 12, &pointLight->GetDiffuseColour()[0]);
-  _lightBuffer->UploadData(32, 12, &pointLight->GetSpecularColour()[0]);
+  _lightBuffer->UploadData(16, 12, &pointLight->GetColour()[0]);
 
-  float32 constContrib = pointLight->GetConstContrib();
-  float32 linearContrib = pointLight->GetLinearContrib();
-  float32 quadContrib = pointLight->GetQuadraticContrib();
+  float32 radius = pointLight->GetRadius();
 
-  _lightBuffer->UploadData(44, 4, &constContrib);
-  _lightBuffer->UploadData(48, 4, &linearContrib);
-  _lightBuffer->UploadData(52, 4, &quadContrib);
+  _lightBuffer->UploadData(28, 4, &radius);
 }
 
 void Renderer::ClearBuffer(ClearType clearType)
