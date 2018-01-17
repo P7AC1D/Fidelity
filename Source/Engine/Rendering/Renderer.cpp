@@ -35,9 +35,9 @@ enum class VertexArribLocation
 {
   Position = 0,
   Normal = 1,
-  Tangent = 2,
-  Bitangent = 3,
-  Uv = 4,
+  TexCoord = 2,
+  Tangent = 3,
+  Bitangent = 4,
 };
 
 enum class UniformBindingPoint
@@ -127,7 +127,7 @@ void Renderer::DrawUI(std::vector<std::shared_ptr<Panel>> panelCollection)
     _guiQuadVertexData->UploadData<Vector2>(quadVertexData, BufferUsage::Static);
 
     auto posLoc = static_cast<uint32>(VertexArribLocation::Position);
-    auto uvLoc = static_cast<uint32>(VertexArribLocation::Uv);
+    auto uvLoc = static_cast<uint32>(VertexArribLocation::TexCoord);
 
     GLCall(glBindVertexArray(_guiQuadVertexData->_vaoId));
     GLCall(glVertexAttribPointer(posLoc, 2, GL_FLOAT, GL_FALSE, 16, nullptr));
@@ -213,7 +213,7 @@ void Renderer::SetVertexAttribPointers(StaticMesh* staticMesh, int32 stride)
   }
   if (staticMesh->_vertexDataFormat & VertexDataFormat::Uv)
   {
-    auto uvLocation = static_cast<int32>(VertexArribLocation::Uv);
+    auto uvLocation = static_cast<int32>(VertexArribLocation::TexCoord);
     GLCall(glVertexAttribPointer(uvLocation, 2, GL_FLOAT, GL_FALSE, stride, (void*)24));
     GLCall(glEnableVertexAttribArray(uvLocation));
   }
@@ -319,6 +319,7 @@ void Renderer::DrawTexturedObjects(ObjectPtrArray objects, const Vector3& ambien
   shader->BindUniformBlock(shader->GetUniformBlockIndex("PointLight"), static_cast<int32>(UniformBindingPoint::Light), _lightBuffer->_uboId, _lightBuffer->_sizeBytes);
   for (auto object : objects)
   {
+    shader->SetBool("u_diffuseMappingEnabled", false);
     auto model = std::dynamic_pointer_cast<Model>(object->GetComponent("Model"));
     if (!model)
     {
@@ -333,13 +334,14 @@ void Renderer::DrawTexturedObjects(ObjectPtrArray objects, const Vector3& ambien
 
       auto material = staticMesh.GetMaterial();
 
-//      if (material->HasTexture("DiffuseMap"))
-//      {
-//        auto diffuseMap = material->GetTexture("DiffuseMap");
-//        glActiveTexture(GL_TEXTURE0);
-//        diffuseMap->Bind();
-//        shader->SetInt("material.diffuseMap", 0);
-//      }
+      if (material->HasTexture("DiffuseMap"))
+      {
+        auto diffuseMap = material->GetTexture("DiffuseMap");
+        glActiveTexture(GL_TEXTURE0);
+        diffuseMap->Bind();
+        shader->SetInt("u_material.DiffuseMap", 0);
+        shader->SetBool("u_diffuseMappingEnabled", true);
+      }
 //
 //      if (material->HasTexture("SpecularMap"))
 //      {
@@ -366,7 +368,6 @@ void Renderer::DrawTexturedObjects(ObjectPtrArray objects, const Vector3& ambien
       GLCall(glBindVertexArray(vertexData->_vaoId));
       GLCall(glDrawArrays(GL_TRIANGLES, 0, staticMesh._vertexCount));
       GLCall(glBindVertexArray(0));
-      GLCall(glBindTexture(GL_TEXTURE_2D, 0));
     }
   }
 }

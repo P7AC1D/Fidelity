@@ -115,7 +115,7 @@ void SceneNode::UpdateTransforms()
     auto orientation = _parentNode->_absoluteTransform->GetRotation();
     auto point = _parentNode->_localTransform->GetPosition();
 
-    _absoluteTransform->SetPosition(origin + orientation.Rotate(point - origin));
+    _absoluteTransform->SetPosition(origin + orientation.Rotate(origin - point));
     _absoluteTransform->SetScale(_parentNode->_absoluteTransform->GetScale() * _localTransform->GetScale());
     _absoluteTransform->SetRotation(Quaternion::Normalize(_localTransform->GetRotation() * orientation));
   }
@@ -131,7 +131,7 @@ void SceneNode::UpdateChildObjectsTransforms()
     auto orientation = _absoluteTransform->GetRotation();
     auto point = object->_localTransform->GetPosition();
 
-    object->_absoluteTransform->SetPosition(origin + orientation.Rotate(point - origin));
+    object->_absoluteTransform->SetPosition(origin + orientation.Rotate(origin - point));
     object->_absoluteTransform->SetScale(_absoluteTransform->GetScale() * object->_localTransform->GetScale());
     object->_absoluteTransform->SetRotation(Quaternion::Normalize(object->_localTransform->GetRotation() * orientation));
   }

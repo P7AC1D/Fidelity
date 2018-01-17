@@ -7,7 +7,7 @@
 
 namespace Rendering
 {
-int32 FrameBuffer::CurrentlyBoundFboId = 0;
+int32 FrameBuffer::CurrentlyBoundFboId = -1;
 
 FrameBuffer::FrameBuffer()
 {

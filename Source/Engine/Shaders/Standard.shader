@@ -6,6 +6,7 @@ struct Material
   vec3 DiffuseColour;
   vec3 SpecularColour;
   float SpecularExponent;
+  sampler2D DiffuseMap;
 };
 
 layout(std140) uniform PointLight
@@ -25,6 +26,8 @@ layout(std140) uniform Transforms
   vec3 u_viewPosition;
 };
 
+
+uniform bool u_diffuseMappingEnabled;
 uniform mat4 u_model;
 uniform Material u_material;
 uniform vec3 u_ambientColour;
@@ -32,6 +35,7 @@ uniform vec3 u_ambientColour;
 #ifdef VERTEX_SHADER
 layout(location = 0) in vec3 a_position;
 layout(location = 1) in vec3 a_normal;
+layout(location = 2) in vec2 a_texCoords;
 
 out VSOut
 {
@@ -44,6 +48,7 @@ void main()
 {
   vsOut.Position = u_model * vec4(a_position, 1.0f);
   vsOut.Normal = u_model * vec4(a_normal, 0.0f);
+  vsOut.UV = a_texCoords;
 
   gl_Position = u_proj * u_view * vsOut.Position;
 }
@@ -82,8 +87,14 @@ float SpecularContribution(in float specularExponent)
 
 void main()
 {
+  vec3 diffuseSample = vec3(1.0f, 1.0f, 1.0f);
+  if (u_diffuseMappingEnabled)
+  {
+    diffuseSample = texture(u_material.DiffuseMap, fsIn.UV).xyz;
+  }
+
   float attenuation = LightAttenuation();
-  vec3 diffuseColour = (DiffuseContribution() * attenuation) * (u_lightDiffuseColour * u_material.DiffuseColour);
+  vec3 diffuseColour = (DiffuseContribution() * attenuation) * (u_lightDiffuseColour * u_material.DiffuseColour * diffuseSample);
   vec3 specularColour = (SpecularContribution(u_material.SpecularExponent) * attenuation) * (u_lightSpecularColour * u_material.SpecularColour);
   vec3 ambientColour = u_ambientColour * u_material.AmbientColour;
 

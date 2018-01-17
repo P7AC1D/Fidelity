@@ -62,19 +62,20 @@ void Test3D::OnStart()
   //_object->SetPosition(Vector3(2.0f, 1.0f, 0.0f));
   //_object->AddComponent(cubeModel);
 
-  auto treeModel = ObjLoader::LoadFromFile("./../../Assets/Models/LowPolyTree/", "lowpolotree_triangulated.obj", *_assetManager);
-  
+  auto treeModel = ObjLoader::LoadFromFile("./../../Assets/Models/LowPolyTree/", "lowpolotree_triangulated.obj", *_assetManager);  
   auto tree = _sceneNode->CreateObject("tree");
   tree->AddComponent(treeModel);
   
   auto floor = _sceneNode->CreateObject("floor");
   floor->SetScale(Vector3(10.0f));
+  floor->SetPosition(Vector3(0.0f, -2.0f, 0.0f));
   auto plane = MeshFactory::CreatePlane(10);
   auto material = plane->GetMaterial();
-  material->SetAmbientColour(Vector3(1.0f));
-  material->SetDiffuseColour(Vector3(0.5f));
+  material->SetAmbientColour(Vector3(0.0f));
+  material->SetDiffuseColour(Vector3(0.7f));
   material->SetSpecularColour(Vector3(0.25f));
   material->SetSpecularShininess(1.0f);
+  material->SetTexture("DiffuseMap", _assetManager->GetTexture("/Textures/177.JPG"));
   std::shared_ptr<Model> planeModel(new Model);
   planeModel->PushMesh(*plane);
   floor->AddComponent(planeModel);
@@ -88,49 +89,14 @@ void Test3D::OnStart()
   floor->AddComponent(floorModel);*/
 
   auto lightA = std::make_shared<WorldObject>("lightA");
-  auto lightB = std::make_shared<WorldObject>("lightB");
-  auto lightC = std::make_shared<WorldObject>("lightC");
-
-  auto lightComponentA = std::make_shared<PointLight>(Vector3(2.0f, 2.0f, 2.0f),
-                                                      Vector3(0.5f, 0.5f, 0.5f),
-                                                      Vector3(0.5f, 0.5f, 0.5f),
+  auto lightComponentA = std::make_shared<PointLight>(Vector3(3.0f, 3.0f, 3.0f),
+                                                      Vector3(1.0f, 1.0f, 1.0f),
+                                                      Vector3(0.2f, 0.2f, 0.2f),
                                                       1.0f, 
-                                                      0.045f,
-                                                      0.0075f);
-  auto lightComponentB = std::make_shared<PointLight>(Vector3(-4.0f, 4.0f, -4.0f),
-                                                      Vector3(0.0f, 0.8f, 0.0f),
-                                                      Vector3(0.0f, 0.8f, 0.0f),
-                                                      1.0f, 
-                                                      0.045f,
-                                                      0.0075f);
-  auto lightComponentC = std::make_shared<PointLight>(Vector3(4.0f, 4.0f, -4.0f),
-                                                      Vector3(0.0f, 0.0f, 0.8f),
-                                                      Vector3(0.0f, 0.0f, 0.8f),
-                                                      1.0f, 
-                                                      0.045f,
-                                                      0.0075f);
+                                                      0.0f,
+                                                      1.0f);
   lightA->AddComponent(lightComponentA);
-  lightB->AddComponent(lightComponentB);
-  lightC->AddComponent(lightComponentC);
-
-  rootNode->AddObject(lightA);/*
-  rootNode->AddObject(lightB);
-  rootNode->AddObject(lightC);*/
-
-  /*auto skyBox = _assetManager->GetCubeMap(std::vector<std::string>{ "Textures/CubeMaps/right.jpg",
-                                                                    "Textures/CubeMaps/left.jpg",
-                                                                    "Textures/CubeMaps/top.jpg",
-                                                                    "Textures/CubeMaps/bottom.jpg",
-                                                                    "Textures/CubeMaps/back.jpg",
-                                                                    "Textures/CubeMaps/front.jpg" });
-  scene->SetSkyBox(skyBox);*/
-
-  //auto panel1 = std::make_shared<Panel>("OSD1", 300, 300, GetWindowWidth() - 310, 10);
-  //panel1->SetTexture(_assetManager->GetTexture("crate0_normal.png"));
-  //auto panel2 = std::make_shared<Panel>("OSD2", 300, 300, 10, 10);
-  //panel2->SetTexture(_assetManager->GetTexture("crate0_normal.png"));
-  //_uiManager->AttachPanel(panel1);
-  //_uiManager->AttachPanel(panel2);
+  rootNode->AddObject(lightA);
 
   _inputHandler->BindButtonToState("ActivateCameraLook", Button::Button_LMouse);
   _inputHandler->BindAxisToState("CameraZoom", Axis::MouseScrollXY);

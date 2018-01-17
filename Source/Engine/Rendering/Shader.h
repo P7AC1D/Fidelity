@@ -19,6 +19,7 @@ enum class ShaderType
 
 enum class ShaderDataType
 {
+  Bool,
   Float,
   Vec2,
   Vec3,
@@ -52,6 +53,8 @@ class Shader
 public:
   Shader(const std::string& fileName);
   ~Shader();
+
+  void SetBool(const std::string& uniformName, bool value);
 
   void SetInt(const std::string& uniformName, int32 value);
   void SetFloat(const std::string& uniformName, float32 value);

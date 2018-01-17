@@ -2,7 +2,7 @@
 
 namespace Rendering
 {
-static uint32 ActiveTexture = 0;
+static uint32 ActiveTexture = -1;
 
 Texture::Texture(TextureFormat format, uint32 width, uint32 height) :
   Texture(format, width, height, nullptr)

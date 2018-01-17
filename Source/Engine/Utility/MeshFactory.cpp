@@ -166,28 +166,28 @@ std::shared_ptr<StaticMesh> MeshFactory::CreatePlane(uint32 density)
   {
     for (float32 j = -1.0f; j < 1.0f; j += interval)
     {
+      positions.emplace_back(i, 0.0f, j + interval);
+      positions.emplace_back(i + interval, 0.0f, j);
       positions.emplace_back(i, 0.0f, j);
-      positions.emplace_back(i + interval, 0.0f, j);
-      positions.emplace_back(i, 0.0f, j + interval);
       normals.emplace_back(0.0f, 1.0f, 0.0f);
       normals.emplace_back(0.0f, 1.0f, 0.0f);
       normals.emplace_back(0.0f, 1.0f, 0.0f);
+      texCoords.emplace_back(1.0f, 0.0f);
+      texCoords.emplace_back(0.0f, 1.0f);
       texCoords.emplace_back(0.0f, 0.0f);
-      texCoords.emplace_back(0.0f, 1.0f);
-      texCoords.emplace_back(1.0f, 0.0f);
 
-      positions.emplace_back(i, 0.0f, j + interval);
-      positions.emplace_back(i + interval, 0.0f, j);
       positions.emplace_back(i + interval, 0.0f, j + interval);
+      positions.emplace_back(i + interval, 0.0f, j);
+      positions.emplace_back(i, 0.0f, j + interval);
       normals.emplace_back(0.0f, 1.0f, 0.0f);
       normals.emplace_back(0.0f, 1.0f, 0.0f);
       normals.emplace_back(0.0f, 1.0f, 0.0f);
-      texCoords.emplace_back(1.0f, 0.0f);
-      texCoords.emplace_back(0.0f, 1.0f);
       texCoords.emplace_back(1.0f, 1.0f);
+      texCoords.emplace_back(0.0f, 1.0f);
+      texCoords.emplace_back(1.0f, 0.0f);
     }
   }
-  auto mesh = std::make_shared<StaticMesh>("Cube");
+  auto mesh = std::make_shared<StaticMesh>("Plane");
   mesh->SetPositionVertexData(positions);
   mesh->SetNormalVertexData(normals);
   mesh->SetTextureVertexData(texCoords);

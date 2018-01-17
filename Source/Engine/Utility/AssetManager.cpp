@@ -129,9 +129,11 @@ std::shared_ptr<Rendering::Texture> AssetManager::GetTexture(const std::string& 
     uint8* data = LoadFromFile(fullPath, width, height, nChannels);
 
     std::shared_ptr<Texture> texture(new Texture(CalculateTextureFormat(nChannels, gammaCorrection), width, height, data));
+    texture->Bind();
     texture->SetMinFilter(TextureMinFilter::Linear);
     texture->SetMagFilter(TextureMagFilter::Linear);
     texture->SetWrapMethod(TextureWrapMethod::ClampToEdge);
+    texture->Unbind();
     _textureCache.emplace(fullPath, texture);
 
     delete[] data;

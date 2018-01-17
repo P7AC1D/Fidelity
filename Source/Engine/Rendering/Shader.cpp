@@ -10,7 +10,7 @@
 
 namespace Rendering
 {
-static uint32 s_activeShader = 0;
+static uint32 s_activeShader = -1;
 
 ShaderType ToShaderType(GLenum shaderType)
 {
@@ -36,6 +36,7 @@ ShaderDataType ToShaderDataType(GLenum type)
 {
   switch (type)
   {
+    case GL_BOOL: return ShaderDataType::Bool;
     case GL_FLOAT: return ShaderDataType::Float;
     case GL_FLOAT_VEC2: return ShaderDataType::Vec2;
     case GL_FLOAT_VEC3: return ShaderDataType::Vec3;
@@ -68,6 +69,13 @@ Shader::~Shader()
 {
   GLCall(glDeleteProgram(_programId));
   _programId = 0;
+}
+
+void Shader::SetBool(const std::string& uniformName, bool value)
+{
+  auto location = GetUniformLocation(uniformName);
+  Bind();
+  GLCall(glUniform1i(location, value));
 }
 
 void Shader::SetInt(const std::string& uniformName, int32 value)
