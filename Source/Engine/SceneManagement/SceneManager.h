@@ -3,24 +3,40 @@
 #include <string>
 #include <vector>
 
-namespace SceneManagement
+#include "../Core/Types.hpp"
+#include "../Maths/Vector3.hpp"
+
+class OrbitalCamera;
+class WorldObject;
+
+namespace Rendering
 {
-class Scene;
+class Renderer;
+}
 
 class SceneManager
 {
 public:
   SceneManager();
 
-  void UpdateActiveScene();
+  WorldObject& CreateWorldObject(const std::string& name = std::string());
 
-  void AddScene(std::shared_ptr<Scene> scene);
-  void SetScene(const std::string& sceneName);
+  inline void SetCamera(const std::shared_ptr<OrbitalCamera>& camera) { _camera = camera; }
+  inline void SetAmbientColour(const Vector3& colour) { _ambientLight = colour; }
+  void SetViewport(int32 renderWidth, int32 renderHeight);
+  void SetClearColour(const Vector3& colour);
 
-  std::shared_ptr<Scene> GetActiveScene();
+  inline const Vector3& GetAmbientLight() const { return _ambientLight; }
+
+  void UpdateScene(uint32 dtMs);
 
 private:
-  std::vector<std::shared_ptr<Scene>> _sceneCollection;
-  std::weak_ptr<Scene> _activeScene;
+  void UpdateWorldObjects(uint32 dtMs);
+  void DrawScene();
+
+private:
+  std::vector<WorldObject> _worldObjects;
+  std::unique_ptr<Rendering::Renderer> _renderer;
+  std::shared_ptr<OrbitalCamera> _camera;
+  Vector3 _ambientLight;
 };
-}

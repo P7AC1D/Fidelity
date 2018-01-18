@@ -13,12 +13,10 @@ class Component;
 class Transform;
 }
 
-namespace SceneManagement
-{
 class WorldObject
 {
 public:
-  WorldObject(std::string name);
+  WorldObject(const std::string& name);
   ~WorldObject();
 
   void Update();
@@ -50,4 +48,3 @@ private:
 
   friend class SceneNode;
 };
-}

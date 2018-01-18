@@ -4,9 +4,6 @@
 #include "../Maths/Math.hpp"
 #include "../Maths/Radian.hpp"
 
-namespace SceneManagement
-{
-
 OrbitalCamera::OrbitalCamera()
 : m_phi(0.0f),
   m_theta(0.0f),
@@ -120,6 +117,4 @@ Vector3 OrbitalCamera::PositionToCartesian() const
   float32 y = m_radius * std::cosf(thetar);
   float32 z = m_radius * std::cosf(phir) * std::sinf(thetar);
   return Vector3(x, y, z);
-}
-
 }

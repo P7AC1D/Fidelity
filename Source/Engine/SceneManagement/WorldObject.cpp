@@ -5,9 +5,7 @@
 
 using namespace Components;
 
-namespace SceneManagement
-{
-WorldObject::WorldObject(std::string name) :
+WorldObject::WorldObject(const std::string& name) :
   _name(std::move(name)),
   _isDirty(true),
   _localTransform(new Transform),
@@ -75,5 +73,4 @@ void WorldObject::Rotate(const Quaternion& rotationDelta)
 {
   _localTransform->Rotate(rotationDelta);
   _isDirty = true;
-}
 }
