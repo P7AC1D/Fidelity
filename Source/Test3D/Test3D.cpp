@@ -10,11 +10,12 @@
 #include "../Engine/Maths/Vector2.hpp"
 #include "../Engine/Maths/Vector3.hpp"
 #include "../Engine/Rendering/Material.h"
-#include "../Engine/Rendering/MeshFactory.h"
 #include "../Engine/Rendering/StaticMesh.h"
 #include "../Engine/UI/Panel.h"
 #include "../Engine/UI/UIManager.h"
 #include "../Engine/Utility/AssetManager.h"
+#include "../Engine/Utility/MeshFactory.h"
+#include "../Engine/Utility/ObjLoader.hpp"
 #include "../Engine/SceneManagement/OrbitalCamera.h"
 #include "../Engine/SceneManagement/Scene.h"
 #include "../Engine/SceneManagement/SceneManager.h"
@@ -46,89 +47,69 @@ void Test3D::OnStart()
   _camera->SetPosition(Vector3(0.0f, 0.0f, 6.0f));
   scene->SetCamera(_camera);
 
-  auto cube = _sceneNode->CreateObject("cube");
-  auto cubeMesh = MeshFactory::CreateCube();
-  auto cubeMaterial = cubeMesh->GetMaterial();
-  cubeMaterial->SetTexture("DiffuseMap", _assetManager->GetTexture("container2.png", true));
-  cubeMaterial->SetTexture("BumpMap", _assetManager->GetTexture("container2_specular.png"));
-  cube->AddComponent(cubeMesh);
-  
-  _object = _sceneNode->CreateObject("cube2");
-  _object->SetPosition(Vector3(2.0f, 1.0f, 0.0f));
-  _object->AddComponent(cubeMesh);
+  //auto cube = _sceneNode->CreateObject("cube");
+  //cube->SetScale(Vector3(0.5f, 0.5f, 0.5f));
+  //cube->SetPosition(Vector3(2.0f, 2.0f, 2.0f));
+  //auto cubeModel = ObjLoader::LoadFromFile("./../../Assets/Models/Container/", "container.obj", *_assetManager);
+  //auto cubeMaterial = cubeModel->GetMeshAtIndex(0).GetMaterial();
+  //cubeMaterial->SetTexture("DiffuseMap", _assetManager->GetTexture("Textures/crate0_diffuse.png", true));
+  //cubeMaterial->SetTexture("SpecularMap", _assetManager->GetTexture("Textures/crate0_bump.png"));
+  //cubeMaterial->SetTexture("NormalMap", _assetManager->GetTexture("Textures/crate0_normal.png"));
+  //cube->AddComponent(cubeModel);
 
-  auto floor = rootNode->CreateObject("floor");
-  auto floorMesh = MeshFactory::CreateCube();
+  //_object = _sceneNode->CreateObject("cube2");
+  //_object->SetScale(Vector3(0.5f, 0.5f, 0.5f));
+  //_object->SetPosition(Vector3(2.0f, 1.0f, 0.0f));
+  //_object->AddComponent(cubeModel);
+
+  auto treeModel = ObjLoader::LoadFromFile("./../../Assets/Models/LowPolyTree/", "lowpolotree_triangulated.obj", *_assetManager);  
+  auto tree = _sceneNode->CreateObject("tree");
+  tree->AddComponent(treeModel);
+  
+  auto floor = _sceneNode->CreateObject("floor");
+  floor->SetScale(Vector3(10.0f));
+  floor->SetPosition(Vector3(0.0f, -2.0f, 0.0f));
+  auto plane = MeshFactory::CreatePlane(10);
+  auto material = plane->GetMaterial();
+  material->SetAmbientColour(Vector3(0.0f));
+  material->SetDiffuseColour(Vector3(0.7f));
+  material->SetSpecularColour(Vector3(0.25f));
+  material->SetSpecularShininess(1.0f);
+  material->SetTexture("DiffuseMap", _assetManager->GetTexture("/Textures/177.JPG"));
+  std::shared_ptr<Model> planeModel(new Model);
+  planeModel->PushMesh(*plane);
+  floor->AddComponent(planeModel);
+
+ /* auto floor = rootNode->CreateObject("floor");
+  auto floorModel = _assetManager->GetModel("Models/Container/container.obj");
   floor->SetScale(Vector3(20.0f, 0.01f, 20.0f));
   floor->SetPosition(Vector3(0.0f, -2.0f, 0.0f));
-  floorMesh->GetMaterial()->SetTexture("DiffuseMap", _assetManager->GetTexture("brick_floor_tileable_Base_Color.jpg", true));
-  floorMesh->GetMaterial()->SetTexture("BumpMap", _assetManager->GetTexture("brick_floor_tileable_Glossiness.jpg"));
-  floor->AddComponent(floorMesh);
+  floorModel->GetMeshAtIndex(0).GetMaterial()->SetTexture("DiffuseMap", _assetManager->GetTexture("Textures/brick_floor_tileable_Base_Color.jpg", true));
+  floorModel->GetMeshAtIndex(0).GetMaterial()->SetTexture("BumpMap", _assetManager->GetTexture("Textures/brick_floor_tileable_Glossiness.jpg"));
+  floor->AddComponent(floorModel);*/
 
   auto lightA = std::make_shared<WorldObject>("lightA");
-  auto lightB = std::make_shared<WorldObject>("lightB");
-  auto lightC = std::make_shared<WorldObject>("lightC");
-
-  auto lightComponentA = std::make_shared<PointLight>(Vector3(0.0f, 2.0f, 0.0f),
-                                                      Vector3(0.8f, 0.0f, 0.0f),
-                                                      Vector3(0.8f, 0.0f, 0.0f),
-                                                      1.0f, 
-                                                      0.045f,
-                                                      0.0075f);
-  auto lightComponentB = std::make_shared<PointLight>(Vector3(-4.0f, 4.0f, -4.0f),
-                                                      Vector3(0.0f, 0.8f, 0.0f),
-                                                      Vector3(0.0f, 0.8f, 0.0f),
-                                                      1.0f, 
-                                                      0.045f,
-                                                      0.0075f);
-  auto lightComponentC = std::make_shared<PointLight>(Vector3(4.0f, 4.0f, -4.0f),
-                                                      Vector3(0.0f, 0.0f, 0.8f),
-                                                      Vector3(0.0f, 0.0f, 0.8f),
-                                                      1.0f, 
-                                                      0.045f,
-                                                      0.0075f);
+  auto lightComponentA = std::make_shared<PointLight>(Vector3(3.0f, 3.0f, 3.0f),
+                                                      Vector3(1.0f, 1.0f, 1.0f),
+                                                      7.0f);
   lightA->AddComponent(lightComponentA);
-  lightB->AddComponent(lightComponentB);
-  lightC->AddComponent(lightComponentC);
-
   rootNode->AddObject(lightA);
-  rootNode->AddObject(lightB);
-  rootNode->AddObject(lightC);
 
-  auto skyBox = _assetManager->GetCubeMap(std::vector<std::string>{ "/CubeMaps/right.jpg",
-                                                                    "/CubeMaps/left.jpg",
-                                                                    "/CubeMaps/top.jpg",
-                                                                    "/CubeMaps/bottom.jpg",
-                                                                    "/CubeMaps/back.jpg",
-                                                                    "/CubeMaps/front.jpg" });
-  scene->SetSkyBox(skyBox);
-
-  //auto panel1 = std::make_shared<Panel>("OSD1", 300, 300, GetWindowWidth() - 310, 10);
-  //panel1->SetTexture(_assetManager->GetTexture("crate0_normal.png"));
-  //auto panel2 = std::make_shared<Panel>("OSD2", 300, 300, 10, 10);
-  //panel2->SetTexture(_assetManager->GetTexture("crate0_normal.png"));
-  //_uiManager->AttachPanel(panel1);
-  //_uiManager->AttachPanel(panel2);
-
-  _inputHandler->BindButtonToState("Forward", Button::Key_W);
-  _inputHandler->BindButtonToState("Backward", Button::Key_S);
   _inputHandler->BindButtonToState("ActivateCameraLook", Button::Button_LMouse);
+  _inputHandler->BindAxisToState("CameraZoom", Axis::MouseScrollXY);
   _inputHandler->BindAxisToState("CameraLook", Axis::MouseXY);
 
-  _eventDispatcher->Register("Forward", [&](const InputEvent& inputEvent, uint32 dt)
+  _eventDispatcher->Register("CameraZoom", [&](const InputEvent& inputEvent, int32 dt)
   {
-    _camera->Zoom(dt * 0.1f);
+    _camera->Zoom(dt * inputEvent.AxisPosDelta[1] * 0.1f);
   });
-  _eventDispatcher->Register("Backward", [&](const InputEvent& inputEvent, uint32 dt)
-  {
-    _camera->Zoom(dt * -0.1f);
-  });
-  _eventDispatcher->Register("CameraLook", [&](const InputEvent& inputEvent, uint32 dt)
+  _eventDispatcher->Register("CameraLook", [&](const InputEvent& inputEvent, int32 dt)
   {
     if (_inputHandler->IsButtonStateActive("ActivateCameraLook"))
     {
-      float32 yaw = Radian(static_cast<float32>(inputEvent.AxisPosDelta[0]) * dt * 0.1f).InRadians();
-      float32 pitch = Radian(static_cast<float32>(inputEvent.AxisPosDelta[1]) * dt * 0.1f).InRadians();
+      float32 sensitivity = 0.1f;
+      float32 yaw = Radian(static_cast<float32>(inputEvent.AxisPosDelta[0]) * sensitivity * dt).InRadians();
+      float32 pitch = Radian(static_cast<float32>(inputEvent.AxisPosDelta[1]) * sensitivity * dt).InRadians();
       _camera->Rotate(yaw, pitch);
     }
   });
@@ -136,6 +117,6 @@ void Test3D::OnStart()
 
 void Test3D::OnUpdate(uint32 dtMs)
 {
-  _object->Rotate(Quaternion(Vector3(0.0f, 1.0f, 1.0f), Radian(0.0005f * dtMs)));
-  _sceneNode->Rotate(Quaternion(Vector3(0.0f, 1.0f, 0.0f), Radian(0.0005f * dtMs)));
+  //_object->Rotate(Quaternion(Vector3(0.0f, 1.0f, 1.0f), Radian(0.0005f * dtMs)));
+  //_sceneNode->Rotate(Quaternion(Vector3(0.0f, 1.0f, 0.0f), Radian(0.0005f * dtMs)));
 }

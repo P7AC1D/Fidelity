@@ -15,12 +15,12 @@ public:
   Vector2(const Vector2& rhs);
   
   Vector2& operator=(const Vector2& rhs);
-  Vector2 operator+(const Vector2& rhs);
-  Vector2 operator-(const Vector2& rhs);
+  Vector2 operator+(const Vector2& rhs) const;
+  Vector2 operator-(const Vector2& rhs) const;
   
-  Vector2 operator+(float32 rhs);
-  Vector2 operator-(float32 rhs);
-  Vector2 operator*(float32 rhs);
+  Vector2 operator+(float32 rhs) const;
+  Vector2 operator-(float32 rhs) const;
+  Vector2 operator*(float32 rhs) const;
   
   Vector2& operator+=(const Vector2& rhs);
   Vector2& operator-=(const Vector2& rhs);

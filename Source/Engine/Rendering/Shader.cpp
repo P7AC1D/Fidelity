@@ -6,75 +6,131 @@
 #include <list>
 #include <sstream>
 
+#include "OpenGL.h"
+
 namespace Rendering
 {
-static uint32 s_activeShader = 0;
+static uint32 s_activeShader = -1;
+
+ShaderType ToShaderType(GLenum shaderType)
+{
+  switch (shaderType)
+  {
+    case GL_VERTEX_SHADER: return ShaderType::Vertex;
+    case GL_FRAGMENT_SHADER: return ShaderType::Fragment;
+    default: throw std::runtime_error("Shader type conversion failed - unknown GLenum.");
+  }
+}
+
+GLenum FromShaderType(ShaderType shaderType)
+{
+  switch (shaderType)
+  {
+    case ShaderType::Vertex: return GL_VERTEX_SHADER;
+    case ShaderType::Fragment: return GL_FRAGMENT_SHADER;
+    default: throw std::runtime_error("Shader type conversion failed - unknown ShaderType.");
+  }
+}
+
+ShaderDataType ToShaderDataType(GLenum type)
+{
+  switch (type)
+  {
+    case GL_BOOL: return ShaderDataType::Bool;
+    case GL_FLOAT: return ShaderDataType::Float;
+    case GL_FLOAT_VEC2: return ShaderDataType::Vec2;
+    case GL_FLOAT_VEC3: return ShaderDataType::Vec3;
+    case GL_FLOAT_VEC4: return ShaderDataType::Vec4;
+    case GL_INT: return ShaderDataType::Int;
+    case GL_UNSIGNED_INT: return ShaderDataType::Uint;
+    case GL_FLOAT_MAT3: return ShaderDataType::Mat3;
+    case GL_FLOAT_MAT4: return ShaderDataType::Mat4;
+    case GL_SAMPLER_2D: return ShaderDataType::Sampler2D;
+    case GL_SAMPLER_CUBE: return ShaderDataType::SamplerCube;
+    default: return ShaderDataType::Unknown;
+  }
+}
 
 Shader::Shader(const std::string& fileName) :
-  m_shaderFileName(fileName)
+  _fileName(fileName)
 {
-  m_programId = glCreateProgram();
-  if (m_programId == 0)
+  _programId = glCreateProgram();
+  if (_programId == 0)
   {
     std::stringstream message;
-    message << "OpenGL was unable to create a shader program object for shader " << m_shaderFileName;
+    message << "OpenGL was unable to create a shader program object for shader " << _fileName;
     throw std::runtime_error(message.str());
   }
   LoadFromFile();
+  BuildUniformDeclaration();
 }
 
 Shader::~Shader()
 {
-  glDeleteProgram(m_programId);
-  m_programId = 0;
+  GLCall(glDeleteProgram(_programId));
+  _programId = 0;
 }
 
-void Shader::SetUniformInt(int32 location, int32 value)
+void Shader::SetBool(const std::string& uniformName, bool value)
 {
+  auto location = GetUniformLocation(uniformName);
   Bind();
-  glUniform1i(location, value);
+  GLCall(glUniform1i(location, value));
 }
 
-void Shader::SetUniformFloat(int32 location, float32 value)
+void Shader::SetInt(const std::string& uniformName, int32 value)
 {
+  auto location = GetUniformLocation(uniformName);
   Bind();
-  glUniform1f(location, value);
+  GLCall(glUniform1i(location, value));
 }
 
-void Shader::SetUniformVec3(int32 location, const Vector3& value)
+void Shader::SetFloat(const std::string& uniformName, float32 value)
 {
-  Bind();
-  glUniform3f(location, value[0], value[1], value[2]);
+  auto location = GetUniformLocation(uniformName);
+  GLCall(glUniform1f(location, value));
 }
 
-void Shader::SetUniformVec4(int32 location, const Vector4& value)
+void Shader::SetVec3(const std::string& uniformName, const Vector3& value)
 {
+  auto location = GetUniformLocation(uniformName);
   Bind();
-  glUniform4f(location, value[0], value[1], value[2], value[3]);
+  GLCall(glUniform3f(location, value[0], value[1], value[2]));
 }
 
-void Shader::SetUniformMat3(int32 location, const Matrix3& value)
+void Shader::SetVec4(const std::string& uniformName, const Vector4& value)
 {
+  auto location = GetUniformLocation(uniformName);
   Bind();
-  glUniformMatrix3fv(location, 1, GL_TRUE, &value[0][0]);
+  GLCall(glUniform4f(location, value[0], value[1], value[2], value[3]));
 }
 
-void Shader::SetUniformMat4(int32 location, const Matrix4& value)
+void Shader::SetMat3(const std::string& uniformName, const Matrix3& value)
 {
+  auto location = GetUniformLocation(uniformName);
   Bind();
-  glUniformMatrix4fv(location, 1, GL_TRUE, &value[0][0]);
+  GLCall(glUniformMatrix3fv(location, 1, GL_TRUE, &value[0][0]));
 }
 
-void Shader::SetUniformVec3Array(int32 location, const std::vector<Vector3>& values)
+void Shader::SetMat4(const std::string& uniformName, const Matrix4& value)
 {
+  auto location = GetUniformLocation(uniformName);  
   Bind();
-  glUniform3fv(location, static_cast<int32>(values.size()), values[0].Ptr());
+  GLCall(glUniformMatrix4fv(location, 1, GL_TRUE, &value[0][0]));
 }
 
-void Shader::SetUniformVec4Array(int32 location, const std::vector<Vector4>& values)
+void Shader::SetVec3Array(const std::string& uniformName, const std::vector<Vector3>& values)
 {
+  auto location = GetUniformLocation(uniformName);
   Bind();
-  glUniform4fv(location, static_cast<int32>(values.size()), values[0].Ptr());
+  GLCall(glUniform3fv(location, static_cast<int32>(values.size()), values[0].Ptr()));
+}
+
+void Shader::SetVec4Array(const std::string& uniformName, const std::vector<Vector4>& values)
+{
+  auto location = GetUniformLocation(uniformName);
+  Bind();
+  GLCall(glUniform4fv(location, static_cast<int32>(values.size()), values[0].Ptr()));
 }
 
 void Shader::BindUniformBlock(int32 location, int32 bindingPoint, int32 ubo, int32 sizeBytes)
@@ -86,32 +142,19 @@ void Shader::BindUniformBlock(int32 location, int32 bindingPoint, int32 ubo, int
     return;
   }
 
-  glUniformBlockBinding(m_programId, location, bindingPoint);
-  glBindBufferRange(GL_UNIFORM_BUFFER, bindingPoint, ubo, 0, sizeBytes);
+  GLCall(glUniformBlockBinding(_programId, location, bindingPoint));
+  GLCall(glBindBufferRange(GL_UNIFORM_BUFFER, bindingPoint, ubo, 0, sizeBytes));
   uniformBlocksBound.push_back(location);
-}
-
-int32 Shader::GetUniformLocation(const std::string& name)
-{
-  Bind();
-  int32 location = glGetUniformLocation(m_programId, name.c_str());
-  if (location < 0)
-  {
-    std::stringstream message;
-    message << "Could not find uniform '" << name << "' for shader '" << m_shaderFileName << "' bound to program " << m_programId;
-    //throw std::runtime_error(message.str());
-  }
-  return location;
 }
 
 int32 Shader::GetAttributeLocation(const std::string& name)
 {
   Bind();
-  int32 location = glGetAttribLocation(m_programId, name.c_str());
+  int32 location = glGetAttribLocation(_programId, name.c_str());
   if (location < 0)
   {
     std::stringstream message;
-    message << "Could not find attribute '" << name << "' for shader '" << m_shaderFileName << "' bound to program " << m_programId;
+    message << "Could not find attribute '" << name << "' for shader '" << _fileName << "' bound to program " << _programId;
     //throw std::runtime_error(message.str());
   }
   return location;
@@ -120,7 +163,7 @@ int32 Shader::GetAttributeLocation(const std::string& name)
 int32 Shader::GetUniformBlockIndex(const std::string& name)
 {
   Bind();
-  int32 location = glGetUniformBlockIndex(m_programId, name.c_str());
+  int32 location = glGetUniformBlockIndex(_programId, name.c_str());
   if (location < 0)
   {
     // TODO: error handling
@@ -132,8 +175,8 @@ void Shader::Bind()
 {
   if (!IsBound())
   {
-    glUseProgram(m_programId);
-    s_activeShader = m_programId;
+    GLCall(glUseProgram(_programId));
+    s_activeShader = _programId;
   }
 }
 
@@ -141,23 +184,23 @@ void Shader::Unbind()
 {
   if (IsBound())
   {
-    glUseProgram(0);
+    GLCall(glUseProgram(0));
     s_activeShader = 0;
   }
 }
 
 bool Shader::IsBound() const
 {
-  return s_activeShader == m_programId;
+  return s_activeShader == _programId;
 }
 
 void Shader::LoadFromFile()
 {
   std::fstream fstream;
-  fstream.open(m_shaderFileName, std::fstream::in);
+  fstream.open(_fileName, std::fstream::in);
   if (!fstream.is_open())
   {
-    throw std::runtime_error("Failed to open file '" + m_shaderFileName + "'");
+    throw std::runtime_error("Failed to open file '" + _fileName + "'");
   }
 
   std::string source = ReadSource(fstream);
@@ -188,14 +231,14 @@ std::string Shader::ReadSource(std::fstream& fstream)
 
 uint32 Shader::AttachSource(ShaderType shaderType, const std::string& shaderSource)
 {
-  uint32 shaderId = glCreateShader(static_cast<uint32>(shaderType));
+  uint32 shaderId = glCreateShader(FromShaderType(shaderType));
   if (shaderId == 0)
   {
-    throw std::runtime_error("OpenGL was unable to create a shader object for shader '" + m_shaderFileName + "'");
+    throw std::runtime_error("OpenGL was unable to create a shader object for shader '" + _fileName + "'");
   }
 
   const byte* ptr = shaderSource.c_str();
-  glShaderSource(shaderId, 1, &ptr, nullptr);
+  GLCall(glShaderSource(shaderId, 1, &ptr, nullptr));
 
   Compile(shaderId);
   return shaderId;
@@ -204,13 +247,13 @@ uint32 Shader::AttachSource(ShaderType shaderType, const std::string& shaderSour
 void Shader::Compile(uint32 shaderId)
 {
   int32 compiled = -1;
-  glCompileShader(shaderId);
-  glGetShaderiv(shaderId, GL_COMPILE_STATUS, &compiled);
+  GLCall(glCompileShader(shaderId));
+  GLCall(glGetShaderiv(shaderId, GL_COMPILE_STATUS, &compiled));
 
   if (compiled == GL_FALSE)
   {
     int32 logLength = -1;
-    glGetShaderiv(shaderId, GL_INFO_LOG_LENGTH, &logLength);
+    GLCall(glGetShaderiv(shaderId, GL_INFO_LOG_LENGTH, &logLength));
 
     std::stringstream message;
     message << "Failed to compile shader bound to ID " << shaderId;
@@ -218,7 +261,7 @@ void Shader::Compile(uint32 shaderId)
     if (logLength > 0)
     {
       std::vector<byte> buffer(logLength);
-      glGetShaderInfoLog(shaderId, logLength, nullptr, &buffer[0]);
+      GLCall(glGetShaderInfoLog(shaderId, logLength, nullptr, &buffer[0]));
       std::string log(buffer.begin(), buffer.end());
       message << ": " << log;
     }
@@ -228,34 +271,63 @@ void Shader::Compile(uint32 shaderId)
 
 void Shader::AttachShaders(uint32 vertexShaderId, uint32 fragmentShaderId)
 {
-  glAttachShader(m_programId, vertexShaderId);
-  glDeleteShader(vertexShaderId);
-  glAttachShader(m_programId, fragmentShaderId);
-  glDeleteShader(fragmentShaderId);
+  GLCall(glAttachShader(_programId, vertexShaderId));
+  GLCall(glDeleteShader(vertexShaderId));
+  GLCall(glAttachShader(_programId, fragmentShaderId));
+  GLCall(glDeleteShader(fragmentShaderId));
 }
 
 void Shader::Link()
 {
   int32 linked = -1;
-  glLinkProgram(m_programId);
-  glGetProgramiv(m_programId, GL_LINK_STATUS, &linked);
+  GLCall(glLinkProgram(_programId));
+  GLCall(glGetProgramiv(_programId, GL_LINK_STATUS, &linked));
 
   if (linked == GL_FALSE)
   {
     int32 logLength = -1;
-    glGetProgramiv(m_programId, GL_INFO_LOG_LENGTH, &logLength);
+    GLCall(glGetProgramiv(_programId, GL_INFO_LOG_LENGTH, &logLength));
 
     std::stringstream message;
-    message << "Failed to link shaders from '" << m_shaderFileName << "' bound to ID " + m_programId;
+    message << "Failed to link shaders from '" << _fileName << "' bound to ID " << _programId;
 
     if (logLength > 0)
     {
       std::vector<char> buffer(logLength);
-      glGetProgramInfoLog(m_programId, logLength, nullptr, &buffer[0]);
+      GLCall(glGetProgramInfoLog(_programId, logLength, nullptr, &buffer[0]));
       std::string log(buffer.begin(), buffer.end());
       message << ": " << log;
     }
     throw std::runtime_error(message.str());
   }
+}
+
+void Shader::BuildUniformDeclaration()
+{
+  GLint activeUniformCount = -1;
+  GLCall(glGetProgramiv(_programId, GL_ACTIVE_UNIFORMS, &activeUniformCount));
+  _uniforms.reserve(activeUniformCount);
+
+  for (GLint i = 0; i < activeUniformCount; i++)
+  {
+    GLint size;
+    GLenum type;
+    GLchar name[255];
+    GLCall(glGetActiveUniform(_programId, i, 255, nullptr, &size, &type, name));
+    auto location = glGetUniformLocation(_programId, name);
+    _uniforms.emplace(std::make_pair(name, ShaderUniform(location, size, ToShaderDataType(type), name)));
+  }
+}
+
+int32 Shader::GetUniformLocation(const std::string& name)
+{
+  auto iter = _uniforms.find(name);
+  if (iter == _uniforms.end())
+  {
+    std::stringstream message;
+    message << "Could not find uniform '" << name << "' for shader '" << _fileName << "'";
+    throw std::runtime_error(message.str());
+  }
+  return iter->second.Location;
 }
 }

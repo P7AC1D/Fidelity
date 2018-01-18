@@ -1,13 +1,6 @@
 #pragma once
 #include "../Core/Types.hpp"
 
-#ifdef __APPLE__
-#include <OpenGL/gl3.h>
-#endif
-#ifdef _WIN32
-#include <GL/glew.h>
-#endif
-
 namespace Rendering
 {
 class ConstantBuffer

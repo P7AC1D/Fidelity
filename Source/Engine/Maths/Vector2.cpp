@@ -48,27 +48,27 @@ Vector2::Vector2(const Vector2& rhs)
   _y = rhs._y;
 }
 
-Vector2 Vector2::operator+(const Vector2& rhs)
+Vector2 Vector2::operator+(const Vector2& rhs) const
 {
   return Vector2(_x + rhs._x, _y + rhs._y);
 }
 
-Vector2 Vector2::operator-(const Vector2& rhs)
+Vector2 Vector2::operator-(const Vector2& rhs) const
 {
   return Vector2(_x - rhs._x, _y - rhs._y);
 }
 
-Vector2 Vector2::operator+(float32 rhs)
+Vector2 Vector2::operator+(float32 rhs) const
 {
   return Vector2(_x + rhs, _y + rhs);
 }
 
-Vector2 Vector2::operator-(float32 rhs)
+Vector2 Vector2::operator-(float32 rhs) const
 {
   return Vector2(_x - rhs, _y - rhs);
 }
 
-Vector2 Vector2::operator*(float32 rhs)
+Vector2 Vector2::operator*(float32 rhs) const
 {
   return Vector2(rhs * _x, rhs * _y);
 }

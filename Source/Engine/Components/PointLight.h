@@ -10,32 +10,20 @@ class PointLight : public Component
 public:
   PointLight();
   PointLight(const Vector3& position,
-             const Vector3& diffuseColour,
-             const Vector3& specularColour,
-             float32 constContribution,
-             float32 linearContribition,
-             float32 quadContribution);
+             const Vector3& colour,
+             float32 radius);
 
-  void SetPosition(const Vector3& position);
-  void DiffuseColour(const Vector3& diffuseColour);
-  void SpecularColour(const Vector3& specularColour);
-  void ConstContrib(float32 constContribution);
-  void LinearContrib(float32 linearContribution);
-  void QuadraticContrib(float32 quadContribution);
+  inline void SetPosition(const Vector3& position) { _position = position; }
+  inline void SetColour(const Vector3& colour) { _colour = colour; }
+  inline void SetRadius(float32 radius) { _radius = radius; }
 
-  Vector3 GetPosition();
-  Vector3 GetDiffuseColour();
-  Vector3 GetSpecularColour();
-  float32 GetConstContrib();
-  float32 GetLinearContrib();
-  float32 GetQuadraticContrib();
+  inline Vector3 GetPosition() const { return _position; }
+  inline Vector3 GetColour() const { return _colour; }
+  inline float32 GetRadius() const { return _radius; }
 
 private:
   Vector3 _position;
-  Vector3 _diffuseColour;
-  Vector3 _specularColour;
-  float32 _constContribution;
-  float32 _linearContribution;
-  float32 _quadraticContribution;
+  Vector3 _colour;
+  float32 _radius;
 };
 }

@@ -1,5 +1,7 @@
 #include "ConstantBuffer.h"
 
+#include "OpenGL.h"
+
 namespace Rendering
 {
 ConstantBuffer::ConstantBuffer(int32 sizeBytes) :
@@ -11,16 +13,16 @@ ConstantBuffer::ConstantBuffer(int32 sizeBytes) :
 
 ConstantBuffer::~ConstantBuffer()
 {
-  glBindBuffer(GL_UNIFORM_BUFFER, 0);
-  glDeleteBuffers(1, &_uboId);
+  GLCall(glBindBuffer(GL_UNIFORM_BUFFER, 0));
+  GLCall(glDeleteBuffers(1, &_uboId));
 }
 
 void ConstantBuffer::AllocateMemory(int32 sizeBytes)
 {
   Initialize();
-  glBindBuffer(GL_UNIFORM_BUFFER, _uboId);
-  glBufferData(GL_UNIFORM_BUFFER, sizeBytes, nullptr, GL_STATIC_DRAW);
-  glBindBuffer(GL_UNIFORM_BUFFER, 0);
+  GLCall(glBindBuffer(GL_UNIFORM_BUFFER, _uboId));
+  GLCall(glBufferData(GL_UNIFORM_BUFFER, sizeBytes, nullptr, GL_STATIC_DRAW));
+  GLCall(glBindBuffer(GL_UNIFORM_BUFFER, 0));
 
   _sizeBytes = sizeBytes;
 }
@@ -29,7 +31,7 @@ void ConstantBuffer::Initialize()
 {
   if (!_isInitialized)
   {
-    glGenBuffers(1, &_uboId);
+    GLCall(glGenBuffers(1, &_uboId));
     _isInitialized = true;
   }
 }
@@ -37,8 +39,8 @@ void ConstantBuffer::Initialize()
 void ConstantBuffer::UploadData(int32 offsetBytes, int32 countBytes, const void* data)
 {
   Initialize();
-  glBindBuffer(GL_UNIFORM_BUFFER, _uboId);
-  glBufferSubData(GL_UNIFORM_BUFFER, offsetBytes, countBytes, data);
-  glBindBuffer(GL_UNIFORM_BUFFER, 0);
+  GLCall(glBindBuffer(GL_UNIFORM_BUFFER, _uboId));
+  GLCall(glBufferSubData(GL_UNIFORM_BUFFER, offsetBytes, countBytes, data));
+  GLCall(glBindBuffer(GL_UNIFORM_BUFFER, 0));
 }
 }

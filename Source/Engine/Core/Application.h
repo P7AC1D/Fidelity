@@ -64,7 +64,7 @@ private:
   Application& operator= (Application&&) = delete;
 
   bool Initialize();
-  uint32 GetTickDuration();
+  int32 GetTickDuration();
 
 protected:
   std::unique_ptr<EventDispatcher> _eventDispatcher;
@@ -76,6 +76,8 @@ protected:
 
 private:
   bool _isRunning;
+  bool _mouseFocus;
+  bool _keyBoardFocus;
   SDL_Window* _window;
   SDL_GLContext _glContext;
   ApplicationDesc _desc;

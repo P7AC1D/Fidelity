@@ -2,28 +2,22 @@
 
 #include <sstream>
 
-#ifdef __APPLE__
-#include <OpenGL/gl3.h>
-#endif
-#ifdef _WIN32
-#include <GL/glew.h>
-#endif
-
+#include "OpenGL.h"
 #include "Texture.h"
 
 namespace Rendering
 {
-int32 FrameBuffer::CurrentlyBoundFboId = 0;
+int32 FrameBuffer::CurrentlyBoundFboId = -1;
 
 FrameBuffer::FrameBuffer()
 {
-  glGenFramebuffers(1, &_fboId);
+  GLCall(glGenFramebuffers(1, &_fboId));
 }
 
 FrameBuffer::~FrameBuffer()
 {
   Unbind();
-  glDeleteFramebuffers(1, &_fboId);
+  GLCall(glDeleteFramebuffers(1, &_fboId));
 }
 
 void FrameBuffer::Activate()
@@ -73,7 +67,7 @@ void FrameBuffer::Activate()
 
 void FrameBuffer::Deactivate() const
 {
-  glViewport(0, 0, _prevViewportWidth, _prevViewportHeight);
+  GLCall(glViewport(0, 0, _prevViewportWidth, _prevViewportHeight));
   Unbind();
 }
 
@@ -86,20 +80,20 @@ void FrameBuffer::SetColourTexture(std::shared_ptr<Texture> texture)
 {
   _colourTexture = texture;
   Bind();
-  glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, _colourTexture->_id, 0);
+  GLCall(glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, _colourTexture->_id, 0));
 }
 
 void FrameBuffer::SetDepthTexture(std::shared_ptr<Texture> texture)
 {
   _depthTexture = texture;
   Bind();
-  glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, _depthTexture->_id, 0);
+  GLCall(glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, _depthTexture->_id, 0));
 }
 
 void FrameBuffer::RetrieveViewportDimensions()
 {
   int32 result[4];
-  glGetIntegerv(GL_VIEWPORT, result);
+  GLCall(glGetIntegerv(GL_VIEWPORT, result));
   _prevViewportWidth = result[2];
   _prevViewportHeight = result[3];
 }
@@ -108,7 +102,7 @@ void FrameBuffer::Bind() const
 {
   if (!IsBound())
   {
-    glBindFramebuffer(GL_FRAMEBUFFER, _fboId);
+    GLCall(glBindFramebuffer(GL_FRAMEBUFFER, _fboId));
     CurrentlyBoundFboId = _fboId;
   }
 }
@@ -117,7 +111,7 @@ void FrameBuffer::Unbind() const
 {
   if (IsBound())
   {
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    GLCall(glBindFramebuffer(GL_FRAMEBUFFER, 0));
     CurrentlyBoundFboId = 0;
   }
 }

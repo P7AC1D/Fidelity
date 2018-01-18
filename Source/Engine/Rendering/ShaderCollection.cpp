@@ -1,5 +1,6 @@
 #include "ShaderCollection.h"
 
+#include <iostream>
 #include <exception>
 
 #include "../Rendering/Shader.h"
@@ -40,7 +41,7 @@ std::shared_ptr<Shader> ShaderCollection::LoadShader(const std::string& shaderNa
   }
   catch (std::exception exception)
   {
-    // LOG_ERROR << "Failed to load shader " << shaderName << ": " << exception.what();
+    std::cerr << "Failed to load shader " << shaderName << ": " << exception.what();
     return nullptr;
   }
 }

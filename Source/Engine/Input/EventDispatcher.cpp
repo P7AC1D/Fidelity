@@ -5,12 +5,12 @@ void EventDispatcher::Register(const Action& action, const std::function<void(co
   _actionCommandsMap[action].push_back(actionCommand);
 }
 
-void EventDispatcher::Register(const State& state, const std::function<void(const InputEvent& inputEvent, uint32)>& stateCommand)
+void EventDispatcher::Register(const State& state, const std::function<void(const InputEvent& inputEvent, int32)>& stateCommand)
 {
   _stateCommandsMap[state].push_back(stateCommand);
 }
 
-void EventDispatcher::Dispatch(const State& state, const InputEvent& inputEvent, uint32 dtMs) const
+void EventDispatcher::Dispatch(const State& state, const InputEvent& inputEvent, int32 dtMs) const
 {
   auto iter = _stateCommandsMap.find(state);
   if (iter != _stateCommandsMap.end())

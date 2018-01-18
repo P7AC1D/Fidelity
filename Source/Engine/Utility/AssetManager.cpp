@@ -7,12 +7,12 @@
 
 #include "../Rendering/CubeMap.h"
 #include "../Rendering/Texture.h"
+#include "ObjLoader.hpp"
 
 using namespace Rendering;
 
 namespace Utility
 {
-
 void FlipImage(uint8* imageData, int32 xSize, int32 ySize, int32 nChannels)
 {
   int32 widthBytes = xSize * nChannels;
@@ -72,24 +72,7 @@ AssetManager::~AssetManager()
 
 std::shared_ptr<Texture> AssetManager::GetTexture(const std::string& textureName, bool gammaCorrection)
 {
-  auto fullPath = _assetDirectory + textureName;
-  auto iter = _textureCache.find(fullPath);
-  if (iter == _textureCache.end())
-  {
-    int32 width = 0;
-    int32 height = 0;
-    int32 nChannels = 0;
-    uint8* data = LoadFromFile(fullPath, width, height, nChannels);
-
-    std::shared_ptr<Texture> texture(new Texture(CalculateTextureFormat(nChannels, gammaCorrection), width, height, data));
-    texture->SetMinFilter(TextureMinFilter::Linear);
-    texture->SetMagFilter(TextureMagFilter::Linear);
-    texture->SetWrapMethod(TextureWrapMethod::ClampToEdge);
-    _textureCache.emplace(fullPath, texture);
-
-    delete[] data;
-  }
-  return _textureCache[fullPath];
+  return GetTexture(_assetDirectory, textureName, gammaCorrection);
 }
 
 std::shared_ptr<CubeMap> AssetManager::GetCubeMap(const std::vector<std::string>& textureNames)
@@ -116,5 +99,45 @@ std::shared_ptr<CubeMap> AssetManager::GetCubeMap(const std::vector<std::string>
   glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
   glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
   return cubeMap;
+}
+
+//std::shared_ptr<Model> AssetManager::GetModel(const std::string& relativePath, const std::string fileName)
+//{
+//  auto fullPath = _assetDirectory + relativePath + fileName;
+//  auto iter = _modelCache.find(fullPath);
+//  if (iter != _modelCache.end())
+//  {
+//    return iter->second;
+//  }
+//
+//  std::shared_ptr<Model> model(ObjLoader::LoadFromFile(_assetDirectory + relativePath, fileName, *this));
+//  _modelCache[fullPath] = model;
+//  return model;
+//}
+
+std::shared_ptr<Rendering::Texture> AssetManager::GetTexture(const std::string& texturePath, 
+                                                             const std::string& textureName,
+                                                             bool gammaCorrection)
+{
+  auto fullPath = texturePath + textureName;
+  auto iter = _textureCache.find(fullPath);
+  if (iter == _textureCache.end())
+  {
+    int32 width = 0;
+    int32 height = 0;
+    int32 nChannels = 0;
+    uint8* data = LoadFromFile(fullPath, width, height, nChannels);
+
+    std::shared_ptr<Texture> texture(new Texture(CalculateTextureFormat(nChannels, gammaCorrection), width, height, data));
+    texture->Bind();
+    texture->SetMinFilter(TextureMinFilter::Linear);
+    texture->SetMagFilter(TextureMagFilter::Linear);
+    texture->SetWrapMethod(TextureWrapMethod::ClampToEdge);
+    texture->Unbind();
+    _textureCache.emplace(fullPath, texture);
+
+    delete[] data;
+  }
+  return _textureCache[fullPath];
 }
 }
