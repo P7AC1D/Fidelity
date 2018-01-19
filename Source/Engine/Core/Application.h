@@ -12,11 +12,6 @@ class Renderer;
 class RenderContext;
 }
 
-namespace SceneManagement
-{
-class SceneManager;
-}
-
 namespace UI
 {
 class UIManager;
@@ -29,6 +24,7 @@ class AssetManager;
 
 class EventDispatcher;
 class InputHandler;
+class SceneManager;
 
 typedef void* SDL_GLContext;
 struct SDL_Window;
@@ -69,10 +65,10 @@ private:
 protected:
   std::unique_ptr<EventDispatcher> _eventDispatcher;
   std::unique_ptr<InputHandler> _inputHandler;
-  std::unique_ptr<SceneManagement::SceneManager> _sceneManager;
-  std::unique_ptr<Rendering::Renderer> _renderer;
+  std::unique_ptr<SceneManager> _sceneManager;
   std::unique_ptr<UI::UIManager> _uiManager;
-  std::unique_ptr<Utility::AssetManager> _assetManager;
+  std::shared_ptr<Rendering::Renderer> _renderer;
+  std::shared_ptr<Utility::AssetManager> _assetManager;
 
 private:
   bool _isRunning;

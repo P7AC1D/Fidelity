@@ -3,7 +3,10 @@
 #include <string>
 #include <vector>
 
-class Model;
+namespace Rendering
+{
+class Renderable;
+}
 
 namespace Utility
 {
@@ -12,8 +15,6 @@ class AssetManager;
 class ObjLoader
 {
 public:
-  static std::shared_ptr<Model> LoadFromFile(const std::string& filePath, const std::string& fileName, Utility::AssetManager& assetManager);
-  
-private:
+  static std::shared_ptr<Rendering::Renderable> LoadFromFile(const std::string& filePath, const std::string& fileName, Utility::AssetManager& assetManager);
 };
 }

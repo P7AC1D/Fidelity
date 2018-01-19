@@ -10,3 +10,5 @@ Makefile
 cmake_install\.cmake
 
 Binaries/
+
+\.vs/

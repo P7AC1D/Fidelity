@@ -1,40 +1,85 @@
 #include "SceneManager.h"
 
-#include <algorithm>
+#include "../Components/PointLight.h"
+#include "../Rendering/Renderer.h"
+#include "../SceneManagement/SceneManager.h"
+#include "../SceneManagement/WorldObject.h"
+#include "../Utility/AssetManager.h"
+#include "../Utility/ObjLoader.hpp"
+#include "../Utility/StringUtil.h"
+#include "OrbitalCamera.h"
 
-#include "Scene.h"
+static uint32 WorldObjectCount = 0;
+static uint32 PointLightCount = 0;
 
-namespace SceneManagement
+using namespace Components;
+using namespace Rendering;
+using namespace Utility;
+
+SceneManager::SceneManager(std::shared_ptr<AssetManager> _assetManager, std::shared_ptr<Renderer> renderer) :
+  _ambientLight(Vector3::Identity),
+  _assetManager(_assetManager),
+  _renderer(renderer)
 {
-SceneManager::SceneManager()
-{
-  auto scene = std::make_shared<Scene>("main");
-  _sceneCollection.push_back(scene);
-  _activeScene = scene;
 }
 
-void SceneManager::UpdateActiveScene()
+WorldObject& SceneManager::CreateObject(const std::string& name)
 {
-  _activeScene.lock()->Update();
-}
-
-void SceneManager::AddScene(std::shared_ptr<Scene> scene)
-{
-  _sceneCollection.push_back(scene);
-}
-
-void SceneManager::SetScene(const std::string& sceneName)
-{
-  auto iter = std::find_if(_sceneCollection.begin(), _sceneCollection.end(), [&sceneName](std::shared_ptr<Scene> scene) { return scene->GetName() == sceneName; });
-  if (iter == _sceneCollection.end())
+  std::string objectName(name); 
+  if (name == std::string())
   {
-    return;
+    objectName = "WorldObject" + std::to_string(WorldObjectCount);
+    WorldObjectCount++;
   }
-  _activeScene = *iter;
+  _worldObjects.emplace_back(objectName);
+  return _worldObjects.back();
 }
 
-std::shared_ptr<Scene> SceneManager::GetActiveScene()
+WorldObject& SceneManager::LoadObjectFromFile(const std::string& filePath)
 {
-  return _activeScene.lock();
+  auto tokens = StringUtil::Split(filePath, '/');
+  auto fileName = tokens.back();
+  tokens.pop_back();
+
+  auto renderable = ObjLoader::LoadFromFile(StringUtil::Join(tokens, '/'), fileName, *_assetManager.get());
+  
+  _worldObjects.emplace_back(fileName);
+  auto& worldObject = _worldObjects.back();
+  worldObject.SetRenderable(renderable);
+  return worldObject;
 }
+
+void SceneManager::UpdateScene(uint32 dtMs)
+{
+  UpdateWorldObjects(dtMs);
+  SubmitSceneToRender();
+  _renderer->DrawScene(*_camera.get());
+}
+
+void SceneManager::UpdateWorldObjects(uint32 dtMs)
+{
+  for (auto& worldObject : _worldObjects)
+  {
+    worldObject.Update();
+  }
+}
+
+void SceneManager::SubmitSceneToRender()
+{
+  for (auto& worldObject : _worldObjects)
+  {
+    auto renderable = worldObject.GetRenderable();
+    if (renderable != nullptr)
+    {
+      auto transform = worldObject.GetTransform();
+      _renderer->PushRenderable(renderable, transform);
+    }
+
+    auto lightComponent = worldObject.GetComponent("PointLight");
+    if (lightComponent != nullptr)
+    {
+      auto pointLight = std::dynamic_pointer_cast<PointLight>(lightComponent);
+      _renderer->PushPointLight(pointLight);
+    }
+  }
 }

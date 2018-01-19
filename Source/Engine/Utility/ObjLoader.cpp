@@ -6,10 +6,10 @@
 #include <memory>
 #include <vector>
 
-#include "../Components/Model.hpp"
 #include "../Maths/Vector2.hpp"
 #include "../Maths/Vector3.hpp"
 #include "../Rendering/Material.h"
+#include "../Rendering/Renderable.hpp"
 #include "../Rendering/StaticMesh.h"
 #include "../Utility/AssetManager.h"
 #include "../Utility/StringUtil.h"
@@ -130,7 +130,7 @@ std::vector<std::shared_ptr<MaterialData>> LoadMaterialsFromFile(std::ifstream& 
   return materials;
 }
 
-std::shared_ptr<Model> ObjLoader::LoadFromFile(const std::string& filePath, const std::string& fileName, Utility::AssetManager& assetManager)
+std::shared_ptr<Renderable> ObjLoader::LoadFromFile(const std::string& filePath, const std::string& fileName, Utility::AssetManager& assetManager)
 {
   std::ifstream fstream;
   fstream.open(filePath + fileName, std::fstream::in);
@@ -139,12 +139,12 @@ std::shared_ptr<Model> ObjLoader::LoadFromFile(const std::string& filePath, cons
     throw std::runtime_error("Failed to open file '" + filePath + "'");
   }
     
-  std::shared_ptr<Model> activeModel = nullptr;
+  std::shared_ptr<Renderable> activeModel = nullptr;
   std::shared_ptr<StaticMesh> activeMesh = nullptr;
   std::shared_ptr<Material> activeMaterial = nullptr;
 
   std::vector<std::shared_ptr<MaterialData>> materials;
-  std::vector<Model> models;
+  std::vector<Renderable> models;
   models.reserve(4);
   
   std::vector<Vector3> positions;
@@ -177,7 +177,7 @@ std::shared_ptr<Model> ObjLoader::LoadFromFile(const std::string& filePath, cons
         normalsOut.clear();
         texCoordsOut.clear();
       }
-      activeModel.reset(new Model);
+      activeModel.reset(new Renderable);
     }
     else if (tokens[0] == "mtllib")
     {
@@ -251,7 +251,7 @@ std::shared_ptr<Model> ObjLoader::LoadFromFile(const std::string& filePath, cons
   activeMesh->SetTextureVertexData(texCoordsOut);
   activeModel->PushMesh(*activeMesh);
   models.push_back(*activeModel);
-  std::shared_ptr<Model> model(new Model(models[0]));
+  std::shared_ptr<Renderable> model(new Renderable(models[0]));
   return model;
 }
 }

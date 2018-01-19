@@ -1,17 +1,15 @@
 #include "WorldObject.h"
 
 #include "../Components/Component.h"
-#include "../Components/Transform.h"
+#include "../Rendering/Renderable.hpp"
+#include "Transform.h"
 
 using namespace Components;
 
-namespace SceneManagement
-{
-WorldObject::WorldObject(std::string name) :
+WorldObject::WorldObject(const std::string& name) :
   _name(std::move(name)),
   _isDirty(true),
-  _localTransform(new Transform),
-  _absoluteTransform(new Transform)
+  _transform(new Transform)
 {}
 
 WorldObject::~WorldObject()
@@ -21,14 +19,13 @@ void WorldObject::Update()
 {
 }
 
+void WorldObject::AttachChild(WorldObject* childObject)
+{
+  childObject->_parent = this;
+}
+
 void WorldObject::AddComponent(std::shared_ptr<Component> component)
 {
-  auto transform = std::dynamic_pointer_cast<Transform>(component);
-  if (transform)
-  {
-    _localTransform = transform;
-    return;
-  }
   _components[component->GetName()] = component;
 }
 
@@ -38,7 +35,7 @@ bool WorldObject::HasComponent(const std::string& name) const
   return iter != _components.find(name);
 }
 
-std::shared_ptr<Component> WorldObject::GetComponent(const std::string& name)
+std::shared_ptr<Component> WorldObject::GetComponent(const std::string& name) const
 {
   auto iter = _components.find(name);
   if (iter == _components.end())
@@ -48,32 +45,26 @@ std::shared_ptr<Component> WorldObject::GetComponent(const std::string& name)
   return iter->second;
 }
 
-Matrix4 WorldObject::GetTransform() const
-{
-  return _absoluteTransform->Get();
-}
-
 void WorldObject::SetPosition(const Vector3& position)
 {
-  _localTransform->SetPosition(position);
+  _transform->SetPosition(position);
   _isDirty = true;
 }
 
 void WorldObject::SetScale(const Vector3& scale)
 {
-  _localTransform->SetScale(scale);
+  _transform->SetScale(scale);
   _isDirty = true;
 }
 
 void WorldObject::SetRotation(const Quaternion& rotation)
 {
-  _localTransform->SetRotation(rotation);
+  _transform->SetRotation(rotation);
   _isDirty = true;
 }
 
 void WorldObject::Rotate(const Quaternion& rotationDelta)
 {
-  _localTransform->Rotate(rotationDelta);
+  _transform->Rotate(rotationDelta);
   _isDirty = true;
-}
 }

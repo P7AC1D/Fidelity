@@ -12,7 +12,6 @@
 using namespace Rendering;
 using namespace UI;
 using namespace Utility;
-using namespace SceneManagement;
 
 Application::~Application()
 {
@@ -114,10 +113,7 @@ int32 Application::Run()
       }
     }   
 
-    _renderer->PreRender();
-    _renderer->DrawUI(_uiManager->GetPanelCollection());
-    _renderer->DrawScene(_sceneManager->GetActiveScene());
-    _sceneManager->UpdateActiveScene();
+    _sceneManager->UpdateScene(dtMs);
 
     SDL_GL_SwapWindow(_window);
     
@@ -132,7 +128,6 @@ int32 Application::Run()
 Application::Application(const ApplicationDesc &desc) :
   _eventDispatcher(new EventDispatcher),
   _inputHandler(new InputHandler(*_eventDispatcher.get())),
-  _sceneManager(new SceneManager),
   _renderer(new Renderer(desc.Width, desc.Height)),
   _uiManager(new UIManager),
   _assetManager(new AssetManager("./../../Assets/")),
@@ -140,6 +135,7 @@ Application::Application(const ApplicationDesc &desc) :
   _isRunning(false),
   _mouseFocus(true)
 {
+  _sceneManager.reset(new SceneManager(_assetManager, _renderer));
 }
 
 bool Application::Initialize()

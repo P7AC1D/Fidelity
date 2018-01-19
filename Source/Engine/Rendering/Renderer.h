@@ -5,24 +5,16 @@
 #include <vector>
 
 #include "../Core/Types.hpp"
+#include "../Components/PointLight.h"
 #include "../Maths/Vector3.hpp"
-
-namespace Components
-{
-class PointLight;
-}
+#include "../SceneManagement/OrbitalCamera.h"
+#include "../SceneManagement/Transform.h"
+#include "Renderable.hpp"
 
 namespace UI
 {
 class Panel;
 class UiManager;
-}
-
-namespace SceneManagement
-{
-class OrbitalCamera;
-class Scene;
-class WorldObject;
 }
 
 namespace Rendering
@@ -35,13 +27,22 @@ class StaticMesh;
 class VertexBuffer;
 enum class RenderingTechnique;
 
-typedef std::vector<std::shared_ptr<SceneManagement::WorldObject>> ObjectPtrArray;
-
 enum class ClearType
 {
   Color,
   Depth,
   All,
+};
+
+struct RenderableItem
+{
+  RenderableItem(std::shared_ptr<Renderable> renderable, std::shared_ptr<Transform> transform):
+    Renderable(renderable),
+    Transform(transform)
+  {}
+
+  std::shared_ptr<Renderable> Renderable;
+  std::shared_ptr<Transform> Transform;
 };
 
 class Renderer
@@ -53,27 +54,30 @@ public:
   void SetViewport(int32 renderWidth, int32 renderHeight);
   void SetClearColour(const Vector3& colour);
 
-  void PreRender();
-  void DrawScene(std::shared_ptr<SceneManagement::Scene> scene);
+  void PushRenderable(std::shared_ptr<Renderable> renderable, std::shared_ptr<Transform> transform);
+  void PushPointLight(std::shared_ptr<Components::PointLight> pointLight);
+  void DrawScene(OrbitalCamera& camera);
+
   void DrawUI(std::vector<std::shared_ptr<UI::Panel>> panelCollection);
   bool Initialize();
 
   static void SetVertexAttribPointers(StaticMesh* staticMesh, int32 stride);
 
 private:
-  void DrawSkyBox(std::shared_ptr<SceneManagement::Scene> scene);
-  void DrawTexturedObjects(ObjectPtrArray objects, const Vector3& ambientColour);
-  void UploadCameraData(std::shared_ptr<SceneManagement::OrbitalCamera> camera);
-  void UploadLightData(std::shared_ptr<SceneManagement::WorldObject> lightObject);
+  void UploadCameraData(OrbitalCamera& camera);
+  void UploadLightData(std::shared_ptr<Components::PointLight>);
 
   void ClearBuffer(ClearType clearType);
+
+private:
+  std::vector<RenderableItem> _renderables;
+  std::vector<std::shared_ptr<Components::PointLight>> _pointLights;
   
   std::unique_ptr<ShaderCollection> _shaderCollection;
 
   std::unique_ptr<ConstantBuffer> _cameraBuffer;
   std::unique_ptr<ConstantBuffer> _lightBuffer;
   std::unique_ptr<ConstantBuffer> _ambientLightBuffer;
-  std::shared_ptr<SceneManagement::OrbitalCamera> _activeCamera;
   bool _projectionMatrixDirty;
   bool _viewMatrixDirty;
 

@@ -5,9 +5,6 @@
 #include "../Maths/Vector3.hpp"
 #include "../Maths/Vector4.hpp"
 
-namespace SceneManagement
-{
-
 class OrbitalCamera
 {
 public:
@@ -38,5 +35,3 @@ private:
 
   bool m_needsUpdate;
 };
-
-}

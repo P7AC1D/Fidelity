@@ -1,27 +1,22 @@
 #include "Renderer.h"
 
-#include "../Components/Model.hpp"
-#include "../Components/Transform.h"
 #include "../Components/PointLight.h"
 #include "../UI/Panel.h"
 #include "../UI/UIManager.h"
-#include "../SceneManagement/OrbitalCamera.h"
-#include "../SceneManagement/Scene.h"
-#include "../SceneManagement/SceneNode.h"
 #include "../SceneManagement/WorldObject.h"
 #include "ConstantBuffer.h"
 #include "CubeMap.h"
 #include "Material.h"
-#include "Texture.h"
+#include "Renderable.hpp"
 #include "Shader.h"
 #include "ShaderCollection.h"
+#include "Texture.h"
 #include "StaticMesh.h"
 #include "VertexBuffer.h"
 
 using namespace Components;
 using namespace Rendering;
 using namespace UI;
-using namespace SceneManagement;
 
 namespace Rendering
 {
@@ -50,7 +45,8 @@ Renderer::Renderer(int32 renderWidth, int32 renderHeight) :
   _shaderCollection(new ShaderCollection("./../../Source/Engine/Shaders/")),
   _renderWidth(renderWidth),
   _renderHeight(renderHeight)
-{}
+{
+}
 
 Renderer::~Renderer()
 {
@@ -68,34 +64,73 @@ void Renderer::SetClearColour(const Vector3& colour)
   glClearColor(colour[0], colour[1], colour[2], 0.0f);
 }
 
-void Renderer::PreRender()
+void Renderer::PushRenderable(std::shared_ptr<Renderable> renderable, std::shared_ptr<Transform> transform)
 {
-  ClearBuffer(ClearType::All);
+  _renderables.emplace_back(renderable, transform);
 }
 
-void Renderer::DrawScene(std::shared_ptr<Scene> scene)
+void Renderer::PushPointLight(std::shared_ptr<PointLight> pointLight)
 {
+  _pointLights.push_back(pointLight);
+}
+
+void Renderer::DrawScene(OrbitalCamera& camera)
+{
+  auto shader = _shaderCollection->GetShader("Standard.shader");
+  shader->Bind();
+  shader->SetVec3("u_ambientColour", Vector3::Identity);
+  shader->BindUniformBlock(shader->GetUniformBlockIndex("Transforms"), static_cast<int32>(UniformBindingPoint::Transforms), _cameraBuffer->_uboId, _cameraBuffer->_sizeBytes);
+  shader->BindUniformBlock(shader->GetUniformBlockIndex("PointLight"), static_cast<int32>(UniformBindingPoint::Light), _lightBuffer->_uboId, _lightBuffer->_sizeBytes);
+
+  ClearBuffer(ClearType::All);
+  UploadCameraData(camera);
+
   GLCall(glDepthFunc(GL_LESS));
+  for (auto light : _pointLights)
+  {
+    UploadLightData(light);
 
-  UploadCameraData(scene->GetCamera());
-  DrawSkyBox(scene);
-
-  auto rootNode = scene->GetRootNode();
-  auto models = rootNode->GetAllObjectsWithComponent("Model");
-  auto lightObjects = rootNode->GetAllObjectsWithComponent("PointLight");
-  for (auto lightObject : lightObjects)
-  {    
-    UploadLightData(lightObject);
-    for (auto model : models)
+    for (auto& renderable : _renderables)
     {
-      DrawTexturedObjects(models, scene->GetAmbientLight());
+      shader->SetBool("u_diffuseMappingEnabled", false);
+
+      auto meshCount = renderable.Renderable->GetMeshCount();
+      for (size_t i = 0; i < meshCount; i++)
+      {
+        auto& staticMesh = renderable.Renderable->GetMeshAtIndex(i);
+        shader->SetMat4("u_model", renderable.Transform->Get());
+
+        auto material = staticMesh.GetMaterial();
+        if (material->HasTexture("DiffuseMap"))
+        {
+          auto diffuseMap = material->GetTexture("DiffuseMap");
+          glActiveTexture(GL_TEXTURE0);
+          diffuseMap->Bind();
+          shader->SetInt("u_material.DiffuseMap", 0);
+          shader->SetBool("u_diffuseMappingEnabled", true);
+        }
+
+        shader->SetFloat("u_material.SpecularExponent", material->GetSpecularExponent());
+        shader->SetVec3("u_material.AmbientColour", material->GetAmbientColour());
+        shader->SetVec3("u_material.DiffuseColour", material->GetDiffuseColour());
+        shader->SetVec3("u_material.SpecularColour", material->GetSpecularColour());
+
+        auto vertexData = staticMesh.GetVertexData();
+        GLCall(glBindVertexArray(vertexData->_vaoId));
+        GLCall(glDrawArrays(GL_TRIANGLES, 0, staticMesh._vertexCount));
+        GLCall(glBindVertexArray(0));
+      }
     }
+
     GLCall(glDepthFunc(GL_EQUAL));
     GLCall(glEnable(GL_BLEND));
     GLCall(glBlendEquation(GL_FUNC_ADD));
     GLCall(glBlendFunc(GL_ONE, GL_ONE));
   }
   GLCall(glDisable(GL_BLEND));
+
+  _renderables.clear();
+  _pointLights.clear();
 }
 
 void Renderer::DrawUI(std::vector<std::shared_ptr<Panel>> panelCollection)
@@ -188,6 +223,10 @@ bool Renderer::Initialize()
 
   GLCall(glViewport(0, 0, _renderWidth, _renderHeight));
   GLCall(glClearColor(0.25f, 0.25f, 0.25f, 0.0f));
+
+  _cameraBuffer.reset(new ConstantBuffer(144));
+  _lightBuffer.reset(new ConstantBuffer(32));
+
   return true;
 }
 
@@ -220,204 +259,19 @@ void Renderer::SetVertexAttribPointers(StaticMesh* staticMesh, int32 stride)
   GLCall(glBindVertexArray(0));
 }
 
-void Renderer::DrawSkyBox(std::shared_ptr<SceneManagement::Scene> scene)
+void Renderer::UploadCameraData(OrbitalCamera& camera)
 {
-  if (!scene->GetSkyBox())
-  {
-    return;
-  }
-
-  if (!_skyBoxVertexData)
-  {
-    static std::vector<Vector3> skyBoxVertices =
-    {
-      Vector3(-1.0f,  1.0f, -1.0f),
-      Vector3(-1.0f, -1.0f, -1.0f),
-      Vector3(1.0f, -1.0f, -1.0f),
-      Vector3(1.0f, -1.0f, -1.0f),
-      Vector3(1.0f,  1.0f, -1.0f),
-      Vector3(-1.0f,  1.0f, -1.0f),
-
-      Vector3(-1.0f, -1.0f,  1.0f),
-      Vector3(-1.0f, -1.0f, -1.0f),
-      Vector3(-1.0f,  1.0f, -1.0f),
-      Vector3(-1.0f,  1.0f, -1.0f),
-      Vector3(-1.0f,  1.0f,  1.0f),
-      Vector3(-1.0f, -1.0f,  1.0f),
-
-      Vector3(1.0f, -1.0f, -1.0f),
-      Vector3(1.0f, -1.0f,  1.0f),
-      Vector3(1.0f,  1.0f,  1.0f),
-      Vector3(1.0f,  1.0f,  1.0f),
-      Vector3(1.0f,  1.0f, -1.0f),
-      Vector3(1.0f, -1.0f, -1.0f),
-
-      Vector3(-1.0f, -1.0f,  1.0f),
-      Vector3(-1.0f,  1.0f,  1.0f),
-      Vector3(1.0f,  1.0f,  1.0f),
-      Vector3(1.0f,  1.0f,  1.0f),
-      Vector3(1.0f, -1.0f,  1.0f),
-      Vector3(-1.0f, -1.0f,  1.0f),
-
-      Vector3(-1.0f,  1.0f, -1.0f),
-      Vector3(1.0f,  1.0f, -1.0f),
-      Vector3(1.0f,  1.0f,  1.0f),
-      Vector3(1.0f,  1.0f,  1.0f),
-      Vector3(-1.0f,  1.0f,  1.0f),
-      Vector3(-1.0f,  1.0f, -1.0f),
-
-      Vector3(-1.0f, -1.0f, -1.0f),
-      Vector3(-1.0f, -1.0f,  1.0f),
-      Vector3(1.0f, -1.0f, -1.0f),
-      Vector3(1.0f, -1.0f, -1.0f),
-      Vector3(-1.0f, -1.0f,  1.0f),
-      Vector3(1.0f, -1.0f,  1.0f)
-    };
-    _skyBoxVertexData.reset(new VertexBuffer());
-    _skyBoxVertexData->UploadData<Vector3>(skyBoxVertices, BufferUsage::Static);
-
-    auto posLoc = static_cast<uint32>(VertexArribLocation::Position);
-
-    GLCall(glBindVertexArray(_skyBoxVertexData->_vaoId));
-    GLCall(glVertexAttribPointer(posLoc, 3, GL_FLOAT, GL_FALSE, 12, nullptr));
-    GLCall(glEnableVertexAttribArray(posLoc));
-    GLCall(glBindVertexArray(0));
-  }
-  auto shader = _shaderCollection->GetShader("SkyBox.glsl");
-  if (!shader)
-  {
-    return;
-  }
-  shader->SetMat4("view", scene->GetCamera()->GetViewMat());
-  shader->SetMat4("projection", scene->GetCamera()->GetProjMat());
-  shader->SetInt("skybox", 0);
-
-  GLCall(glDepthMask(GL_FALSE));
-  shader->Bind();
-  GLCall(glBindVertexArray(_skyBoxVertexData->_vaoId));
-  GLCall(glActiveTexture(GL_TEXTURE0));
-  GLCall(glBindTexture(GL_TEXTURE_CUBE_MAP, scene->GetSkyBox()->_id));
-  GLCall(glDrawArrays(GL_TRIANGLES, 0, 36));
-  GLCall(glBindTexture(GL_TEXTURE_CUBE_MAP, 0));
-  GLCall(glBindVertexArray(0));
-  shader->Unbind();
-  GLCall(glDepthMask(GL_TRUE));
-
+  _cameraBuffer->UploadData(0, 64, &camera.GetProjMat()[0]);
+  _cameraBuffer->UploadData(64, 64, &camera.GetViewMat()[0]);
+  _cameraBuffer->UploadData(128, 12, &camera.GetPos()[0]);
 }
 
-void Renderer::DrawTexturedObjects(ObjectPtrArray objects, const Vector3& ambientColour)
+void Renderer::UploadLightData(std::shared_ptr<PointLight> pointLight)
 {
-  auto shader = _shaderCollection->GetShader("Standard.shader");
-  if (!shader)
-  {
-    return;
-  }
-  shader->Bind();
-  shader->SetVec3("u_ambientColour", ambientColour);
-
-  shader->BindUniformBlock(shader->GetUniformBlockIndex("Transforms"), static_cast<int32>(UniformBindingPoint::Transforms), _cameraBuffer->_uboId, _cameraBuffer->_sizeBytes);
-  shader->BindUniformBlock(shader->GetUniformBlockIndex("PointLight"), static_cast<int32>(UniformBindingPoint::Light), _lightBuffer->_uboId, _lightBuffer->_sizeBytes);
-  for (auto object : objects)
-  {
-    shader->SetBool("u_diffuseMappingEnabled", false);
-    auto model = std::dynamic_pointer_cast<Model>(object->GetComponent("Model"));
-    if (!model)
-    {
-      continue;
-    }
-
-    auto meshCount = model->GetMeshCount();
-    for (size_t i = 0; i < meshCount; i++)
-    {
-      auto& staticMesh = model->GetMeshAtIndex(i);
-      shader->SetMat4("u_model", object->GetTransform());
-
-      auto material = staticMesh.GetMaterial();
-
-      if (material->HasTexture("DiffuseMap"))
-      {
-        auto diffuseMap = material->GetTexture("DiffuseMap");
-        glActiveTexture(GL_TEXTURE0);
-        diffuseMap->Bind();
-        shader->SetInt("u_material.DiffuseMap", 0);
-        shader->SetBool("u_diffuseMappingEnabled", true);
-      }
-//
-//      if (material->HasTexture("SpecularMap"))
-//      {
-//        auto bumpMap = material->GetTexture("SpecularMap");
-//        glActiveTexture(GL_TEXTURE1);
-//        bumpMap->Bind();
-//        shader->SetInt("material.specularMap", 1);
-//      }
-
-      //if (material->HasTexture("NormalMap"))
-      //{
-      //  auto bumpMap = material->GetTexture("NormalMap");
-      //  glActiveTexture(GL_TEXTURE2);
-      //  bumpMap->Bind();
-      //  shader->SetUniformInt("material.normalMap", 2);
-      //}
-
-      shader->SetFloat("u_material.SpecularExponent", material->GetSpecularExponent());
-      shader->SetVec3("u_material.AmbientColour", material->GetAmbientColour());
-      shader->SetVec3("u_material.DiffuseColour", material->GetDiffuseColour());
-      shader->SetVec3("u_material.SpecularColour", material->GetSpecularColour());
-
-      auto vertexData = staticMesh.GetVertexData();
-      GLCall(glBindVertexArray(vertexData->_vaoId));
-      GLCall(glDrawArrays(GL_TRIANGLES, 0, staticMesh._vertexCount));
-      GLCall(glBindVertexArray(0));
-    }
-  }
-}
-
-void Renderer::UploadCameraData(std::shared_ptr<OrbitalCamera> camera)
-{
-  if (_activeCamera != camera)
-  {
-    _activeCamera = camera;
-    _projectionMatrixDirty = true;
-    _viewMatrixDirty = true;
-  }
-
-  if (_cameraBuffer == nullptr)
-  {
-    _cameraBuffer.reset(new ConstantBuffer(144));
-    _projectionMatrixDirty = true;
-    _viewMatrixDirty = true;
-  }
-
-  if (_projectionMatrixDirty)
-  {
-    _cameraBuffer->UploadData(0, 64, &_activeCamera->GetProjMat()[0]);
-  }
-
-  if (_viewMatrixDirty)
-  {
-    _cameraBuffer->UploadData(64, 64, &_activeCamera->GetViewMat()[0]);
-    _cameraBuffer->UploadData(128, 12, &_activeCamera->GetPos()[0]);
-  }
-}
-
-void Renderer::UploadLightData(std::shared_ptr<WorldObject> lightObject)
-{
-  auto pointLight = std::dynamic_pointer_cast<PointLight>(lightObject->GetComponent("PointLight"));
-  if (pointLight == nullptr)
-  {
-    return;
-  }
-
-  if (_lightBuffer == nullptr)
-  {
-    _lightBuffer.reset(new ConstantBuffer(32));
-  }
-
   _lightBuffer->UploadData(0, 12, &pointLight->GetPosition()[0]);
   _lightBuffer->UploadData(16, 12, &pointLight->GetColour()[0]);
 
   float32 radius = pointLight->GetRadius();
-
   _lightBuffer->UploadData(28, 4, &radius);
 }
 
