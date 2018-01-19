@@ -3,11 +3,8 @@
 #include "../Maths/Matrix4.hpp"
 #include "../Maths/Quaternion.hpp"
 #include "../Maths/Vector3.hpp"
-#include "Component.h"
 
-namespace Components
-{
-class Transform : public Component
+class Transform
 {
 public:
   Transform();
@@ -35,4 +32,3 @@ private:
 
   bool _transformNeedsUpdate;
 };
-}

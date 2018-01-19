@@ -1,14 +1,11 @@
 #include "Transform.h"
 
-namespace Components
-{
 Transform::Transform() : 
   _scale(Vector3::Identity),
   _position(Vector3::Zero),
   _rotation(Quaternion::Identity),
   _transform(Matrix4::Identity),
-  _transformNeedsUpdate(true),
-  Component("Transform")
+  _transformNeedsUpdate(true)
 {
 }
 
@@ -85,5 +82,4 @@ void Transform::UpdateTransform()
   Matrix4 rotation = Matrix4::Rotation(_rotation);
   _transform = translation * scale * rotation;
   _transformNeedsUpdate = false;
-}
 }

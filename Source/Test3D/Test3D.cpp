@@ -2,7 +2,6 @@
 
 #include "../Engine/Components/Component.h"
 #include "../Engine/Components/PointLight.h"
-#include "../Engine/Components/Transform.h"
 #include "../Engine/Input/InputHandler.hpp"
 #include "../Engine/Input/EventDispatcher.hpp"
 #include "../Engine/Maths/Quaternion.hpp"
@@ -10,6 +9,7 @@
 #include "../Engine/Maths/Vector2.hpp"
 #include "../Engine/Maths/Vector3.hpp"
 #include "../Engine/Rendering/Material.h"
+#include "../Engine/Rendering/Renderable.hpp"
 #include "../Engine/Rendering/StaticMesh.h"
 #include "../Engine/UI/Panel.h"
 #include "../Engine/UI/UIManager.h"
@@ -17,16 +17,14 @@
 #include "../Engine/Utility/MeshFactory.h"
 #include "../Engine/Utility/ObjLoader.hpp"
 #include "../Engine/SceneManagement/OrbitalCamera.h"
-#include "../Engine/SceneManagement/Scene.h"
 #include "../Engine/SceneManagement/SceneManager.h"
-#include "../Engine/SceneManagement/SceneNode.h"
+#include "../Engine/SceneManagement/Transform.h"
 #include "../Engine/SceneManagement/WorldObject.h"
 
 using namespace Components;
 using namespace Rendering;
 using namespace UI;
 using namespace Utility;
-using namespace SceneManagement;
 
 Test3D::Test3D(const ApplicationDesc& desc):
   Application(desc),
@@ -36,49 +34,28 @@ Test3D::Test3D(const ApplicationDesc& desc):
 
 void Test3D::OnStart()
 {
-  auto scene = _sceneManager->GetActiveScene();
-  auto rootNode = scene->GetRootNode();
-  _sceneNode = rootNode->CreateChild("child");
-
-  scene->SetAmbientLight(Vector3(0.1f, 0.1f, 0.1f));
+  _sceneManager->SetAmbientColour(Vector3(0.1f, 0.1f, 0.1f));
 
   _camera = std::make_shared<OrbitalCamera>(0.0f, 90.0f, 2.0f);
   _camera->UpdateProjMat(GetWidth(), GetHeight(), 0.1f, 100.0f);
   _camera->SetPosition(Vector3(0.0f, 0.0f, 6.0f));
-  scene->SetCamera(_camera);
+  _sceneManager->SetCamera(_camera);
 
-  //auto cube = _sceneNode->CreateObject("cube");
-  //cube->SetScale(Vector3(0.5f, 0.5f, 0.5f));
-  //cube->SetPosition(Vector3(2.0f, 2.0f, 2.0f));
-  //auto cubeModel = ObjLoader::LoadFromFile("./../../Assets/Models/Container/", "container.obj", *_assetManager);
-  //auto cubeMaterial = cubeModel->GetMeshAtIndex(0).GetMaterial();
-  //cubeMaterial->SetTexture("DiffuseMap", _assetManager->GetTexture("Textures/crate0_diffuse.png", true));
-  //cubeMaterial->SetTexture("SpecularMap", _assetManager->GetTexture("Textures/crate0_bump.png"));
-  //cubeMaterial->SetTexture("NormalMap", _assetManager->GetTexture("Textures/crate0_normal.png"));
-  //cube->AddComponent(cubeModel);
-
-  //_object = _sceneNode->CreateObject("cube2");
-  //_object->SetScale(Vector3(0.5f, 0.5f, 0.5f));
-  //_object->SetPosition(Vector3(2.0f, 1.0f, 0.0f));
-  //_object->AddComponent(cubeModel);
-
-  auto treeModel = ObjLoader::LoadFromFile("./../../Assets/Models/LowPolyTree/", "lowpolotree_triangulated.obj", *_assetManager);  
-  auto tree = _sceneNode->CreateObject("tree");
-  tree->AddComponent(treeModel);
+  auto& tree = _sceneManager->LoadObjectFromFile("./../../Assets/Models/LowPolyTree/lowpolotree_triangulated.obj");
   
-  auto floor = _sceneNode->CreateObject("floor");
-  floor->SetScale(Vector3(10.0f));
-  floor->SetPosition(Vector3(0.0f, -2.0f, 0.0f));
-  auto plane = MeshFactory::CreatePlane(10);
-  auto material = plane->GetMaterial();
+  auto& floor = _sceneManager->CreateObject("floor");
+  floor.SetScale(Vector3(10.0f));
+  floor.SetPosition(Vector3(0.0f, -2.0f, 0.0f));
+  auto& plane = MeshFactory::CreatePlane(10);
+  auto& material = plane->GetMaterial();
   material->SetAmbientColour(Vector3(0.0f));
   material->SetDiffuseColour(Vector3(0.7f));
   material->SetSpecularColour(Vector3(0.25f));
   material->SetSpecularShininess(1.0f);
   material->SetTexture("DiffuseMap", _assetManager->GetTexture("/Textures/177.JPG"));
-  std::shared_ptr<Model> planeModel(new Model);
+  std::shared_ptr<Renderable> planeModel(new Renderable);
   planeModel->PushMesh(*plane);
-  floor->AddComponent(planeModel);
+  floor.SetRenderable(planeModel);
 
  /* auto floor = rootNode->CreateObject("floor");
   auto floorModel = _assetManager->GetModel("Models/Container/container.obj");
@@ -88,12 +65,11 @@ void Test3D::OnStart()
   floorModel->GetMeshAtIndex(0).GetMaterial()->SetTexture("BumpMap", _assetManager->GetTexture("Textures/brick_floor_tileable_Glossiness.jpg"));
   floor->AddComponent(floorModel);*/
 
-  auto lightA = std::make_shared<WorldObject>("lightA");
-  auto lightComponentA = std::make_shared<PointLight>(Vector3(3.0f, 3.0f, 3.0f),
-                                                      Vector3(1.0f, 1.0f, 1.0f),
-                                                      7.0f);
-  lightA->AddComponent(lightComponentA);
-  rootNode->AddObject(lightA);
+  auto& light = _sceneManager->CreateObject("light");
+  light.AddComponent(std::make_shared<PointLight>(
+    Vector3(3.0f, 3.0f, 3.0f),
+    Vector3(1.0f, 1.0f, 1.0f),
+    7.0f));
 
   _inputHandler->BindButtonToState("ActivateCameraLook", Button::Button_LMouse);
   _inputHandler->BindAxisToState("CameraZoom", Axis::MouseScrollXY);

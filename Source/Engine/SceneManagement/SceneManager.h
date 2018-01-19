@@ -5,26 +5,30 @@
 
 #include "../Core/Types.hpp"
 #include "../Maths/Vector3.hpp"
+#include "WorldObject.h"
 
 class OrbitalCamera;
-class WorldObject;
 
 namespace Rendering
 {
 class Renderer;
 }
 
+namespace Utility
+{
+class AssetManager;
+}
+
 class SceneManager
 {
 public:
-  SceneManager();
+  SceneManager(std::shared_ptr<Utility::AssetManager> _assetManager, std::shared_ptr<Rendering::Renderer> renderer);
 
-  WorldObject& CreateWorldObject(const std::string& name = std::string());
+  WorldObject& CreateObject(const std::string& name = std::string());
+  WorldObject& LoadObjectFromFile(const std::string& filePath);
 
-  inline void SetCamera(const std::shared_ptr<OrbitalCamera>& camera) { _camera = camera; }
+  inline void SetCamera(std::shared_ptr<OrbitalCamera> camera) { _camera = camera; }
   inline void SetAmbientColour(const Vector3& colour) { _ambientLight = colour; }
-  void SetViewport(int32 renderWidth, int32 renderHeight);
-  void SetClearColour(const Vector3& colour);
 
   inline const Vector3& GetAmbientLight() const { return _ambientLight; }
 
@@ -32,11 +36,12 @@ public:
 
 private:
   void UpdateWorldObjects(uint32 dtMs);
-  void DrawScene();
+  void SubmitSceneToRender();
 
 private:
   std::vector<WorldObject> _worldObjects;
-  std::unique_ptr<Rendering::Renderer> _renderer;
   std::shared_ptr<OrbitalCamera> _camera;
+  std::shared_ptr<Utility::AssetManager> _assetManager;
+  std::shared_ptr<Rendering::Renderer> _renderer;
   Vector3 _ambientLight;
 };

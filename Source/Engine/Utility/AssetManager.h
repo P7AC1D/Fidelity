@@ -4,7 +4,6 @@
 #include <string>
 
 #include "../Core/Types.hpp"
-#include "../Components/Model.hpp"
 
 namespace Rendering
 {
@@ -39,6 +38,5 @@ private:
 private:
   std::string _assetDirectory;
   std::unordered_map<std::string, std::shared_ptr<Rendering::Texture>> _textureCache;
-  std::unordered_map<std::string, std::shared_ptr<Model>> _modelCache;
 };
 }
