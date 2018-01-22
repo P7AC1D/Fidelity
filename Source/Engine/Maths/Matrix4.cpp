@@ -222,15 +222,12 @@ Matrix4 Matrix4::operator-(const Matrix4& rhs) const
 
 Matrix4 Matrix4::operator*(const Matrix4& rhs) const
 {
-  Matrix4 mat;
-  for (uint32 row = 0; row < 4; ++row)
-  {
-    for (uint32 col = 0; col < 4; ++col)
-    {
-      mat._m[row][col] = _m[row][0] * rhs._m[0][col] + _m[row][1] * rhs._m[1][col] + _m[row][2] * rhs._m[2][col] + _m[row][3] * rhs._m[3][col];
-    }
-  }
-  return mat;
+  Matrix4 result;
+  result[0] = _m[0] * rhs._m[0][0] + _m[1] * rhs._m[0][1] + _m[2] * rhs._m[0][2] + _m[3] * rhs._m[0][3];
+  result[1] = _m[0] * rhs._m[1][0] + _m[1] * rhs._m[1][1] + _m[2] * rhs._m[1][2] + _m[3] * rhs._m[1][3];
+  result[2] = _m[0] * rhs._m[2][0] + _m[1] * rhs._m[2][1] + _m[2] * rhs._m[2][2] + _m[3] * rhs._m[2][3];
+  result[3] = _m[0] * rhs._m[3][0] + _m[1] * rhs._m[3][1] + _m[2] * rhs._m[3][2] + _m[3] * rhs._m[3][3];
+  return result;
 }
 
 Vector4 Matrix4::operator*(const Vector4& rhs) const

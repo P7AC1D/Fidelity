@@ -65,8 +65,7 @@ void OrbitalCamera::Pan(float dx, float dy)
 
 void OrbitalCamera::UpdateProjMat(int32 clientWidth, int32 clientHeight, float32 nearClip, float32 farClip)
 {
-  //m_proj = Matrix4::Perspective(Degree(67.67f), clientWidth / static_cast<float32>(clientHeight), nearClip, farClip);
-  m_proj = Matrix4::Orthographic(-5.0f, 5.0f, -5.0f, 5.0f, -5.0f, 5.0f);
+  m_proj = Matrix4::Perspective(Degree(67.67f), clientWidth / static_cast<float32>(clientHeight), nearClip, farClip);
 }
 
 void OrbitalCamera::SetPosition(const Vector3& position)
@@ -107,9 +106,7 @@ void OrbitalCamera::UpdateViewMatrix()
   Vector3 up = Vector3::Normalize(Vector3::Cross(forward, right));
   
   Vector3 cen = Vector3::Normalize(m_target - PositionToCartesian());
- // m_view = Matrix4::LookAt(eye, cen, up);
-  
-  m_view = Matrix4::LookAt(Vector3::Identity, Vector3::Zero, Vector3(0.0f, 1.0f, 0.0f));
+  m_view = Matrix4::LookAt(eye, cen, up);
 }
 
 Vector3 OrbitalCamera::PositionToCartesian() const

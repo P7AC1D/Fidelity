@@ -96,14 +96,26 @@ Matrix3 Matrix3::operator-(const Matrix3& rhs) const
 
 Matrix3 Matrix3::operator*(const Matrix3& rhs) const
 {
+  //Matrix3 result;
+  //for (uint32 row = 0; row < 3; ++row)
+  //{
+  //  for (uint32 col = 0; col < 3; ++col)
+  //  {
+  //    result._m[row][col] = _m[row][0] * rhs._m[0][col] + _m[row][1] * rhs._m[1][col] + _m[row][2] * rhs._m[2][col];
+  //  }
+  //}
+  //return result;
+
   Matrix3 result;
-  for (uint32 row = 0; row < 3; ++row)
-  {
-    for (uint32 col = 0; col < 3; ++col)
-    {
-      result._m[row][col] = _m[row][0] * rhs._m[0][col] + _m[row][1] * rhs._m[1][col] + _m[row][2] * rhs._m[2][col];
-    }
-  }
+  result[0][0] = _m[0][0] * rhs._m[0][0] + _m[1][0] * rhs._m[0][1] + _m[2][0] * rhs._m[0][2];
+  result[0][1] = _m[0][1] * rhs._m[0][0] + _m[1][1] * rhs._m[0][1] + _m[2][1] * rhs._m[0][2];
+  result[0][2] = _m[0][2] * rhs._m[0][0] + _m[1][2] * rhs._m[0][1] + _m[2][2] * rhs._m[0][2];
+  result[1][0] = _m[0][0] * rhs._m[1][0] + _m[1][0] * rhs._m[1][1] + _m[2][0] * rhs._m[1][2];
+  result[1][1] = _m[0][1] * rhs._m[1][0] + _m[1][1] * rhs._m[1][1] + _m[2][1] * rhs._m[1][2];
+  result[1][2] = _m[0][2] * rhs._m[1][0] + _m[1][2] * rhs._m[1][1] + _m[2][2] * rhs._m[1][2];
+  result[2][0] = _m[0][0] * rhs._m[2][0] + _m[1][0] * rhs._m[2][1] + _m[2][0] * rhs._m[2][2];
+  result[2][1] = _m[0][1] * rhs._m[2][0] + _m[1][1] * rhs._m[2][1] + _m[2][1] * rhs._m[2][2];
+  result[2][2] = _m[0][2] * rhs._m[2][0] + _m[1][2] * rhs._m[2][1] + _m[2][2] * rhs._m[2][2];
   return result;
 }
 
