@@ -4,8 +4,6 @@
 #include "../Rendering/Renderable.hpp"
 #include "Transform.h"
 
-using namespace Components;
-
 WorldObject::WorldObject(const std::string& name) :
   _name(std::move(name)),
   _isDirty(true),

@@ -1,7 +1,6 @@
 #include "Test3D.h"
 
 #include "../Engine/Components/Component.h"
-#include "../Engine/Components/PointLight.h"
 #include "../Engine/Input/InputHandler.hpp"
 #include "../Engine/Input/EventDispatcher.hpp"
 #include "../Engine/Maths/Quaternion.hpp"
@@ -16,12 +15,12 @@
 #include "../Engine/Utility/AssetManager.h"
 #include "../Engine/Utility/MeshFactory.h"
 #include "../Engine/Utility/ObjLoader.hpp"
+#include "../Engine/SceneManagement/Light.h"
 #include "../Engine/SceneManagement/OrbitalCamera.h"
 #include "../Engine/SceneManagement/SceneManager.h"
 #include "../Engine/SceneManagement/Transform.h"
 #include "../Engine/SceneManagement/WorldObject.h"
 
-using namespace Components;
 using namespace Rendering;
 using namespace UI;
 using namespace Utility;
@@ -34,7 +33,7 @@ Test3D::Test3D(const ApplicationDesc& desc):
 
 void Test3D::OnStart()
 {
-  _sceneManager->SetAmbientColour(Vector3(0.1f, 0.1f, 0.1f));
+  _sceneManager->SetAmbientLight(Vector3(0.25f, 0.25f, 0.20f));
 
   _camera = std::make_shared<OrbitalCamera>(0.0f, 90.0f, 2.0f);
   _camera->UpdateProjMat(GetWidth(), GetHeight(), 0.1f, 100.0f);
@@ -48,28 +47,23 @@ void Test3D::OnStart()
   floor.SetPosition(Vector3(0.0f, -2.0f, 0.0f));
   auto& plane = MeshFactory::CreatePlane(10);
   auto& material = plane->GetMaterial();
-  material->SetAmbientColour(Vector3(0.0f));
+  material->SetAmbientColour(Vector3(0.1f));
   material->SetDiffuseColour(Vector3(0.7f));
   material->SetSpecularColour(Vector3(0.25f));
   material->SetSpecularShininess(1.0f);
   material->SetTexture("DiffuseMap", _assetManager->GetTexture("/Textures/177.JPG"));
   std::shared_ptr<Renderable> planeModel(new Renderable);
   planeModel->PushMesh(*plane);
-  floor.SetRenderable(planeModel);
+  floor.AttachRenderable(planeModel);
 
- /* auto floor = rootNode->CreateObject("floor");
-  auto floorModel = _assetManager->GetModel("Models/Container/container.obj");
-  floor->SetScale(Vector3(20.0f, 0.01f, 20.0f));
-  floor->SetPosition(Vector3(0.0f, -2.0f, 0.0f));
-  floorModel->GetMeshAtIndex(0).GetMaterial()->SetTexture("DiffuseMap", _assetManager->GetTexture("Textures/brick_floor_tileable_Base_Color.jpg", true));
-  floorModel->GetMeshAtIndex(0).GetMaterial()->SetTexture("BumpMap", _assetManager->GetTexture("Textures/brick_floor_tileable_Glossiness.jpg"));
-  floor->AddComponent(floorModel);*/
+  //auto& light = _sceneManager->CreateLight(LightType::Point);
+  //light.SetPosition(Vector3(3.0f, 3.0f, 3.0f));
+  //light.SetColour(Vector3(1.0f, 1.0f, 1.0f));
+  //light.SetRadius(7.0f);
 
-  auto& light = _sceneManager->CreateObject("light");
-  light.AddComponent(std::make_shared<PointLight>(
-    Vector3(3.0f, 3.0f, 3.0f),
-    Vector3(1.0f, 1.0f, 1.0f),
-    7.0f));
+  auto& light = _sceneManager->CreateLight(LightType::Directional);
+  light.SetColour(Colour(255, 240, 170));
+  light.SetDirection(Vector3::Normalize(Vector3(1.0f, -1.0f, 1.0f)));
 
   _inputHandler->BindButtonToState("ActivateCameraLook", Button::Button_LMouse);
   _inputHandler->BindAxisToState("CameraZoom", Axis::MouseScrollXY);

@@ -5,6 +5,7 @@
 
 #include "../Core/Types.hpp"
 #include "../Maths/Vector3.hpp"
+#include "Light.h"
 #include "WorldObject.h"
 
 class OrbitalCamera;
@@ -24,11 +25,12 @@ class SceneManager
 public:
   SceneManager(std::shared_ptr<Utility::AssetManager> _assetManager, std::shared_ptr<Rendering::Renderer> renderer);
 
-  WorldObject& CreateObject(const std::string& name = std::string());
+  WorldObject& CreateObject(const std::string& name = std::string());  
   WorldObject& LoadObjectFromFile(const std::string& filePath);
+  Light& CreateLight(LightType lightType, const std::string& name = std::string());
 
   inline void SetCamera(std::shared_ptr<OrbitalCamera> camera) { _camera = camera; }
-  inline void SetAmbientColour(const Vector3& colour) { _ambientLight = colour; }
+  inline void SetAmbientLight(const Vector3& colour) { _ambientLight = colour; }
 
   inline const Vector3& GetAmbientLight() const { return _ambientLight; }
 
@@ -40,6 +42,7 @@ private:
 
 private:
   std::vector<WorldObject> _worldObjects;
+  std::vector<Light> _lights;
   std::shared_ptr<OrbitalCamera> _camera;
   std::shared_ptr<Utility::AssetManager> _assetManager;
   std::shared_ptr<Rendering::Renderer> _renderer;

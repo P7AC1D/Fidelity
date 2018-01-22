@@ -1,8 +1,8 @@
 #include "Renderer.h"
 
-#include "../Components/PointLight.h"
 #include "../UI/Panel.h"
 #include "../UI/UIManager.h"
+#include "../SceneManagement/Light.h"
 #include "../SceneManagement/WorldObject.h"
 #include "ConstantBuffer.h"
 #include "CubeMap.h"
@@ -14,7 +14,6 @@
 #include "StaticMesh.h"
 #include "VertexBuffer.h"
 
-using namespace Components;
 using namespace Rendering;
 using namespace UI;
 
@@ -44,7 +43,8 @@ enum class UniformBindingPoint
 Renderer::Renderer(int32 renderWidth, int32 renderHeight) :
   _shaderCollection(new ShaderCollection("./../../Source/Engine/Shaders/")),
   _renderWidth(renderWidth),
-  _renderHeight(renderHeight)
+  _renderHeight(renderHeight),
+  _ambientLight(Vector3::Identity)
 {
 }
 
@@ -64,73 +64,17 @@ void Renderer::SetClearColour(const Vector3& colour)
   glClearColor(colour[0], colour[1], colour[2], 0.0f);
 }
 
-void Renderer::PushRenderable(std::shared_ptr<Renderable> renderable, std::shared_ptr<Transform> transform)
-{
-  _renderables.emplace_back(renderable, transform);
-}
-
-void Renderer::PushPointLight(std::shared_ptr<PointLight> pointLight)
-{
-  _pointLights.push_back(pointLight);
-}
-
 void Renderer::DrawScene(OrbitalCamera& camera)
 {
-  auto shader = _shaderCollection->GetShader("Standard.shader");
-  shader->Bind();
-  shader->SetVec3("u_ambientColour", Vector3::Identity);
-  shader->BindUniformBlock(shader->GetUniformBlockIndex("Transforms"), static_cast<int32>(UniformBindingPoint::Transforms), _cameraBuffer->_uboId, _cameraBuffer->_sizeBytes);
-  shader->BindUniformBlock(shader->GetUniformBlockIndex("PointLight"), static_cast<int32>(UniformBindingPoint::Light), _lightBuffer->_uboId, _lightBuffer->_sizeBytes);
-
   ClearBuffer(ClearType::All);
+
   UploadCameraData(camera);
 
-  GLCall(glDepthFunc(GL_LESS));
-  for (auto light : _pointLights)
-  {
-    UploadLightData(light);
-
-    for (auto& renderable : _renderables)
-    {
-      shader->SetBool("u_diffuseMappingEnabled", false);
-
-      auto meshCount = renderable.Renderable->GetMeshCount();
-      for (size_t i = 0; i < meshCount; i++)
-      {
-        auto& staticMesh = renderable.Renderable->GetMeshAtIndex(i);
-        shader->SetMat4("u_model", renderable.Transform->Get());
-
-        auto material = staticMesh.GetMaterial();
-        if (material->HasTexture("DiffuseMap"))
-        {
-          auto diffuseMap = material->GetTexture("DiffuseMap");
-          glActiveTexture(GL_TEXTURE0);
-          diffuseMap->Bind();
-          shader->SetInt("u_material.DiffuseMap", 0);
-          shader->SetBool("u_diffuseMappingEnabled", true);
-        }
-
-        shader->SetFloat("u_material.SpecularExponent", material->GetSpecularExponent());
-        shader->SetVec3("u_material.AmbientColour", material->GetAmbientColour());
-        shader->SetVec3("u_material.DiffuseColour", material->GetDiffuseColour());
-        shader->SetVec3("u_material.SpecularColour", material->GetSpecularColour());
-
-        auto vertexData = staticMesh.GetVertexData();
-        GLCall(glBindVertexArray(vertexData->_vaoId));
-        GLCall(glDrawArrays(GL_TRIANGLES, 0, staticMesh._vertexCount));
-        GLCall(glBindVertexArray(0));
-      }
-    }
-
-    GLCall(glDepthFunc(GL_EQUAL));
-    GLCall(glEnable(GL_BLEND));
-    GLCall(glBlendEquation(GL_FUNC_ADD));
-    GLCall(glBlendFunc(GL_ONE, GL_ONE));
-  }
-  GLCall(glDisable(GL_BLEND));
+  DirectionalLightRender(camera);
 
   _renderables.clear();
   _pointLights.clear();
+  _directionalLights.clear();
 }
 
 void Renderer::DrawUI(std::vector<std::shared_ptr<Panel>> panelCollection)
@@ -225,7 +169,7 @@ bool Renderer::Initialize()
   GLCall(glClearColor(0.25f, 0.25f, 0.25f, 0.0f));
 
   _cameraBuffer.reset(new ConstantBuffer(144));
-  _lightBuffer.reset(new ConstantBuffer(32));
+  _lightBuffer.reset(new ConstantBuffer(52));
 
   return true;
 }
@@ -266,13 +210,125 @@ void Renderer::UploadCameraData(OrbitalCamera& camera)
   _cameraBuffer->UploadData(128, 12, &camera.GetPos()[0]);
 }
 
-void Renderer::UploadLightData(std::shared_ptr<PointLight> pointLight)
+void Renderer::UploadPointLightData(const Light& pointLight)
 {
-  _lightBuffer->UploadData(0, 12, &pointLight->GetPosition()[0]);
-  _lightBuffer->UploadData(16, 12, &pointLight->GetColour()[0]);
+  _lightBuffer->UploadData(0, 12, &pointLight.GetPosition()[0]);
+  _lightBuffer->UploadData(32, 12, &(pointLight.GetColour().ToVec3())[0]);
 
-  float32 radius = pointLight->GetRadius();
-  _lightBuffer->UploadData(28, 4, &radius);
+  float32 radius = pointLight.GetRadius();
+  _lightBuffer->UploadData(44, 4, &radius);
+}
+
+void Renderer::UploadDirectionalLightData(const Light& directionalLight)
+{
+  _lightBuffer->UploadData(16, 12, &directionalLight.GetDirection()[0]);
+  _lightBuffer->UploadData(32, 12, &(directionalLight.GetColour().ToVec3())[0]);
+}
+
+void Renderer::DirectionalLightRender(OrbitalCamera& camera)
+{
+  auto shader = _shaderCollection->GetShader("DirectionalLight.shader");
+  shader->Bind();
+  shader->SetVec3("u_ambientColour", _ambientLight);
+  shader->BindUniformBlock(shader->GetUniformBlockIndex("Transforms"), static_cast<int32>(UniformBindingPoint::Transforms), _cameraBuffer->_uboId, _cameraBuffer->_sizeBytes);
+  shader->BindUniformBlock(shader->GetUniformBlockIndex("Light"), static_cast<int32>(UniformBindingPoint::Light), _lightBuffer->_uboId, _lightBuffer->_sizeBytes);
+
+  GLCall(glDepthFunc(GL_LESS));
+  for (auto& light : _directionalLights)
+  {
+    UploadDirectionalLightData(light);
+
+    for (auto& renderable : _renderables)
+    {
+      shader->SetBool("u_diffuseMappingEnabled", false);
+
+      auto meshCount = renderable.Renderable->GetMeshCount();
+      for (size_t i = 0; i < meshCount; i++)
+      {
+        auto& staticMesh = renderable.Renderable->GetMeshAtIndex(i);
+        shader->SetMat4("u_model", renderable.Transform->Get());
+
+        auto material = staticMesh.GetMaterial();
+        if (material->HasTexture("DiffuseMap"))
+        {
+          auto diffuseMap = material->GetTexture("DiffuseMap");
+          glActiveTexture(GL_TEXTURE0);
+          diffuseMap->Bind();
+          shader->SetInt("u_material.DiffuseMap", 0);
+          shader->SetBool("u_diffuseMappingEnabled", true);
+        }
+
+        shader->SetFloat("u_material.SpecularExponent", material->GetSpecularExponent());
+        shader->SetVec3("u_material.AmbientColour", material->GetAmbientColour());
+        shader->SetVec3("u_material.DiffuseColour", material->GetDiffuseColour());
+        shader->SetVec3("u_material.SpecularColour", material->GetSpecularColour());
+
+        auto vertexData = staticMesh.GetVertexData();
+        GLCall(glBindVertexArray(vertexData->_vaoId));
+        GLCall(glDrawArrays(GL_TRIANGLES, 0, staticMesh._vertexCount));
+        GLCall(glBindVertexArray(0));
+      }
+    }
+
+    GLCall(glDepthFunc(GL_EQUAL));
+    GLCall(glEnable(GL_BLEND));
+    GLCall(glBlendEquation(GL_FUNC_ADD));
+    GLCall(glBlendFunc(GL_ONE, GL_ONE));
+  }
+  GLCall(glDisable(GL_BLEND));
+}
+
+void Renderer::PointLightRender(OrbitalCamera& camera)
+{
+  auto shader = _shaderCollection->GetShader("Standard.shader");
+  shader->Bind();
+  shader->SetVec3("u_ambientColour", _ambientLight);
+  shader->BindUniformBlock(shader->GetUniformBlockIndex("Transforms"), static_cast<int32>(UniformBindingPoint::Transforms), _cameraBuffer->_uboId, _cameraBuffer->_sizeBytes);
+  shader->BindUniformBlock(shader->GetUniformBlockIndex("Light"), static_cast<int32>(UniformBindingPoint::Light), _lightBuffer->_uboId, _lightBuffer->_sizeBytes);
+
+  GLCall(glDepthFunc(GL_LESS));
+  for (auto& light : _pointLights)
+  {
+    UploadPointLightData(light);
+
+    for (auto& renderable : _renderables)
+    {
+      shader->SetBool("u_diffuseMappingEnabled", false);
+
+      auto meshCount = renderable.Renderable->GetMeshCount();
+      for (size_t i = 0; i < meshCount; i++)
+      {
+        auto& staticMesh = renderable.Renderable->GetMeshAtIndex(i);
+        shader->SetMat4("u_model", renderable.Transform->Get());
+
+        auto material = staticMesh.GetMaterial();
+        if (material->HasTexture("DiffuseMap"))
+        {
+          auto diffuseMap = material->GetTexture("DiffuseMap");
+          glActiveTexture(GL_TEXTURE0);
+          diffuseMap->Bind();
+          shader->SetInt("u_material.DiffuseMap", 0);
+          shader->SetBool("u_diffuseMappingEnabled", true);
+        }
+
+        shader->SetFloat("u_material.SpecularExponent", material->GetSpecularExponent());
+        shader->SetVec3("u_material.AmbientColour", material->GetAmbientColour());
+        shader->SetVec3("u_material.DiffuseColour", material->GetDiffuseColour());
+        shader->SetVec3("u_material.SpecularColour", material->GetSpecularColour());
+
+        auto vertexData = staticMesh.GetVertexData();
+        GLCall(glBindVertexArray(vertexData->_vaoId));
+        GLCall(glDrawArrays(GL_TRIANGLES, 0, staticMesh._vertexCount));
+        GLCall(glBindVertexArray(0));
+      }
+    }
+
+    GLCall(glDepthFunc(GL_EQUAL));
+    GLCall(glEnable(GL_BLEND));
+    GLCall(glBlendEquation(GL_FUNC_ADD));
+    GLCall(glBlendFunc(GL_ONE, GL_ONE));
+  }
+  GLCall(glDisable(GL_BLEND));
 }
 
 void Renderer::ClearBuffer(ClearType clearType)

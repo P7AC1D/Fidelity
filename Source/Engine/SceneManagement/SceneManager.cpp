@@ -1,6 +1,5 @@
 #include "SceneManager.h"
 
-#include "../Components/PointLight.h"
 #include "../Rendering/Renderer.h"
 #include "../SceneManagement/SceneManager.h"
 #include "../SceneManagement/WorldObject.h"
@@ -10,9 +9,8 @@
 #include "OrbitalCamera.h"
 
 static uint32 WorldObjectCount = 0;
-static uint32 PointLightCount = 0;
+static uint32 LightCount = 0;
 
-using namespace Components;
 using namespace Rendering;
 using namespace Utility;
 
@@ -45,14 +43,27 @@ WorldObject& SceneManager::LoadObjectFromFile(const std::string& filePath)
   
   _worldObjects.emplace_back(fileName);
   auto& worldObject = _worldObjects.back();
-  worldObject.SetRenderable(renderable);
+  worldObject.AttachRenderable(renderable);
   return worldObject;
+}
+
+Light& SceneManager::CreateLight(LightType lightType, const std::string& name)
+{
+  std::string objectName(name);
+  if (name == std::string())
+  {
+    objectName = "Light" + std::to_string(LightCount);
+    LightCount++;
+  }
+  _lights.emplace_back(lightType, objectName);
+  return _lights.back();
 }
 
 void SceneManager::UpdateScene(uint32 dtMs)
 {
   UpdateWorldObjects(dtMs);
   SubmitSceneToRender();
+  _renderer->SetAmbientLight(_ambientLight);
   _renderer->DrawScene(*_camera.get());
 }
 
@@ -75,11 +86,24 @@ void SceneManager::SubmitSceneToRender()
       _renderer->PushRenderable(renderable, transform);
     }
 
-    auto lightComponent = worldObject.GetComponent("PointLight");
+    auto lightComponent = worldObject.GetComponent("Light");
     if (lightComponent != nullptr)
     {
-      auto pointLight = std::dynamic_pointer_cast<PointLight>(lightComponent);
-      _renderer->PushPointLight(pointLight);
+      auto light = std::dynamic_pointer_cast<Light>(lightComponent);
+
+    }
+  }
+
+  for (auto& light : _lights)
+  {
+    switch (light.GetType())
+    {
+    case LightType::Point:
+      _renderer->PushPointLight(light);
+      break;
+    case LightType::Directional:
+      _renderer->PushDirectionalLight(light);
+      break;
     }
   }
 }

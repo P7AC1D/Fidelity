@@ -62,15 +62,6 @@ in VSOut
 
 out vec4 o_Colour;
 
-float LightAttenuation(in vec4 lightPos, in float lightRadius)
-{
-  float dist = length(lightPos - fsIn.Position);
-  float f = 1.0f - dist / lightRadius;
-  float atten = clamp(f, 0.0f, 1.0f);
-  atten *= atten;
-  return atten;
-}
-
 float DiffuseContribution(in vec4 lightDir)
 {
   return clamp(dot(fsIn.Normal, -lightDir), 0.0f, 1.0f);
@@ -90,14 +81,12 @@ void main()
     diffuseSample = texture(u_material.DiffuseMap, fsIn.UV).xyz;
   }
 
-  float attenuation = LightAttenuation(vec4(u_lightPosition, 1.0f), u_lightRadius);
-
-  vec4 lightDir = normalize(fsIn.Position - vec4(u_lightPosition, 1.0f));
-  vec3 diffuseColour = (DiffuseContribution(lightDir) * attenuation) *
+  vec4 lightDir = vec4(u_lightDir, 0.0f);
+  vec3 diffuseColour = DiffuseContribution(lightDir) *
                        (u_lightColour * u_material.DiffuseColour * diffuseSample);
 
   vec4 viewDir = normalize(vec4(u_viewPosition, 1.0f) - fsIn.Position);
-  vec3 specularColour = (SpecularContribution(lightDir, viewDir, u_material.SpecularExponent) * attenuation) *
+  vec3 specularColour = SpecularContribution(lightDir, viewDir, u_material.SpecularExponent) *
                         (u_lightColour * u_material.SpecularColour);
   vec3 ambientColour = u_ambientColour * u_material.AmbientColour;
 

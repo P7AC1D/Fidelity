@@ -1,9 +1,6 @@
 #pragma once
 #include <string>
 
-namespace Components
-{
-
 class Component
 {
 public:
@@ -15,4 +12,3 @@ public:
 private:
   std::string _name;
 };
-}

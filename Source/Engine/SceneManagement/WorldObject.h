@@ -7,12 +7,8 @@
 #include "../Maths/Quaternion.hpp"
 #include "../Maths/Vector3.hpp"
 
-class Transform;
-
-namespace Components
-{
 class Component;
-}
+class Transform;
 
 namespace Rendering
 {
@@ -27,16 +23,16 @@ public:
 
   inline std::shared_ptr<Rendering::Renderable> GetRenderable() { return _renderable; }
   inline std::shared_ptr<Transform> GetTransform() { return _transform; }
-  inline void SetParent(WorldObject* parentObject) { _parent = parentObject; }
-  inline void SetRenderable(const std::shared_ptr<Rendering::Renderable>& renderable) { _renderable = renderable; }
+  inline void AttachParent(WorldObject* parentObject) { _parent = parentObject; }
+  inline void AttachRenderable(std::shared_ptr<Rendering::Renderable> renderable) { _renderable = renderable; }
 
   void Update();
 
   void AttachChild(WorldObject* childObject);
 
-  void AddComponent(std::shared_ptr<Components::Component> component);
+  void AddComponent(std::shared_ptr<Component> component);
   bool HasComponent(const std::string& name) const;
-  std::shared_ptr<Components::Component> GetComponent(const std::string& name) const;  
+  std::shared_ptr<Component> GetComponent(const std::string& name) const;  
 
   void SetPosition(const Vector3& position);
   void SetScale(const Vector3& scale);
@@ -47,7 +43,7 @@ public:
 private:
   bool _isDirty;
   std::string _name;
-  std::unordered_map<std::string, std::shared_ptr<Components::Component>> _components;
+  std::unordered_map<std::string, std::shared_ptr<Component>> _components;
   std::shared_ptr<Rendering::Renderable> _renderable;
   std::shared_ptr<Transform> _transform;
   WorldObject* _parent;
