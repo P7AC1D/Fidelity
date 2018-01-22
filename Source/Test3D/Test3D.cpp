@@ -3,6 +3,7 @@
 #include "../Engine/Components/Component.h"
 #include "../Engine/Input/InputHandler.hpp"
 #include "../Engine/Input/EventDispatcher.hpp"
+#include "../Engine/Maths/Degree.hpp"
 #include "../Engine/Maths/Quaternion.hpp"
 #include "../Engine/Maths/Radian.hpp"
 #include "../Engine/Maths/Vector2.hpp"

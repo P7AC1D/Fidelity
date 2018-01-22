@@ -27,18 +27,17 @@ Matrix4 Matrix4::Identity = Matrix4(1.0f, 0.0f, 0.0f, 0.0f,
 Matrix4 Matrix4::Translation(const Vector3& translation)
 {
   Matrix4 result(Matrix4::Identity);
-  result[0][3] = translation[0];
-  result[1][3] = translation[1];
-  result[2][3] = translation[2];
+  result[3] = result[0] * translation[0] + result[1] * translation[1] + result[2] * translation[2] + result[3];
   return result;
 }
 
 Matrix4 Matrix4::Scaling(const Vector3& scale)
 {
   Matrix4 result(Matrix4::Identity);
-  result[0][0] = scale[0];
-  result[1][1] = scale[1];
-  result[2][2] = scale[2];
+  result[0] = result[0] * scale[0];
+  result[1] = result[1] * scale[1];
+  result[2] = result[2] * scale[2];
+  result[3] = result[3];
   return result;
 }
 

@@ -284,6 +284,7 @@ void Renderer::DirectionalLightPass(OrbitalCamera& camera)
   
 void Renderer::DirLightDepthPass(OrbitalCamera& camera)
 {
+  GLCall(glDepthFunc(GL_LESS));
   if (_depthBuffer == nullptr)
   {
     _depthBuffer.reset(new FrameBuffer(512, 512, FBT_Depth));
@@ -291,15 +292,13 @@ void Renderer::DirLightDepthPass(OrbitalCamera& camera)
   
   SetViewport(512, 512);
   _depthBuffer->Bind();
-  ClearBuffer(ClearType::Depth);
-  _depthBuffer->Unbind();
+  ClearBuffer(ClearType::Depth);  
   
   // One light for now...
   auto dirLight = _directionalLights[0];
   
-  auto lightProj = Matrix4::Orthographic(-10.0f, 10.0f, -10.0f, 10.0f, 1.0f, 7.5f);
-  auto lightView = Matrix4::LookAt(dirLight.GetDirection(), dirLight.GetDirection(), Vector3(0.0f, 1.0f, 0.0f));
-  auto T = lightProj * lightView;
+  auto lightProj = Matrix4::Orthographic(-5.0f, 5.0f, -5.0f, 5.0f, -5.0f, 5.0f);
+  auto lightView = Matrix4::LookAt(Vector3::Identity, Vector3::Zero, Vector3(0.0f, 1.0f, 0.0f));
   
   auto depthPassShader = _shaderCollection->GetShader("DirLightDepthPass.shader");
   if (!depthPassShader)
@@ -307,7 +306,8 @@ void Renderer::DirLightDepthPass(OrbitalCamera& camera)
     throw std::runtime_error("Failed to get shader 'DirLightDepthPass.shader'");
   }
   depthPassShader->Bind();
-  depthPassShader->SetMat4("u_lightSpaceTransform", T);
+  depthPassShader->SetMat4("u_lightProj", lightProj);
+  depthPassShader->SetMat4("u_lightView", lightView);
   
   for (auto& renderable : _renderables)
   {
@@ -323,6 +323,7 @@ void Renderer::DirLightDepthPass(OrbitalCamera& camera)
       GLCall(glBindVertexArray(0));
     }
   }
+  _depthBuffer->Unbind();
   depthPassShader->Unbind();
 }
   

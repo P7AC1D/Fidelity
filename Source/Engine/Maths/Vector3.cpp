@@ -60,6 +60,11 @@ Vector3::Vector3(const Vector3& vec)
   _z = vec._z;
 }
 
+Vector3 Vector3::operator-() const
+{
+  return Vector3(-_x, -_y, -_z);
+}
+
 Vector3& Vector3::operator=(const Vector3& rhs)
 {
   _x = rhs._x;

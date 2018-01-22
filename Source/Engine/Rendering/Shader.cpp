@@ -109,14 +109,14 @@ void Shader::SetMat3(const std::string& uniformName, const Matrix3& value)
 {
   auto location = GetUniformLocation(uniformName);
   Bind();
-  GLCall(glUniformMatrix3fv(location, 1, GL_TRUE, &value[0][0]));
+  GLCall(glUniformMatrix3fv(location, 1, GL_FALSE, &value[0][0]));
 }
 
 void Shader::SetMat4(const std::string& uniformName, const Matrix4& value)
 {
   auto location = GetUniformLocation(uniformName);  
   Bind();
-  GLCall(glUniformMatrix4fv(location, 1, GL_TRUE, &value[0][0]));
+  GLCall(glUniformMatrix4fv(location, 1, GL_FALSE, &value[0][0]));
 }
 
 void Shader::SetVec3Array(const std::string& uniformName, const std::vector<Vector3>& values)

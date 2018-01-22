@@ -34,7 +34,7 @@ Texture::Texture(TextureFormat format, uint32 width, uint32 height, void* data) 
       GLCall(glTexImage2D(GL_TEXTURE_2D, 0, GL_SRGB_ALPHA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data));
       break;
     case TextureFormat::Depth:
-      GLCall(glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, width, height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, data));
+      GLCall(glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, width, height, 0, GL_DEPTH_COMPONENT, GL_UNSIGNED_BYTE, data));
   }
   SetMinFilter(TextureMinFilter::Nearest);
   SetMagFilter(TextureMagFilter::Nearest);

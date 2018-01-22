@@ -18,6 +18,8 @@ public:
   Vector3(float32 a, float32 b, float32 c);
   Vector3(const Vector2& vec, float32 k = 0.0f);
   Vector3(const Vector3& vec);
+
+  Vector3 operator-() const;
   
   Vector3& operator=(const Vector3& rhs);
   Vector3 operator+(const Vector3& rhs) const;

@@ -80,6 +80,6 @@ void Transform::UpdateTransform()
   Matrix4 translation = Matrix4::Translation(_position);
   Matrix4 scale = Matrix4::Scaling(_scale);
   Matrix4 rotation = Matrix4::Rotation(_rotation);
-  _transform = translation * scale * rotation;
+  _transform = rotation * scale * translation;
   _transformNeedsUpdate = false;
 }
