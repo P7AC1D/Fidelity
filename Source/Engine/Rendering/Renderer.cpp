@@ -64,8 +64,11 @@ void Renderer::DrawScene(OrbitalCamera& camera)
 {
   UploadCameraData(camera);
 
+  // One light for now...
+  auto dirLight = _directionalLights[0];
+
   auto lightProj = Matrix4::Orthographic(-25.0f, 25.0f, -25.0f, 25.0f, -25.0f, 25.0f);
-  auto lightView = Matrix4::LookAt(Vector3::Identity, Vector3::Zero, Vector3(0.0f, 1.0f, 0.0f));
+  auto lightView = Matrix4::LookAt(-dirLight.GetDirection(), Vector3::Zero, Vector3(0.0f, 1.0f, 0.0f));
   auto lightSpaceTransform = lightProj * lightView;
 
   DirLightDepthPass(lightSpaceTransform);
@@ -299,10 +302,6 @@ void Renderer::DirLightDepthPass(const Matrix4& lightSpaceTransform)
   SetViewport(shadowWidth, shadowHeight);
   _depthBuffer->Bind();
   ClearBuffer(ClearType::Depth);
-  
-  // One light for now...
-  auto dirLight = _directionalLights[0]; 
-
   
   auto depthPassShader = _shaderCollection->GetShader("DirLightDepthPass.shader");
   if (!depthPassShader)

@@ -85,9 +85,10 @@ float ShadowContribution(in vec4 fragmentPos)
   // move from [-1,1] to [0,1]
   ndcPos = ndcPos * 0.5f + 0.5f;
 
+  float bias = 0.005;
   float closestDepth = texture(u_shadowMap, ndcPos.xy).r;
   float currentDepth = ndcPos.z;
-  return currentDepth > closestDepth ? 1.0f : 0.0f;
+  return currentDepth - bias > closestDepth ? 1.0f : 0.0f;
 }
 
 void main()
