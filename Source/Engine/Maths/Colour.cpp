@@ -1,5 +1,7 @@
 #include "Colour.hpp"
 
+#include <cassert>
+
 Colour Colour::Black = Colour(0, 0, 0);
 Colour Colour::White = Colour(255, 255, 255);
 Colour Colour::Red = Colour(255, 0, 0);
@@ -18,40 +20,25 @@ Colour Colour::Teal = Colour(0, 128, 128);
 Colour Colour::Navy = Colour(0, 0, 128);
 
 Colour::Colour() :
-  _dirty(true),
-  _red(255),
-  _green(255),
-  _blue(255),
-  _alpha(255)
+  _red(1.0f),
+  _green(1.0f),
+  _blue(1.0f),
+  _alpha(1.0f)
 {
 }
 
-Colour::Colour(uint8 red, uint8 green, uint8 blue, uint8 alpha) :
-  _dirty(true),
-  _red(red),
-  _green(green),
-  _blue(blue),
-  _alpha(alpha)
+Colour::Colour(uint8 red, uint8 green, uint8 blue, uint8 alpha)
 {
+  float32 f = 1 / 255.0f;
+  _red = red * f;
+  _green = green * f;
+  _blue = blue * f;
+  _alpha = alpha * f;
 }
 
-Vector3 Colour::ToVec3()
+float32 Colour::operator[](int32 i) const
 {
-  if (_dirty)
-  {
-    float32 f = 1 / 255.0f;
-    _rgbData = Vector3(_red * f, _green * f, _blue * f);
-    _dirty = false;
-  }
-  return _rgbData;
+  assert(i < 4);
+  return *(&_red + i);
 }
-Vector4 Colour::ToVec4()
-{
-  if (_dirty)
-  {
-    float32 f = 1 / 255.0f;
-    _rgbaData = Vector4(_red * f, _green * f, _blue * f, _alpha * f);
-    _dirty = false;
-  }
-  return _rgbaData;
-}
+

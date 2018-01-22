@@ -1,11 +1,13 @@
 #include "Renderer.h"
 
+#include "../Maths/Matrix4.hpp"
 #include "../UI/Panel.h"
 #include "../UI/UIManager.h"
 #include "../SceneManagement/Light.h"
 #include "../SceneManagement/WorldObject.h"
 #include "ConstantBuffer.h"
 #include "CubeMap.h"
+#include "FrameBuffer.h"
 #include "Material.h"
 #include "Renderable.hpp"
 #include "Shader.h"
@@ -52,25 +54,19 @@ Renderer::~Renderer()
 {
 }
 
-void Renderer::SetViewport(int32 renderWidth, int32 renderHeight)
-{
-  _renderWidth = renderWidth;
-  _renderHeight = renderHeight;
-  glViewport(0, 0, _renderWidth, _renderHeight);
-}
-
-void Renderer::SetClearColour(const Vector3& colour)
+void Renderer::SetClearColour(const Colour& colour)
 {
   glClearColor(colour[0], colour[1], colour[2], 0.0f);
 }
 
 void Renderer::DrawScene(OrbitalCamera& camera)
 {
-  ClearBuffer(ClearType::All);
-
   UploadCameraData(camera);
 
-  DirectionalLightRender(camera);
+  DirLightDepthPass(camera);
+  ClearBuffer(ClearType::Depth);
+  
+  DirectionalLightPass(camera);
 
   _renderables.clear();
   _pointLights.clear();
@@ -202,6 +198,11 @@ void Renderer::SetVertexAttribPointers(StaticMesh* staticMesh, int32 stride)
   }
   GLCall(glBindVertexArray(0));
 }
+  
+void Renderer::SetViewport(int32 width, int32 height)
+{
+  glViewport(0, 0, width, height);
+}
 
 void Renderer::UploadCameraData(OrbitalCamera& camera)
 {
@@ -225,8 +226,11 @@ void Renderer::UploadDirectionalLightData(const Light& directionalLight)
   _lightBuffer->UploadData(32, 12, &(directionalLight.GetColour().ToVec3())[0]);
 }
 
-void Renderer::DirectionalLightRender(OrbitalCamera& camera)
+void Renderer::DirectionalLightPass(OrbitalCamera& camera)
 {
+  ClearBuffer(ClearType::Color);
+  SetViewport(_renderWidth, _renderHeight);
+  
   auto shader = _shaderCollection->GetShader("DirectionalLight.shader");
   shader->Bind();
   shader->SetVec3("u_ambientColour", _ambientLight);
@@ -277,6 +281,51 @@ void Renderer::DirectionalLightRender(OrbitalCamera& camera)
   }
   GLCall(glDisable(GL_BLEND));
 }
+  
+void Renderer::DirLightDepthPass(OrbitalCamera& camera)
+{
+  if (_depthBuffer == nullptr)
+  {
+    _depthBuffer.reset(new FrameBuffer(512, 512, FBT_Depth));
+  }
+  
+  SetViewport(512, 512);
+  _depthBuffer->Bind();
+  ClearBuffer(ClearType::Depth);
+  _depthBuffer->Unbind();
+  
+  // One light for now...
+  auto dirLight = _directionalLights[0];
+  
+  auto lightProj = Matrix4::Orthographic(-10.0f, 10.0f, -10.0f, 10.0f, 1.0f, 7.5f);
+  auto lightView = Matrix4::LookAt(dirLight.GetDirection(), dirLight.GetDirection(), Vector3(0.0f, 1.0f, 0.0f));
+  auto T = lightProj * lightView;
+  
+  auto depthPassShader = _shaderCollection->GetShader("DirLightDepthPass.shader");
+  if (!depthPassShader)
+  {
+    throw std::runtime_error("Failed to get shader 'DirLightDepthPass.shader'");
+  }
+  depthPassShader->Bind();
+  depthPassShader->SetMat4("u_lightSpaceTransform", T);
+  
+  for (auto& renderable : _renderables)
+  {
+    auto meshCount = renderable.Renderable->GetMeshCount();
+    for (size_t i = 0; i < meshCount; i++)
+    {
+      auto& staticMesh = renderable.Renderable->GetMeshAtIndex(i);
+      depthPassShader->SetMat4("u_modelTransform", renderable.Transform->Get());
+      
+      auto vertexData = staticMesh.GetVertexData();
+      GLCall(glBindVertexArray(vertexData->_vaoId));
+      GLCall(glDrawArrays(GL_TRIANGLES, 0, staticMesh._vertexCount));
+      GLCall(glBindVertexArray(0));
+    }
+  }
+  depthPassShader->Unbind();
+}
+  
 
 void Renderer::PointLightRender(OrbitalCamera& camera)
 {

@@ -40,13 +40,13 @@ void Test3D::OnStart()
   _camera->SetPosition(Vector3(0.0f, 0.0f, 6.0f));
   _sceneManager->SetCamera(_camera);
 
-  auto& tree = _sceneManager->LoadObjectFromFile("./../../Assets/Models/LowPolyTree/lowpolotree_triangulated.obj");
+  _sceneManager->LoadObjectFromFile("./../../Assets/Models/LowPolyTree/lowpolotree_triangulated.obj");
   
   auto& floor = _sceneManager->CreateObject("floor");
   floor.SetScale(Vector3(10.0f));
   floor.SetPosition(Vector3(0.0f, -2.0f, 0.0f));
-  auto& plane = MeshFactory::CreatePlane(10);
-  auto& material = plane->GetMaterial();
+  auto plane = MeshFactory::CreatePlane(10);
+  auto material = plane->GetMaterial();
   material->SetAmbientColour(Vector3(0.1f));
   material->SetDiffuseColour(Vector3(0.7f));
   material->SetSpecularColour(Vector3(0.25f));

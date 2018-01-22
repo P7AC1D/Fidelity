@@ -1,118 +1,69 @@
 #include "FrameBuffer.h"
 
-#include <sstream>
-
-#include "OpenGL.h"
 #include "Texture.h"
+
+static uint32 ActiveFrameBuffer = -1;
 
 namespace Rendering
 {
-int32 FrameBuffer::CurrentlyBoundFboId = -1;
-
-FrameBuffer::FrameBuffer()
+FrameBuffer::FrameBuffer(uint32 width, uint32 height, FrameBufferTarget target):
+  _width(width),
+  _height(height),
+  _target(target)
 {
-  GLCall(glGenFramebuffers(1, &_fboId));
+  glGenFramebuffers(1, &_fbo);
+  Bind();
+  
+  uint32 colourBufferCount = 0;
+  if (target & FrameBufferTarget::FBT_Colour0)
+  {
+    _colourTexture0.reset(new Texture(TextureFormat::RGBA, _height, _width));
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, _colourTexture0->_id, 0);
+    colourBufferCount++;
+  }
+  if (target & FrameBufferTarget::FBT_Colour1)
+  {
+    _colourTexture1.reset(new Texture(TextureFormat::RGBA, _height, _width));
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, _colourTexture0->_id, 0);
+    colourBufferCount++;
+  }
+  if (target & FrameBufferTarget::FBT_Colour2)
+  {
+    _colourTexture2.reset(new Texture(TextureFormat::RGBA, _height, _width));
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D, _colourTexture0->_id, 0);
+    colourBufferCount++;
+  }
+  if (target & FrameBufferTarget::FBT_Depth)
+  {
+    _depthTexture.reset(new Texture(TextureFormat::Depth, _height, _width));
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, _depthTexture->_id, 0);
+    if (colourBufferCount == 0)
+    {
+      glDrawBuffer(GL_NONE);
+      glReadBuffer(GL_NONE);
+    }
+  }
+  Unbind();
 }
-
+  
 FrameBuffer::~FrameBuffer()
 {
-  Unbind();
-  GLCall(glDeleteFramebuffers(1, &_fboId));
-}
-
-void FrameBuffer::Activate()
-{
-  RetrieveViewportDimensions();
-
-  Bind();
-  glViewport(0, 0, _colourTexture->GetWidth(), _colourTexture->GetHeight());
-
-  auto result = glCheckFramebufferStatus(GL_FRAMEBUFFER);
-  if (result != GL_FRAMEBUFFER_COMPLETE)
-  {
-    std::stringstream errorMesage;
-    switch (result)
-    {
-    case GL_FRAMEBUFFER_UNDEFINED:
-      errorMesage << "FBO " << _fboId << " GL_FRAMEBUFFER_UNDEFINED error: the specified framebuffer is the default read or draw framebuffer, but the default framebuffer does not exist.";
-      break;
-    case GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT:
-      errorMesage << "FBO " << _fboId << " GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT error";
-      break;
-    case GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT:
-      errorMesage << "FBO " << _fboId << " GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT error";
-      break;
-    case GL_FRAMEBUFFER_INCOMPLETE_DRAW_BUFFER:
-      errorMesage << "FBO " << _fboId << " GL_FRAMEBUFFER_INCOMPLETE_DRAW_BUFFER error";
-      break;
-    case GL_FRAMEBUFFER_INCOMPLETE_READ_BUFFER:
-      errorMesage << "FBO " << _fboId << " GL_FRAMEBUFFER_INCOMPLETE_READ_BUFFER error";
-      break;
-    case GL_FRAMEBUFFER_UNSUPPORTED:
-      errorMesage << "FBO " << _fboId << " GL_FRAMEBUFFER_UNSUPPORTED error";
-      break;
-    case GL_FRAMEBUFFER_INCOMPLETE_MULTISAMPLE:
-      errorMesage << "FBO " << _fboId << " GL_FRAMEBUFFER_INCOMPLETE_MULTISAMPLE error";
-      break;
-    case GL_FRAMEBUFFER_INCOMPLETE_LAYER_TARGETS:
-      errorMesage << "FBO " << _fboId << " GL_FRAMEBUFFER_INCOMPLETE_LAYER_TARGETS error";
-      break;
-    default:
-      errorMesage << "FBO " << _fboId << " encountered an unknown error";
-      break;
-    }
-    throw std::runtime_error(errorMesage.str());
-  }
-}
-
-void FrameBuffer::Deactivate() const
-{
-  GLCall(glViewport(0, 0, _prevViewportWidth, _prevViewportHeight));
-  Unbind();
-}
-
-bool FrameBuffer::IsBound() const
-{
-  return CurrentlyBoundFboId == _fboId;
-}
-
-void FrameBuffer::SetColourTexture(std::shared_ptr<Texture> texture)
-{
-  _colourTexture = texture;
-  Bind();
-  GLCall(glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, _colourTexture->_id, 0));
-}
-
-void FrameBuffer::SetDepthTexture(std::shared_ptr<Texture> texture)
-{
-  _depthTexture = texture;
-  Bind();
-  GLCall(glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, _depthTexture->_id, 0));
-}
-
-void FrameBuffer::RetrieveViewportDimensions()
-{
-  int32 result[4];
-  GLCall(glGetIntegerv(GL_VIEWPORT, result));
-  _prevViewportWidth = result[2];
-  _prevViewportHeight = result[3];
+  glDeleteFramebuffers(1, &_fbo);
 }
 
 void FrameBuffer::Bind() const
 {
-  if (!IsBound())
+  if (ActiveFrameBuffer != _fbo)
   {
-    GLCall(glBindFramebuffer(GL_FRAMEBUFFER, _fboId));
-    CurrentlyBoundFboId = _fboId;
+    glBindFramebuffer(GL_FRAMEBUFFER, _fbo);
   }
 }
-
+  
 void FrameBuffer::Unbind() const
 {
-  if (IsBound())
+  if (ActiveFrameBuffer == _fbo)
   {
-    GLCall(glBindFramebuffer(GL_FRAMEBUFFER, 0));
-    CurrentlyBoundFboId = 0;
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
   }
 }
 }

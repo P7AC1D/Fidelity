@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "../Core/Types.hpp"
+#include "../Maths/Colour.hpp"
 #include "../Maths/Vector3.hpp"
 #include "../SceneManagement/Light.h"
 #include "../SceneManagement/OrbitalCamera.h"
@@ -19,13 +20,15 @@ class UiManager;
 
 namespace Rendering
 {
-class ConstantBuffer;
-class CubeMap;
-class Shader;
-class ShaderCollection;
-class StaticMesh;
-class VertexBuffer;
-enum class RenderingTechnique;
+  class ConstantBuffer;
+  class CubeMap;
+  class FrameBuffer;
+  class Shader;
+  class ShaderCollection;
+  class StaticMesh;
+  class Texture;
+  class VertexBuffer;
+  enum class RenderingTechnique;
 
 enum class ClearType
 {
@@ -59,8 +62,7 @@ public:
   inline void PushPointLight(const Light& pointLight) { _pointLights.push_back(pointLight); }
   inline void PushDirectionalLight(const Light& directionalLight) { _directionalLights.push_back(directionalLight); }
 
-  void SetViewport(int32 renderWidth, int32 renderHeight);
-  void SetClearColour(const Vector3& colour);
+  void SetClearColour(const Colour& colour);
 
   void DrawScene(OrbitalCamera& camera);
 
@@ -70,11 +72,14 @@ public:
   static void SetVertexAttribPointers(StaticMesh* staticMesh, int32 stride);
 
 private:
+  void SetViewport(int32 renderWidth, int32 renderHeight);
+  
   void UploadCameraData(OrbitalCamera& camera);
   void UploadPointLightData(const Light& pointLight);
   void UploadDirectionalLightData(const Light& directionalLight);
 
-  void DirectionalLightRender(OrbitalCamera& camera);
+  void DirectionalLightPass(OrbitalCamera& camera);
+  void DirLightDepthPass(OrbitalCamera& camera);
   void PointLightRender(OrbitalCamera& camera);
 
   void ClearBuffer(ClearType clearType);
@@ -94,6 +99,8 @@ private:
 
   std::unique_ptr<VertexBuffer> _guiQuadVertexData;
   std::unique_ptr<VertexBuffer> _skyBoxVertexData;
+  
+  std::unique_ptr<FrameBuffer> _depthBuffer;
 
   int32 _renderWidth;
   int32 _renderHeight;

@@ -19,8 +19,8 @@ public:
     _name(name),
     _radius(1.0f),
     _colour(Colour::White),
-    _direction(Vector3::Zero),
     _position(Vector3::Zero),
+    _direction(Vector3::Zero),
     _lightType(lightType)
   {
   }

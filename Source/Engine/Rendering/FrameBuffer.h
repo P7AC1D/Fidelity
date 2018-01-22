@@ -6,38 +6,32 @@
 namespace Rendering
 {
 class Texture;
+  
+enum FrameBufferTarget: uint32
+{
+  FBT_Colour0 = 1 << 0,
+  FBT_Colour1 = 1 << 1,
+  FBT_Colour2 = 1 << 2,
+  FBT_Depth = 1  << 3,
+};
 
 class FrameBuffer
 {
 public:
-  FrameBuffer();
+  FrameBuffer(uint32 width, uint32 height, FrameBufferTarget target);
   ~FrameBuffer();
-
-  void Activate();
-  void Deactivate() const;
-
-  void SetColourTexture(std::shared_ptr<Texture> texture);
-  void SetDepthTexture(std::shared_ptr<Texture> texture);
-
-  std::shared_ptr<Texture> GetColourTexture() const { return _colourTexture; }
-  std::shared_ptr<Texture> GetDepthTexture() const { return _depthTexture; }
-
-private:
-  void RetrieveViewportDimensions();
 
   void Bind() const;
   void Unbind() const;
-  bool IsBound() const;  
-
-  uint32 _fboId;
-  bool isInitialized;
-  int32 _prevViewportWidth;
-  int32 _prevViewportHeight;
-  std::shared_ptr<Texture> _colourTexture;
+  
+private:
+  std::shared_ptr<Texture> _colourTexture0;
+  std::shared_ptr<Texture> _colourTexture1;
+  std::shared_ptr<Texture> _colourTexture2;
   std::shared_ptr<Texture> _depthTexture;
-
-  static int32 CurrentlyBoundFboId;
-
-  friend class Renderer;
+  uint32 _width;
+  uint32 _height;
+  uint32 _target;
+  uint32 _fbo;
 };
 }

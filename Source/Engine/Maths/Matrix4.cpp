@@ -82,6 +82,18 @@ Matrix4 Matrix4::Perspective(const Radian& yFov, float32 aspect, float32 zNear, 
   return result;
 }
 
+Matrix4 Matrix4::Orthographic(float32 left, float32 right, float32 bottom, float32 top, float32 zNear, float32 zFar)
+{
+  Matrix4 result(Matrix4::Identity);
+  result[0][0] = 2.0f / (right - left);
+  result[1][1] = 2.0f / (top - bottom);
+  result[2][2] = - 2.0f / (zFar - zNear);
+  result[3][0] = - (right + left) / (right - left);
+  result[3][1] = - (top + bottom) / (top - bottom);
+  result[3][2] = - (zFar + zNear) / (zFar - zNear);
+  return result;
+}
+
 Matrix4::Matrix4()
 {
 }
