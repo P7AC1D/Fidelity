@@ -78,8 +78,8 @@ private:
   void UploadPointLightData(const Light& pointLight);
   void UploadDirectionalLightData(const Light& directionalLight);
 
-  void DirectionalLightPass(OrbitalCamera& camera);
-  void DirLightDepthPass(OrbitalCamera& camera);
+  void DirectionalLightPass(OrbitalCamera& camera, const Matrix4& lightSpaceTransform, std::shared_ptr<Texture> shadowMap);
+  void DirLightDepthPass(const Matrix4& lightSpaceTransform);
   void PointLightRender(OrbitalCamera& camera);
 
   void ClearBuffer(ClearType clearType);

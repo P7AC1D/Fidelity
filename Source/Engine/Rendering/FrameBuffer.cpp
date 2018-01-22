@@ -42,6 +42,7 @@ FrameBuffer::FrameBuffer(uint32 width, uint32 height, FrameBufferTarget target):
       glDrawBuffer(GL_NONE);
       glReadBuffer(GL_NONE);
     }
+    _depthTexture->SetWrapMethod(TextureWrapMethod::ClampToEdge);
   }
   if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
   {

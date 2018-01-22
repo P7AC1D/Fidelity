@@ -24,10 +24,15 @@ public:
   static Colour Navy;
 
   Colour();
+  Colour(const Colour& colour);
+  Colour(const Vector3& colour);
+  Colour(const Vector4& colour);
   explicit Colour(uint8 red, uint8 green = 255, uint8 blue = 255, uint8 alpha = 255);
 
-  Vector3 ToVec3() { return Vector3(_red, _green, _blue); }
-  Vector4 ToVec4() { return Vector4(_red, _green, _blue, _alpha); }
+  Colour& operator=(const Colour& rhs);
+
+  Vector3 ToVec3() const { return Vector3(_red, _green, _blue); }
+  Vector4 ToVec4() const { return Vector4(_red, _green, _blue, _alpha); }
   
   float32 operator[](int32 i) const;
 

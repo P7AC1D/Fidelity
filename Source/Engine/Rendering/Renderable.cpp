@@ -4,6 +4,11 @@
 
 namespace Rendering
 {
+Renderable::Renderable():
+_castShadows(true)
+{
+}
+
 void Renderable::PushMesh(const StaticMesh& mesh)
 {
   _subMeshes.emplace_back(mesh);

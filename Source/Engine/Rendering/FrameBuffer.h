@@ -21,6 +21,11 @@ public:
   FrameBuffer(uint32 width, uint32 height, FrameBufferTarget target);
   ~FrameBuffer();
 
+  std::shared_ptr<Texture> GetColourTexture0() { return _colourTexture0; }
+  std::shared_ptr<Texture> GetColourTexture1() { return _colourTexture1; }
+  std::shared_ptr<Texture> GetColourTexture2() { return _colourTexture2; }
+  std::shared_ptr<Texture> GetDepthTexture() { return _depthTexture; }
+
   void Bind() const;
   void Unbind() const;
   

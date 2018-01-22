@@ -6,6 +6,7 @@
 #include <memory>
 #include <vector>
 
+#include "../Maths/Colour.hpp"
 #include "../Maths/Vector2.hpp"
 #include "../Maths/Vector3.hpp"
 #include "../Rendering/Material.h"
@@ -27,10 +28,10 @@ struct MaterialData
 
   std::string Name;
   float32 SpecularExponent;
-  Vector3 AmbientColour;
-  Vector3 DiffuseColour;
-  Vector3 SpecularColour;
-  Vector3 EmittanceColour;
+  Colour AmbientColour;
+  Colour DiffuseColour;
+  Colour SpecularColour;
+  Colour EmittanceColour;
   std::string MapKd;
   std::string MapKn;
 };
@@ -104,19 +105,23 @@ std::vector<std::shared_ptr<MaterialData>> LoadMaterialsFromFile(std::ifstream& 
     }
     else if (tokens[0] == "Ka")
     {
-      material->AmbientColour = Vector3(std::stof(tokens[1]), std::stof(tokens[2]), std::stof(tokens[3]));
+      Vector3 colour(std::stof(tokens[1]), std::stof(tokens[2]), std::stof(tokens[3]));
+      material->AmbientColour = Colour(colour);
     }
     else if (tokens[0] == "Kd")
     {
-      material->DiffuseColour = Vector3(std::stof(tokens[1]), std::stof(tokens[2]), std::stof(tokens[3]));
+      Vector3 colour(std::stof(tokens[1]), std::stof(tokens[2]), std::stof(tokens[3]));
+      material->DiffuseColour = Colour(colour);
     }
     else if (tokens[0] == "Ks")
     {
-      material->SpecularColour = Vector3(std::stof(tokens[1]), std::stof(tokens[2]), std::stof(tokens[3]));
+      Vector3 colour(std::stof(tokens[1]), std::stof(tokens[2]), std::stof(tokens[3]));
+      material->SpecularColour = Colour(colour);
     }
     else if (tokens[0] == "Ke")
     {
-      material->EmittanceColour = Vector3(std::stof(tokens[1]), std::stof(tokens[2]), std::stof(tokens[3]));
+      Vector3 colour(std::stof(tokens[1]), std::stof(tokens[2]), std::stof(tokens[3]));
+      material->EmittanceColour = Colour(colour);
     }
     else if (tokens[0] == "map_Kd")
     {

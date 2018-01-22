@@ -27,6 +27,30 @@ Colour::Colour() :
 {
 }
 
+Colour::Colour(const Colour& colour) :
+  _red(colour._red),
+  _green(colour._green),
+  _blue(colour._blue),
+  _alpha(colour._alpha)
+{
+}
+
+Colour::Colour(const Vector3& colour):
+  _red(colour[0]),
+  _green(colour[1]),
+  _blue(colour[2]),
+  _alpha(1.0f)
+{
+}
+
+Colour::Colour(const Vector4& colour) :
+  _red(colour[0]),
+  _green(colour[1]),
+  _blue(colour[2]),
+  _alpha(colour[3])
+{
+}
+
 Colour::Colour(uint8 red, uint8 green, uint8 blue, uint8 alpha)
 {
   float32 f = 1 / 255.0f;
@@ -34,6 +58,15 @@ Colour::Colour(uint8 red, uint8 green, uint8 blue, uint8 alpha)
   _green = green * f;
   _blue = blue * f;
   _alpha = alpha * f;
+}
+
+Colour& Colour::operator=(const Colour& rhs)
+{
+  _red = rhs._red;
+  _green = rhs._green;
+  _blue = rhs._blue;
+  _alpha = rhs._alpha;
+  return *this;
 }
 
 float32 Colour::operator[](int32 i) const

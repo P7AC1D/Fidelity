@@ -8,6 +8,11 @@ namespace Rendering
 class Renderable
 {
 public:
+  Renderable();
+
+  inline void CastShadows(bool castShadows) { _castShadows = castShadows; }
+  inline bool CastShadows() const { return _castShadows; }
+
   void PushMesh(const StaticMesh& mesh);
   StaticMesh& GetMeshAtIndex(size_t index);
 
@@ -15,5 +20,6 @@ public:
 
 private:
   std::vector<StaticMesh> _subMeshes;
+  bool _castShadows;
 };
 }

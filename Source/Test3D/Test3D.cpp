@@ -54,6 +54,7 @@ void Test3D::OnStart()
   material->SetSpecularShininess(1.0f);
   material->SetTexture("DiffuseMap", _assetManager->GetTexture("/Textures/177.JPG"));
   std::shared_ptr<Renderable> planeModel(new Renderable);
+  planeModel->CastShadows(false);
   planeModel->PushMesh(*plane);
   floor.AttachRenderable(planeModel);
 

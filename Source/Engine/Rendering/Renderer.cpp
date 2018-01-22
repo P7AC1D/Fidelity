@@ -1,5 +1,6 @@
 #include "Renderer.h"
 
+#include "../Maths/Colour.hpp"
 #include "../Maths/Matrix4.hpp"
 #include "../UI/Panel.h"
 #include "../UI/UIManager.h"
@@ -63,10 +64,14 @@ void Renderer::DrawScene(OrbitalCamera& camera)
 {
   UploadCameraData(camera);
 
-  DirLightDepthPass(camera);
+  auto lightProj = Matrix4::Orthographic(-25.0f, 25.0f, -25.0f, 25.0f, -25.0f, 25.0f);
+  auto lightView = Matrix4::LookAt(Vector3::Identity, Vector3::Zero, Vector3(0.0f, 1.0f, 0.0f));
+  auto lightSpaceTransform = lightProj * lightView;
+
+  DirLightDepthPass(lightSpaceTransform);
   ClearBuffer(ClearType::Depth);
   
-  DirectionalLightPass(camera);
+  DirectionalLightPass(camera, lightSpaceTransform, _depthBuffer->GetDepthTexture());
 
   _renderables.clear();
   _pointLights.clear();
@@ -226,80 +231,78 @@ void Renderer::UploadDirectionalLightData(const Light& directionalLight)
   _lightBuffer->UploadData(32, 12, &(directionalLight.GetColour().ToVec3())[0]);
 }
 
-void Renderer::DirectionalLightPass(OrbitalCamera& camera)
+void Renderer::DirectionalLightPass(OrbitalCamera& camera, const Matrix4& lightSpaceTransform, std::shared_ptr<Texture> shadowMap)
 {
   ClearBuffer(ClearType::Color);
   SetViewport(_renderWidth, _renderHeight);
   
-  auto shader = _shaderCollection->GetShader("DirectionalLight.shader");
+  auto shader = _shaderCollection->GetShader("DirLightColourPass.shader");
   shader->Bind();
   shader->SetVec3("u_ambientColour", _ambientLight);
+  shader->SetMat4("u_lightSpaceTransform", lightSpaceTransform);
+
+  glActiveTexture(GL_TEXTURE1);
+  shadowMap->Bind();
+  shader->SetInt("u_shadowMap", 1);
   shader->BindUniformBlock(shader->GetUniformBlockIndex("Transforms"), static_cast<int32>(UniformBindingPoint::Transforms), _cameraBuffer->_uboId, _cameraBuffer->_sizeBytes);
   shader->BindUniformBlock(shader->GetUniformBlockIndex("Light"), static_cast<int32>(UniformBindingPoint::Light), _lightBuffer->_uboId, _lightBuffer->_sizeBytes);
 
   GLCall(glDepthFunc(GL_LESS));
-  for (auto& light : _directionalLights)
+  // One light for now...
+  auto light = _directionalLights[0];
+
+  UploadDirectionalLightData(light);
+
+  for (auto& renderable : _renderables)
   {
-    UploadDirectionalLightData(light);
+    shader->SetBool("u_diffuseMappingEnabled", false);
 
-    for (auto& renderable : _renderables)
+    auto meshCount = renderable.Renderable->GetMeshCount();
+    for (size_t i = 0; i < meshCount; i++)
     {
-      shader->SetBool("u_diffuseMappingEnabled", false);
+      auto& staticMesh = renderable.Renderable->GetMeshAtIndex(i);
+      shader->SetMat4("u_model", renderable.Transform->Get());
 
-      auto meshCount = renderable.Renderable->GetMeshCount();
-      for (size_t i = 0; i < meshCount; i++)
+      auto material = staticMesh.GetMaterial();
+      if (material->HasTexture("DiffuseMap"))
       {
-        auto& staticMesh = renderable.Renderable->GetMeshAtIndex(i);
-        shader->SetMat4("u_model", renderable.Transform->Get());
-
-        auto material = staticMesh.GetMaterial();
-        if (material->HasTexture("DiffuseMap"))
-        {
-          auto diffuseMap = material->GetTexture("DiffuseMap");
-          glActiveTexture(GL_TEXTURE0);
-          diffuseMap->Bind();
-          shader->SetInt("u_material.DiffuseMap", 0);
-          shader->SetBool("u_diffuseMappingEnabled", true);
-        }
-
-        shader->SetFloat("u_material.SpecularExponent", material->GetSpecularExponent());
-        shader->SetVec3("u_material.AmbientColour", material->GetAmbientColour());
-        shader->SetVec3("u_material.DiffuseColour", material->GetDiffuseColour());
-        shader->SetVec3("u_material.SpecularColour", material->GetSpecularColour());
-
-        auto vertexData = staticMesh.GetVertexData();
-        GLCall(glBindVertexArray(vertexData->_vaoId));
-        GLCall(glDrawArrays(GL_TRIANGLES, 0, staticMesh._vertexCount));
-        GLCall(glBindVertexArray(0));
+        auto diffuseMap = material->GetTexture("DiffuseMap");
+        glActiveTexture(GL_TEXTURE0);
+        diffuseMap->Bind();
+        shader->SetInt("u_material.DiffuseMap", 0);
+        shader->SetBool("u_diffuseMappingEnabled", true);
       }
-    }
 
-    GLCall(glDepthFunc(GL_EQUAL));
-    GLCall(glEnable(GL_BLEND));
-    GLCall(glBlendEquation(GL_FUNC_ADD));
-    GLCall(glBlendFunc(GL_ONE, GL_ONE));
+      shader->SetFloat("u_material.SpecularExponent", material->GetSpecularExponent());
+      shader->SetVec3("u_material.AmbientColour", material->GetAmbientColour().ToVec3());
+      shader->SetVec3("u_material.DiffuseColour", material->GetDiffuseColour().ToVec3());
+      shader->SetVec3("u_material.SpecularColour", material->GetSpecularColour().ToVec3());
+
+      auto vertexData = staticMesh.GetVertexData();
+      GLCall(glBindVertexArray(vertexData->_vaoId));
+      GLCall(glDrawArrays(GL_TRIANGLES, 0, staticMesh._vertexCount));
+      GLCall(glBindVertexArray(0));
+    }
   }
-  GLCall(glDisable(GL_BLEND));
 }
   
-void Renderer::DirLightDepthPass(OrbitalCamera& camera)
+void Renderer::DirLightDepthPass(const Matrix4& lightSpaceTransform)
 {
+  uint32 shadowWidth = 512;
+  uint32 shadowHeight = 512;
   GLCall(glDepthFunc(GL_LESS));
   if (_depthBuffer == nullptr)
   {
-    _depthBuffer.reset(new FrameBuffer(512, 512, FBT_Depth));
+    _depthBuffer.reset(new FrameBuffer(shadowWidth, shadowHeight, FBT_Depth));
   }
   
-  SetViewport(512, 512);
+  SetViewport(shadowWidth, shadowHeight);
   _depthBuffer->Bind();
   ClearBuffer(ClearType::Depth);
   
   // One light for now...
-  auto dirLight = _directionalLights[0];
-  
-  auto lightProj = Matrix4::Orthographic(-5.0f, 5.0f, -5.0f, 5.0f, -5.0f, 5.0f);
-  auto lightView = Matrix4::LookAt(Vector3::Identity, Vector3::Zero, Vector3(0.0f, 1.0f, 0.0f));
-  auto T = lightProj * lightView;
+  auto dirLight = _directionalLights[0]; 
+
   
   auto depthPassShader = _shaderCollection->GetShader("DirLightDepthPass.shader");
   if (!depthPassShader)
@@ -307,10 +310,15 @@ void Renderer::DirLightDepthPass(OrbitalCamera& camera)
     throw std::runtime_error("Failed to get shader 'DirLightDepthPass.shader'");
   }
   depthPassShader->Bind();
-  depthPassShader->SetMat4("u_lightSpaceTransform", T);
+  depthPassShader->SetMat4("u_lightSpaceTransform", lightSpaceTransform);
   
   for (auto& renderable : _renderables)
   {
+    if (!renderable.Renderable->CastShadows())
+    {
+      continue;
+    }
+
     auto meshCount = renderable.Renderable->GetMeshCount();
     for (size_t i = 0; i < meshCount; i++)
     {
@@ -362,9 +370,9 @@ void Renderer::PointLightRender(OrbitalCamera& camera)
         }
 
         shader->SetFloat("u_material.SpecularExponent", material->GetSpecularExponent());
-        shader->SetVec3("u_material.AmbientColour", material->GetAmbientColour());
-        shader->SetVec3("u_material.DiffuseColour", material->GetDiffuseColour());
-        shader->SetVec3("u_material.SpecularColour", material->GetSpecularColour());
+        shader->SetVec3("u_material.AmbientColour", material->GetAmbientColour().ToVec3());
+        shader->SetVec3("u_material.DiffuseColour", material->GetDiffuseColour().ToVec3());
+        shader->SetVec3("u_material.SpecularColour", material->GetSpecularColour().ToVec3());
 
         auto vertexData = staticMesh.GetVertexData();
         GLCall(glBindVertexArray(vertexData->_vaoId));

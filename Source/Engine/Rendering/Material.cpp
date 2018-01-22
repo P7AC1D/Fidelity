@@ -6,14 +6,19 @@ Material::Material() :
 _castShadows(true)
 {}
 
-void Material::SetDiffuseColour(const Vector3& colour)
-{  
-  _diffuseColour.reset(new Vector3(colour[0], colour[1], colour[2]));
+void Material::SetAmbientColour(const Colour& colour)
+{
+  _ambientColour.reset(new Colour(colour));
 }
 
-void Material::SetSpecularColour(const Vector3& colour)
+void Material::SetDiffuseColour(const Colour& colour)
+{  
+  _diffuseColour.reset(new Colour(colour));
+}
+
+void Material::SetSpecularColour(const Colour& colour)
 {
-  _specularColour.reset(new Vector3(colour[0], colour[1], colour[2]));
+  _specularColour.reset(new Colour(colour));
 }
 
 void Material::SetSpecularShininess(float32 shininess)
