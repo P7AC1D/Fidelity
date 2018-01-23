@@ -38,14 +38,13 @@ void Test3D::OnStart()
 
   _camera = std::make_shared<OrbitalCamera>(0.0f, 90.0f, 2.0f);
   _camera->UpdateProjMat(GetWidth(), GetHeight(), 0.1f, 100.0f);
-  _camera->SetPosition(Vector3(0.0f, 0.0f, 6.0f));
+  _camera->SetPosition(Vector3(6.0f, 6.0f, 6.0f));
   _sceneManager->SetCamera(_camera);
 
-  _sceneManager->LoadObjectFromFile("./../../Assets/Models/LowPolyTree/lowpolotree_triangulated.obj");
+  _sceneManager->LoadObjectFromFile("./../../Assets/Models/LowPolyTree/lowpolytree.obj");
   
   auto& floor = _sceneManager->CreateObject("floor");
-  floor.SetScale(Vector3(10.0f));
-  floor.SetPosition(Vector3(0.0f, -2.0f, 0.0f));
+  floor.SetScale(Vector3(100.0f));
   auto plane = MeshFactory::CreatePlane(10);
   auto material = plane->GetMaterial();
   material->SetAmbientColour(Vector3(0.1f));

@@ -79,16 +79,14 @@ float SpecularContribution(in vec4 lightDir, in vec4 viewDir, in float specularE
 
 float ShadowContribution(in vec4 fragmentPos)
 {
-  // perform perspective divide - note that this is not needed for ortho persepectives.
-  vec3 ndcPos = fragmentPos.xyz / fragmentPos.w;
+  // move from NDC [-1,1] to ScreenSpace [0,1]
+  vec3 shadowCoords = (fragmentPos.xyz / fragmentPos.w) * 0.5f + 0.5f;  
 
-  // move from [-1,1] to [0,1]
-  ndcPos = ndcPos * 0.5f + 0.5f;
-
+  // bias to reduce shadow acne
   float bias = 0.005;
-  float closestDepth = texture(u_shadowMap, ndcPos.xy).r;
-  float currentDepth = ndcPos.z;
-  return currentDepth - bias > closestDepth ? 1.0f : 0.0f;
+  float closestDepth = texture(u_shadowMap, shadowCoords.xy).r;
+  float currentDepth = shadowCoords.z;
+  return step(closestDepth, currentDepth - bias);
 }
 
 void main()

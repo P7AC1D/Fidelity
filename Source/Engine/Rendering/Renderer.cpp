@@ -291,8 +291,8 @@ void Renderer::DirectionalLightPass(OrbitalCamera& camera, const Matrix4& lightS
   
 void Renderer::DirLightDepthPass(const Matrix4& lightSpaceTransform)
 {
-  uint32 shadowWidth = 512;
-  uint32 shadowHeight = 512;
+  uint32 shadowWidth = 1024;
+  uint32 shadowHeight = 1024;
   GLCall(glDepthFunc(GL_LESS));
   if (_depthBuffer == nullptr)
   {
