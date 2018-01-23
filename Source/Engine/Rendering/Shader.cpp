@@ -90,6 +90,13 @@ void Shader::SetFloat(const std::string& uniformName, float32 value)
   auto location = GetUniformLocation(uniformName);
   GLCall(glUniform1f(location, value));
 }
+  
+void Shader::SetVec2(const std::string& uniformName, const Vector3& value)
+{
+  auto location = GetUniformLocation(uniformName);
+  Bind();
+  GLCall(glUniform2f(location, value[0], value[1]));
+}
 
 void Shader::SetVec3(const std::string& uniformName, const Vector3& value)
 {

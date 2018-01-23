@@ -59,6 +59,7 @@ public:
   void SetInt(const std::string& uniformName, int32 value);
   void SetFloat(const std::string& uniformName, float32 value);
 
+  void SetVec2(const std::string& uniformName, const Vector3& value);
   void SetVec3(const std::string& uniformName, const Vector3& value);
   void SetVec4(const std::string& uniformName, const Vector4& value);
   void SetMat3(const std::string& uniformName, const Matrix3& value);

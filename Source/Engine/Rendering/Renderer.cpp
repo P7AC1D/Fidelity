@@ -71,10 +71,12 @@ void Renderer::DrawScene(OrbitalCamera& camera)
   auto lightView = Matrix4::LookAt(-dirLight.GetDirection(), Vector3::Zero, Vector3(0.0f, 1.0f, 0.0f));
   auto lightSpaceTransform = lightProj * lightView;
 
-  DirLightDepthPass(lightSpaceTransform);
+  uint32 shadowRes = 512;
+  DirLightDepthPass(lightSpaceTransform, shadowRes);
   ClearBuffer(ClearType::Depth);
   
-  DirectionalLightPass(camera, lightSpaceTransform, _depthBuffer->GetDepthTexture());
+  float32 shadowTexelSize = 1 / static_cast<float32>(shadowRes);
+  DirLightColourPass(camera, lightSpaceTransform, _depthBuffer->GetDepthTexture(), Vector2(shadowTexelSize, shadowTexelSize));
 
   _renderables.clear();
   _pointLights.clear();
@@ -234,7 +236,7 @@ void Renderer::UploadDirectionalLightData(const Light& directionalLight)
   _lightBuffer->UploadData(32, 12, &(directionalLight.GetColour().ToVec3())[0]);
 }
 
-void Renderer::DirectionalLightPass(OrbitalCamera& camera, const Matrix4& lightSpaceTransform, std::shared_ptr<Texture> shadowMap)
+void Renderer::DirLightColourPass(OrbitalCamera& camera, const Matrix4& lightSpaceTransform, std::shared_ptr<Texture> shadowMap, const Vector2& shadowTexelSize)
 {
   ClearBuffer(ClearType::Color);
   SetViewport(_renderWidth, _renderHeight);
@@ -243,6 +245,7 @@ void Renderer::DirectionalLightPass(OrbitalCamera& camera, const Matrix4& lightS
   shader->Bind();
   shader->SetVec3("u_ambientColour", _ambientLight);
   shader->SetMat4("u_lightSpaceTransform", lightSpaceTransform);
+  shader->SetVec2("u_shadowTexelSize", shadowTexelSize);
 
   glActiveTexture(GL_TEXTURE1);
   shadowMap->Bind();
@@ -289,17 +292,15 @@ void Renderer::DirectionalLightPass(OrbitalCamera& camera, const Matrix4& lightS
   }
 }
   
-void Renderer::DirLightDepthPass(const Matrix4& lightSpaceTransform)
+void Renderer::DirLightDepthPass(const Matrix4& lightSpaceTransform, uint32 shadowRes)
 {
-  uint32 shadowWidth = 1024;
-  uint32 shadowHeight = 1024;
   GLCall(glDepthFunc(GL_LESS));
   if (_depthBuffer == nullptr)
   {
-    _depthBuffer.reset(new FrameBuffer(shadowWidth, shadowHeight, FBT_Depth));
+    _depthBuffer.reset(new FrameBuffer(shadowRes, shadowRes, FBT_Depth));
   }
   
-  SetViewport(shadowWidth, shadowHeight);
+  SetViewport(shadowRes, shadowRes);
   _depthBuffer->Bind();
   ClearBuffer(ClearType::Depth);
   
