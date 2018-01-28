@@ -30,9 +30,9 @@ public:
   Light& CreateLight(LightType lightType, const std::string& name = std::string());
 
   inline void SetCamera(std::shared_ptr<OrbitalCamera> camera) { _camera = camera; }
-  inline void SetAmbientLight(const Vector3& colour) { _ambientLight = colour; }
+  inline void SetAmbientLight(const Colour& colour) { _ambientLight = colour; }
 
-  inline const Vector3& GetAmbientLight() const { return _ambientLight; }
+  inline const Colour& GetAmbientLight() const { return _ambientLight; }
 
   void UpdateScene(uint32 dtMs);
 
@@ -46,5 +46,5 @@ private:
   std::shared_ptr<OrbitalCamera> _camera;
   std::shared_ptr<Utility::AssetManager> _assetManager;
   std::shared_ptr<Rendering::Renderer> _renderer;
-  Vector3 _ambientLight;
+  Colour _ambientLight;
 };

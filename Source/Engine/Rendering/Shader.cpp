@@ -333,7 +333,8 @@ int32 Shader::GetUniformLocation(const std::string& name)
   {
     std::stringstream message;
     message << "Could not find uniform '" << name << "' for shader '" << _fileName << "'";
-    throw std::runtime_error(message.str());
+    //throw std::runtime_error(message.str());
+    return -1;
   }
   return iter->second.Location;
 }

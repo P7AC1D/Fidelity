@@ -4,6 +4,7 @@
 #include "../Engine/Input/InputHandler.hpp"
 #include "../Engine/Input/EventDispatcher.hpp"
 #include "../Engine/Maths/Degree.hpp"
+#include "../Engine/Maths/Math.hpp"
 #include "../Engine/Maths/Quaternion.hpp"
 #include "../Engine/Maths/Radian.hpp"
 #include "../Engine/Maths/Vector2.hpp"
@@ -34,26 +35,31 @@ Test3D::Test3D(const ApplicationDesc& desc):
 
 void Test3D::OnStart()
 {
-  _sceneManager->SetAmbientLight(Vector3(0.25f, 0.25f, 0.20f));
+  //_sceneManager->SetAmbientLight(Vector3(0.25f, 0.25f, 0.20f));
 
   _camera = std::make_shared<OrbitalCamera>(0.0f, 90.0f, 2.0f);
   _camera->UpdateProjMat(GetWidth(), GetHeight(), 0.1f, 100.0f);
   _camera->SetPosition(Vector3(6.0f, 6.0f, 6.0f));
   _sceneManager->SetCamera(_camera);
-
-  _sceneManager->LoadObjectFromFile("./../../Assets/Models/LowPolyTree/lowpolytree.obj");
+    
+  //_sceneManager->LoadObjectFromFile("./../../Assets/Models/LowPolyTree/lowpolytree.obj");
+  for (int32 i = -25; i < 25; i+=5)
+  {
+    for (int32 j = -25; j < 25; j+=5)
+    {
+      auto treeModel = _sceneManager->LoadObjectFromFile("./../../Assets/Models/LowPolyTree/lowpolytree.obj");
+      treeModel.GetTransform()->SetPosition(Vector3(i, 0.0f, j));
+    }
+  }
   
   auto& floor = _sceneManager->CreateObject("floor");
   floor.SetScale(Vector3(100.0f));
-  auto plane = MeshFactory::CreatePlane(10);
+  auto plane = MeshFactory::CreatePlane(25);
   auto material = plane->GetMaterial();
-  material->SetAmbientColour(Vector3(0.1f));
-  material->SetDiffuseColour(Vector3(0.7f));
-  material->SetSpecularColour(Vector3(0.25f));
-  material->SetSpecularShininess(1.0f);
-  material->SetTexture("DiffuseMap", _assetManager->GetTexture("/Textures/177.JPG"));
+  material->SetDiffuseColour(Colour(116, 244, 66));
+  material->SetTexture("DiffuseMap", _assetManager->GetTexture("/Textures/TexturesCom_Grass0130_1_seamless_S.jpg"));
   std::shared_ptr<Renderable> planeModel(new Renderable);
-  planeModel->CastShadows(false);
+  //planeModel->CastShadows(false);
   planeModel->PushMesh(*plane);
   floor.AttachRenderable(planeModel);
 
@@ -62,9 +68,8 @@ void Test3D::OnStart()
   //light.SetColour(Vector3(1.0f, 1.0f, 1.0f));
   //light.SetRadius(7.0f);
 
-  auto& light = _sceneManager->CreateLight(LightType::Directional);
-  light.SetColour(Colour(255, 240, 170));
-  light.SetDirection(Vector3::Normalize(Vector3(1.0f, -1.0f, 1.0f)));
+  _light = &_sceneManager->CreateLight(LightType::Directional);
+  _light->SetColour(Colour(255, 240, 170));
 
   _inputHandler->BindButtonToState("ActivateCameraLook", Button::Button_RMouse);
   _inputHandler->BindAxisToState("CameraZoom", Axis::MouseScrollXY);
@@ -88,6 +93,11 @@ void Test3D::OnStart()
 
 void Test3D::OnUpdate(uint32 dtMs)
 {
-  //_object->Rotate(Quaternion(Vector3(0.0f, 1.0f, 1.0f), Radian(0.0005f * dtMs)));
-  //_sceneNode->Rotate(Quaternion(Vector3(0.0f, 1.0f, 0.0f), Radian(0.0005f * dtMs)));
+  static float32 delta = 0.0f;
+  auto direction = _light->GetDirection();
+  delta += dtMs * 0.0001f;
+  direction[0] = Math::Cos(Radian(delta));
+  direction[1] = -1.0f;
+  direction[2] = Math::Cos(Radian(delta + delta));
+  _light->SetDirection(Vector3::Normalize(direction));
 }

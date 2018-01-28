@@ -1,4 +1,5 @@
 #pragma once
+#include <functional>
 #include <memory>
 
 #include "../Core/Types.hpp"
@@ -7,6 +8,8 @@ namespace Rendering
 {
 class StaticMesh;
 }
+
+typedef std::function<float32(float32 x, float32 y)> HeightFunction;
 
 class MeshFactory
 {

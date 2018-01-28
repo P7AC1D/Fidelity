@@ -4,6 +4,7 @@
 #include "../Engine/Core/Application.h"
 #include "../Engine/SceneManagement/WorldObject.h"
 
+class Light;
 class OrbitalCamera;
 class WorldObject;
 
@@ -21,4 +22,5 @@ private:
   uint32 _prevMouseX;
   uint32 _prevMouseY;
   bool _rotatingCamera;
+  Light* _light;
 };

@@ -4,7 +4,6 @@
 #include "../SceneManagement/SceneManager.h"
 #include "../SceneManagement/WorldObject.h"
 #include "../Utility/AssetManager.h"
-#include "../Utility/ObjLoader.hpp"
 #include "../Utility/StringUtil.h"
 #include "OrbitalCamera.h"
 
@@ -15,9 +14,9 @@ using namespace Rendering;
 using namespace Utility;
 
 SceneManager::SceneManager(std::shared_ptr<AssetManager> _assetManager, std::shared_ptr<Renderer> renderer) :
-  _ambientLight(Vector3::Identity),
   _assetManager(_assetManager),
-  _renderer(renderer)
+  _renderer(renderer),
+  _ambientLight(Colour::Black)
 {
 }
 
@@ -39,7 +38,7 @@ WorldObject& SceneManager::LoadObjectFromFile(const std::string& filePath)
   auto fileName = tokens.back();
   tokens.pop_back();
 
-  auto renderable = ObjLoader::LoadFromFile(StringUtil::Join(tokens, '/'), fileName, *_assetManager.get());
+  auto renderable = _assetManager->GetRenderable(StringUtil::Join(tokens, '/'), fileName);
   
   _worldObjects.emplace_back(fileName);
   auto& worldObject = _worldObjects.back();

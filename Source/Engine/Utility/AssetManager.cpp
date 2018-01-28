@@ -7,6 +7,8 @@
 
 #include "../Rendering/CubeMap.h"
 #include "../Rendering/Texture.h"
+#include "../Rendering/Renderable.hpp"
+#include "../Utility/ObjLoader.hpp"
 #include "ObjLoader.hpp"
 
 using namespace Rendering;
@@ -99,6 +101,20 @@ std::shared_ptr<CubeMap> AssetManager::GetCubeMap(const std::vector<std::string>
   glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
   glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
   return cubeMap;
+}
+
+std::shared_ptr<Renderable> AssetManager::GetRenderable(const std::string& filePath, const std::string& fileName)
+{
+  auto fullPath = filePath + fileName;
+  auto iter = _renderableCache.find(fullPath);
+  if (iter != _renderableCache.end())
+  {
+    return iter->second;
+  }
+  
+  auto renderable = ObjLoader::LoadFromFile(filePath, fileName, *this);
+  _renderableCache[fullPath] = renderable;
+  return renderable;
 }
 
 //std::shared_ptr<Model> AssetManager::GetModel(const std::string& relativePath, const std::string fileName)

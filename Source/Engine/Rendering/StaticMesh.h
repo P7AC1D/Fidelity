@@ -32,6 +32,12 @@ public:
   void SetTextureVertexData(const std::vector<Vector2>& textureData);
   void SetIndexData(const std::vector<uint32>& indexData);
 
+  inline const std::vector<Vector3>& GetPositionVertexData() const { return _positionData; }
+  inline const std::vector<Vector3>& GetNormalVertexData() const { return _normalData; }
+  inline const std::vector<Vector3>& GetTangentVertexData() const { return _tangentData; }
+  inline const std::vector<Vector3>& GetBitangentVertexData() const { return _bitangentData; }
+  inline const std::vector<Vector2>& GetTextureVertexData() const { return _textureData; }
+
   void CalculateTangents(const std::vector<Vector3>& positionData, const std::vector<Vector2>& textureData);
 
   std::shared_ptr<Rendering::Material> GetMaterial();

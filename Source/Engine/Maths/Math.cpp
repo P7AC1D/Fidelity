@@ -36,3 +36,8 @@ float32 Math::Clamp(float32 value, float32 min, float32 max)
 {
   return value < min ? min : value > max ? max : value;
 }
+
+float32 Math::Abs(float32 value)
+{
+  return std::fabs(value);
+}

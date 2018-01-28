@@ -54,7 +54,7 @@ public:
   Renderer(int32 renderWidth, int32 renderHeight);
   virtual ~Renderer();
 
-  inline void SetAmbientLight(const Vector3& ambientLight) { _ambientLight = ambientLight; }
+  inline void SetAmbientLight(const Colour& ambientLight) { _ambientLight = ambientLight; }
   inline void PushRenderable(std::shared_ptr<Renderable> renderable, std::shared_ptr<Transform> transform) 
   { 
     _renderables.emplace_back(renderable, transform);
@@ -104,6 +104,6 @@ private:
 
   int32 _renderWidth;
   int32 _renderHeight;
-  Vector3 _ambientLight;
+  Colour _ambientLight;
 };
 }

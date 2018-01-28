@@ -9,6 +9,7 @@ namespace Rendering
 {
 enum class TextureFormat;
 class CubeMap;
+class Renderable;
 class Texture;
 }
 
@@ -22,7 +23,7 @@ public:
 
   std::shared_ptr<Rendering::Texture> GetTexture(const std::string& textureName, bool gammaCorrection = false);
   std::shared_ptr<Rendering::CubeMap> GetCubeMap(const std::vector<std::string>& textureNames);
-  /*std::shared_ptr<Model> GetModel(const std::string& relativePath, const std::string fileName);*/
+  std::shared_ptr<Rendering::Renderable> GetRenderable(const std::string& filePath, const std::string& fileName);
 
   AssetManager(AssetManager&) = delete;
   AssetManager(AssetManager&&) = delete;
@@ -38,5 +39,6 @@ private:
 private:
   std::string _assetDirectory;
   std::unordered_map<std::string, std::shared_ptr<Rendering::Texture>> _textureCache;
+  std::unordered_map<std::string, std::shared_ptr<Rendering::Renderable>> _renderableCache;
 };
 }

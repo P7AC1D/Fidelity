@@ -113,15 +113,10 @@ std::shared_ptr<Rendering::VertexBuffer> StaticMesh::GetVertexData()
 
     Renderer::SetVertexAttribPointers(this, stride);
 
-    _positionData.clear();
     _positionData.shrink_to_fit();
-    _normalData.clear();
     _normalData.shrink_to_fit();
-    _tangentData.clear();
     _tangentData.shrink_to_fit();
-    _bitangentData.clear();
     _bitangentData.shrink_to_fit();
-    _textureData.clear();
     _textureData.shrink_to_fit();
 
     _isInitialized = true;

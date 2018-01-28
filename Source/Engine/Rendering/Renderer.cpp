@@ -67,11 +67,11 @@ void Renderer::DrawScene(OrbitalCamera& camera)
   // One light for now...
   auto dirLight = _directionalLights[0];
 
-  auto lightProj = Matrix4::Orthographic(-25.0f, 25.0f, -25.0f, 25.0f, -25.0f, 25.0f);
+  auto lightProj = Matrix4::Orthographic(-50.0f, 50.0f, -50.0f, 50.0f, -50.0f, 50.0f);
   auto lightView = Matrix4::LookAt(-dirLight.GetDirection(), Vector3::Zero, Vector3(0.0f, 1.0f, 0.0f));
   auto lightSpaceTransform = lightProj * lightView;
 
-  uint32 shadowRes = 512;
+  uint32 shadowRes = 1024;
   DirLightDepthPass(lightSpaceTransform, shadowRes);
   ClearBuffer(ClearType::Depth);
   
@@ -243,13 +243,13 @@ void Renderer::DirLightColourPass(OrbitalCamera& camera, const Matrix4& lightSpa
   
   auto shader = _shaderCollection->GetShader("DirLightColourPass.shader");
   shader->Bind();
-  shader->SetVec3("u_ambientColour", _ambientLight);
+  shader->SetVec3("u_ambientColour", _ambientLight.ToVec3());
   shader->SetMat4("u_lightSpaceTransform", lightSpaceTransform);
   shader->SetVec2("u_shadowTexelSize", shadowTexelSize);
 
-  glActiveTexture(GL_TEXTURE1);
+  glActiveTexture(GL_TEXTURE0);
   shadowMap->Bind();
-  shader->SetInt("u_shadowMap", 1);
+  shader->SetInt("u_shadowMap", 0);
   shader->BindUniformBlock(shader->GetUniformBlockIndex("Transforms"), static_cast<int32>(UniformBindingPoint::Transforms), _cameraBuffer->_uboId, _cameraBuffer->_sizeBytes);
   shader->BindUniformBlock(shader->GetUniformBlockIndex("Light"), static_cast<int32>(UniformBindingPoint::Light), _lightBuffer->_uboId, _lightBuffer->_sizeBytes);
 
@@ -273,9 +273,9 @@ void Renderer::DirLightColourPass(OrbitalCamera& camera, const Matrix4& lightSpa
       if (material->HasTexture("DiffuseMap"))
       {
         auto diffuseMap = material->GetTexture("DiffuseMap");
-        glActiveTexture(GL_TEXTURE0);
+        glActiveTexture(GL_TEXTURE1);
         diffuseMap->Bind();
-        shader->SetInt("u_material.DiffuseMap", 0);
+        shader->SetInt("u_material.DiffuseMap", 1);
         shader->SetBool("u_diffuseMappingEnabled", true);
       }
 
@@ -340,7 +340,7 @@ void Renderer::PointLightRender(OrbitalCamera& camera)
 {
   auto shader = _shaderCollection->GetShader("Standard.shader");
   shader->Bind();
-  shader->SetVec3("u_ambientColour", _ambientLight);
+  shader->SetVec3("u_ambientColour", _ambientLight.ToVec3());
   shader->BindUniformBlock(shader->GetUniformBlockIndex("Transforms"), static_cast<int32>(UniformBindingPoint::Transforms), _cameraBuffer->_uboId, _cameraBuffer->_sizeBytes);
   shader->BindUniformBlock(shader->GetUniformBlockIndex("Light"), static_cast<int32>(UniformBindingPoint::Light), _lightBuffer->_uboId, _lightBuffer->_sizeBytes);
 

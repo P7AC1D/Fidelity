@@ -102,7 +102,7 @@ float SampleShadowMapLinear(in sampler2D shadowMap, in vec2 coords, in float com
 
 float SampleShadowMapPCF(sampler2D shadowMap, vec2 coords, float compare, vec2 texelSize)
 {
-  const float NUM_SAMPLES = 3.0f;
+  const float NUM_SAMPLES = 5.0f;
   const float SAMPLES_START = (NUM_SAMPLES-1.0f)/2.0f;
   const float NUM_SAMPLES_SQUARED = NUM_SAMPLES*NUM_SAMPLES;
   

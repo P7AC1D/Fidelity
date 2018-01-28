@@ -24,4 +24,5 @@ public:
   static Radian ATan(float32 value);
 
   static float32 Clamp(float32 value, float32 min, float32 max);
+  static float32 Abs(float32 value);
 };
