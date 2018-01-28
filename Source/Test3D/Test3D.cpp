@@ -66,7 +66,7 @@ void Test3D::OnStart()
   light.SetColour(Colour(255, 240, 170));
   light.SetDirection(Vector3::Normalize(Vector3(1.0f, -1.0f, 1.0f)));
 
-  _inputHandler->BindButtonToState("ActivateCameraLook", Button::Button_LMouse);
+  _inputHandler->BindButtonToState("ActivateCameraLook", Button::Button_RMouse);
   _inputHandler->BindAxisToState("CameraZoom", Axis::MouseScrollXY);
   _inputHandler->BindAxisToState("CameraLook", Axis::MouseXY);
 

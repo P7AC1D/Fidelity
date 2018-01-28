@@ -32,7 +32,7 @@ int32 Application::Run()
     OnUpdate(dtMs);
     
     SDL_Event sdlEvent;
-    if (SDL_PollEvent(&sdlEvent))
+    while (SDL_PollEvent(&sdlEvent))
     {
       switch (sdlEvent.type)
       {
@@ -90,16 +90,13 @@ int32 Application::Run()
         }
         case SDL_MOUSEMOTION:
         {
-          if (_mouseFocus)
-          {
-            InputEvent inputEvent;
-            inputEvent.Axis = Axis::MouseXY;
-            inputEvent.AxisPos = Vector2i(sdlEvent.motion.x, sdlEvent.motion.y);
-            inputEvent.AxisPosDelta = _cursorPosition - inputEvent.AxisPos;
-            _inputHandler->Dispatch(inputEvent, dtMs);
+          InputEvent inputEvent;
+          inputEvent.Axis = Axis::MouseXY;
+          inputEvent.AxisPos = Vector2i(sdlEvent.motion.x, sdlEvent.motion.y);
+          inputEvent.AxisPosDelta = _cursorPosition - inputEvent.AxisPos;
+          _inputHandler->Dispatch(inputEvent, dtMs);
 
-            _cursorPosition = inputEvent.AxisPos;
-          }
+          _cursorPosition = inputEvent.AxisPos;
           break;
         }
         case SDL_MOUSEWHEEL:
