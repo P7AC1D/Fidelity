@@ -4,7 +4,7 @@
 #include <string>
 
 #include "../Core/Types.hpp"
-#include "../Maths/Vector2i.hpp"
+#include "../Maths/Vector2I.hpp"
 #include "InputBindings.hpp"
 
 class EventDispatcher;
@@ -53,8 +53,6 @@ private:
   std::unordered_map<Axis, State> _axisStateBindings;
 
   std::array<bool, static_cast<size_t>(Button::_count)> _buttonsDown;
-  std::array<float32, static_cast<size_t>(Axis::_count)> _currentAxisValues;
-  std::array<float32, static_cast<size_t>(Axis::_count)> _prevAxisValues;
 
   const EventDispatcher& _eventDispatcher;
 };

@@ -73,7 +73,6 @@ protected:
 private:
   bool _isRunning;
   bool _mouseFocus;
-  bool _keyBoardFocus;
   SDL_Window* _window;
   SDL_GLContext _glContext;
   ApplicationDesc _desc;

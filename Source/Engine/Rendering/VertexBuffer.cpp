@@ -14,7 +14,7 @@ VertexBuffer::~VertexBuffer()
   GLCall(glDeleteVertexArrays(1, &_vaoId));
 }
 
-void VertexBuffer::UploadData(const void* dataPtr, int32 dataBytes, uint32 bufferUsage)
+void VertexBuffer::UploadData(void* dataPtr, int32 dataBytes, uint32 bufferUsage)
 {
   GLCall(glBindVertexArray(_vaoId));
   uint32 vboId;

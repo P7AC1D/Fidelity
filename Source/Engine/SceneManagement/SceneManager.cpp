@@ -89,7 +89,6 @@ void SceneManager::SubmitSceneToRender()
     if (lightComponent != nullptr)
     {
       auto light = std::dynamic_pointer_cast<Light>(lightComponent);
-
     }
   }
 
@@ -97,12 +96,14 @@ void SceneManager::SubmitSceneToRender()
   {
     switch (light.GetType())
     {
-    case LightType::Point:
-      _renderer->PushPointLight(light);
-      break;
-    case LightType::Directional:
-      _renderer->PushDirectionalLight(light);
-      break;
+      case LightType::Point:
+        _renderer->PushPointLight(light);
+        break;
+      case LightType::Directional:
+        _renderer->PushDirectionalLight(light);
+        break;
+      case LightType::Spot:
+        break;
     }
   }
 }

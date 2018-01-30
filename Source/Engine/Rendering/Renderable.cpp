@@ -11,7 +11,7 @@ _castShadows(true)
 
 void Renderable::PushMesh(const StaticMesh& mesh)
 {
-  _subMeshes.emplace_back(mesh);
+  _subMeshes.push_back(mesh);
 }
 
 StaticMesh& Renderable::GetMeshAtIndex(size_t index)

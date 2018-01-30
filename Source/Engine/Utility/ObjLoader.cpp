@@ -232,13 +232,13 @@ std::shared_ptr<Renderable> ObjLoader::LoadFromFile(const std::string& filePath,
 
       activeMesh.reset(new StaticMesh(tokens[1]));
       auto material = activeMesh->GetMaterial();
-      material->SetAmbientColour((*iter)->AmbientColour);
-      material->SetDiffuseColour((*iter)->DiffuseColour);
-      material->SetSpecularColour((*iter)->SpecularColour);
-      material->SetSpecularShininess((*iter)->SpecularExponent);
+      material.SetAmbientColour((*iter)->AmbientColour);
+      material.SetDiffuseColour((*iter)->DiffuseColour);
+      material.SetSpecularColour((*iter)->SpecularColour);
+      material.SetSpecularShininess((*iter)->SpecularExponent);
       if ((*iter)->MapKd != "")
       {
-        material->SetTexture("DiffuseMap", assetManager.GetTexture(filePath, (*iter)->MapKd));
+        material.SetTexture("DiffuseMap", assetManager.GetTexture(filePath, (*iter)->MapKd));
       }
     }
     else if (tokens[0] == "f")

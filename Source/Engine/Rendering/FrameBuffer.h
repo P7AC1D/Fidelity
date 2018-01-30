@@ -36,7 +36,6 @@ private:
   std::shared_ptr<Texture> _depthTexture;
   uint32 _width;
   uint32 _height;
-  uint32 _target;
   uint32 _fbo;
 };
 }

@@ -7,6 +7,7 @@
 #include "../Maths/Vector2.hpp"
 #include "../Maths/Vector3.hpp"
 #include "Material.h"
+#include "VertexBuffer.h"
 
 namespace Rendering
 {
@@ -24,7 +25,7 @@ enum VertexDataFormat : int32
 class StaticMesh
 {
 public:
-  StaticMesh(const std::string& meshName, std::shared_ptr<Rendering::Material> material = std::make_shared<Rendering::Material>());
+  StaticMesh(const std::string& meshName);
   ~StaticMesh();
 
   void SetPositionVertexData(const std::vector<Vector3>& positionData);
@@ -40,8 +41,8 @@ public:
 
   void CalculateTangents(const std::vector<Vector3>& positionData, const std::vector<Vector2>& textureData);
 
-  std::shared_ptr<Rendering::Material> GetMaterial();
-  std::shared_ptr<Rendering::VertexBuffer> GetVertexData();
+  const Material& GetMaterial();
+  const VertexBuffer& GetVertexData();
 
   bool IsInitialized() const { return _isInitialized; }
 
@@ -50,8 +51,6 @@ private:
   std::vector<float32> CreateVertexDataArray() const;
 
   std::string _name;
-  std::shared_ptr<Rendering::Material> _material;
-  std::shared_ptr<Rendering::VertexBuffer> _vertexBuffer;
   std::vector<Vector3> _positionData;
   std::vector<Vector3> _normalData;
   std::vector<Vector3> _tangentData;
@@ -61,6 +60,8 @@ private:
   int32 _vertexDataFormat;
   int32 _vertexCount;
   bool _isInitialized;
+  Material _material;
+  VertexBuffer _vertexBuffer;
 
   friend class Renderer;
 };

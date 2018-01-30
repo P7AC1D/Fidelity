@@ -55,10 +55,7 @@ public:
   virtual ~Renderer();
 
   inline void SetAmbientLight(const Colour& ambientLight) { _ambientLight = ambientLight; }
-  inline void PushRenderable(std::shared_ptr<Renderable> renderable, std::shared_ptr<Transform> transform) 
-  { 
-    _renderables.emplace_back(renderable, transform);
-  }
+  inline void PushRenderable(std::shared_ptr<Renderable> renderable, std::shared_ptr<Transform> transform) { _renderables.emplace_back(renderable, transform); }
   inline void PushPointLight(const Light& pointLight) { _pointLights.push_back(pointLight); }
   inline void PushDirectionalLight(const Light& directionalLight) { _directionalLights.push_back(directionalLight); }
 
@@ -94,8 +91,6 @@ private:
   std::unique_ptr<ConstantBuffer> _cameraBuffer;
   std::unique_ptr<ConstantBuffer> _lightBuffer;
   std::unique_ptr<ConstantBuffer> _ambientLightBuffer;
-  bool _projectionMatrixDirty;
-  bool _viewMatrixDirty;
 
   std::unique_ptr<VertexBuffer> _guiQuadVertexData;
   std::unique_ptr<VertexBuffer> _skyBoxVertexData;

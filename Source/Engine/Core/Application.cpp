@@ -125,12 +125,12 @@ int32 Application::Run()
 Application::Application(const ApplicationDesc &desc) :
   _eventDispatcher(new EventDispatcher),
   _inputHandler(new InputHandler(*_eventDispatcher.get())),
-  _renderer(new Renderer(desc.Width, desc.Height)),
   _uiManager(new UIManager),
+  _renderer(new Renderer(desc.Width, desc.Height)),
   _assetManager(new AssetManager("./../../Assets/")),
-  _desc(desc),
   _isRunning(false),
-  _mouseFocus(true)
+  _mouseFocus(true),
+  _desc(desc)
 {
   _sceneManager.reset(new SceneManager(_assetManager, _renderer));
 }

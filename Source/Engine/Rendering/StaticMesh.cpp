@@ -6,10 +6,8 @@
 
 namespace Rendering
 {
-StaticMesh::StaticMesh(const std::string& meshName, std::shared_ptr<Rendering::Material> material) :
+StaticMesh::StaticMesh(const std::string& meshName) :
   _name(meshName),
-  _material(material),
-  _vertexBuffer(nullptr),
   _vertexDataFormat(0),
   _vertexCount(0),
   _isInitialized(false)
@@ -98,25 +96,30 @@ void StaticMesh::CalculateTangents(const std::vector<Vector3>& positionData, con
   _isInitialized = false;
 }
 
-std::shared_ptr<Rendering::Material> StaticMesh::GetMaterial()
+const Material& StaticMesh::GetMaterial()
 {
   return _material;
 }
 
-std::shared_ptr<Rendering::VertexBuffer> StaticMesh::GetVertexData()
+const VertexBuffer& StaticMesh::GetVertexData()
 {
   if (!_isInitialized)
   {
     int32 stride = 0;
-    _vertexBuffer.reset(new VertexBuffer);
-    _vertexBuffer->UploadData(CreateRestructuredVertexDataArray(stride), BufferUsage::Static);
+    auto dataToUpload = CreateRestructuredVertexDataArray(stride);
+    _vertexBuffer.UploadData(dataToUpload, BufferUsage::Static);
 
     Renderer::SetVertexAttribPointers(this, stride);
 
+    _positionData.clear();
     _positionData.shrink_to_fit();
+    _normalData.clear();
     _normalData.shrink_to_fit();
+    _tangentData.clear();
     _tangentData.shrink_to_fit();
+    _bitangentData.clear();
     _bitangentData.shrink_to_fit();
+    _textureData.clear();
     _textureData.shrink_to_fit();
 
     _isInitialized = true;
@@ -181,7 +184,7 @@ std::vector<float32> StaticMesh::CreateRestructuredVertexDataArray(int32& stride
     }
   }
   restructuredData.shrink_to_fit();
-  return std::move(restructuredData);
+  return restructuredData;
 }
 
 std::vector<float32> StaticMesh::CreateVertexDataArray() const
@@ -209,6 +212,6 @@ std::vector<float32> StaticMesh::CreateVertexDataArray() const
   }
   std::vector<float32> vertexDataArray;
   vertexDataArray.reserve(dataSize);
-  return std::move(vertexDataArray);
+  return vertexDataArray;
 }
 }

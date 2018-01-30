@@ -1,5 +1,7 @@
 #include "Buttons.hpp"
 
+#include <stdexcept>
+
 #include <SDL.h>
 
 Button ConvertSDLButton(int8 button)
@@ -9,5 +11,6 @@ Button ConvertSDLButton(int8 button)
     case SDL_BUTTON_LEFT: return Button::MouseButtonLeft;
     case SDL_BUTTON_RIGHT: return Button::MouseButtonRight;
     case SDL_BUTTON_MIDDLE: return Button::MouseButtonMiddle;
+    default: throw std::runtime_error("Unsupported SDL button");
   }
 }

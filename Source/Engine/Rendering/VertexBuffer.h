@@ -26,15 +26,10 @@ public:
   ~VertexBuffer();
 
   template<typename T>
-  void UploadData(const std::vector<T>& data, BufferUsage bufferUsage);
+  void UploadData(std::vector<T>& data, BufferUsage bufferUsage);
 
 private:
-  void UploadData(const void* dataPtr, int32 dataBytes, uint32 bufferUsage);
-
-  VertexBuffer(VertexBuffer&) = delete;
-  VertexBuffer(VertexBuffer&&) = delete;
-  VertexBuffer& operator=(VertexBuffer&) = delete;
-  VertexBuffer& operator=(VertexBuffer&&) = delete;
+  void UploadData(void* dataPtr, int32 dataBytes, uint32 bufferUsage);
 
   uint32 _vaoId;
   BufferType _bufferType;
@@ -43,8 +38,8 @@ private:
 };
 
 template<typename T>
-inline void VertexBuffer::UploadData(const std::vector<T>& data, BufferUsage bufferUsage)
+inline void VertexBuffer::UploadData(std::vector<T>& data, BufferUsage bufferUsage)
 {
-  UploadData(reinterpret_cast<const void*>(data.data()), static_cast<int32>(sizeof(T) * data.size()), static_cast<uint32>(bufferUsage));
+  UploadData(reinterpret_cast<void*>(&data[0]), static_cast<int32>(sizeof(T) * data.size()), static_cast<uint32>(bufferUsage));
 }
 }

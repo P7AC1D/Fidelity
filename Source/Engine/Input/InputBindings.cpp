@@ -1,5 +1,7 @@
 #include "InputBindings.hpp"
 
+#include <stdexcept>
+
 #include <SDL.h>
 
 Button SDLToButton(int32 button)
@@ -108,5 +110,6 @@ Button SDLToButton(int32 button)
     case SDL_BUTTON_MIDDLE: return Button::Button_Mouse3;
     case SDL_BUTTON_X1: return Button::Button_Mouse4;
     case SDL_BUTTON_X2: return Button::Button_Mouse5;
+    default: throw std::runtime_error("Unsupported SDL button");
   }
 }

@@ -187,7 +187,7 @@ void Renderer::SetVertexAttribPointers(StaticMesh* staticMesh, int32 stride)
     return;
   }
 
-  GLCall(glBindVertexArray(staticMesh->_vertexBuffer->_vaoId));
+  GLCall(glBindVertexArray(staticMesh->_vertexBuffer._vaoId));
   if (staticMesh->_vertexDataFormat & VertexDataFormat::Position)
   {
     auto positionLocation = static_cast<int32>(VertexArribLocation::Position);
@@ -270,22 +270,22 @@ void Renderer::DirLightColourPass(OrbitalCamera& camera, const Matrix4& lightSpa
       shader->SetMat4("u_model", renderable.Transform->Get());
 
       auto material = staticMesh.GetMaterial();
-      if (material->HasTexture("DiffuseMap"))
+      if (material.HasTexture("DiffuseMap"))
       {
-        auto diffuseMap = material->GetTexture("DiffuseMap");
+        auto diffuseMap = material.GetTexture("DiffuseMap");
         glActiveTexture(GL_TEXTURE1);
         diffuseMap->Bind();
         shader->SetInt("u_material.DiffuseMap", 1);
         shader->SetBool("u_diffuseMappingEnabled", true);
       }
 
-      shader->SetFloat("u_material.SpecularExponent", material->GetSpecularExponent());
-      shader->SetVec3("u_material.AmbientColour", material->GetAmbientColour().ToVec3());
-      shader->SetVec3("u_material.DiffuseColour", material->GetDiffuseColour().ToVec3());
-      shader->SetVec3("u_material.SpecularColour", material->GetSpecularColour().ToVec3());
+      shader->SetFloat("u_material.SpecularExponent", material.GetSpecularExponent());
+      shader->SetVec3("u_material.AmbientColour", material.GetAmbientColour().ToVec3());
+      shader->SetVec3("u_material.DiffuseColour", material.GetDiffuseColour().ToVec3());
+      shader->SetVec3("u_material.SpecularColour", material.GetSpecularColour().ToVec3());
 
       auto vertexData = staticMesh.GetVertexData();
-      GLCall(glBindVertexArray(vertexData->_vaoId));
+      GLCall(glBindVertexArray(vertexData._vaoId));
       GLCall(glDrawArrays(GL_TRIANGLES, 0, staticMesh._vertexCount));
       GLCall(glBindVertexArray(0));
     }
@@ -326,7 +326,7 @@ void Renderer::DirLightDepthPass(const Matrix4& lightSpaceTransform, uint32 shad
       depthPassShader->SetMat4("u_modelTransform", renderable.Transform->Get());
       
       auto vertexData = staticMesh.GetVertexData();
-      GLCall(glBindVertexArray(vertexData->_vaoId));
+      GLCall(glBindVertexArray(vertexData._vaoId));
       GLCall(glDrawArrays(GL_TRIANGLES, 0, staticMesh._vertexCount));
       GLCall(glBindVertexArray(0));
     }
@@ -360,22 +360,22 @@ void Renderer::PointLightRender(OrbitalCamera& camera)
         shader->SetMat4("u_model", renderable.Transform->Get());
 
         auto material = staticMesh.GetMaterial();
-        if (material->HasTexture("DiffuseMap"))
+        if (material.HasTexture("DiffuseMap"))
         {
-          auto diffuseMap = material->GetTexture("DiffuseMap");
+          auto diffuseMap = material.GetTexture("DiffuseMap");
           glActiveTexture(GL_TEXTURE0);
           diffuseMap->Bind();
           shader->SetInt("u_material.DiffuseMap", 0);
           shader->SetBool("u_diffuseMappingEnabled", true);
         }
 
-        shader->SetFloat("u_material.SpecularExponent", material->GetSpecularExponent());
-        shader->SetVec3("u_material.AmbientColour", material->GetAmbientColour().ToVec3());
-        shader->SetVec3("u_material.DiffuseColour", material->GetDiffuseColour().ToVec3());
-        shader->SetVec3("u_material.SpecularColour", material->GetSpecularColour().ToVec3());
+        shader->SetFloat("u_material.SpecularExponent", material.GetSpecularExponent());
+        shader->SetVec3("u_material.AmbientColour", material.GetAmbientColour().ToVec3());
+        shader->SetVec3("u_material.DiffuseColour", material.GetDiffuseColour().ToVec3());
+        shader->SetVec3("u_material.SpecularColour", material.GetSpecularColour().ToVec3());
 
         auto vertexData = staticMesh.GetVertexData();
-        GLCall(glBindVertexArray(vertexData->_vaoId));
+        GLCall(glBindVertexArray(vertexData._vaoId));
         GLCall(glDrawArrays(GL_TRIANGLES, 0, staticMesh._vertexCount));
         GLCall(glBindVertexArray(0));
       }

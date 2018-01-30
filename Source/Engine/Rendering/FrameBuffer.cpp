@@ -8,8 +8,7 @@ namespace Rendering
 {
 FrameBuffer::FrameBuffer(uint32 width, uint32 height, FrameBufferTarget target):
   _width(width),
-  _height(height),
-  _target(target)
+  _height(height)
 {
   GLCall(glGenFramebuffers(1, &_fbo));
   Bind();

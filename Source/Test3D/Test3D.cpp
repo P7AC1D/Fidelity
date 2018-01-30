@@ -56,8 +56,8 @@ void Test3D::OnStart()
   floor.SetScale(Vector3(100.0f));
   auto plane = MeshFactory::CreatePlane(25);
   auto material = plane->GetMaterial();
-  material->SetDiffuseColour(Colour(116, 244, 66));
-  material->SetTexture("DiffuseMap", _assetManager->GetTexture("/Textures/TexturesCom_Grass0130_1_seamless_S.jpg"));
+  material.SetDiffuseColour(Colour(116, 244, 66));
+  material.SetTexture("DiffuseMap", _assetManager->GetTexture("/Textures/TexturesCom_Grass0130_1_seamless_S.jpg"));
   std::shared_ptr<Renderable> planeModel(new Renderable);
   //planeModel->CastShadows(false);
   planeModel->PushMesh(*plane);
