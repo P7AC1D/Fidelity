@@ -6,9 +6,10 @@
 
 namespace Rendering
 {
-enum class TextureFormat
+enum class PixelFormat
 {
-  Red,
+  R8,
+  RGB16F,
   RGB,
   RGBA,
   SRGB,
@@ -43,8 +44,8 @@ enum class TextureWrapMethod
 class Texture
 {
 public:
-  Texture(TextureFormat format, uint32 width, uint32 height);
-  Texture(TextureFormat format, uint32 width, uint32 height, void* data);
+  Texture(PixelFormat format, uint32 width, uint32 height);
+  Texture(PixelFormat format, uint32 width, uint32 height, ubyte* data);
   ~Texture();
 
   void SetMinFilter(TextureMinFilter filter);
@@ -60,7 +61,7 @@ public:
 
 private:
   uint32 _id;
-  TextureFormat _format;
+  PixelFormat _format;
   uint32 _width;
   uint32 _height;
 

@@ -1,6 +1,6 @@
 #include "AssetManager.h"
 
-#include <exception>
+#include <stdexcept>
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "STB/stb_image.h"
@@ -50,16 +50,17 @@ uint8* LoadFromFile(const std::string& filePath, int32& widthOut, int32& heightO
   return imageData;
 }
 
-TextureFormat CalculateTextureFormat(int32 nChannels, bool gammaCorrection)
+PixelFormat CalculateTextureFormat(int32 nChannels, bool gammaCorrection)
 {
   switch (nChannels)
   {
   case 4:
-    return gammaCorrection ? TextureFormat::SRGBA : TextureFormat::RGBA;
+    return gammaCorrection ? PixelFormat::SRGBA : PixelFormat::RGBA;
   case 3:
-    return gammaCorrection ? TextureFormat::SRGB : TextureFormat::RGB;
+    return gammaCorrection ? PixelFormat::SRGB : PixelFormat::RGB;
   case 1:
-    return TextureFormat::Red;
+    return PixelFormat::R8;
+  default: throw std::runtime_error("Unsupported texture format.");
   }
 }
 
@@ -142,7 +143,7 @@ std::shared_ptr<Rendering::Texture> AssetManager::GetTexture(const std::string& 
     int32 width = 0;
     int32 height = 0;
     int32 nChannels = 0;
-    uint8* data = LoadFromFile(fullPath, width, height, nChannels);
+    ubyte* data = LoadFromFile(fullPath, width, height, nChannels);
 
     std::shared_ptr<Texture> texture(new Texture(CalculateTextureFormat(nChannels, gammaCorrection), width, height, data));
     texture->Bind();

@@ -64,19 +64,22 @@ void Renderer::DrawScene(OrbitalCamera& camera)
 {
   UploadCameraData(camera);
 
-  // One light for now...
-  auto dirLight = _directionalLights[0];
+  ExecuteGeometryPass();
+  ExecuteLightingPass(camera.GetDirection());
 
-  auto lightProj = Matrix4::Orthographic(-50.0f, 50.0f, -50.0f, 50.0f, -50.0f, 50.0f);
-  auto lightView = Matrix4::LookAt(-dirLight.GetDirection(), Vector3::Zero, Vector3(0.0f, 1.0f, 0.0f));
-  auto lightSpaceTransform = lightProj * lightView;
+  //// One light for now...
+  //auto dirLight = _directionalLights[0];
 
-  uint32 shadowRes = 1024;
-  DirLightDepthPass(lightSpaceTransform, shadowRes);
-  ClearBuffer(ClearType::Depth);
-  
-  float32 shadowTexelSize = 1 / static_cast<float32>(shadowRes);
-  DirLightColourPass(camera, lightSpaceTransform, _depthBuffer->GetDepthTexture(), Vector2(shadowTexelSize, shadowTexelSize));
+  //auto lightProj = Matrix4::Orthographic(-50.0f, 50.0f, -50.0f, 50.0f, -50.0f, 50.0f);
+  //auto lightView = Matrix4::LookAt(-dirLight.GetDirection(), Vector3::Zero, Vector3(0.0f, 1.0f, 0.0f));
+  //auto lightSpaceTransform = lightProj * lightView;
+
+  //uint32 shadowRes = 1024;
+  //DirLightDepthPass(lightSpaceTransform, shadowRes);
+  //ClearBuffer(ClearType::Depth);
+  //
+  //float32 shadowTexelSize = 1 / static_cast<float32>(shadowRes);
+  //DirLightColourPass(camera, lightSpaceTransform, _depthBuffer->GetDepthTexture(), Vector2(shadowTexelSize, shadowTexelSize));
 
   _renderables.clear();
   _pointLights.clear();
@@ -85,42 +88,15 @@ void Renderer::DrawScene(OrbitalCamera& camera)
 
 void Renderer::DrawUI(std::vector<std::shared_ptr<Panel>> panelCollection)
 {
-  if (!_guiQuadVertexData)
-  {
-    std::vector<Vector2> quadVertexData
-    {
-      Vector2(-1.0f, -1.0f),
-      Vector2(0.0f, 0.0f),
+  auto posLoc = static_cast<uint32>(VertexArribLocation::Position);
+  auto uvLoc = static_cast<uint32>(VertexArribLocation::TexCoord);
 
-      Vector2(1.0f, -1.0f),
-      Vector2(1.0f, 0.0f),
-
-      Vector2(-1.0f, 1.0f),
-      Vector2(0.0f, 1.0f),
-
-      Vector2(1.0f, -1.0f),
-      Vector2(1.0f, 0.0f),
-
-      Vector2(1.0f, 1.0f),
-      Vector2(1.0f, 1.0f),
-
-      Vector2(-1.0f, 1.0f),
-      Vector2(0.0f, 1.0f)
-    };
-
-    _guiQuadVertexData.reset(new VertexBuffer());
-    _guiQuadVertexData->UploadData<Vector2>(quadVertexData, BufferUsage::Static);
-
-    auto posLoc = static_cast<uint32>(VertexArribLocation::Position);
-    auto uvLoc = static_cast<uint32>(VertexArribLocation::TexCoord);
-
-    GLCall(glBindVertexArray(_guiQuadVertexData->_vaoId));
-    GLCall(glVertexAttribPointer(posLoc, 2, GL_FLOAT, GL_FALSE, 16, nullptr));
-    GLCall(glEnableVertexAttribArray(posLoc));
-    GLCall(glVertexAttribPointer(uvLoc, 2, GL_FLOAT, GL_FALSE, 16, (void*)8));
-    GLCall(glEnableVertexAttribArray(uvLoc));
-    GLCall(glBindVertexArray(0));
-  }
+  GLCall(glBindVertexArray(_quadVertexData->_vaoId));
+  GLCall(glVertexAttribPointer(posLoc, 2, GL_FLOAT, GL_FALSE, 16, nullptr));
+  GLCall(glEnableVertexAttribArray(posLoc));
+  GLCall(glVertexAttribPointer(uvLoc, 2, GL_FLOAT, GL_FALSE, 16, (void*)8));
+  GLCall(glEnableVertexAttribArray(uvLoc));
+  GLCall(glBindVertexArray(0));
   
   auto shader = _shaderCollection->GetShader("Gui.glsl");
   if (!shader)
@@ -148,7 +124,7 @@ void Renderer::DrawUI(std::vector<std::shared_ptr<Panel>> panelCollection)
     shader->SetFloat("xOffset", xOffset);
     shader->SetFloat("yOffset", yOffset);
     
-    GLCall(glBindVertexArray(_guiQuadVertexData->_vaoId));
+    GLCall(glBindVertexArray(_quadVertexData->_vaoId));
     GLCall(glDrawArrays(GL_TRIANGLES, 0, 6));
     GLCall(glBindVertexArray(0));
   }
@@ -177,6 +153,43 @@ bool Renderer::Initialize()
   _cameraBuffer.reset(new ConstantBuffer(144));
   _lightBuffer.reset(new ConstantBuffer(52));
 
+  if (!_quadVertexData)
+  {
+    std::vector<Vector2> quadVertexData
+    {
+      Vector2(-1.0f, -1.0f),
+      Vector2(0.0f, 0.0f),
+
+      Vector2(1.0f, -1.0f),
+      Vector2(1.0f, 0.0f),
+
+      Vector2(-1.0f, 1.0f),
+      Vector2(0.0f, 1.0f),
+
+      Vector2(1.0f, -1.0f),
+      Vector2(1.0f, 0.0f),
+
+      Vector2(1.0f, 1.0f),
+      Vector2(1.0f, 1.0f),
+
+      Vector2(-1.0f, 1.0f),
+      Vector2(0.0f, 1.0f)
+    };
+
+    _quadVertexData.reset(new VertexBuffer());
+    _quadVertexData->UploadData<Vector2>(quadVertexData, BufferUsage::Static);
+
+    auto posLoc = static_cast<uint32>(VertexArribLocation::Position);
+    auto uvLoc = static_cast<uint32>(VertexArribLocation::TexCoord);
+
+    GLCall(glBindVertexArray(_quadVertexData->_vaoId));
+    GLCall(glVertexAttribPointer(posLoc, 2, GL_FLOAT, GL_FALSE, 16, nullptr));
+    GLCall(glEnableVertexAttribArray(posLoc));
+    GLCall(glVertexAttribPointer(uvLoc, 2, GL_FLOAT, GL_FALSE, 16, (void*)8));
+    GLCall(glEnableVertexAttribArray(uvLoc));
+    GLCall(glBindVertexArray(0));
+  }
+
   return true;
 }
 
@@ -187,7 +200,7 @@ void Renderer::SetVertexAttribPointers(StaticMesh* staticMesh, int32 stride)
     return;
   }
 
-  GLCall(glBindVertexArray(staticMesh->_vertexBuffer._vaoId));
+  GLCall(glBindVertexArray(staticMesh->_vertexBuffer->_vaoId));
   if (staticMesh->_vertexDataFormat & VertexDataFormat::Position)
   {
     auto positionLocation = static_cast<int32>(VertexArribLocation::Position);
@@ -236,6 +249,85 @@ void Renderer::UploadDirectionalLightData(const Light& directionalLight)
   _lightBuffer->UploadData(32, 12, &(directionalLight.GetColour().ToVec3())[0]);
 }
 
+void Renderer::ExecuteGeometryPass()
+{
+  if (!_gBuffer)
+  {
+    _gBuffer.reset(new FrameBuffer(_renderWidth, _renderHeight, FBT_Colour0 | FBT_Colour1 | FBT_Colour2 | FBT_Depth));
+  }
+  _gBuffer->Bind();
+  ClearBuffer(ClearType::All);
+  auto shader = _shaderCollection->GetShader("DeferredGeometryPass.shader");
+  shader->Bind();
+  shader->BindUniformBlock(shader->GetUniformBlockIndex("Transforms"), static_cast<int32>(UniformBindingPoint::Transforms), _cameraBuffer->_uboId, _cameraBuffer->_sizeBytes);
+  
+  GLenum attachment[3] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2 };
+  GLCall(glDrawBuffers(3, attachment));
+
+  for (auto& renderable : _renderables)
+  {
+    shader->SetBool("u_diffuseMappingEnabled", false);
+
+    auto meshCount = renderable.Renderable->GetMeshCount();
+    for (size_t i = 0; i < meshCount; i++)
+    {
+      auto& staticMesh = renderable.Renderable->GetMeshAtIndex(i);
+      shader->SetMat4("u_model", renderable.Transform->Get());
+
+      auto& material = staticMesh.GetMaterial();
+      if (material.HasTexture("DiffuseMap"))
+      {
+        auto diffuseMap = material.GetTexture("DiffuseMap");
+        glActiveTexture(GL_TEXTURE1);
+        diffuseMap->Bind();
+        shader->SetInt("u_material.DiffuseMap", 1);
+        shader->SetBool("u_diffuseMappingEnabled", true);
+      }
+
+      shader->SetFloat("u_material.SpecularExponent", material.GetSpecularExponent());
+      shader->SetVec3("u_material.AmbientColour", material.GetAmbientColour().ToVec3());
+      shader->SetVec3("u_material.DiffuseColour", material.GetDiffuseColour().ToVec3());
+      shader->SetVec3("u_material.SpecularColour", material.GetSpecularColour().ToVec3());
+
+      auto vertexData = staticMesh.GetVertexData();
+      GLCall(glBindVertexArray(vertexData->_vaoId));
+      GLCall(glDrawArrays(GL_TRIANGLES, 0, staticMesh._vertexCount));
+      GLCall(glBindVertexArray(0));
+    }
+  }
+
+  _gBuffer->Unbind();
+}
+
+void Renderer::ExecuteLightingPass(const Vector3& viewDirection)
+{
+  auto gPosition = _gBuffer->GetColourTexture0();
+  auto gNormal = _gBuffer->GetColourTexture1();
+  auto gAlbedoSpec = _gBuffer->GetColourTexture2();
+
+  ClearBuffer(ClearType::All);
+  GLCall(glActiveTexture(GL_TEXTURE0));
+  gPosition->Bind();
+  GLCall(glActiveTexture(GL_TEXTURE1));
+  gNormal->Bind();
+  GLCall(glActiveTexture(GL_TEXTURE2));
+  gAlbedoSpec->Bind();
+
+  auto shader = _shaderCollection->GetShader("DeferredLightingPass.shader");
+  shader->Bind();
+  shader->SetVec3("u_lightDir", Vector3::Normalize(_directionalLights[0].GetDirection()));
+  shader->SetVec3("u_lightColour", _directionalLights[0].GetColour().ToVec3());
+  shader->SetVec3("u_viewDir", Vector3::Normalize(viewDirection));
+  shader->SetVec3("u_ambientColour", _ambientLight.ToVec3());
+  shader->SetInt("u_gPosition", 0);
+  shader->SetInt("u_gNormal", 1);
+  shader->SetInt("u_gAlbedoSpec", 2);
+
+  _quadVertexData->Bind();
+  GLCall(glDrawArrays(GL_TRIANGLES, 0, 6));
+  _quadVertexData->Unbind();
+}
+
 void Renderer::DirLightColourPass(OrbitalCamera& camera, const Matrix4& lightSpaceTransform, std::shared_ptr<Texture> shadowMap, const Vector2& shadowTexelSize)
 {
   ClearBuffer(ClearType::Color);
@@ -269,7 +361,7 @@ void Renderer::DirLightColourPass(OrbitalCamera& camera, const Matrix4& lightSpa
       auto& staticMesh = renderable.Renderable->GetMeshAtIndex(i);
       shader->SetMat4("u_model", renderable.Transform->Get());
 
-      auto material = staticMesh.GetMaterial();
+      auto& material = staticMesh.GetMaterial();
       if (material.HasTexture("DiffuseMap"))
       {
         auto diffuseMap = material.GetTexture("DiffuseMap");
@@ -285,7 +377,7 @@ void Renderer::DirLightColourPass(OrbitalCamera& camera, const Matrix4& lightSpa
       shader->SetVec3("u_material.SpecularColour", material.GetSpecularColour().ToVec3());
 
       auto vertexData = staticMesh.GetVertexData();
-      GLCall(glBindVertexArray(vertexData._vaoId));
+      GLCall(glBindVertexArray(vertexData->_vaoId));
       GLCall(glDrawArrays(GL_TRIANGLES, 0, staticMesh._vertexCount));
       GLCall(glBindVertexArray(0));
     }
@@ -326,7 +418,7 @@ void Renderer::DirLightDepthPass(const Matrix4& lightSpaceTransform, uint32 shad
       depthPassShader->SetMat4("u_modelTransform", renderable.Transform->Get());
       
       auto vertexData = staticMesh.GetVertexData();
-      GLCall(glBindVertexArray(vertexData._vaoId));
+      GLCall(glBindVertexArray(vertexData->_vaoId));
       GLCall(glDrawArrays(GL_TRIANGLES, 0, staticMesh._vertexCount));
       GLCall(glBindVertexArray(0));
     }
@@ -359,7 +451,7 @@ void Renderer::PointLightRender(OrbitalCamera& camera)
         auto& staticMesh = renderable.Renderable->GetMeshAtIndex(i);
         shader->SetMat4("u_model", renderable.Transform->Get());
 
-        auto material = staticMesh.GetMaterial();
+        auto& material = staticMesh.GetMaterial();
         if (material.HasTexture("DiffuseMap"))
         {
           auto diffuseMap = material.GetTexture("DiffuseMap");
@@ -375,7 +467,7 @@ void Renderer::PointLightRender(OrbitalCamera& camera)
         shader->SetVec3("u_material.SpecularColour", material.GetSpecularColour().ToVec3());
 
         auto vertexData = staticMesh.GetVertexData();
-        GLCall(glBindVertexArray(vertexData._vaoId));
+        GLCall(glBindVertexArray(vertexData->_vaoId));
         GLCall(glDrawArrays(GL_TRIANGLES, 0, staticMesh._vertexCount));
         GLCall(glBindVertexArray(0));
       }

@@ -1,12 +1,14 @@
 #include "FrameBuffer.h"
 
+#include "OpenGL.h"
+
 #include "Texture.h"
 
 static uint32 ActiveFrameBuffer = -1;
 
 namespace Rendering
 {
-FrameBuffer::FrameBuffer(uint32 width, uint32 height, FrameBufferTarget target):
+FrameBuffer::FrameBuffer(uint32 width, uint32 height, uint32 target):
   _width(width),
   _height(height)
 {
@@ -16,25 +18,25 @@ FrameBuffer::FrameBuffer(uint32 width, uint32 height, FrameBufferTarget target):
   uint32 colourBufferCount = 0;
   if (target & FrameBufferTarget::FBT_Colour0)
   {
-    _colourTexture0.reset(new Texture(TextureFormat::RGBA, _height, _width));
+    _colourTexture0.reset(new Texture(PixelFormat::RGB16F, _width, _height));
     GLCall(glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, _colourTexture0->_id, 0));
     colourBufferCount++;
   }
   if (target & FrameBufferTarget::FBT_Colour1)
   {
-    _colourTexture1.reset(new Texture(TextureFormat::RGBA, _height, _width));
-    GLCall(glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, _colourTexture0->_id, 0));
+    _colourTexture1.reset(new Texture(PixelFormat::RGB16F, _width, _height));
+    GLCall(glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, _colourTexture1->_id, 0));
     colourBufferCount++;
   }
   if (target & FrameBufferTarget::FBT_Colour2)
   {
-    _colourTexture2.reset(new Texture(TextureFormat::RGBA, _height, _width));
-    GLCall(glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D, _colourTexture0->_id, 0));
+    _colourTexture2.reset(new Texture(PixelFormat::RGBA, _width, _height));
+    GLCall(glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D, _colourTexture2->_id, 0));
     colourBufferCount++;
   }
   if (target & FrameBufferTarget::FBT_Depth)
   {
-    _depthTexture.reset(new Texture(TextureFormat::Depth, _height, _width));
+    _depthTexture.reset(new Texture(PixelFormat::Depth, _width, _height));
     GLCall(glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, _depthTexture->_id, 0));
     if (colourBufferCount == 0)
     {
@@ -63,6 +65,7 @@ void FrameBuffer::Bind() const
     GLCall(glBindFramebuffer(GL_FRAMEBUFFER, _fbo));
     ActiveFrameBuffer = _fbo;
   }
+
 }
   
 void FrameBuffer::Unbind() const

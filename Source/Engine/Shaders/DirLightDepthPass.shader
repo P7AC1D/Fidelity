@@ -1,4 +1,4 @@
-#version 400
+#version 330
 
 #ifdef VERTEX_SHADER
 layout (location = 0) in vec3 a_position;

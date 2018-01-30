@@ -41,8 +41,8 @@ public:
 
   void CalculateTangents(const std::vector<Vector3>& positionData, const std::vector<Vector2>& textureData);
 
-  const Material& GetMaterial();
-  const VertexBuffer& GetVertexData();
+  Material& GetMaterial();
+  std::shared_ptr<VertexBuffer> GetVertexData();
 
   bool IsInitialized() const { return _isInitialized; }
 
@@ -51,6 +51,7 @@ private:
   std::vector<float32> CreateVertexDataArray() const;
 
   std::string _name;
+  std::shared_ptr<VertexBuffer> _vertexBuffer;
   std::vector<Vector3> _positionData;
   std::vector<Vector3> _normalData;
   std::vector<Vector3> _tangentData;
@@ -61,7 +62,6 @@ private:
   int32 _vertexCount;
   bool _isInitialized;
   Material _material;
-  VertexBuffer _vertexBuffer;
 
   friend class Renderer;
 };

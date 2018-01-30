@@ -96,18 +96,19 @@ void StaticMesh::CalculateTangents(const std::vector<Vector3>& positionData, con
   _isInitialized = false;
 }
 
-const Material& StaticMesh::GetMaterial()
+Material& StaticMesh::GetMaterial()
 {
   return _material;
 }
 
-const VertexBuffer& StaticMesh::GetVertexData()
+std::shared_ptr<VertexBuffer> StaticMesh::GetVertexData()
 {
   if (!_isInitialized)
   {
     int32 stride = 0;
+    _vertexBuffer.reset(new VertexBuffer);
     auto dataToUpload = CreateRestructuredVertexDataArray(stride);
-    _vertexBuffer.UploadData(dataToUpload, BufferUsage::Static);
+    _vertexBuffer->UploadData(dataToUpload, BufferUsage::Static);
 
     Renderer::SetVertexAttribPointers(this, stride);
 

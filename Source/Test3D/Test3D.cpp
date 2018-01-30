@@ -11,7 +11,6 @@
 #include "../Engine/Maths/Vector3.hpp"
 #include "../Engine/Rendering/Material.h"
 #include "../Engine/Rendering/Renderable.hpp"
-#include "../Engine/Rendering/StaticMesh.h"
 #include "../Engine/UI/Panel.h"
 #include "../Engine/UI/UIManager.h"
 #include "../Engine/Utility/AssetManager.h"
@@ -35,7 +34,7 @@ Test3D::Test3D(const ApplicationDesc& desc):
 
 void Test3D::OnStart()
 {
-  //_sceneManager->SetAmbientLight(Vector3(0.25f, 0.25f, 0.20f));
+  _sceneManager->SetAmbientLight(Vector3(0.25f, 0.25f, 0.20f));
 
   _camera = std::make_shared<OrbitalCamera>(0.0f, 90.0f, 2.0f);
   _camera->UpdateProjMat(GetWidth(), GetHeight(), 0.1f, 100.0f);
@@ -55,7 +54,7 @@ void Test3D::OnStart()
   auto& floor = _sceneManager->CreateObject("floor");
   floor.SetScale(Vector3(100.0f));
   auto plane = MeshFactory::CreatePlane(25);
-  auto material = plane->GetMaterial();
+  auto& material = plane->GetMaterial();
   material.SetDiffuseColour(Colour(116, 244, 66));
   material.SetTexture("DiffuseMap", _assetManager->GetTexture("/Textures/TexturesCom_Grass0130_1_seamless_S.jpg"));
   std::shared_ptr<Renderable> planeModel(new Renderable);
@@ -70,6 +69,7 @@ void Test3D::OnStart()
 
   _light = &_sceneManager->CreateLight(LightType::Directional);
   _light->SetColour(Colour(255, 240, 170));
+  //_light->SetDirection(Vector3(0.0, -1.0, 0.0));
 
   _inputHandler->BindButtonToState("ActivateCameraLook", Button::Button_RMouse);
   _inputHandler->BindAxisToState("CameraZoom", Axis::MouseScrollXY);

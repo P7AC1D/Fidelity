@@ -92,5 +92,7 @@ private:
   uint32 _programId;
   std::string _fileName;  
   std::unordered_map<std::string, ShaderUniform> _uniforms;
+
+  friend class RenderApi;
 };
 }

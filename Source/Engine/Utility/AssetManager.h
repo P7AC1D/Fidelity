@@ -7,7 +7,7 @@
 
 namespace Rendering
 {
-enum class TextureFormat;
+enum class PixelFormat;
 class CubeMap;
 class Renderable;
 class Texture;

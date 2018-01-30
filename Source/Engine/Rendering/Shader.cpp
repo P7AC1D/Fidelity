@@ -154,19 +154,6 @@ void Shader::BindUniformBlock(int32 location, int32 bindingPoint, int32 ubo, int
   uniformBlocksBound.push_back(location);
 }
 
-int32 Shader::GetAttributeLocation(const std::string& name)
-{
-  Bind();
-  int32 location = glGetAttribLocation(_programId, name.c_str());
-  if (location < 0)
-  {
-    std::stringstream message;
-    message << "Could not find attribute '" << name << "' for shader '" << _fileName << "' bound to program " << _programId;
-    //throw std::runtime_error(message.str());
-  }
-  return location;
-}
-
 int32 Shader::GetUniformBlockIndex(const std::string& name)
 {
   Bind();

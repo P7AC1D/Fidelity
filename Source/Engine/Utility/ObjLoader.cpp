@@ -231,7 +231,7 @@ std::shared_ptr<Renderable> ObjLoader::LoadFromFile(const std::string& filePath,
       }
 
       activeMesh.reset(new StaticMesh(tokens[1]));
-      auto material = activeMesh->GetMaterial();
+      auto& material = activeMesh->GetMaterial();
       material.SetAmbientColour((*iter)->AmbientColour);
       material.SetDiffuseColour((*iter)->DiffuseColour);
       material.SetSpecularColour((*iter)->SpecularColour);

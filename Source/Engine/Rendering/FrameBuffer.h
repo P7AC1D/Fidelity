@@ -18,7 +18,7 @@ enum FrameBufferTarget: uint32
 class FrameBuffer
 {
 public:
-  FrameBuffer(uint32 width, uint32 height, FrameBufferTarget target);
+  FrameBuffer(uint32 width, uint32 height, uint32 target);
   ~FrameBuffer();
 
   std::shared_ptr<Texture> GetColourTexture0() { return _colourTexture0; }

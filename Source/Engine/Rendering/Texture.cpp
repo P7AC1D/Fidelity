@@ -4,12 +4,12 @@ namespace Rendering
 {
 static uint32 ActiveTexture = -1;
 
-Texture::Texture(TextureFormat format, uint32 width, uint32 height) :
+Texture::Texture(PixelFormat format, uint32 width, uint32 height) :
   Texture(format, width, height, nullptr)
 {  
 }
 
-Texture::Texture(TextureFormat format, uint32 width, uint32 height, void* data) :
+Texture::Texture(PixelFormat format, uint32 width, uint32 height, ubyte* data) :
   _format(format),
   _width(width),
   _height(height)
@@ -18,29 +18,32 @@ Texture::Texture(TextureFormat format, uint32 width, uint32 height, void* data) 
   Bind();
   switch (format)
   {
-    case TextureFormat::Red:
+    case PixelFormat::R8:
       GLCall(glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, width, height, 0, GL_RED, GL_UNSIGNED_BYTE, data));
       break;
-    case TextureFormat::RGB:
+    case PixelFormat::RGB16F:
+      GLCall(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16F, width, height, 0, GL_RGB, GL_FLOAT, data));
+      break;
+    case PixelFormat::RGB:
       GLCall(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data));
       break;
-    case TextureFormat::RGBA:
+    case PixelFormat::RGBA:
       GLCall(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data));
       break;
-    case TextureFormat::SRGB:
+    case PixelFormat::SRGB:
       GLCall(glTexImage2D(GL_TEXTURE_2D, 0, GL_SRGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data));
       break;
-    case TextureFormat::SRGBA:
+    case PixelFormat::SRGBA:
       GLCall(glTexImage2D(GL_TEXTURE_2D, 0, GL_SRGB_ALPHA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data));
       break;
-    case TextureFormat::Depth:
+    case PixelFormat::Depth:
       GLCall(glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, width, height, 0, GL_DEPTH_COMPONENT, GL_UNSIGNED_BYTE, data));
   }
   SetMinFilter(TextureMinFilter::Nearest);
   SetMagFilter(TextureMagFilter::Nearest);
-  SetWrapMethod(TextureWrapMethod::Repeat);
+  //SetWrapMethod(TextureWrapMethod::Repeat);
   
-  Unbind();
+  //Unbind();
 }
 
 Texture::~Texture()

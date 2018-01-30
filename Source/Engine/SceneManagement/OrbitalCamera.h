@@ -18,6 +18,7 @@ public:
   void SetPosition(const Vector3& position);
 
   Vector3 GetPos() const;
+  Vector3 GetDirection() const;
   Matrix4 GetViewMat();
   Matrix4 GetProjMat() const;
 
