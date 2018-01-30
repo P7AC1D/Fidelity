@@ -1,4 +1,4 @@
-#version 330
+#version 400
 
 struct Material
 {
@@ -49,9 +49,9 @@ in VSOut
   vec2 TexCoords;
 } fsIn;
 
-out vec4 o_gPosition;
-out vec4 o_gNormal;
-out vec4 o_gAlbedoSpec;
+layout(location = 0) out vec4 o_gPosition;
+layout(location = 1) out vec4 o_gNormal;
+layout(location = 2) out vec4 o_gAlbedoSpec;
 
 void main()
 {

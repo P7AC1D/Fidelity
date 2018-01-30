@@ -1,4 +1,4 @@
-#version 330
+#version 400
 
 uniform vec3 u_viewDir;
 uniform vec3 u_lightDir;

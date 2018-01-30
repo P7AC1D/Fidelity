@@ -144,6 +144,7 @@ bool Renderer::Initialize()
 
   GLCall(glEnable(GL_DEPTH_TEST));
   GLCall(glEnable(GL_CULL_FACE));
+  GLCall(glDisable(GL_BLEND));
   GLCall(glCullFace(GL_BACK));
   GLCall(glFrontFace(GL_CCW));
 
@@ -251,6 +252,7 @@ void Renderer::UploadDirectionalLightData(const Light& directionalLight)
 
 void Renderer::ExecuteGeometryPass()
 {
+  GLCall(glEnable(GL_DEPTH_TEST));
   if (!_gBuffer)
   {
     _gBuffer.reset(new FrameBuffer(_renderWidth, _renderHeight, FBT_Colour0 | FBT_Colour1 | FBT_Colour2 | FBT_Depth));
@@ -260,9 +262,6 @@ void Renderer::ExecuteGeometryPass()
   auto shader = _shaderCollection->GetShader("DeferredGeometryPass.shader");
   shader->Bind();
   shader->BindUniformBlock(shader->GetUniformBlockIndex("Transforms"), static_cast<int32>(UniformBindingPoint::Transforms), _cameraBuffer->_uboId, _cameraBuffer->_sizeBytes);
-  
-  GLenum attachment[3] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2 };
-  GLCall(glDrawBuffers(3, attachment));
 
   for (auto& renderable : _renderables)
   {
@@ -301,17 +300,13 @@ void Renderer::ExecuteGeometryPass()
 
 void Renderer::ExecuteLightingPass(const Vector3& viewDirection)
 {
+  GLCall(glDisable(GL_DEPTH_TEST));
+  
   auto gPosition = _gBuffer->GetColourTexture0();
   auto gNormal = _gBuffer->GetColourTexture1();
   auto gAlbedoSpec = _gBuffer->GetColourTexture2();
 
   ClearBuffer(ClearType::All);
-  GLCall(glActiveTexture(GL_TEXTURE0));
-  gPosition->Bind();
-  GLCall(glActiveTexture(GL_TEXTURE1));
-  gNormal->Bind();
-  GLCall(glActiveTexture(GL_TEXTURE2));
-  gAlbedoSpec->Bind();
 
   auto shader = _shaderCollection->GetShader("DeferredLightingPass.shader");
   shader->Bind();
@@ -322,6 +317,13 @@ void Renderer::ExecuteLightingPass(const Vector3& viewDirection)
   shader->SetInt("u_gPosition", 0);
   shader->SetInt("u_gNormal", 1);
   shader->SetInt("u_gAlbedoSpec", 2);
+  
+  GLCall(glActiveTexture(GL_TEXTURE0));
+  gPosition->Bind();
+  GLCall(glActiveTexture(GL_TEXTURE1));
+  gNormal->Bind();
+  GLCall(glActiveTexture(GL_TEXTURE2));
+  gAlbedoSpec->Bind();
 
   _quadVertexData->Bind();
   GLCall(glDrawArrays(GL_TRIANGLES, 0, 6));
