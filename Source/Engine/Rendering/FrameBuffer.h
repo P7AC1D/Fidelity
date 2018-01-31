@@ -28,6 +28,9 @@ public:
 
   void Bind() const;
   void Unbind() const;
+
+  inline uint32 GetWidth() const { return _width; }
+  inline uint32 GetHeight() const { return _height; }
   
 private:
   std::shared_ptr<Texture> _colourTexture0;

@@ -76,7 +76,7 @@ private:
 
   void ExecuteDirectionalLightDepthPass(const Matrix4& lightSpaceTransform, uint32 shadowResolution);
   void ExecuteGeometryPass();
-  void ExecuteLightingPass(const Vector3& viewDirection);
+  void ExecuteLightingPass(const Matrix4& lightSpaceTransform, const Vector3& viewDirection);
 
   void ClearBuffer(ClearType clearType);
   void SetDepthTest(bool enable);
@@ -99,7 +99,7 @@ private:
   std::unique_ptr<VertexBuffer> _skyBoxVertexData;
   
   std::shared_ptr<FrameBuffer> _gBuffer;
-  std::unique_ptr<FrameBuffer> _depthBuffer;
+  std::shared_ptr<FrameBuffer> _depthBuffer;
 
   int32 _renderWidth;
   int32 _renderHeight;

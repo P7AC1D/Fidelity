@@ -67,9 +67,10 @@ void Renderer::DrawScene(OrbitalCamera& camera)
 {
   UploadCameraData(camera);
 
-  ExecuteDirectionalLightDepthPass(BuildLightSpaceTransform(_directionalLights[0]), _shadowResolution);
+  auto lightSpaceTransform = BuildLightSpaceTransform(_directionalLights[0]);
+  ExecuteDirectionalLightDepthPass(lightSpaceTransform, _shadowResolution);
   ExecuteGeometryPass();
-  ExecuteLightingPass(camera.GetDirection());
+  ExecuteLightingPass(lightSpaceTransform, camera.GetDirection());
 
   _renderables.clear();
   _pointLights.clear();
@@ -250,7 +251,7 @@ void Renderer::ExecuteGeometryPass()
   _gBuffer->Unbind();
 }
 
-void Renderer::ExecuteLightingPass(const Vector3& viewDirection)
+void Renderer::ExecuteLightingPass(const Matrix4& lightSpaceTransform, const Vector3& viewDirection)
 {
   SetDepthTest(false);
   ClearBuffer(ClearType::All);
@@ -258,7 +259,9 @@ void Renderer::ExecuteLightingPass(const Vector3& viewDirection)
   auto shader = _shaderCollection->GetShader<LightingPassShader>();
   shader->SetViewDirection(viewDirection);
   shader->SetDirectionalLight(_directionalLights[0]);
-  shader->GeometryBuffer(_gBuffer);
+  shader->SetGeometryBuffer(_gBuffer);
+  shader->SetDirLightDepthBuffer(_depthBuffer);
+  shader->SetLightSpaceTransform(lightSpaceTransform);
   shader->Apply();
 
   _quadVertexData->Bind();
