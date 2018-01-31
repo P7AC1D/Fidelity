@@ -76,7 +76,6 @@ void FrameBuffer::Bind() const
     GLCall(glBindFramebuffer(GL_FRAMEBUFFER, _fbo));
     ActiveFrameBuffer = _fbo;
   }
-
 }
   
 void FrameBuffer::Unbind() const
@@ -86,6 +85,5 @@ void FrameBuffer::Unbind() const
     GLCall(glBindFramebuffer(GL_FRAMEBUFFER, 0));
     ActiveFrameBuffer = -1;
   }
-  GLCall(glDrawBuffer(GL_BACK));
 }
 }

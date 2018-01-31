@@ -6,6 +6,7 @@
 #include "../UI/UIManager.h"
 #include "../SceneManagement/Light.h"
 #include "../SceneManagement/WorldObject.h"
+#include "../Shaders/DirectionalLightDepthShader.hpp"
 #include "../Shaders/GeometryPassShader.hpp"
 #include "../Shaders/LightingPassShader.hpp"
 #include "ConstantBuffer.h"
@@ -66,6 +67,7 @@ void Renderer::DrawScene(OrbitalCamera& camera)
 {
   UploadCameraData(camera);
 
+  ExecuteDirectionalLightDepthPass(BuildLightSpaceTransform(_directionalLights[0]), _shadowResolution);
   ExecuteGeometryPass();
   ExecuteLightingPass(camera.GetDirection());
 
@@ -98,6 +100,7 @@ bool Renderer::Initialize()
   _cameraBuffer.reset(new ConstantBuffer(144));
   _lightBuffer.reset(new ConstantBuffer(52));
   _gBuffer.reset(new FrameBuffer(_renderWidth, _renderHeight, FBT_Colour0 | FBT_Colour1 | FBT_Colour2 | FBT_Depth));
+  _depthBuffer.reset(new FrameBuffer(_shadowResolution, _shadowResolution, FBT_Depth));
 
   if (!_quadVertexData)
   {
@@ -195,9 +198,36 @@ void Renderer::UploadDirectionalLightData(const Light& directionalLight)
   _lightBuffer->UploadData(32, 12, &(directionalLight.GetColour().ToVec3())[0]);
 }
 
-void Renderer::ExecuteGeometryPass()
+void Renderer::ExecuteDirectionalLightDepthPass(const Matrix4& lightSpaceTransform, uint32 shadowResolution)
 {
   SetDepthTest(true);
+  GLCall(glDepthFunc(GL_LESS));
+
+  SetViewport(shadowResolution, shadowResolution);
+  _depthBuffer->Bind();
+  ClearBuffer(ClearType::Depth);
+
+  auto shader = _shaderCollection->GetShader<DirectionalLightDepthShader>();
+  shader->SetLightSpaceTransform(lightSpaceTransform);
+  for (auto& renderable : _renderables)
+  {
+    auto meshCount = renderable.Renderable->GetMeshCount();
+    for (size_t i = 0; i < meshCount; i++)
+    {
+      auto& staticMesh = renderable.Renderable->GetMeshAtIndex(i);
+      shader->SetModelSpaceTransform(renderable.Transform->Get());
+
+      shader->Apply();
+      staticMesh.GetVertexData()->Bind();
+      Draw(staticMesh.GetVertexCount());
+    }
+  }
+  _gBuffer->Unbind();
+  SetViewport(_renderWidth, _renderHeight);
+}
+
+void Renderer::ExecuteGeometryPass()
+{
   _gBuffer->Bind();
   ClearBuffer(ClearType::All);
 
@@ -266,5 +296,12 @@ void Renderer::SetDepthTest(bool enable)
 void Renderer::Draw(uint32 vertexCount, uint32 vertexOffset)
 {
   GLCall(glDrawArrays(GL_TRIANGLES, vertexOffset, vertexCount));
+}
+
+Matrix4 Renderer::BuildLightSpaceTransform(const Light& directionalLight)
+{
+  auto lightProj = Matrix4::Orthographic(-50.0f, 50.0f, -50.0f, 50.0f, -50.0f, 50.0f); 
+  auto lightView = Matrix4::LookAt(-directionalLight.GetDirection(), Vector3::Zero, Vector3(0.0f, 1.0f, 0.0f));
+  return lightProj * lightView; 
 }
 }

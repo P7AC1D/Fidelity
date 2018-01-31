@@ -20,7 +20,6 @@ namespace Rendering {
 
   private:
     std::string _shaderDirectory;
-    std::unordered_map<std::string, std::shared_ptr<Shader>> _shaderCollectionDeprecated;
     std::vector<std::shared_ptr<Shader>> _shaderCollection;
   };
 

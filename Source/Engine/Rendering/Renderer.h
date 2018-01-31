@@ -63,7 +63,6 @@ public:
 
   void DrawScene(OrbitalCamera& camera);
 
-  void DrawUI(std::vector<std::shared_ptr<UI::Panel>> panelCollection);
   bool Initialize();
 
   static void SetVertexAttribPointers(StaticMesh* staticMesh, int32 stride);
@@ -75,12 +74,15 @@ private:
   void UploadPointLightData(const Light& pointLight);
   void UploadDirectionalLightData(const Light& directionalLight);
 
+  void ExecuteDirectionalLightDepthPass(const Matrix4& lightSpaceTransform, uint32 shadowResolution);
   void ExecuteGeometryPass();
   void ExecuteLightingPass(const Vector3& viewDirection);
 
   void ClearBuffer(ClearType clearType);
   void SetDepthTest(bool enable);
   void Draw(uint32 vertexCount, uint32 vertexOffset = 0);
+
+  Matrix4 BuildLightSpaceTransform(const Light& directionalLight);
 
 private:
   std::vector<RenderableItem> _renderables;
@@ -101,6 +103,7 @@ private:
 
   int32 _renderWidth;
   int32 _renderHeight;
+  uint32 _shadowResolution = 1024;
   Colour _ambientLight;
 };
 }
