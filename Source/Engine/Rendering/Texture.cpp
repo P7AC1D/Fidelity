@@ -71,6 +71,12 @@ void Texture::SetWrapMethod(TextureWrapMethod method)
   GLCall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, static_cast<int32>(method)));
 }
 
+void Texture::BindToTextureSlot(uint32 slot)
+{
+  GLCall(glActiveTexture(GL_TEXTURE0 + slot));
+  GLCall(glBindTexture(GL_TEXTURE_2D, _id));
+}
+
 void Texture::Bind() const
 {
   if (!IsBound())

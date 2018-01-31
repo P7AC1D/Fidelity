@@ -78,11 +78,9 @@ private:
   void ExecuteGeometryPass();
   void ExecuteLightingPass(const Vector3& viewDirection);
 
-  void DirLightColourPass(OrbitalCamera& camera, const Matrix4& lightSpaceTransform, std::shared_ptr<Texture> shadowMap, const Vector2& shadowTexelSize);
-  void DirLightDepthPass(const Matrix4& lightSpaceTransform, uint32 shadowRes);
-  void PointLightRender(OrbitalCamera& camera);
-
   void ClearBuffer(ClearType clearType);
+  void SetDepthTest(bool enable);
+  void Draw(uint32 vertexCount, uint32 vertexOffset = 0);
 
 private:
   std::vector<RenderableItem> _renderables;
@@ -91,14 +89,14 @@ private:
   
   std::unique_ptr<ShaderCollection> _shaderCollection;
 
-  std::unique_ptr<ConstantBuffer> _cameraBuffer;
+  std::shared_ptr<ConstantBuffer> _cameraBuffer;
   std::unique_ptr<ConstantBuffer> _lightBuffer;
   std::unique_ptr<ConstantBuffer> _ambientLightBuffer;
 
   std::unique_ptr<VertexBuffer> _quadVertexData;
   std::unique_ptr<VertexBuffer> _skyBoxVertexData;
   
-  std::unique_ptr<FrameBuffer> _gBuffer;
+  std::shared_ptr<FrameBuffer> _gBuffer;
   std::unique_ptr<FrameBuffer> _depthBuffer;
 
   int32 _renderWidth;

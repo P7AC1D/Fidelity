@@ -51,8 +51,10 @@ struct ShaderUniform
 class Shader
 {
 public:
+  virtual ~Shader();
+
+protected:
   Shader(const std::string& fileName);
-  ~Shader();
 
   void SetBool(const std::string& uniformName, bool value);
 
@@ -68,9 +70,7 @@ public:
   void SetVec3Array(const std::string& uniformName, const std::vector<Vector3>& values);
   void SetVec4Array(const std::string& uniformName, const std::vector<Vector4>& values);
 
-  void BindUniformBlock(int32 location, int32 bindingPoint, int32 ubo, int32 sizeBytes);
-  
-  int32 GetAttributeLocation(const std::string& name);
+  void BindUniformBlock(int32 location, int32 bindingPoint, int32 ubo);  
   int32 GetUniformBlockIndex(const std::string& name);
 
   void Bind();

@@ -38,6 +38,7 @@ public:
   inline const std::vector<Vector3>& GetTangentVertexData() const { return _tangentData; }
   inline const std::vector<Vector3>& GetBitangentVertexData() const { return _bitangentData; }
   inline const std::vector<Vector2>& GetTextureVertexData() const { return _textureData; }
+  inline uint32 GetVertexCount() const { return _vertexCount; }
 
   void CalculateTangents(const std::vector<Vector3>& positionData, const std::vector<Vector2>& textureData);
 

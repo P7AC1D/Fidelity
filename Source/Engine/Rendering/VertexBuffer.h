@@ -17,6 +17,8 @@ public:
   VertexBuffer();
   ~VertexBuffer();
 
+  inline uint32 GetId() const { return _vaoId; }
+
   void Bind() const;
   void Unbind() const;
 
@@ -33,8 +35,6 @@ private:
 
 private:
   uint32 _vaoId;
-
-  friend class Renderer;
 };
 
 template<typename T>

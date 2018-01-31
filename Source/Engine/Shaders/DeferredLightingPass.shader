@@ -3,7 +3,6 @@
 uniform vec3 u_viewDir;
 uniform vec3 u_lightDir;
 uniform vec3 u_lightColour;
-uniform vec3 u_ambientColour;
 uniform sampler2D u_gPosition;
 uniform sampler2D u_gNormal;
 uniform sampler2D u_gAlbedoSpec;

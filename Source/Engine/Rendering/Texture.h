@@ -55,6 +55,9 @@ public:
   uint32 GetWidth() const { return _width; }
   uint32 GetHeight() const { return _height; }
 
+  void BindToTextureSlot(uint32 slot);
+
+private:
   void Bind() const;
   void Unbind() const;
   bool IsBound() const;

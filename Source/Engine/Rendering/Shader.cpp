@@ -140,7 +140,7 @@ void Shader::SetVec4Array(const std::string& uniformName, const std::vector<Vect
   GLCall(glUniform4fv(location, static_cast<int32>(values.size()), values[0].Ptr()));
 }
 
-void Shader::BindUniformBlock(int32 location, int32 bindingPoint, int32 ubo, int32 sizeBytes)
+void Shader::BindUniformBlock(int32 location, int32 bindingPoint, int32 ubo)
 {
   static std::list<int32> uniformBlocksBound;
   auto iter = std::find(uniformBlocksBound.begin(), uniformBlocksBound.end(), location);
@@ -150,7 +150,7 @@ void Shader::BindUniformBlock(int32 location, int32 bindingPoint, int32 ubo, int
   }
 
   GLCall(glUniformBlockBinding(_programId, location, bindingPoint));
-  GLCall(glBindBufferRange(GL_UNIFORM_BUFFER, bindingPoint, ubo, 0, sizeBytes));
+  GLCall(glBindBufferBase(GL_UNIFORM_BUFFER, bindingPoint, ubo));
   uniformBlocksBound.push_back(location);
 }
 
