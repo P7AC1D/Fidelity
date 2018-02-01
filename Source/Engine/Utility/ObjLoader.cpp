@@ -47,6 +47,7 @@ void BuildVertexFromIndexTriplet(const std::string& line, const std::vector<Vect
     throw std::runtime_error("Only triangulated faces are supported.");
   }
 
+  uint32 indexCount = 0;
   for (uint32 i = 1; i < 4; i++)
   {
     auto indexToken = StringUtil::Split(vertexTokens[i], '/');

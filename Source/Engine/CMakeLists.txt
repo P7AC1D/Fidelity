@@ -47,7 +47,8 @@ file(GLOB UtilitySrc
 	)
 
 file(GLOB ShaderSrc 
-	${CMAKE_CURRENT_SOURCE_DIR}/Shaders/*.glsl
+	${CMAKE_CURRENT_SOURCE_DIR}/Shaders/*.hpp
+	${CMAKE_CURRENT_SOURCE_DIR}/Shaders/*.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/Shaders/*.shader
 	)
 

@@ -103,7 +103,7 @@ private:
 
   int32 _renderWidth;
   int32 _renderHeight;
-  uint32 _shadowResolution = 1024;
+  uint32 _shadowResolution = 4096;
   Colour _ambientLight;
 };
 }

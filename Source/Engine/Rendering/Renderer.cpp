@@ -303,7 +303,7 @@ void Renderer::Draw(uint32 vertexCount, uint32 vertexOffset)
 
 Matrix4 Renderer::BuildLightSpaceTransform(const Light& directionalLight)
 {
-  auto lightProj = Matrix4::Orthographic(-50.0f, 50.0f, -50.0f, 50.0f, -50.0f, 50.0f); 
+  auto lightProj = Matrix4::Orthographic(-100.0f, 100.0f, -100.0f, 100.0f, -100.0f, 100.0f);
   auto lightView = Matrix4::LookAt(-directionalLight.GetDirection(), Vector3::Zero, Vector3(0.0f, 1.0f, 0.0f));
   return lightProj * lightView; 
 }

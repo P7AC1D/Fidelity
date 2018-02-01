@@ -61,6 +61,18 @@ void StaticMesh::SetTextureVertexData(const std::vector<Vector2>& textureData)
   _isInitialized = false;
 }
 
+void StaticMesh::SetIndexData(const std::vector<uint32>& indexData)
+{
+  auto indexCount = static_cast<int32>(indexData.size());
+  if (indexCount == 0)
+  {
+    return;
+  }
+  _indexCount = indexCount;
+  _indexData = indexData;
+  _isInitialized = false;
+}
+
 void StaticMesh::CalculateTangents(const std::vector<Vector3>& positionData, const std::vector<Vector2>& textureData)
 {
   _tangentData.reserve(positionData.size());
@@ -94,6 +106,25 @@ void StaticMesh::CalculateTangents(const std::vector<Vector3>& positionData, con
     _bitangentData.push_back(bitangent);
   }
   _isInitialized = false;
+}
+
+void StaticMesh::GenerateNormals()
+{
+  if (_positionData.empty())
+  {
+    return;
+  }
+  std::vector<Vector3> normals(_positionData.size());
+  for (size_t i = 0; i < _positionData.size(); i += 3)
+  {
+    auto vecAB = _positionData[i + 1] - _positionData[i];
+    auto vecAC = _positionData[i + 2] - _positionData[i];
+    auto normal = Vector3::Normalize(Vector3::Cross(vecAB, vecAC));
+    normals[i] = normal;
+    normals[i + 1] = normal;
+    normals[i + 2] = normal;
+  }
+  SetNormalVertexData(normals);
 }
 
 Material& StaticMesh::GetMaterial()

@@ -33,14 +33,17 @@ public:
   void SetTextureVertexData(const std::vector<Vector2>& textureData);
   void SetIndexData(const std::vector<uint32>& indexData);
 
-  inline const std::vector<Vector3>& GetPositionVertexData() const { return _positionData; }
-  inline const std::vector<Vector3>& GetNormalVertexData() const { return _normalData; }
-  inline const std::vector<Vector3>& GetTangentVertexData() const { return _tangentData; }
-  inline const std::vector<Vector3>& GetBitangentVertexData() const { return _bitangentData; }
-  inline const std::vector<Vector2>& GetTextureVertexData() const { return _textureData; }
+  inline const std::vector<Vector3>& GetPositionVertexData() { return _positionData; }
+  inline const std::vector<Vector3>& GetNormalVertexData() { return _normalData; }
+  inline const std::vector<Vector3>& GetTangentVertexData() { return _tangentData; }
+  inline const std::vector<Vector3>& GetBitangentVertexData() { return _bitangentData; }
+  inline const std::vector<Vector2>& GetTextureVertexData() { return _textureData; }
+
   inline uint32 GetVertexCount() const { return _vertexCount; }
+  inline uint32 GetIndexCount() const { return _indexCount; }
 
   void CalculateTangents(const std::vector<Vector3>& positionData, const std::vector<Vector2>& textureData);
+  void GenerateNormals();
 
   Material& GetMaterial();
   std::shared_ptr<VertexBuffer> GetVertexData();
@@ -61,6 +64,7 @@ private:
   std::vector<uint32> _indexData;
   int32 _vertexDataFormat;
   int32 _vertexCount;
+  int32 _indexCount;
   bool _isInitialized;
   Material _material;
 
