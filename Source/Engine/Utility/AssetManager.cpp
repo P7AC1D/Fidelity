@@ -113,24 +113,11 @@ std::shared_ptr<Renderable> AssetManager::GetRenderable(const std::string& fileP
     return iter->second;
   }
   
+  //auto renderable = ObjLoader::LoadFromFile(filePath, fileName, *this);
   auto renderable = ObjLoader::LoadFromFile(filePath, fileName, *this);
   _renderableCache[fullPath] = renderable;
   return renderable;
 }
-
-//std::shared_ptr<Model> AssetManager::GetModel(const std::string& relativePath, const std::string fileName)
-//{
-//  auto fullPath = _assetDirectory + relativePath + fileName;
-//  auto iter = _modelCache.find(fullPath);
-//  if (iter != _modelCache.end())
-//  {
-//    return iter->second;
-//  }
-//
-//  std::shared_ptr<Model> model(ObjLoader::LoadFromFile(_assetDirectory + relativePath, fileName, *this));
-//  _modelCache[fullPath] = model;
-//  return model;
-//}
 
 std::shared_ptr<Rendering::Texture> AssetManager::GetTexture(const std::string& texturePath, 
                                                              const std::string& textureName,

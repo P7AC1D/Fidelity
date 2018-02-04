@@ -64,6 +64,7 @@ source_group(Input FILES ${InputSrc})
 
 include_directories(${SDL2_INCLUDE_DIR})
 include_directories(${GLEW_INCLUDE_DIRS})
+include_directories(${ASSIMP_INCLUDE_DIR})
 
 IF (APPLE)
 include_directories(${OPENGL_INCLUDE_DIRS})

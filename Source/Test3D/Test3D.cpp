@@ -79,9 +79,9 @@ void Test3D::OnStart()
   planeModel->PushMesh(*plane);
   floor.AttachRenderable(planeModel);
 
-  for (float32 i = -20.0f; i < 20.0f; i += 4.0f)
+  for (float32 i = -40.0f; i < 40.0f; i += 4.0f)
   {
-    for (float32 j = -20.0f; j < 20.0f; j += 4.0f)
+    for (float32 j = -40.0f; j < 40.0f; j += 4.0f)
     {
       auto treeModel = _sceneManager->LoadObjectFromFile("./../../Assets/Models/LowPolyTree/lowpolytree.obj");
       treeModel.GetTransform()->SetPosition(Vector3(i, SampleHeight(vertexData, floorScale, i, j), j));
