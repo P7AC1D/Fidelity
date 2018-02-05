@@ -31,7 +31,7 @@ void BuildIndexData(const aiFace* faces, uint32 indexCount, std::vector<uint32>&
     auto face = faces + i;
     if (face->mNumIndices != 3)
     {
-      throw std::exception("Non-triangle face read");
+      throw std::runtime_error("Non-triangle face read");
     }
     indicesOut.push_back(faces->mIndices[0]);
     indicesOut.push_back(faces->mIndices[1]);
@@ -123,7 +123,7 @@ std::shared_ptr<Renderable> BuildModel(const std::string& filePath, const aiScen
 {
   if (!scene->HasMeshes() || !scene->HasMaterials())
   {
-    return false;
+    return nullptr;
   }
 
   std::shared_ptr<Renderable> renderable(new Renderable);

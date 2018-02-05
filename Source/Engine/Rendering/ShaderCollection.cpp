@@ -1,8 +1,5 @@
 #include "ShaderCollection.h"
 
-#include <iostream>
-#include <exception>
-
 #include "../Rendering/Shader.h"
 
 namespace Rendering
