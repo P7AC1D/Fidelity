@@ -16,8 +16,7 @@ IF (WIN32)
   file(COPY ${ASSIMP_LIBRARY}/assimp-vc140-mt.dll DESTINATION ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/Debug)
   file(COPY ${ASSIMP_LIBRARY}/assimp-vc140-mt.dll DESTINATION ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/Release)
 
-
-target_link_libraries(Test3D ${ASSIMP_LIBRARY}/assimp-vc140-mt.lib)
+  target_link_libraries(Test3D ${ASSIMP_LIBRARY}/assimp-vc140-mt.lib)
 ENDIF()
 
 IF (APPLE)
