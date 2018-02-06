@@ -200,8 +200,9 @@ std::shared_ptr<Rendering::StaticMesh> MeshFactory::CreateIcosphere(uint32 recur
 {
   Icosphere icosphere(recursionCount);
   auto mesh = std::make_shared<StaticMesh>("Icosphere");
-  mesh->SetPositionVertexData(icosphere.GetVertexPositions());
+  mesh->SetPositionVertexData(icosphere.GetPositions());
+  mesh->SetNormalVertexData(icosphere.GetNormals());
+  mesh->SetTextureVertexData(icosphere.GetTexCoords());
   mesh->SetIndexData(icosphere.GetIndices());
-  mesh->GenerateNormals();
   return mesh;
 }

@@ -1,5 +1,7 @@
 #include "Icosphere.hpp"
 
+#include "../Maths/Math.hpp"
+
 Icosphere::Icosphere(uint32 recursionCount) :
   _indexCount(0)
 {
@@ -14,6 +16,9 @@ Icosphere::Icosphere(uint32 recursionCount) :
     _indices.push_back(_faces[i].indices[1]);
     _indices.push_back(_faces[i].indices[2]);
   }
+
+  GenerateNormals();
+  GenerateTexCoords();
 }
 
 uint32 Icosphere::AddVertex(const Vector3& vertex)
@@ -109,4 +114,21 @@ void Icosphere::GenerateIcoshedron()
   _faces.emplace_back(6, 2, 10);
   _faces.emplace_back(8, 6, 7);
   _faces.emplace_back(9, 8, 1);
+}
+
+void Icosphere::GenerateTexCoords()
+{
+  if (_normals.empty())
+  {
+    return;
+  }
+
+  _texCoords.reserve(_positions.size());
+  for (size_t i = 0; i < _positions.size(); i++)
+  {
+    Vector2 vec(Vector2::Normalize(Vector2(_positions[i][0], _positions[i][1])));
+    float32 u = std::asinf(vec[0]) / Math::Pi + 0.5f;
+    float32 v = std::asinf(vec[1]) / Math::Pi + 0.5f;
+    _texCoords.emplace_back(u, v);
+  }
 }

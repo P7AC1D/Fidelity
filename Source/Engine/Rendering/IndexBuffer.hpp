@@ -10,10 +10,7 @@ namespace Rendering {
     IndexBuffer();
     ~IndexBuffer();
 
-    inline uint32 GetId() const { return _ibo; }
-
     void Bind();
-
     void UploadData(const std::vector<uint32>& indices);
 
   private:

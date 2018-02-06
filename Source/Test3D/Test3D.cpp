@@ -91,7 +91,7 @@ void Test3D::OnStart()
   auto& sphereNode = _sceneManager->CreateObject("floor");
   auto sphere = MeshFactory::CreateIcosphere(4);
   auto& sphereMaterial = sphere->GetMaterial();
-  sphereMaterial.SetDiffuseColour(Colour::Green);
+  sphereMaterial.SetTexture("DiffuseMap", _assetManager->GetTexture("/Textures/test.png"));
   std::shared_ptr<Renderable> sphereModel(new Renderable);
   sphereModel->PushMesh(*sphere);
   sphereNode.AttachRenderable(sphereModel);

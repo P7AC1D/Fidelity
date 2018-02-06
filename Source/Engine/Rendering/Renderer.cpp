@@ -241,6 +241,8 @@ void Renderer::ExecuteGeometryPass()
   _gBuffer->Bind();
   ClearBuffer(ClearType::All);
 
+  //GLCall(glPolygonMode(GL_FRONT_AND_BACK, GL_LINE));
+
   auto shader = _shaderCollection->GetShader<GeometryPassShader>();
   shader->SetTransformsUniformbuffer(_cameraBuffer);
   for (auto& renderable : _renderables)
@@ -257,6 +259,8 @@ void Renderer::ExecuteGeometryPass()
     }
   }
   _gBuffer->Unbind();
+
+  //GLCall(glPolygonMode(GL_FRONT_AND_BACK, GL_FILL));
 }
 
 void Renderer::ExecuteLightingPass(const Matrix4& lightSpaceTransform, const Vector3& viewDirection)
