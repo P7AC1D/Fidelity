@@ -13,6 +13,31 @@ using namespace Rendering;
 using namespace UI;
 using namespace Utility;
 
+float32 GetAverageTickMs(int32 dtMs)
+{
+  static int dtSum = 0;
+  static int dtCount = 0;
+
+  float32 avgTick = dtSum / static_cast<float32>(dtCount);
+  if (dtSum > 500)
+  {
+    dtSum = 0;
+    dtCount = 0;
+  }
+  else
+  {
+    dtSum += dtMs;
+    dtCount++;
+  }
+  return avgTick;
+}
+
+float32 GetAverageFps(int32 dtMs)
+{
+  return 1.0f / (GetAverageTickMs(dtMs) * 0.001f);
+}
+
+
 Application::~Application()
 {
 }
@@ -114,7 +139,7 @@ int32 Application::Run()
 
     SDL_GL_SwapWindow(_window);
     
-    std::string title = _desc.Name + ": " + std::to_string(dtMs) + "ms";
+    std::string title = _desc.Name + ": " + std::to_string(GetAverageTickMs(dtMs)) + "ms | " + std::to_string(GetAverageFps(dtMs)) + "fps";
     SDL_SetWindowTitle(_window, title.c_str());
   }
 
