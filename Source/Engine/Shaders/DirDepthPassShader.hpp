@@ -4,11 +4,11 @@
 #include "../Maths/Matrix4.hpp"
 #include "../Rendering/Shader.h"
 
-class DirectionalLightDepthShader : public Rendering::Shader
+class DirDepthPassShader : public Rendering::Shader
 {
 public:
-  DirectionalLightDepthShader(const std::string& shaderDirectory);
-  ~DirectionalLightDepthShader();
+  DirDepthPassShader();
+  ~DirDepthPassShader();
 
   void SetLightSpaceTransform(const Matrix4& lightTransform);
   void SetModelSpaceTransform(const Matrix4& modelTransform);

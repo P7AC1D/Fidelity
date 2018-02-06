@@ -13,11 +13,14 @@ namespace Rendering {
   class ShaderCollection
   {
   public:
-    ShaderCollection(std::string shaderDirectory);
+    ShaderCollection();
     ~ShaderCollection();
 
     template <typename T>
     std::shared_ptr<T> GetShader();
+
+  public:
+    static std::string ShaderDirectory;
 
   private:
     std::string _shaderDirectory;
@@ -37,7 +40,7 @@ namespace Rendering {
     {
       try
       {
-        auto shader = std::make_shared<T>(_shaderDirectory);
+        auto shader = std::make_shared<T>();
         _shaderCollection.push_back(shader);
         return shader;
       }

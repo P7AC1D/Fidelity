@@ -2,6 +2,7 @@
 
 #include "../Rendering/ConstantBuffer.h"
 #include "../Rendering/Material.h"
+#include "../Rendering/ShaderCollection.h"
 #include "../Rendering/Texture.h"
 
 using namespace Rendering;
@@ -14,10 +15,10 @@ static const byte* TransformsUniformBufferName = "Transforms";
 static const uint32 DiffuseMapTextureSlot = 0;
 static const uint32 TransformsUniformBufferBindingPoint = 0;
 
-GeometryPassShader::GeometryPassShader(const std::string& shaderDirectory):
+GeometryPassShader::GeometryPassShader():
   _diffuseColour(Colour::White),
   _modelTransform(Matrix4::Identity),
-  Shader(shaderDirectory + "DeferredGeometryPass.shader")
+  Shader(Rendering::ShaderCollection::ShaderDirectory + "Geometry.shader")
 {}
 
 GeometryPassShader::~GeometryPassShader()

@@ -2,14 +2,14 @@
 
 #include "../Rendering/Shader.h"
 
-namespace Rendering
-{
-ShaderCollection::ShaderCollection(std::string shaderDirectory) :
-  _shaderDirectory(std::move(shaderDirectory))
-{
-}
+namespace Rendering {
+  std::string ShaderCollection::ShaderDirectory = "./../../Source/Engine/Shaders/";
 
-ShaderCollection::~ShaderCollection()
-{
-}
+  ShaderCollection::ShaderCollection()
+  {
+  }
+
+  ShaderCollection::~ShaderCollection()
+  {
+  }
 }

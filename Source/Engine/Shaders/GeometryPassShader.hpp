@@ -15,7 +15,7 @@ namespace Rendering {
 class GeometryPassShader : public Rendering::Shader
 {
 public:
-  GeometryPassShader(const std::string& shaderDirectory);
+  GeometryPassShader();
   ~GeometryPassShader();
   
   void SetModelTransform(const Matrix4& modelTransform);

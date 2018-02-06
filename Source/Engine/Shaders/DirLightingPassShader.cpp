@@ -1,7 +1,8 @@
-#include "LightingPassShader.hpp"
+#include "DirLightingPassShader.hpp"
 
 #include <cassert>
 
+#include "../Rendering/ShaderCollection.h"
 #include "../Rendering/Texture.h"
 
 static const byte* ShadowTexelSizeUniformName = "u_shadowTexelSize";
@@ -18,22 +19,22 @@ static const uint32 GNormalTextureSlot = 1;
 static const uint32 GAlbedoSpecTextureSlot = 2;
 static const uint32 DirLightDepthTextureSlot = 3;
 
-LightingPassShader::LightingPassShader(const std::string& shaderDirectory) :
+DirLightingPassShader::DirLightingPassShader() :
   _viewDir(Vector3::Identity),
   _dirLightDir(Vector3::Identity),
   _dirLightCol(Colour::White),
-  Shader(shaderDirectory + "DeferredLightingPass.shader")
+  Shader(Rendering::ShaderCollection::ShaderDirectory + "DirLightPass.shader")
 {}
 
-LightingPassShader::~LightingPassShader()
+DirLightingPassShader::~DirLightingPassShader()
 {}
 
-void LightingPassShader::SetViewDirection(const Vector3& viewDirection)
+void DirLightingPassShader::SetViewDirection(const Vector3& viewDirection)
 {
   _viewDir = viewDirection;
 }
 
-void LightingPassShader::SetDirectionalLight(const Light& directionalLight)
+void DirLightingPassShader::SetDirectionalLight(const Light& directionalLight)
 {
   assert(directionalLight.GetType() == LightType::Directional);
 
@@ -41,25 +42,25 @@ void LightingPassShader::SetDirectionalLight(const Light& directionalLight)
   _dirLightCol = directionalLight.GetColour();
 }
 
-void LightingPassShader::SetGeometryBuffer(std::shared_ptr<Rendering::FrameBuffer> gBuffer)
+void DirLightingPassShader::SetGeometryBuffer(std::shared_ptr<Rendering::FrameBuffer> gBuffer)
 {
   _gPosition = gBuffer->GetColourTexture0();
   _gNormal = gBuffer->GetColourTexture1();
   _gAlbedoSpec = gBuffer->GetColourTexture2();
 }
 
-void LightingPassShader::SetDirLightDepthBuffer(std::shared_ptr<Rendering::FrameBuffer> depthBuffer)
+void DirLightingPassShader::SetDirLightDepthBuffer(std::shared_ptr<Rendering::FrameBuffer> depthBuffer)
 {
   _dirLightDepth = depthBuffer->GetDepthTexture();
   _shadowTexelSize = Vector2(1.0f / depthBuffer->GetWidth(), 1.0f / depthBuffer->GetHeight());
 }
 
-void LightingPassShader::SetLightSpaceTransform(const Matrix4& transform)
+void DirLightingPassShader::SetLightSpaceTransform(const Matrix4& transform)
 {
   _lightSpace = transform;
 }
 
-void LightingPassShader::Apply()
+void DirLightingPassShader::Apply()
 {
   SetVec2(ShadowTexelSizeUniformName, _shadowTexelSize);
   SetVec3(ViewDirUniformName, _dirLightDir);

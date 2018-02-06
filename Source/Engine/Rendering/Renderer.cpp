@@ -6,9 +6,9 @@
 #include "../UI/UIManager.h"
 #include "../SceneManagement/Light.h"
 #include "../SceneManagement/WorldObject.h"
-#include "../Shaders/DirectionalLightDepthShader.hpp"
+#include "../Shaders/DirDepthPassShader.hpp"
 #include "../Shaders/GeometryPassShader.hpp"
-#include "../Shaders/LightingPassShader.hpp"
+#include "../Shaders/DirLightingPassShader.hpp"
 #include "ConstantBuffer.h"
 #include "CubeMap.h"
 #include "FrameBuffer.h"
@@ -47,7 +47,7 @@ enum class UniformBindingPoint
 };
 
 Renderer::Renderer(int32 renderWidth, int32 renderHeight) :
-  _shaderCollection(new ShaderCollection("./../../Source/Engine/Shaders/")),
+  _shaderCollection(new ShaderCollection),
   _renderWidth(renderWidth),
   _renderHeight(renderHeight),
   _ambientLight(Vector3::Identity)
@@ -208,7 +208,7 @@ void Renderer::ExecuteDirectionalLightDepthPass(const Matrix4& lightSpaceTransfo
   _depthBuffer->Bind();
   ClearBuffer(ClearType::Depth);
 
-  auto shader = _shaderCollection->GetShader<DirectionalLightDepthShader>();
+  auto shader = _shaderCollection->GetShader<DirDepthPassShader>();
   shader->SetLightSpaceTransform(lightSpaceTransform);
   for (auto& renderable : _renderables)
   {
@@ -256,7 +256,7 @@ void Renderer::ExecuteLightingPass(const Matrix4& lightSpaceTransform, const Vec
   SetDepthTest(false);
   ClearBuffer(ClearType::All);
 
-  auto shader = _shaderCollection->GetShader<LightingPassShader>();
+  auto shader = _shaderCollection->GetShader<DirLightingPassShader>();
   shader->SetViewDirection(viewDirection);
   shader->SetDirectionalLight(_directionalLights[0]);
   shader->SetGeometryBuffer(_gBuffer);

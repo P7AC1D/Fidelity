@@ -10,11 +10,11 @@
 #include "../Rendering/FrameBuffer.h"
 #include "../Rendering/Shader.h"
 
-class LightingPassShader : public Rendering::Shader
+class DirLightingPassShader : public Rendering::Shader
 {
 public:
-  LightingPassShader(const std::string& shaderDirectory);
-  ~LightingPassShader();
+  DirLightingPassShader();
+  ~DirLightingPassShader();
 
   void SetViewDirection(const Vector3& viewDirection);
   void SetDirectionalLight(const Light& directionalLight);
