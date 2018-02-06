@@ -1,15 +1,17 @@
 #include "MeshFactory.h"
 
+#include <unordered_map>
 #include <vector>
 
 #include "../Maths/Vector2.hpp"
 #include "../Maths/Vector3.hpp"
 #include "../Rendering/Material.h"
 #include "../Rendering/StaticMesh.h"
+#include "Icosphere.hpp"
 
 using namespace Rendering;
 
-static std::vector<Vector3> s_cubePoints =
+static const std::vector<Vector3> s_cubePoints =
 {
   Vector3(-0.5f, -0.5f, 0.5f),
   Vector3(0.5f, -0.5f, 0.5f),
@@ -54,7 +56,7 @@ static std::vector<Vector3> s_cubePoints =
   Vector3(-0.5f,  -0.5f, 0.5f),
 };
 
-static std::vector<Vector3> s_cubeNormals =
+static const std::vector<Vector3> s_cubeNormals =
 {
   Vector3(0.0f, 0.0f, 1.0f),
   Vector3(0.0f, 0.0f, 1.0f),
@@ -99,7 +101,7 @@ static std::vector<Vector3> s_cubeNormals =
   Vector3(0.0f, -1.0f, 0.0f)
 };
 
-static std::vector<Vector2> s_cubeUvs =
+static const std::vector<Vector2> s_cubeUvs =
 {
   Vector2(0.0f, 0.0f),
   Vector2(1.0f, 0.0f),
@@ -191,5 +193,15 @@ std::shared_ptr<StaticMesh> MeshFactory::CreatePlane(uint32 density)
   mesh->SetPositionVertexData(positions);
   mesh->SetNormalVertexData(normals);
   mesh->SetTextureVertexData(texCoords);
+  return mesh;
+}
+
+std::shared_ptr<Rendering::StaticMesh> MeshFactory::CreateIcosphere(uint32 recursionCount)
+{
+  Icosphere icosphere(recursionCount);
+  auto mesh = std::make_shared<StaticMesh>("Icosphere");
+  mesh->SetPositionVertexData(icosphere.GetVertexPositions());
+  mesh->SetIndexData(icosphere.GetIndices());
+  mesh->GenerateNormals();
   return mesh;
 }

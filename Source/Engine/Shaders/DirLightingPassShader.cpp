@@ -23,7 +23,7 @@ DirLightingPassShader::DirLightingPassShader() :
   _viewDir(Vector3::Identity),
   _dirLightDir(Vector3::Identity),
   _dirLightCol(Colour::White),
-  Shader(Rendering::ShaderCollection::ShaderDirectory + "DirLightPass.shader")
+  Shader(Rendering::ShaderCollection::ShaderDirectory + "DirLighting.shader")
 {}
 
 DirLightingPassShader::~DirLightingPassShader()

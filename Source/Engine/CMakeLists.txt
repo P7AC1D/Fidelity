@@ -21,6 +21,12 @@ file(GLOB RenderingSrc
 	${CMAKE_CURRENT_SOURCE_DIR}/Rendering/*.hpp
 	${CMAKE_CURRENT_SOURCE_DIR}/Rendering/*.cpp
 	)
+	
+file(GLOB GeometrySrc
+	${CMAKE_CURRENT_SOURCE_DIR}/Geometry/*.h 
+	${CMAKE_CURRENT_SOURCE_DIR}/Geometry/*.hpp
+	${CMAKE_CURRENT_SOURCE_DIR}/Geometry/*.cpp
+	)
 
 file(GLOB SceneManagementSrc 
 	${CMAKE_CURRENT_SOURCE_DIR}/SceneManagement/*.h 
@@ -56,6 +62,7 @@ source_group(Components FILES ${ComponentsSrc})
 source_group(Core FILES ${CoreSrc})
 source_group(Maths FILES ${MathsSrc})
 source_group(Rendering FILES ${RenderingSrc})
+source_group(Geometry FILES ${GeometrySrc})
 source_group(SceneManagement FILES ${SceneManagementSrc})
 source_group(UI FILES ${UiSrc})
 source_group(Utility FILES ${UtilitySrc})

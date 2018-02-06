@@ -18,7 +18,7 @@ static const uint32 TransformsUniformBufferBindingPoint = 0;
 GeometryPassShader::GeometryPassShader():
   _diffuseColour(Colour::White),
   _modelTransform(Matrix4::Identity),
-  Shader(Rendering::ShaderCollection::ShaderDirectory + "Geometry.shader")
+  Shader(Rendering::ShaderCollection::ShaderDirectory + "GBuffer.shader")
 {}
 
 GeometryPassShader::~GeometryPassShader()

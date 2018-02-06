@@ -8,7 +8,7 @@ static const byte* ModelTransformUniformName = "u_modelTransform";
 DirDepthPassShader::DirDepthPassShader() :
   _modelTransform(Matrix4::Identity),
   _lightTransform(Matrix4::Identity),
-  Shader(Rendering::ShaderCollection::ShaderDirectory + "DirectionalLightDepth.shader")
+  Shader(Rendering::ShaderCollection::ShaderDirectory + "DirLightingDepth.shader")
 {}
 
 DirDepthPassShader::~DirDepthPassShader()

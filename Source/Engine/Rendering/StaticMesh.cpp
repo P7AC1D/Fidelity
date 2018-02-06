@@ -1,5 +1,6 @@
 #include "StaticMesh.h"
 
+#include "IndexBuffer.hpp"
 #include "Material.h"
 #include "Renderer.h"
 #include "VertexBuffer.h"
@@ -10,7 +11,8 @@ StaticMesh::StaticMesh(const std::string& meshName) :
   _name(meshName),
   _vertexDataFormat(0),
   _vertexCount(0),
-  _isInitialized(false)
+  _isDirty(true),
+  _indexed(false)
 {}
 
 StaticMesh::~StaticMesh()
@@ -28,7 +30,7 @@ void StaticMesh::SetPositionVertexData(const std::vector<Vector3>& positionData)
 
   _positionData = positionData;
   _vertexDataFormat |= VertexDataFormat::Position;
-  _isInitialized = false;
+  _isDirty = true;
 }
 
 void StaticMesh::SetNormalVertexData(const std::vector<Vector3>& normalData)
@@ -43,7 +45,7 @@ void StaticMesh::SetNormalVertexData(const std::vector<Vector3>& normalData)
 
   _normalData = normalData;
   _vertexDataFormat |= VertexDataFormat::Normal;
-  _isInitialized = false;
+  _isDirty = true;
 }
 
 void StaticMesh::SetTextureVertexData(const std::vector<Vector2>& textureData)
@@ -58,7 +60,7 @@ void StaticMesh::SetTextureVertexData(const std::vector<Vector2>& textureData)
 
   _textureData = textureData;
   _vertexDataFormat |= VertexDataFormat::Uv;
-  _isInitialized = false;
+  _isDirty = true;
 }
 
 void StaticMesh::SetIndexData(const std::vector<uint32>& indexData)
@@ -66,11 +68,13 @@ void StaticMesh::SetIndexData(const std::vector<uint32>& indexData)
   auto indexCount = static_cast<int32>(indexData.size());
   if (indexCount == 0)
   {
+    _indexed = false;
     return;
   }
   _indexCount = indexCount;
   _indexData = indexData;
-  _isInitialized = false;
+  _isDirty = true;
+  _indexed = true;
 }
 
 void StaticMesh::CalculateTangents(const std::vector<Vector3>& positionData, const std::vector<Vector2>& textureData)
@@ -105,7 +109,7 @@ void StaticMesh::CalculateTangents(const std::vector<Vector3>& positionData, con
     _bitangentData.push_back(bitangent);
     _bitangentData.push_back(bitangent);
   }
-  _isInitialized = false;
+  _isDirty = true;
 }
 
 void StaticMesh::GenerateNormals()
@@ -132,31 +136,30 @@ Material& StaticMesh::GetMaterial()
   return _material;
 }
 
-std::shared_ptr<VertexBuffer> StaticMesh::GetVertexData()
+std::shared_ptr<VertexBuffer> StaticMesh::GetVertexData() const
 {
-  if (!_isInitialized)
-  {
-    int32 stride = 0;
-    _vertexBuffer.reset(new VertexBuffer);
-    auto dataToUpload = CreateRestructuredVertexDataArray(stride);
-    _vertexBuffer->UploadData(dataToUpload, BufferUsage::Static);
-
-    Renderer::SetVertexAttribPointers(this, stride);
-
-    _positionData.clear();
-    _positionData.shrink_to_fit();
-    _normalData.clear();
-    _normalData.shrink_to_fit();
-    _tangentData.clear();
-    _tangentData.shrink_to_fit();
-    _bitangentData.clear();
-    _bitangentData.shrink_to_fit();
-    _textureData.clear();
-    _textureData.shrink_to_fit();
-
-    _isInitialized = true;
-  }
   return _vertexBuffer;
+}
+
+void StaticMesh::Draw()
+{
+  if (_isDirty)
+  {
+    UploadVertexData();
+    UploadIndexData();
+    _isDirty = false;
+  }
+  _vertexBuffer->Bind();
+
+  if (_indexed)
+  {
+    _indexBuffer->Bind();
+    Renderer::DrawIndexed(_indexCount);
+  }
+  else
+  {
+    Renderer::Draw(_vertexCount);
+  }
 }
 
 std::vector<float32> StaticMesh::CreateRestructuredVertexDataArray(int32& stride) const
@@ -245,5 +248,34 @@ std::vector<float32> StaticMesh::CreateVertexDataArray() const
   std::vector<float32> vertexDataArray;
   vertexDataArray.reserve(dataSize);
   return vertexDataArray;
+}
+
+void StaticMesh::UploadVertexData()
+{
+  int32 stride = 0;
+  _vertexBuffer.reset(new VertexBuffer);
+  auto dataToUpload = CreateRestructuredVertexDataArray(stride);
+  _vertexBuffer->UploadData(dataToUpload, BufferUsage::Static);
+
+  Renderer::SetVertexAttribPointers(this, stride);
+
+  _positionData.clear();
+  _positionData.shrink_to_fit();
+  _normalData.clear();
+  _normalData.shrink_to_fit();
+  _tangentData.clear();
+  _tangentData.shrink_to_fit();
+  _bitangentData.clear();
+  _bitangentData.shrink_to_fit();
+  _textureData.clear();
+  _textureData.shrink_to_fit();
+}
+
+void StaticMesh::UploadIndexData()
+{
+  _indexBuffer.reset(new IndexBuffer);
+  _indexBuffer->UploadData(_indexData);
+  _indexData.clear();
+  _indexData.shrink_to_fit();
 }
 }

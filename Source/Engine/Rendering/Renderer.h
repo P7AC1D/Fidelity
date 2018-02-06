@@ -63,6 +63,9 @@ public:
 
   void DrawScene(OrbitalCamera& camera);
 
+  static void Draw(uint32 vertexCount, uint32 vertexOffset = 0);
+  static void DrawIndexed(uint32 indexCount);
+
   bool Initialize();
 
   static void SetVertexAttribPointers(StaticMesh* staticMesh, int32 stride);
@@ -80,7 +83,6 @@ private:
 
   void ClearBuffer(ClearType clearType);
   void SetDepthTest(bool enable);
-  void Draw(uint32 vertexCount, uint32 vertexOffset = 0);
 
   Matrix4 BuildLightSpaceTransform(const Light& directionalLight);
 

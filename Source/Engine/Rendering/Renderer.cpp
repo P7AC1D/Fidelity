@@ -77,6 +77,16 @@ void Renderer::DrawScene(OrbitalCamera& camera)
   _directionalLights.clear();
 }
 
+void Renderer::Draw(uint32 vertexCount, uint32 vertexOffset)
+{
+  GLCall(glDrawArrays(GL_TRIANGLES, vertexOffset, vertexCount));
+}
+
+void Renderer::DrawIndexed(uint32 indexCount)
+{
+  GLCall(glDrawElements(GL_TRIANGLES, indexCount, GL_UNSIGNED_INT, 0));
+}
+
 bool Renderer::Initialize()
 {
 #ifdef _WIN32
@@ -219,8 +229,7 @@ void Renderer::ExecuteDirectionalLightDepthPass(const Matrix4& lightSpaceTransfo
       shader->SetModelSpaceTransform(renderable.Transform->Get());
 
       shader->Apply();
-      staticMesh.GetVertexData()->Bind();
-      Draw(staticMesh.GetVertexCount());
+      staticMesh.Draw();
     }
   }
   _gBuffer->Unbind();
@@ -244,8 +253,7 @@ void Renderer::ExecuteGeometryPass()
       shader->SetMaterialProperties(staticMesh.GetMaterial());
 
       shader->Apply();
-      staticMesh.GetVertexData()->Bind();
-      Draw(staticMesh.GetVertexCount());
+      staticMesh.Draw();
     }
   }
   _gBuffer->Unbind();
@@ -294,11 +302,6 @@ void Renderer::SetDepthTest(bool enable)
   {
     GLCall(glDisable(GL_DEPTH_TEST));
   }
-}
-
-void Renderer::Draw(uint32 vertexCount, uint32 vertexOffset)
-{
-  GLCall(glDrawArrays(GL_TRIANGLES, vertexOffset, vertexCount));
 }
 
 Matrix4 Renderer::BuildLightSpaceTransform(const Light& directionalLight)

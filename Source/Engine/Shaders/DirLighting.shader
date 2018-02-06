@@ -95,6 +95,13 @@ float ShadowContribution(in vec4 fragmentPos)
   return SampleShadowMapPCF(u_dirLightDepth, shadowCoords.xy, shadowCoords.z - bias, u_shadowTexelSize);
 }
 
+float DirLightContribution(in vec3 viewDir, in vec3 lightDir, in vec3 normal)
+{
+  float diffuseFactor = DiffuseContribution(lightDir, normal);
+  float specularFactor = SpecularContribution(normal, viewDir, normal, 1.0f);
+  return diffuseFactor * specularFactor;
+}
+
 void main()
 {
   vec3 fragPos = texture(u_gPosition, fsIn.TexCoords).rgb;
@@ -103,14 +110,13 @@ void main()
   float specular = texture(u_gAlbedoSpec, fsIn.TexCoords).a;
 
   vec3 viewDir = normalize(u_viewDir - fragPos);
-  float diffuseFactor = DiffuseContribution(u_lightDir, normal);
-  float specularFactor = SpecularContribution(u_lightDir, viewDir, normal, 1.0f);
+  float dirLightFactor = DirLightContribution(viewDir, u_lightDir, normal);
 
   vec4 lightSpacePosition = u_lightTransform * vec4(fragPos, 1.0f);
   float shadowFactor = ShadowContribution(lightSpacePosition);
 
   float gamma = 2.2;
-  o_Colour = vec4((diffuse * u_lightColour) * diffuseFactor * shadowFactor, 1.0f);
+  o_Colour = vec4((diffuse * u_lightColour) * shadowFactor * shadowFactor, 1.0f);
   o_Colour.rgb = pow(o_Colour.rgb, vec3(1.0 / gamma));
 }
 #endif

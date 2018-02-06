@@ -1,6 +1,7 @@
 #include "Test3D.h"
 
 #include "../Engine/Components/Component.h"
+#include "../Engine/Geometry/MeshFactory.h"
 #include "../Engine/Input/InputHandler.hpp"
 #include "../Engine/Input/EventDispatcher.hpp"
 #include "../Engine/Maths/Degree.hpp"
@@ -14,7 +15,6 @@
 #include "../Engine/UI/Panel.h"
 #include "../Engine/UI/UIManager.h"
 #include "../Engine/Utility/AssetManager.h"
-#include "../Engine/Utility/MeshFactory.h"
 #include "../Engine/Utility/ObjLoader.hpp"
 #include "../Engine/SceneManagement/Light.h"
 #include "../Engine/SceneManagement/OrbitalCamera.h"
@@ -59,6 +59,7 @@ void Test3D::OnStart()
   _camera->SetPosition(Vector3(6.0f, 6.0f, 6.0f));
   _sceneManager->SetCamera(_camera);
   
+  
   Vector3 floorScale(100.0f);
   auto& floor = _sceneManager->CreateObject("floor");
   floor.SetScale(floorScale);
@@ -75,7 +76,6 @@ void Test3D::OnStart()
   material.SetDiffuseColour(Colour(116, 244, 66));
   material.SetTexture("DiffuseMap", _assetManager->GetTexture("/Textures/TexturesCom_Grass0130_1_seamless_S.jpg"));
   std::shared_ptr<Renderable> planeModel(new Renderable);
-  //planeModel->CastShadows(false);
   planeModel->PushMesh(*plane);
   floor.AttachRenderable(planeModel);
 
@@ -88,14 +88,16 @@ void Test3D::OnStart()
     }
   }
 
-  //auto& light = _sceneManager->CreateLight(LightType::Point);
-  //light.SetPosition(Vector3(3.0f, 3.0f, 3.0f));
-  //light.SetColour(Vector3(1.0f, 1.0f, 1.0f));
-  //light.SetRadius(7.0f);
+  auto& sphereNode = _sceneManager->CreateObject("floor");
+  auto sphere = MeshFactory::CreateIcosphere(4);
+  auto& sphereMaterial = sphere->GetMaterial();
+  sphereMaterial.SetDiffuseColour(Colour::Green);
+  std::shared_ptr<Renderable> sphereModel(new Renderable);
+  sphereModel->PushMesh(*sphere);
+  sphereNode.AttachRenderable(sphereModel);
 
   _light = &_sceneManager->CreateLight(LightType::Directional);
   _light->SetColour(Colour(255, 240, 170));
-  //_light->SetDirection(Vector3(0.0, -1.0, 0.0));
 
   _inputHandler->BindButtonToState("ActivateCameraLook", Button::Button_RMouse);
   _inputHandler->BindAxisToState("CameraZoom", Axis::MouseScrollXY);

@@ -11,6 +11,7 @@
 
 namespace Rendering
 {
+class IndexBuffer;
 class VertexBuffer;
 
 enum VertexDataFormat : int32
@@ -46,16 +47,21 @@ public:
   void GenerateNormals();
 
   Material& GetMaterial();
-  std::shared_ptr<VertexBuffer> GetVertexData();
+  std::shared_ptr<VertexBuffer> GetVertexData() const;
 
-  bool IsInitialized() const { return _isInitialized; }
+  void Draw();
+
+  bool IsInitialized() const { return _isDirty; }
 
 private:
   std::vector<float32> CreateRestructuredVertexDataArray(int32& stride) const;
   std::vector<float32> CreateVertexDataArray() const;
+  void UploadVertexData();
+  void UploadIndexData();
 
   std::string _name;
   std::shared_ptr<VertexBuffer> _vertexBuffer;
+  std::shared_ptr<IndexBuffer> _indexBuffer;
   std::vector<Vector3> _positionData;
   std::vector<Vector3> _normalData;
   std::vector<Vector3> _tangentData;
@@ -65,7 +71,8 @@ private:
   int32 _vertexDataFormat;
   int32 _vertexCount;
   int32 _indexCount;
-  bool _isInitialized;
+  bool _isDirty;
+  bool _indexed;
   Material _material;
 
   friend class Renderer;
