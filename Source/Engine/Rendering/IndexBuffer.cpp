@@ -20,6 +20,11 @@ namespace Rendering {
 
   void IndexBuffer::UploadData(const std::vector<uint32>& indices)
   {
+    if (indices.empty())
+    {
+      return;
+    }
+
     Bind();
     GLCall(glBufferData(GL_ELEMENT_ARRAY_BUFFER, 4 * indices.size(), &indices[0], GL_STATIC_DRAW));
   }

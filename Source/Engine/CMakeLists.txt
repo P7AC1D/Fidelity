@@ -77,4 +77,4 @@ IF (APPLE)
 include_directories(${OPENGL_INCLUDE_DIRS})
 ENDIF()
 
-add_library(Engine STATIC ${ComponentsSrc} ${CoreSrc} ${MathsSrc} ${RenderingSrc} ${SceneManagementSrc} ${UiSrc} ${UtilitySrc} ${ShaderSrc} ${InputSrc})
+add_library(Engine STATIC ${ComponentsSrc} ${CoreSrc} ${GeometrySrc} ${MathsSrc} ${RenderingSrc} ${SceneManagementSrc} ${UiSrc} ${UtilitySrc} ${ShaderSrc} ${InputSrc})

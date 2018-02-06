@@ -60,7 +60,7 @@ void Test3D::OnStart()
   _sceneManager->SetCamera(_camera);
   
   
-  Vector3 floorScale(100.0f);
+  /*Vector3 floorScale(100.0f);
   auto& floor = _sceneManager->CreateObject("floor");
   floor.SetScale(floorScale);
   auto plane = MeshFactory::CreatePlane(25);
@@ -86,7 +86,7 @@ void Test3D::OnStart()
       auto treeModel = _sceneManager->LoadObjectFromFile("./../../Assets/Models/LowPolyTree/lowpolytree.obj");
       treeModel.GetTransform()->SetPosition(Vector3(i, SampleHeight(vertexData, floorScale, i, j), j));
     }
-  }
+  }*/
 
   auto& sphereNode = _sceneManager->CreateObject("floor");
   auto sphere = MeshFactory::CreateIcosphere(4);
