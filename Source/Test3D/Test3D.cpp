@@ -90,7 +90,7 @@ void Test3D::OnStart()
   }*/
 
   auto& sphereNode = _sceneManager->CreateObject("floor");
-  auto sphere = MeshFactory::CreateIcosphere(1);
+  auto sphere = MeshFactory::CreateIcosphere(3);
   auto& sphereMaterial = sphere->GetMaterial();
   auto testTexture = _assetManager->GetTexture("/Textures/test.png");
   testTexture->SetWrapMethod(TextureWrapMethod::Repeat);
