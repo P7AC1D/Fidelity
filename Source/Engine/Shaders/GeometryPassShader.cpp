@@ -10,9 +10,11 @@ using namespace Rendering;
 static const byte* DiffuseMappingEnabled = "u_diffuseMappingEnabled";
 static const byte* DiffuseColourUniformName = "u_material.DiffuseColour";
 static const byte* DiffuseMapSamplerUniformName = "u_material.DiffuseMap";
+static const byte* NormalMapSamplerUniformName = "u_material.NormalMap";
 static const byte* ModelTransformUniformName = "u_model";
 static const byte* TransformsUniformBufferName = "Transforms";
 static const uint32 DiffuseMapTextureSlot = 0;
+static const uint32 NormalMapTextureSlot = 1;
 static const uint32 TransformsUniformBufferBindingPoint = 0;
 
 GeometryPassShader::GeometryPassShader():
@@ -39,6 +41,10 @@ void GeometryPassShader::SetMaterialProperties(const Rendering::Material& materi
   if (material.HasTexture("DiffuseMap"))
   {
     SetDiffuseMap(material.GetTexture("DiffuseMap"));
+  }
+  if (material.HasTexture("NormalMap"))
+  {
+    SetNormalMap(material.GetTexture("NormalMap"));
   }
 }
 
@@ -79,4 +85,9 @@ void GeometryPassShader::SetDiffuseColour(const Colour& colour)
 void GeometryPassShader::SetDiffuseMap(std::weak_ptr<Texture> diffuseMap)
 {
   _diffuseMap = diffuseMap;
+}
+
+void GeometryPassShader::SetNormalMap(std::weak_ptr<Rendering::Texture> normalMap)
+{
+  _normalMap = normalMap;
 }

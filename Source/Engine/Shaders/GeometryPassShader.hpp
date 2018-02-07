@@ -27,9 +27,11 @@ public:
 private:
   void SetDiffuseColour(const Colour& colour);
   void SetDiffuseMap(std::weak_ptr<Rendering::Texture> diffuseMap);
+  void SetNormalMap(std::weak_ptr<Rendering::Texture> normalMap);
 
 private:
   std::weak_ptr<Rendering::Texture> _diffuseMap;
+  std::weak_ptr<Rendering::Texture> _normalMap;
   std::weak_ptr<Rendering::ConstantBuffer> _transformsBuffer;  
   Colour _diffuseColour;
   Matrix4 _modelTransform;

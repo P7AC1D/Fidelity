@@ -7,6 +7,7 @@ struct Material
   vec3 SpecularColour;
   float SpecularExponent;
   sampler2D DiffuseMap;
+  sampler2D NormalMap;
 };
 
 layout(std140) uniform Transforms
@@ -17,6 +18,7 @@ layout(std140) uniform Transforms
 };
 
 uniform bool u_diffuseMappingEnabled;
+uniform bool u_normalMappingEnabled;
 uniform mat4 u_model;
 uniform Material u_material;
 
@@ -61,8 +63,16 @@ void main()
     diffuseSample = texture(u_material.DiffuseMap, fsIn.TexCoords).xyz;
   }
 
-  o_gPosition = fsIn.Position;
-  o_gNormal = normalize(fsIn.Normal);
+  if (u_normalMappingEnabled)
+  {
+    vec4 normal = texture(u_material.NormalMap, fsIn.TexCoords);
+    o_gNormal = normalize(normal * 2.0f - 1.0f);
+  }
+  else
+  {
+    o_gNormal = normalize(fsIn.Normal);
+  }
+  o_gPosition = fsIn.Position;  
   o_gAlbedoSpec.rgb = u_material.DiffuseColour * diffuseSample;
   o_gAlbedoSpec.a = 1.0f;
 }
