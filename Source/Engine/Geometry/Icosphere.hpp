@@ -25,6 +25,8 @@ private:
   void GenerateIcosphere(uint32 recursionCount);
   void GenerateIcoshedron();
   void GenerateTexCoords();
+  void FixWrappedTexCoords(const std::vector<uint32>& indices);
+  std::vector<uint32> GetWrappedTexCoords();
 
   std::unordered_map<uint64, uint32> _midPointCache;
   std::vector<TriangleFace> _faces;

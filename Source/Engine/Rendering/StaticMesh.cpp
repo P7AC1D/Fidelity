@@ -23,7 +23,7 @@ void StaticMesh::SetPositionVertexData(const std::vector<Vector3>& positionData)
   auto vertexCount = static_cast<int32>(positionData.size());
   if (vertexCount == 0)
   {
-    return;
+return;
   }
 
   _vertexCount = _vertexCount >= vertexCount || _vertexCount == 0 ? vertexCount : _vertexCount;
@@ -118,15 +118,39 @@ void StaticMesh::GenerateNormals()
   {
     return;
   }
+
   std::vector<Vector3> normals(_positionData.size());
-  for (size_t i = 0; i < _positionData.size(); i += 3)
+  if (_indexed)
   {
-    auto vecAB = _positionData[i + 1] - _positionData[i];
-    auto vecAC = _positionData[i + 2] - _positionData[i];
-    auto normal = Vector3::Normalize(Vector3::Cross(vecAB, vecAC));
-    normals[i] = normal;
-    normals[i + 1] = normal;
-    normals[i + 2] = normal;
+    for (size_t i = 0; i < _indexData.size(); i += 3)
+    {
+      Vector3 vecA = _positionData[_indexData[i]];
+      Vector3 vecB = _positionData[_indexData[i + 1]];
+      Vector3 vecC = _positionData[_indexData[i + 2]];
+      Vector3 vecAB = vecB - vecA;
+      Vector3 vecAC = vecC - vecA;
+      Vector3 normal = Vector3::Cross(vecAB, vecAC);
+      normals[_indexData[i]] += normal;
+      normals[_indexData[i + 1]] += normal;
+      normals[_indexData[i + 2]] += normal;
+    }
+
+    for (size_t i = 0; i < normals.size(); i++)
+    {
+      normals[i] = Vector3::Normalize(normals[i]);
+    }
+  }
+  else
+  {    
+    for (size_t i = 0; i < _positionData.size(); i += 3)
+    {
+      auto vecAB = _positionData[i + 1] - _positionData[i];
+      auto vecAC = _positionData[i + 2] - _positionData[i];
+      auto normal = Vector3::Normalize(Vector3::Cross(vecAB, vecAC));
+      normals[i] = normal;
+      normals[i + 1] = normal;
+      normals[i + 2] = normal;
+    }
   }
   SetNormalVertexData(normals);
 }

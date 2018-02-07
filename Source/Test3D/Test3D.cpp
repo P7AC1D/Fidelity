@@ -12,6 +12,7 @@
 #include "../Engine/Maths/Vector3.hpp"
 #include "../Engine/Rendering/Material.h"
 #include "../Engine/Rendering/Renderable.hpp"
+#include "../Engine/Rendering/Texture.h"
 #include "../Engine/UI/Panel.h"
 #include "../Engine/UI/UIManager.h"
 #include "../Engine/Utility/AssetManager.h"
@@ -89,9 +90,11 @@ void Test3D::OnStart()
   }*/
 
   auto& sphereNode = _sceneManager->CreateObject("floor");
-  auto sphere = MeshFactory::CreateIcosphere(4);
+  auto sphere = MeshFactory::CreateIcosphere(1);
   auto& sphereMaterial = sphere->GetMaterial();
-  sphereMaterial.SetTexture("DiffuseMap", _assetManager->GetTexture("/Textures/test.png"));
+  auto testTexture = _assetManager->GetTexture("/Textures/test.png");
+  testTexture->SetWrapMethod(TextureWrapMethod::Repeat);
+  sphereMaterial.SetTexture("DiffuseMap", testTexture);
   std::shared_ptr<Renderable> sphereModel(new Renderable);
   sphereModel->PushMesh(*sphere);
   sphereNode.AttachRenderable(sphereModel);

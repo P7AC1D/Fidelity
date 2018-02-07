@@ -2,7 +2,6 @@
 #include <string>
 
 #include "../Core/Types.hpp"
-#include "OpenGL.h"
 
 namespace Rendering
 {
@@ -19,26 +18,26 @@ enum class PixelFormat
 
 enum class TextureMinFilter
 {
-  Nearest = GL_NEAREST,
-  Linear = GL_LINEAR,
-  NearestMipmapNearest = GL_NEAREST_MIPMAP_NEAREST,
-  NearestMipmapLinear = GL_NEAREST_MIPMAP_LINEAR,
-  LinearMipmapNearest = GL_LINEAR_MIPMAP_NEAREST,
-  LinearMipmapLinear = GL_LINEAR_MIPMAP_LINEAR
+  Nearest,
+  Linear,
+  NearestMipmapNearest,
+  NearestMipmapLinear,
+  LinearMipmapNearest,
+  LinearMipmapLinear
 };
 
 enum class TextureMagFilter
 {
-  Nearest = GL_NEAREST,
-  Linear = GL_LINEAR
+  Nearest,
+  Linear
 };
 
 enum class TextureWrapMethod
 {
-  ClampToEdge = GL_CLAMP_TO_EDGE,
-  ClampToBorder = GL_CLAMP_TO_BORDER,
-  MirrorRepeat = GL_MIRRORED_REPEAT,
-  Repeat = GL_REPEAT
+  ClampToEdge,
+  ClampToBorder,
+  MirrorRepeat,
+  Repeat
 };
 
 class Texture

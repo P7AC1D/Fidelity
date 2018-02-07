@@ -13,6 +13,7 @@
 #include "CubeMap.h"
 #include "FrameBuffer.h"
 #include "Material.h"
+#include "OpenGL.h"
 #include "Renderable.hpp"
 #include "Shader.h"
 #include "ShaderCollection.h"

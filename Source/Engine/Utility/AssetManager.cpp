@@ -6,6 +6,7 @@
 #include "STB/stb_image.h"
 
 #include "../Rendering/CubeMap.h"
+#include "../Rendering/OpenGL.h"
 #include "../Rendering/Texture.h"
 #include "../Rendering/Renderable.hpp"
 #include "../Utility/ObjLoader.hpp"

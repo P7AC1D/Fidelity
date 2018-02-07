@@ -1,5 +1,7 @@
 #include "Icosphere.hpp"
 
+#include <unordered_map>
+
 #include "../Maths/Math.hpp"
 
 Icosphere::Icosphere(uint32 recursionCount) :
@@ -17,7 +19,6 @@ Icosphere::Icosphere(uint32 recursionCount) :
     _indices.push_back(_faces[i].indices[2]);
   }
 
-  GenerateNormals();
   GenerateTexCoords();
 }
 
@@ -118,7 +119,7 @@ void Icosphere::GenerateIcoshedron()
 
 void Icosphere::GenerateTexCoords()
 {
-  if (_normals.empty())
+  if (_positions.empty())
   {
     return;
   }
@@ -126,9 +127,99 @@ void Icosphere::GenerateTexCoords()
   _texCoords.reserve(_positions.size());
   for (size_t i = 0; i < _positions.size(); i++)
   {
-    Vector2 vec(Vector2::Normalize(Vector2(_positions[i][0], _positions[i][1])));
-    float32 u = std::asinf(vec[0]) / Math::Pi + 0.5f;
-    float32 v = std::asinf(vec[1]) / Math::Pi + 0.5f;
+    Vector3 d(Vector3::Normalize(-_positions[i]));
+    float32 u = 0.5f + std::atan2f(d[2], d[0]) / Math::TwoPi;
+    float32 v = 0.5f - std::asinf(d[1]) / Math::Pi;
     _texCoords.emplace_back(u, v);
   }
+
+  FixWrappedTexCoords(GetWrappedTexCoords());
+}
+
+void Icosphere::FixWrappedTexCoords(const std::vector<uint32>& wrappedIndices)
+{
+  uint32 vertexIndex = static_cast<uint32>(_positions.size()) - 1;
+  std::vector<Vector3> positions(_positions);
+  std::vector<Vector2> texCoords(_texCoords);
+  std::unordered_map<uint32, uint32> visited;
+  for (size_t i = 0; i < wrappedIndices.size(); i += 3)
+  {
+    uint32 indexA = _indices[wrappedIndices[i]];
+    uint32 indexB = _indices[wrappedIndices[i + 1]];
+    uint32 indexC = _indices[wrappedIndices[i + 2]];
+    Vector2 texA = _texCoords[indexA];
+    Vector2 texB = _texCoords[indexB];
+    Vector2 texC = _texCoords[indexC];
+    if (texA[0] < 0.25f)
+    {
+      uint32 tempA = indexA;
+      auto iter = visited.find(indexA);
+      if (iter == visited.end())
+      {
+        texA[0] += 1;
+        positions.push_back(positions[indexA]);
+        texCoords.push_back(texA);
+        vertexIndex++;
+        visited[indexA] = vertexIndex;
+        tempA = vertexIndex;
+      }
+      indexA = tempA;
+    }
+
+    if (texB[0] < 0.25f)
+    {
+      uint32 tempB = indexB;
+      auto iter = visited.find(indexB);
+      if (iter == visited.end())
+      {
+        texB[0] += 1;
+        positions.push_back(positions[indexB]);
+        texCoords.push_back(texB);
+        vertexIndex++;
+        visited[indexB] = vertexIndex;
+        tempB = vertexIndex;
+      }
+      indexB = tempB;
+    }
+
+    if (texC[0] < 0.25f)
+    {
+      uint32 tempC = indexC;
+      auto iter = visited.find(indexC);
+      if (iter == visited.end())
+      {
+        texC[0] += 1;
+        positions.push_back(positions[indexC]);
+        texCoords.push_back(texC);
+        vertexIndex++;
+        visited[indexC] = vertexIndex;
+        tempC = vertexIndex;
+      }
+      indexC = tempC;
+    }
+    _indices[i] = indexA;
+    _indices[i + 1] = indexB;
+    _indices[i + 2] = indexC;
+  }
+  _positions = positions;
+  _texCoords = texCoords;
+}
+
+std::vector<uint32> Icosphere::GetWrappedTexCoords()
+{
+  std::vector<uint32> indices;
+  for (size_t i = 0; i < _indices.size(); i += 3)
+  {
+    Vector3 texA(_texCoords[_indices[i]], 0.0f);
+    Vector3 texB(_texCoords[_indices[i + 1]], 0.0f);
+    Vector3 texC(_texCoords[_indices[i + 2]], 0.0f);
+    Vector3 texNormal = Vector3::Cross(texC - texA, texB - texA);
+    if (texNormal[2] < 0)
+    {
+      indices.push_back(static_cast<uint32>(i));
+      indices.push_back(static_cast<uint32>(i + 1));
+      indices.push_back(static_cast<uint32>(i + 2));
+    }
+  }
+  return indices;
 }

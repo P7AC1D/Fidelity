@@ -1,8 +1,46 @@
 #include "Texture.h"
 
+#include "OpenGL.h"
+
 namespace Rendering
 {
 static uint32 ActiveTexture = -1;
+
+GLenum WrapMethod(TextureWrapMethod wrapMethod)
+{
+  switch (wrapMethod)
+  {
+    case TextureWrapMethod::ClampToEdge: return GL_CLAMP_TO_EDGE;
+    case TextureWrapMethod::ClampToBorder: return GL_CLAMP_TO_BORDER;
+    case TextureWrapMethod::MirrorRepeat: return GL_MIRRORED_REPEAT;
+    case TextureWrapMethod::Repeat: return GL_REPEAT;
+    default: return GL_CLAMP_TO_BORDER;
+  }
+}
+
+GLenum MagFilter(TextureMagFilter magFilter)
+{
+  switch (magFilter)
+  {
+    case TextureMagFilter::Nearest: return GL_NEAREST;
+    case TextureMagFilter::Linear: return GL_LINEAR;
+    default: return GL_NEAREST;
+  }
+}
+
+GLenum MinFilter(TextureMinFilter minFilter)
+{
+  switch (minFilter)
+  {
+    case TextureMinFilter::Nearest: return GL_NEAREST;
+    case TextureMinFilter::Linear: return GL_LINEAR;
+    case TextureMinFilter::NearestMipmapNearest: return GL_NEAREST_MIPMAP_NEAREST;
+    case TextureMinFilter::NearestMipmapLinear: return GL_NEAREST_MIPMAP_LINEAR;
+    case TextureMinFilter::LinearMipmapNearest: return GL_LINEAR_MIPMAP_NEAREST;
+    case TextureMinFilter::LinearMipmapLinear: return GL_LINEAR_MIPMAP_LINEAR;
+    default: return GL_NEAREST;
+  }
+}
 
 Texture::Texture(PixelFormat format, uint32 width, uint32 height) :
   Texture(format, width, height, nullptr)
@@ -55,20 +93,20 @@ Texture::~Texture()
 void Texture::SetMinFilter(TextureMinFilter filter)
 {
   Bind();
-  GLCall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, static_cast<int32>(filter)));
+  GLCall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, MinFilter(filter)));
 }
 
 void Texture::SetMagFilter(TextureMagFilter filter)
 {
   Bind();
-  GLCall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, static_cast<int32>(filter)));
+  GLCall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, MagFilter(filter)));
 }
 
 void Texture::SetWrapMethod(TextureWrapMethod method)
 {
   Bind();
-  GLCall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, static_cast<int32>(method)));
-  GLCall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, static_cast<int32>(method)));
+  GLCall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, WrapMethod(method)));
+  GLCall(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, WrapMethod(method)));
 }
 
 void Texture::BindToTextureSlot(uint32 slot)
