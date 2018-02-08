@@ -259,7 +259,7 @@ void Renderer::ExecuteGeometryPass()
   auto shader = _shaderCollection->GetShader<GeometryPassShader>();
   shader->SetTransformsUniformbuffer(_cameraBuffer);
   for (auto& renderable : _renderables)
-  {
+  {    
     auto meshCount = renderable.Renderable->GetMeshCount();
     for (size_t i = 0; i < meshCount; i++)
     {

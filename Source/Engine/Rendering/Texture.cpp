@@ -112,7 +112,7 @@ void Texture::SetWrapMethod(TextureWrapMethod method)
 void Texture::BindToTextureSlot(uint32 slot)
 {
   GLCall(glActiveTexture(GL_TEXTURE0 + slot));
-  GLCall(glBindTexture(GL_TEXTURE_2D, _id));
+  Bind();
 }
 
 void Texture::Bind() const

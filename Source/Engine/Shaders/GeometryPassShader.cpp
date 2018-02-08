@@ -46,13 +46,27 @@ void GeometryPassShader::SetMaterialProperties(const Rendering::Material& materi
   {
     SetDiffuseMap(material.GetTexture("DiffuseMap"));
   }
+  else
+  {
+    _diffuseMap.reset();
+  }
+
   if (material.HasTexture("NormalMap"))
   {
     SetNormalMap(material.GetTexture("NormalMap"));
   }
+  else
+  {
+    _normalMap.reset();
+  }
+
   if (material.HasTexture("SpecularMap"))
   {
     SetSpecularMap(material.GetTexture("SpecularMap"));
+  }
+  else
+  {
+    _specularMap.reset();
   }
 }
 
@@ -64,7 +78,6 @@ void GeometryPassShader::SetTransformsUniformbuffer(std::weak_ptr<ConstantBuffer
 void GeometryPassShader::Apply()
 {
   Bind();
-  
   SetVec3(DiffuseColourUniformName, _diffuseColour.ToVec3());
   SetMat4(ModelTransformUniformName, _modelTransform);
 
@@ -74,12 +87,20 @@ void GeometryPassShader::Apply()
     SetInt(DiffuseMapSamplerUniformName, DiffuseMapTextureSlot);
     SetBool(DiffuseMappingEnabled, true);
   }
+  else
+  {
+    SetBool(DiffuseMappingEnabled, false);
+  }
 
   if (!_normalMap.expired())
   {
     _normalMap.lock()->BindToTextureSlot(NormalMapTextureSlot);
     SetInt(NormalMapSamplerUniformName, NormalMapTextureSlot);
     SetBool(NormalMappingEnabled, true);
+  }
+  else
+  {
+    SetBool(NormalMappingEnabled, false);
   }
 
   if (!_specularMap.expired())
@@ -88,11 +109,15 @@ void GeometryPassShader::Apply()
     SetInt(SpecularMapSamplerUniformName, SpecularMapTextureSlot);
     SetBool(SpecularMappingEnabled, true);
   }
+  else
+  {
+    SetBool(SpecularMappingEnabled, false);
+  }
 
   if (!_transformsBuffer.expired())
   {
     BindUniformBlock(GetUniformBlockIndex(TransformsUniformBufferName), TransformsUniformBufferBindingPoint, _transformsBuffer.lock()->GetId());
-  }  
+  }
 }
 
 void GeometryPassShader::SetDiffuseColour(const Colour& colour)

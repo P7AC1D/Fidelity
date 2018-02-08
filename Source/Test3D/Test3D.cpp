@@ -89,10 +89,19 @@ void Test3D::OnStart()
     }
   }*/
 
-  auto& sphereNode = _sceneManager->CreateObject("floor");
-  auto sphere = MeshFactory::CreateIcosphere(3);
-  auto& sphereMaterial = sphere->GetMaterial();
+  auto& sphereANode = _sceneManager->CreateObject("sphereA");
+  auto sphereA = MeshFactory::CreateIcosphere(3);
   auto diffuseMap = _assetManager->GetTexture("/Textures/brick_floor_tileable_Base_Color.jpg");
+  diffuseMap->SetWrapMethod(TextureWrapMethod::Repeat);
+  sphereA->GetMaterial().SetTexture("DiffuseMap", diffuseMap);
+  std::shared_ptr<Renderable> sphereModelA(new Renderable);
+  sphereModelA->PushMesh(*sphereA);
+  sphereANode.AttachRenderable(sphereModelA);
+  sphereANode.GetTransform()->Translate(Vector3(2.0f, 0.0f, 0.0f));
+
+  auto& sphereBNode = _sceneManager->CreateObject("sphereB");
+  auto sphereB = MeshFactory::CreateIcosphere(3);
+  auto& sphereMaterial = sphereB->GetMaterial();
   auto normalMap = _assetManager->GetTexture("/Textures/brick_floor_tileable_Normal.jpg");
   auto specularMap = _assetManager->GetTexture("/Textures/brick_floor_tileable_Glossiness.jpg");
   diffuseMap->SetWrapMethod(TextureWrapMethod::Repeat);
@@ -101,9 +110,10 @@ void Test3D::OnStart()
   sphereMaterial.SetTexture("DiffuseMap", diffuseMap);
   sphereMaterial.SetTexture("NormalMap", normalMap);
   sphereMaterial.SetTexture("SpecularMap", specularMap);
-  std::shared_ptr<Renderable> sphereModel(new Renderable);
-  sphereModel->PushMesh(*sphere);
-  sphereNode.AttachRenderable(sphereModel);
+  std::shared_ptr<Renderable> sphereModelB(new Renderable);
+  sphereModelB->PushMesh(*sphereB);
+  sphereBNode.AttachRenderable(sphereModelB);
+  sphereBNode.GetTransform()->Translate(Vector3(-2.0f, 0.0f, 0.0f));
 
   /*auto& cubeNode = _sceneManager->CreateObject("cube");
   auto cubeMesh = MeshFactory::CreateCube();
