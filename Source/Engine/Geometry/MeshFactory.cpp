@@ -204,5 +204,6 @@ std::shared_ptr<Rendering::StaticMesh> MeshFactory::CreateIcosphere(uint32 recur
   mesh->SetTextureVertexData(icosphere.GetTexCoords());
   mesh->SetIndexData(icosphere.GetIndices());
   mesh->GenerateNormals();
+  mesh->GenerateTangents();
   return mesh;
 }

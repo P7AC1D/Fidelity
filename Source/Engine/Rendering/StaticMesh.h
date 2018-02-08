@@ -32,6 +32,8 @@ public:
   void SetPositionVertexData(const std::vector<Vector3>& positionData);
   void SetNormalVertexData(const std::vector<Vector3>& normalData);
   void SetTextureVertexData(const std::vector<Vector2>& textureData);
+  void SetTangentVertexData(const std::vector<Vector3>& tangentData);
+  void SetBitangentVertexData(const std::vector<Vector3>& bitangentData);
   void SetIndexData(const std::vector<uint32>& indexData);
 
   inline const std::vector<Vector3>& GetPositionVertexData() { return _positionData; }
@@ -44,6 +46,7 @@ public:
   inline uint32 GetIndexCount() const { return _indexCount; }
 
   void CalculateTangents(const std::vector<Vector3>& positionData, const std::vector<Vector2>& textureData);
+  void GenerateTangents();
   void GenerateNormals();
 
   Material& GetMaterial();

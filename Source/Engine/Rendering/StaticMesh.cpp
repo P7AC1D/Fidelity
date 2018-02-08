@@ -47,6 +47,36 @@ void StaticMesh::SetNormalVertexData(const std::vector<Vector3>& normalData)
   _vertexDataFormat |= VertexDataFormat::Normal;
   _isDirty = true;
 }
+  
+void StaticMesh::SetTangentVertexData(const std::vector<Vector3>& tangentData)
+{
+  auto vertexCount = static_cast<int32>(tangentData.size());
+  if (vertexCount == 0)
+  {
+    return;
+  }
+  
+  _vertexCount = _vertexCount >= vertexCount || _vertexCount == 0 ? vertexCount : _vertexCount;
+  
+  _tangentData = tangentData;
+  _vertexDataFormat |= VertexDataFormat::Tangent;
+  _isDirty = true;
+}
+  
+void StaticMesh::SetBitangentVertexData(const std::vector<Vector3>& bitangentData)
+{
+  auto vertexCount = static_cast<int32>(bitangentData.size());
+  if (vertexCount == 0)
+  {
+    return;
+  }
+  
+  _vertexCount = _vertexCount >= vertexCount || _vertexCount == 0 ? vertexCount : _vertexCount;
+  
+  _bitangentData = bitangentData;
+  _vertexDataFormat |= VertexDataFormat::Bitanget;
+  _isDirty = true;
+}
 
 void StaticMesh::SetTextureVertexData(const std::vector<Vector2>& textureData)
 {
@@ -75,6 +105,69 @@ void StaticMesh::SetIndexData(const std::vector<uint32>& indexData)
   _indexData = indexData;
   _isDirty = true;
   _indexed = true;
+}
+  
+void StaticMesh::GenerateTangents()
+{
+  if (_positionData.empty() && _textureData.empty())
+  {
+    return;
+  }
+  
+  if (_indexed)
+  {
+    std::vector<Vector3> tangents(_positionData.size());
+    std::vector<Vector3> bitangents(_positionData.size());
+    
+    // TODO: improve this using vectors instead of floats
+    for (size_t i = 0; i < _indexData.size(); i++)
+    {
+      Vector3 posA = _positionData[_indexData[i]];
+      Vector3 posB = _positionData[_indexData[i + 1]];
+      Vector3 posC = _positionData[_indexData[i + 2]];
+      
+      Vector2 texA = _textureData[_indexData[i]];
+      Vector2 texB = _textureData[_indexData[i + 1]];
+      Vector2 texC = _textureData[_indexData[i + 2]];
+      
+      Vector3 edgeA = posB - posA;
+      Vector3 edgeB = posC - posA;
+      
+      float32 deltaUA = texB[0] - texA[0];
+      float32 deltaVA = texB[1] - texA[1];
+      float32 deltaUB = texC[0] - texA[0];
+      float32 deltaVB = texC[1] - texA[1];
+      
+      float32 f = 1.0f / (deltaUA * deltaVA - deltaUB * deltaVB);
+      
+      Vector3 tangent;
+      tangent[0] = f * (deltaVB * edgeA[0] - deltaVA * edgeB[0]);
+      tangent[1] = f * (deltaVB * edgeA[1] - deltaVA * edgeB[1]);
+      tangent[2] = f * (deltaVB * edgeA[2] - deltaVA * edgeB[2]);
+      
+      Vector3 bitangent;
+      bitangent[0] = f * (-deltaUB * edgeA[0] - deltaUA * edgeB[0]);
+      bitangent[1] = f * (-deltaUB * edgeA[1] - deltaUA * edgeB[1]);
+      bitangent[2] = f * (-deltaUB * edgeA[2] - deltaUA * edgeB[2]);
+      
+      tangents[_indexData[i]] += tangent;
+      tangents[_indexData[i + 1]] += tangent;
+      tangents[_indexData[i + 2]] += tangent;
+      
+      bitangents[_indexData[i]] += bitangent;
+      bitangents[_indexData[i + 1]] += bitangent;
+      bitangents[_indexData[i + 2]] += bitangent;
+    }
+    
+    for (size_t i = 0; i < _positionData.size(); i++)
+    {
+      tangents[i] = Vector3::Normalize(_tangentData[i]);
+      bitangents[i] = Vector3::Normalize(_bitangentData[i]);
+    }
+    
+    SetTangentVertexData(tangents);
+    SetBitangentVertexData(bitangents);
+  }
 }
 
 void StaticMesh::CalculateTangents(const std::vector<Vector3>& positionData, const std::vector<Vector2>& textureData)
