@@ -102,6 +102,17 @@ void Test3D::OnStart()
   sphereModel->PushMesh(*sphere);
   sphereNode.AttachRenderable(sphereModel);
 
+  /*auto& cubeNode = _sceneManager->CreateObject("cube");
+  auto cubeMesh = MeshFactory::CreateCube();
+  auto& cubeMaterial = cubeMesh->GetMaterial();
+  auto diffuseMap = _assetManager->GetTexture("/Textures/brickwall.jpg");
+  auto normalMap = _assetManager->GetTexture("/Textures/brickwall_normal.jpg");
+  cubeMaterial.SetTexture("DiffuseMap", diffuseMap);
+  cubeMaterial.SetTexture("NormalMap", normalMap);
+  std::shared_ptr<Renderable> cubeModel(new Renderable);
+  cubeModel->PushMesh(*cubeMesh);
+  cubeNode.AttachRenderable(cubeModel);*/
+
   _light = &_sceneManager->CreateLight(LightType::Directional);
   _light->SetColour(Colour(255, 240, 170));
 

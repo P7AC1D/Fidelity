@@ -8,6 +8,7 @@
 using namespace Rendering;
 
 static const byte* DiffuseMappingEnabled = "u_diffuseMappingEnabled";
+static const byte* NormalMappingEnabled = "u_normalMappingEnabled";
 static const byte* DiffuseColourUniformName = "u_material.DiffuseColour";
 static const byte* DiffuseMapSamplerUniformName = "u_material.DiffuseMap";
 static const byte* NormalMapSamplerUniformName = "u_material.NormalMap";
@@ -65,6 +66,13 @@ void GeometryPassShader::Apply()
     _diffuseMap.lock()->BindToTextureSlot(DiffuseMapTextureSlot);
     SetInt(DiffuseMapSamplerUniformName, DiffuseMapTextureSlot);
     SetBool(DiffuseMappingEnabled, true);
+  }
+
+  if (!_normalMap.expired())
+  {
+    _normalMap.lock()->BindToTextureSlot(NormalMapTextureSlot);
+    SetInt(NormalMapSamplerUniformName, NormalMapTextureSlot);
+    SetBool(NormalMappingEnabled, true);
   }
 
   if (!_transformsBuffer.expired())

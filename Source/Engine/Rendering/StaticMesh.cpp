@@ -120,35 +120,34 @@ void StaticMesh::GenerateTangents()
     std::vector<Vector3> bitangents(_positionData.size());
     
     // TODO: improve this using vectors instead of floats
-    for (size_t i = 0; i < _indexData.size(); i++)
+    for (size_t i = 0; i < _indexData.size(); i += 3)
     {
-      Vector3 posA = _positionData[_indexData[i]];
-      Vector3 posB = _positionData[_indexData[i + 1]];
-      Vector3 posC = _positionData[_indexData[i + 2]];
+      Vector3 p0 = _positionData[_indexData[i]];
+      Vector3 p1 = _positionData[_indexData[i + 1]];
+      Vector3 p2 = _positionData[_indexData[i + 2]];
       
-      Vector2 texA = _textureData[_indexData[i]];
-      Vector2 texB = _textureData[_indexData[i + 1]];
-      Vector2 texC = _textureData[_indexData[i + 2]];
+      Vector2 uv0 = _textureData[_indexData[i]];
+      Vector2 uv1 = _textureData[_indexData[i + 1]];
+      Vector2 uv2 = _textureData[_indexData[i + 2]];
       
-      Vector3 edgeA = posB - posA;
-      Vector3 edgeB = posC - posA;
-      
-      float32 deltaUA = texB[0] - texA[0];
-      float32 deltaVA = texB[1] - texA[1];
-      float32 deltaUB = texC[0] - texA[0];
-      float32 deltaVB = texC[1] - texA[1];
-      
-      float32 f = 1.0f / (deltaUA * deltaVA - deltaUB * deltaVB);
+      Vector3 q0 = p1 - p0;
+      Vector3 q1 = p2 - p0;
+
+      Vector3 s = uv1 - uv0;
+      Vector3 t = uv2 - uv0;
       
       Vector3 tangent;
-      tangent[0] = f * (deltaVB * edgeA[0] - deltaVA * edgeB[0]);
-      tangent[1] = f * (deltaVB * edgeA[1] - deltaVA * edgeB[1]);
-      tangent[2] = f * (deltaVB * edgeA[2] - deltaVA * edgeB[2]);
-      
       Vector3 bitangent;
-      bitangent[0] = f * (-deltaUB * edgeA[0] - deltaUA * edgeB[0]);
-      bitangent[1] = f * (-deltaUB * edgeA[1] - deltaUA * edgeB[1]);
-      bitangent[2] = f * (-deltaUB * edgeA[2] - deltaUA * edgeB[2]);
+      float32 demon = (s[0] * t[1] - t[0] * s[1]);
+      if (std::fabsf(demon) >= 0e8f)
+      {
+        float32 f = 1.0f / demon;
+        s *= f;
+        t *= f;
+
+        tangent = t[1] * q0 - s[1] * q1;
+        bitangent = s[0] * q1 - t[0] * q0;
+      }
       
       tangents[_indexData[i]] += tangent;
       tangents[_indexData[i + 1]] += tangent;
@@ -161,8 +160,8 @@ void StaticMesh::GenerateTangents()
     
     for (size_t i = 0; i < _positionData.size(); i++)
     {
-      tangents[i] = Vector3::Normalize(_tangentData[i]);
-      bitangents[i] = Vector3::Normalize(_bitangentData[i]);
+      tangents[i] = Vector3::Normalize(tangents[i]);
+      bitangents[i] = Vector3::Normalize(bitangents[i]);
     }
     
     SetTangentVertexData(tangents);
@@ -290,6 +289,10 @@ std::vector<float32> StaticMesh::CreateRestructuredVertexDataArray(int32& stride
   {
     stride += 3 * sizeof(float32);
   }
+  if (_vertexDataFormat & VertexDataFormat::Uv)
+  {
+    stride += 2 * sizeof(float32);
+  }
   if (_vertexDataFormat & VertexDataFormat::Tangent)
   {
     stride += 3 * sizeof(float32);
@@ -298,10 +301,7 @@ std::vector<float32> StaticMesh::CreateRestructuredVertexDataArray(int32& stride
   {
     stride += 3 * sizeof(float32);
   }
-  if (_vertexDataFormat & VertexDataFormat::Uv)
-  {
-    stride += 2 * sizeof(float32);
-  }
+
 
   for (int i = 0; i < _vertexCount; ++i)
   {
@@ -317,6 +317,11 @@ std::vector<float32> StaticMesh::CreateRestructuredVertexDataArray(int32& stride
       restructuredData.push_back(_normalData[i][1]);
       restructuredData.push_back(_normalData[i][2]);
     }
+    if (_vertexDataFormat & VertexDataFormat::Uv)
+    {
+      restructuredData.push_back(_textureData[i][0]);
+      restructuredData.push_back(_textureData[i][1]);
+    }
     if (_vertexDataFormat & VertexDataFormat::Tangent)
     {
       restructuredData.push_back(_tangentData[i][0]);
@@ -328,11 +333,6 @@ std::vector<float32> StaticMesh::CreateRestructuredVertexDataArray(int32& stride
       restructuredData.push_back(_bitangentData[i][0]);
       restructuredData.push_back(_bitangentData[i][1]);
       restructuredData.push_back(_bitangentData[i][2]);
-    }
-    if (_vertexDataFormat & VertexDataFormat::Uv)
-    {
-      restructuredData.push_back(_textureData[i][0]);
-      restructuredData.push_back(_textureData[i][1]);
     }
   }
   restructuredData.shrink_to_fit();
@@ -350,6 +350,10 @@ std::vector<float32> StaticMesh::CreateVertexDataArray() const
   {
     dataSize += _normalData.size() * 3;
   }
+  if (_vertexDataFormat & VertexDataFormat::Uv)
+  {
+    dataSize += _textureData.size() * 2;
+  }
   if (_vertexDataFormat & VertexDataFormat::Tangent)
   {
     dataSize += _tangentData.size() * 3;
@@ -357,10 +361,6 @@ std::vector<float32> StaticMesh::CreateVertexDataArray() const
   if (_vertexDataFormat & VertexDataFormat::Bitanget)
   {
     dataSize += _bitangentData.size() * 3;
-  }
-  if (_vertexDataFormat & VertexDataFormat::Uv)
-  {
-    dataSize += _textureData.size() * 2;
   }
   std::vector<float32> vertexDataArray;
   vertexDataArray.reserve(dataSize);

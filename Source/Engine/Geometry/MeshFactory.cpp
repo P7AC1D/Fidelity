@@ -7,153 +7,20 @@
 #include "../Maths/Vector3.hpp"
 #include "../Rendering/Material.h"
 #include "../Rendering/StaticMesh.h"
+#include "Cube.hpp"
 #include "Icosphere.hpp"
 
 using namespace Rendering;
 
-static const std::vector<Vector3> s_cubePoints =
-{
-  Vector3(-0.5f, -0.5f, 0.5f),
-  Vector3(0.5f, -0.5f, 0.5f),
-  Vector3(-0.5f,  0.5f, 0.5f),
-  Vector3(0.5f,  -0.5f, 0.5f),
-  Vector3(0.5f,  0.5f, 0.5f),
-  Vector3(-0.5f,  0.5f, 0.5f),
-
-  Vector3(-0.5f, -0.5f, -0.5f),
-  Vector3(-0.5f, -0.5f, 0.5f),
-  Vector3(-0.5f,  0.5f, -0.5f),
-  Vector3(-0.5f,  -0.5f, 0.5f),
-  Vector3(-0.5f,  0.5f, 0.5f),
-  Vector3(-0.5f,  0.5f, -0.5f),
-
-  Vector3(-0.5f, 0.5f, 0.5f),
-  Vector3(0.5f, 0.5f, 0.5f),
-  Vector3(-0.5f,  0.5f, -0.5f),
-  Vector3(0.5f,  0.5f, 0.5f),
-  Vector3(0.5f,  0.5f, -0.5f),
-  Vector3(-0.5f,  0.5f, -0.5f),
-
-  Vector3(0.5f, -0.5f, 0.5f),
-  Vector3(0.5f, -0.5f, -0.5f),
-  Vector3(0.5f,  0.5f, 0.5f),
-  Vector3(0.5f,  -0.5f, -0.5f),
-  Vector3(0.5f,  0.5f, -0.5f),
-  Vector3(0.5f,  0.5f, 0.5f),
-
-  Vector3(0.5f, -0.5f, -0.5f),
-  Vector3(-0.5f, -0.5f, -0.5f),
-  Vector3(0.5f,  0.5f, -0.5f),
-  Vector3(-0.5f,  -0.5f, -0.5f),
-  Vector3(-0.5f,  0.5f, -0.5f),
-  Vector3(0.5f,  0.5f, -0.5f),
-
-  Vector3(-0.5f, -0.5f, -0.5f),
-  Vector3(0.5f, -0.5f, -0.5f),
-  Vector3(-0.5f,  -0.5f, 0.5f),
-  Vector3(0.5f,  -0.5f, -0.5f),
-  Vector3(0.5f,  -0.5f, 0.5f),
-  Vector3(-0.5f,  -0.5f, 0.5f),
-};
-
-static const std::vector<Vector3> s_cubeNormals =
-{
-  Vector3(0.0f, 0.0f, 1.0f),
-  Vector3(0.0f, 0.0f, 1.0f),
-  Vector3(0.0f, 0.0f, 1.0f),
-  Vector3(0.0f, 0.0f, 1.0f),
-  Vector3(0.0f, 0.0f, 1.0f),
-  Vector3(0.0f, 0.0f, 1.0f),
-
-  Vector3(-1.0f, 0.0f, 0.0f),
-  Vector3(-1.0f, 0.0f, 0.0f),
-  Vector3(-1.0f, 0.0f, 0.0f),
-  Vector3(-1.0f, 0.0f, 0.0f),
-  Vector3(-1.0f, 0.0f, 0.0f),
-  Vector3(-1.0f, 0.0f, 0.0f),
-
-  Vector3(0.0f, 1.0f, 0.0f),
-  Vector3(0.0f, 1.0f, 0.0f),
-  Vector3(0.0f, 1.0f, 0.0f),
-  Vector3(0.0f, 1.0f, 0.0f),
-  Vector3(0.0f, 1.0f, 0.0f),
-  Vector3(0.0f, 1.0f, 0.0f),
-
-  Vector3(1.0f, 0.0f, 0.0f),
-  Vector3(1.0f, 0.0f, 0.0f),
-  Vector3(1.0f, 0.0f, 0.0f),
-  Vector3(1.0f, 0.0f, 0.0f),
-  Vector3(1.0f, 0.0f, 0.0f),
-  Vector3(1.0f, 0.0f, 0.0f),
-
-  Vector3(0.0f, 0.0f, -1.0f),
-  Vector3(0.0f, 0.0f, -1.0f),
-  Vector3(0.0f, 0.0f, -1.0f),
-  Vector3(0.0f, 0.0f, -1.0f),
-  Vector3(0.0f, 0.0f, -1.0f),
-  Vector3(0.0f, 0.0f, -1.0f),
-
-  Vector3(0.0f, -1.0f, 0.0f),
-  Vector3(0.0f, -1.0f, 0.0f),
-  Vector3(0.0f, -1.0f, 0.0f),
-  Vector3(0.0f, -1.0f, 0.0f),
-  Vector3(0.0f, -1.0f, 0.0f),
-  Vector3(0.0f, -1.0f, 0.0f)
-};
-
-static const std::vector<Vector2> s_cubeUvs =
-{
-  Vector2(0.0f, 0.0f),
-  Vector2(1.0f, 0.0f),
-  Vector2(0.0f, 1.0f),
-  Vector2(1.0f, 0.0f),
-  Vector2(1.0f, 1.0f),
-  Vector2(0.0f, 1.0f),
-
-  Vector2(0.0f, 0.0f),
-  Vector2(1.0f, 0.0f),
-  Vector2(0.0f, 1.0f),
-  Vector2(1.0f, 0.0f),
-  Vector2(1.0f, 1.0f),
-  Vector2(0.0f, 1.0f),
-
-  Vector2(0.0f, 0.0f),
-  Vector2(1.0f, 0.0f),
-  Vector2(0.0f, 1.0f),
-  Vector2(1.0f, 0.0f),
-  Vector2(1.0f, 1.0f),
-  Vector2(0.0f, 1.0f),
-
-  Vector2(0.0f, 0.0f),
-  Vector2(1.0f, 0.0f),
-  Vector2(0.0f, 1.0f),
-  Vector2(1.0f, 0.0f),
-  Vector2(1.0f, 1.0f),
-  Vector2(0.0f, 1.0f),
-
-  Vector2(0.0f, 0.0f),
-  Vector2(1.0f, 0.0f),
-  Vector2(0.0f, 1.0f),
-  Vector2(1.0f, 0.0f),
-  Vector2(1.0f, 1.0f),
-  Vector2(0.0f, 1.0f),
-
-  Vector2(0.0f, 0.0f),
-  Vector2(1.0f, 0.0f),
-  Vector2(0.0f, 1.0f),
-  Vector2(1.0f, 0.0f),
-  Vector2(1.0f, 1.0f),
-  Vector2(0.0f, 1.0f),
-};
-
 std::shared_ptr<StaticMesh> MeshFactory::CreateCube()
 {
+  Cube cube;
   auto mesh = std::make_shared<StaticMesh>("Cube");
-  mesh->SetPositionVertexData(s_cubePoints);
-  mesh->SetNormalVertexData(s_cubeNormals);
-  mesh->SetTextureVertexData(s_cubeUvs);
-
-  mesh->CalculateTangents(s_cubePoints, s_cubeUvs);
+  mesh->SetPositionVertexData(cube.GetPositions());
+  mesh->SetTextureVertexData(cube.GetTexCoords());
+  mesh->SetIndexData(cube.GetIndices());
+  mesh->GenerateNormals();
+  mesh->GenerateTangents();
   return mesh;
 }
 

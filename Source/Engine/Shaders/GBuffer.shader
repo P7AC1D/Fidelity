@@ -26,9 +26,12 @@ uniform Material u_material;
 layout(location = 0) in vec3 a_position;
 layout(location = 1) in vec3 a_normal;
 layout(location = 2) in vec2 a_texCoords;
+layout(location = 3) in vec3 a_tangent;
+layout(location = 4) in vec3 a_bitangent;
 
 out VSOut
 {
+  mat3 Tbn;
   vec4 Position;
   vec4 Normal;
   vec2 TexCoords;
@@ -36,6 +39,11 @@ out VSOut
 
 void main()
 {
+  vec3 t = normalize(vec3(u_model * vec4(a_tangent, 0.0f)));
+  vec3 b = normalize(vec3(u_model * vec4(a_bitangent, 0.0f)));
+  vec3 n = normalize(vec3(u_model * vec4(a_normal, 0.0f)));
+
+  vsOut.Tbn = mat3(t, b, n);
   vsOut.Position = u_model * vec4(a_position, 1.0f);
   vsOut.Normal = u_model * vec4(a_normal, 0.0f);
   vsOut.TexCoords = a_texCoords;
@@ -46,6 +54,7 @@ void main()
 #ifdef FRAGMENT_SHADER
 in VSOut
 {
+  mat3 Tbn;
   vec4 Position;
   vec4 Normal;
   vec2 TexCoords;
@@ -65,8 +74,10 @@ void main()
 
   if (u_normalMappingEnabled)
   {
-    vec4 normal = texture(u_material.NormalMap, fsIn.TexCoords);
-    o_gNormal = normalize(normal * 2.0f - 1.0f);
+    vec3 normalSample = texture(u_material.NormalMap, fsIn.TexCoords).rgb;
+    vec3 normal = normalSample * 2.0f - 1.0f;
+    vec3 normalWorld = normalize(fsIn.Tbn * normal);
+    o_gNormal = vec4(normalWorld, 0.0f);
   }
   else
   {

@@ -180,6 +180,18 @@ void Renderer::SetVertexAttribPointers(StaticMesh* staticMesh, int32 stride)
     GLCall(glVertexAttribPointer(uvLocation, 2, GL_FLOAT, GL_FALSE, stride, (void*)24));
     GLCall(glEnableVertexAttribArray(uvLocation));
   }
+  if (staticMesh->_vertexDataFormat & VertexDataFormat::Tangent)
+  {
+    auto uvLocation = static_cast<int32>(VertexArribLocation::Tangent);
+    GLCall(glVertexAttribPointer(uvLocation, 3, GL_FLOAT, GL_FALSE, stride, (void*)32));
+    GLCall(glEnableVertexAttribArray(uvLocation));
+  }
+  if (staticMesh->_vertexDataFormat & VertexDataFormat::Bitanget)
+  {
+    auto uvLocation = static_cast<int32>(VertexArribLocation::Bitangent);
+    GLCall(glVertexAttribPointer(uvLocation, 3, GL_FLOAT, GL_FALSE, stride, (void*)44));
+    GLCall(glEnableVertexAttribArray(uvLocation));
+  }
   GLCall(glBindVertexArray(0));
 }
   
