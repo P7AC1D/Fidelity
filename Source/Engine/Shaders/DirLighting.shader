@@ -116,7 +116,7 @@ void main()
   float shadowFactor = ShadowContribution(lightSpacePosition);
 
   float gamma = 2.2;
-  o_Colour = vec4((diffuse * u_lightColour) * shadowFactor * shadowFactor, 1.0f);
+  o_Colour = vec4((diffuse * u_lightColour) * shadowFactor * dirLightFactor, 1.0f);
   o_Colour.rgb = pow(o_Colour.rgb, vec3(1.0 / gamma));
 }
 #endif

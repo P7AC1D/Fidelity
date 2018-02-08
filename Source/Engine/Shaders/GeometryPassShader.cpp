@@ -9,13 +9,16 @@ using namespace Rendering;
 
 static const byte* DiffuseMappingEnabled = "u_diffuseMappingEnabled";
 static const byte* NormalMappingEnabled = "u_normalMappingEnabled";
+static const byte* SpecularMappingEnabled = "u_specularMappingEnabled";
 static const byte* DiffuseColourUniformName = "u_material.DiffuseColour";
 static const byte* DiffuseMapSamplerUniformName = "u_material.DiffuseMap";
 static const byte* NormalMapSamplerUniformName = "u_material.NormalMap";
+static const byte* SpecularMapSamplerUniformName = "u_material.SpecularMap";
 static const byte* ModelTransformUniformName = "u_model";
 static const byte* TransformsUniformBufferName = "Transforms";
 static const uint32 DiffuseMapTextureSlot = 0;
 static const uint32 NormalMapTextureSlot = 1;
+static const uint32 SpecularMapTextureSlot = 2;
 static const uint32 TransformsUniformBufferBindingPoint = 0;
 
 GeometryPassShader::GeometryPassShader():
@@ -47,6 +50,10 @@ void GeometryPassShader::SetMaterialProperties(const Rendering::Material& materi
   {
     SetNormalMap(material.GetTexture("NormalMap"));
   }
+  if (material.HasTexture("SpecularMap"))
+  {
+    SetSpecularMap(material.GetTexture("SpecularMap"));
+  }
 }
 
 void GeometryPassShader::SetTransformsUniformbuffer(std::weak_ptr<ConstantBuffer> transformsBuffer)
@@ -75,6 +82,13 @@ void GeometryPassShader::Apply()
     SetBool(NormalMappingEnabled, true);
   }
 
+  if (!_specularMap.expired())
+  {
+    _specularMap.lock()->BindToTextureSlot(SpecularMapTextureSlot);
+    SetInt(SpecularMapSamplerUniformName, SpecularMapTextureSlot);
+    SetBool(SpecularMappingEnabled, true);
+  }
+
   if (!_transformsBuffer.expired())
   {
     BindUniformBlock(GetUniformBlockIndex(TransformsUniformBufferName), TransformsUniformBufferBindingPoint, _transformsBuffer.lock()->GetId());
@@ -98,4 +112,9 @@ void GeometryPassShader::SetDiffuseMap(std::weak_ptr<Texture> diffuseMap)
 void GeometryPassShader::SetNormalMap(std::weak_ptr<Rendering::Texture> normalMap)
 {
   _normalMap = normalMap;
+}
+
+void GeometryPassShader::SetSpecularMap(std::weak_ptr<Rendering::Texture> specularMap)
+{
+  _specularMap = specularMap;
 }

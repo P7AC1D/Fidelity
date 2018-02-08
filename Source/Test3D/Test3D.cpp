@@ -92,12 +92,15 @@ void Test3D::OnStart()
   auto& sphereNode = _sceneManager->CreateObject("floor");
   auto sphere = MeshFactory::CreateIcosphere(3);
   auto& sphereMaterial = sphere->GetMaterial();
-  auto diffuseMap = _assetManager->GetTexture("/Textures/brickwall.jpg");
-  auto normalMap = _assetManager->GetTexture("/Textures/brickwall_normal.jpg");
+  auto diffuseMap = _assetManager->GetTexture("/Textures/brick_floor_tileable_Base_Color.jpg");
+  auto normalMap = _assetManager->GetTexture("/Textures/brick_floor_tileable_Normal.jpg");
+  auto specularMap = _assetManager->GetTexture("/Textures/brick_floor_tileable_Glossiness.jpg");
   diffuseMap->SetWrapMethod(TextureWrapMethod::Repeat);
   normalMap->SetWrapMethod(TextureWrapMethod::Repeat);
+  specularMap->SetWrapMethod(TextureWrapMethod::Repeat);
   sphereMaterial.SetTexture("DiffuseMap", diffuseMap);
   sphereMaterial.SetTexture("NormalMap", normalMap);
+  sphereMaterial.SetTexture("SpecularMap", specularMap);
   std::shared_ptr<Renderable> sphereModel(new Renderable);
   sphereModel->PushMesh(*sphere);
   sphereNode.AttachRenderable(sphereModel);
