@@ -116,7 +116,7 @@ void GeometryPassShader::Apply()
 
   if (!_transformsBuffer.expired())
   {
-    BindUniformBlock(GetUniformBlockIndex(TransformsUniformBufferName), TransformsUniformBufferBindingPoint, _transformsBuffer.lock()->GetId());
+    BindUniformBlock(GetUniformBlockBindingPoint(TransformsUniformBufferName), TransformsUniformBufferBindingPoint, _transformsBuffer.lock()->GetId());
   }
 }
 

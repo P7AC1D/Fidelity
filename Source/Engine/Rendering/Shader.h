@@ -48,6 +48,17 @@ struct ShaderUniform
   uint32 Size;
 };
 
+struct ShaderUniformBlock
+{
+  ShaderUniformBlock(const std::string& name, uint32 bindingPoint):
+    Name(name),
+    BindingPoint(bindingPoint)
+  {}
+
+  std::string Name;
+  uint32 BindingPoint;
+};
+
 class Shader
 {
 public:
@@ -71,7 +82,7 @@ protected:
   void SetVec4Array(const std::string& uniformName, const std::vector<Vector4>& values);
 
   void BindUniformBlock(int32 location, int32 bindingPoint, int32 ubo);  
-  int32 GetUniformBlockIndex(const std::string& name);
+  int32 GetUniformBlockBindingPoint(const std::string& name);
 
   void Bind();
   void Unbind();
@@ -85,6 +96,7 @@ private:
   void AttachShaders(uint32 vertexShaderId, uint32 fragmentShaderId);
   void Link();
   void BuildUniformDeclaration();
+  void BuildUniformBufferDeclaration();
 
   int32 GetUniformLocation(const std::string& name);
 
@@ -92,6 +104,7 @@ private:
   uint32 _programId;
   std::string _fileName;  
   std::unordered_map<std::string, ShaderUniform> _uniforms;
+  std::unordered_map<std::string, ShaderUniformBlock> _uniformBlocks;
 
   friend class RenderApi;
 };

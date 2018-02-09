@@ -63,6 +63,7 @@ Shader::Shader(const std::string& fileName) :
   }
   LoadFromFile();
   BuildUniformDeclaration();
+  BuildUniformBufferDeclaration();
 }
 
 Shader::~Shader()
@@ -154,15 +155,16 @@ void Shader::BindUniformBlock(int32 location, int32 bindingPoint, int32 ubo)
   uniformBlocksBound.push_back(location);
 }
 
-int32 Shader::GetUniformBlockIndex(const std::string& name)
+int32 Shader::GetUniformBlockBindingPoint(const std::string& name)
 {
-  Bind();
-  int32 location = glGetUniformBlockIndex(_programId, name.c_str());
-  if (location < 0)
+  auto iter = _uniformBlocks.find(name);
+  if (iter == _uniformBlocks.end())
   {
-    // TODO: error handling
+    std::stringstream message;
+    message << "Could not find uniform block '" << name << "' for shader '" << _fileName << "'";
+    return -1;
   }
-  return location;
+  return iter->second.BindingPoint;
 }
 
 void Shader::Bind()
@@ -232,7 +234,7 @@ uint32 Shader::AttachSource(ShaderType shaderType, const std::string& shaderSour
   }
 
   const byte* ptr = shaderSource.c_str();
-  GLCall(glShaderSource(shaderId, 1, &ptr, nullptr));
+  GLCall(glShaderSource(shaderId, 1, &ptr, NULL));
 
   Compile(shaderId);
   return shaderId;
@@ -255,7 +257,7 @@ void Shader::Compile(uint32 shaderId)
     if (logLength > 0)
     {
       std::vector<byte> buffer(logLength);
-      GLCall(glGetShaderInfoLog(shaderId, logLength, nullptr, &buffer[0]));
+      GLCall(glGetShaderInfoLog(shaderId, logLength, NULL, &buffer[0]));
       std::string log(buffer.begin(), buffer.end());
       message << ": " << log;
     }
@@ -288,7 +290,7 @@ void Shader::Link()
     if (logLength > 0)
     {
       std::vector<char> buffer(logLength);
-      GLCall(glGetProgramInfoLog(_programId, logLength, nullptr, &buffer[0]));
+      GLCall(glGetProgramInfoLog(_programId, logLength, NULL, &buffer[0]));
       std::string log(buffer.begin(), buffer.end());
       message << ": " << log;
     }
@@ -307,9 +309,23 @@ void Shader::BuildUniformDeclaration()
     GLint size;
     GLenum type;
     GLchar name[255];
-    GLCall(glGetActiveUniform(_programId, i, 255, nullptr, &size, &type, name));
+    GLCall(glGetActiveUniform(_programId, i, 255, NULL, &size, &type, name));
     auto location = glGetUniformLocation(_programId, name);
     _uniforms.emplace(std::make_pair(name, ShaderUniform(location, size, ToShaderDataType(type), name)));
+  }
+}
+
+void Shader::BuildUniformBufferDeclaration()
+{
+  GLint activeUniformBlockCount = -1;
+  GLCall(glGetProgramiv(_programId, GL_ACTIVE_UNIFORM_BLOCKS, &activeUniformBlockCount));
+
+  for (GLint i = 0; i < activeUniformBlockCount; i++)
+  {
+    GLchar uniformBlockName[255];
+    GLCall(glGetActiveUniformBlockName(_programId, i, 255, NULL, uniformBlockName));
+    auto location = glGetUniformBlockIndex(_programId, uniformBlockName);
+    _uniformBlocks.emplace(std::make_pair(uniformBlockName, ShaderUniformBlock(uniformBlockName, location)));
   }
 }
 
