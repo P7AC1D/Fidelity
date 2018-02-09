@@ -3,20 +3,28 @@
 
 #include "../Core/Types.hpp"
 
-namespace Rendering
-{
+namespace Rendering {
 enum class PixelFormat
 {
+  /// 8-bit red channel as unsigned bytes.
   R8,
+  /// 8-bit red and green channels stored as unsigned bytes.
+  RG8,
+  /// 8-bit red, green and blue channels stored as unsigned bytes.
+  RGB8,
+  /// 8-bit red, green, blue and alpha channels stored as unsigned bytes.
+  RGBA8,
+  /// 16-bit red, green and blue channels stored as a signed floats.
   RGB16F,
-  RGB,
-  RGBA,
-  SRGB,
-  SRGBA,
-  Depth
+  /// 16-bit red, green, blue and alpha channels stored as a signed floats.
+  RGBA16F,
+  /// 32-bit depth channel stored as unsigned bytes.
+  D32,
+  /// 24-bit depth channel with an 8 bit stencil channel stored as unsigned bytes.
+  D24S8
 };
 
-enum class TextureMinFilter
+enum class MinFilter
 {
   Nearest,
   Linear,
@@ -26,13 +34,13 @@ enum class TextureMinFilter
   LinearMipmapLinear
 };
 
-enum class TextureMagFilter
+enum class MagFilter
 {
   Nearest,
   Linear
 };
 
-enum class TextureWrapMethod
+enum class WrapMethod
 {
   ClampToEdge,
   ClampToBorder,
@@ -40,32 +48,41 @@ enum class TextureWrapMethod
   Repeat
 };
 
+struct TextureDesc
+{
+  uint32 Height;
+  uint32 Width;
+  PixelFormat Format;
+  MinFilter MinFilter = MinFilter::Nearest;
+  MagFilter MagFilter = MagFilter::Nearest;
+  WrapMethod WrapMethod = WrapMethod::ClampToEdge;
+};
+
 class Texture
 {
 public:
-  Texture(PixelFormat format, uint32 width, uint32 height);
-  Texture(PixelFormat format, uint32 width, uint32 height, ubyte* data);
+  Texture(TextureDesc desc);
+  Texture(TextureDesc desc, ubyte* data);
   ~Texture();
 
-  void SetMinFilter(TextureMinFilter filter);
-  void SetMagFilter(TextureMagFilter filter);
-  void SetWrapMethod(TextureWrapMethod method);
+  inline const TextureDesc& GetDesc() const { return _desc; }
 
-  uint32 GetWidth() const { return _width; }
-  uint32 GetHeight() const { return _height; }
+  void SetWrapMethod(WrapMethod wrapMethod);
+  void SetMinFilter(MinFilter minFilter);
+  void SetMagFilter(MagFilter magFilter);
 
+  void GenerateMipMaps();
   void BindToTextureSlot(uint32 slot);
 
 private:
-  void Bind() const;
-  void Unbind() const;
-  bool IsBound() const;
+  void Intialize(ubyte* data);
+
+  void Bind();
+  void Unbind();
 
 private:
   uint32 _id;
-  PixelFormat _format;
-  uint32 _width;
-  uint32 _height;
+  TextureDesc _desc;
 
   friend class FrameBuffer;
   friend class Renderer;

@@ -21,7 +21,7 @@ public:
   AssetManager(std::string assetDirectory);
   ~AssetManager();
 
-  std::shared_ptr<Rendering::Texture> GetTexture(const std::string& textureName, bool gammaCorrection = false);
+  std::shared_ptr<Rendering::Texture> GetTexture(const std::string& textureName);
   std::shared_ptr<Rendering::CubeMap> GetCubeMap(const std::vector<std::string>& textureNames);
   std::shared_ptr<Rendering::Renderable> GetRenderable(const std::string& filePath, const std::string& fileName);
 
@@ -33,8 +33,7 @@ public:
   friend class ObjLoader;
 
 private:
-  std::shared_ptr<Rendering::Texture> GetTexture(const std::string& textureFullPath, const std::string& textureName, 
-                                                 bool gammaCorrection = false);
+  std::shared_ptr<Rendering::Texture> GetTexture(const std::string& textureFullPath, const std::string& textureName);
 
 private:
   std::string _assetDirectory;

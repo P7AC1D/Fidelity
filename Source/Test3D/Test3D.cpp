@@ -92,7 +92,7 @@ void Test3D::OnStart()
   auto& sphereANode = _sceneManager->CreateObject("sphereA");
   auto sphereA = MeshFactory::CreateIcosphere(3);
   auto diffuseMap = _assetManager->GetTexture("/Textures/brick_floor_tileable_Base_Color.jpg");
-  diffuseMap->SetWrapMethod(TextureWrapMethod::Repeat);
+  //diffuseMap->SetWrapMethod(WrapMethod::Repeat);
   sphereA->GetMaterial().SetTexture("DiffuseMap", diffuseMap);
   std::shared_ptr<Renderable> sphereModelA(new Renderable);
   sphereModelA->PushMesh(*sphereA);
@@ -104,9 +104,9 @@ void Test3D::OnStart()
   auto& sphereMaterial = sphereB->GetMaterial();
   auto normalMap = _assetManager->GetTexture("/Textures/brick_floor_tileable_Normal.jpg");
   auto specularMap = _assetManager->GetTexture("/Textures/brick_floor_tileable_Glossiness.jpg");
-  diffuseMap->SetWrapMethod(TextureWrapMethod::Repeat);
-  normalMap->SetWrapMethod(TextureWrapMethod::Repeat);
-  specularMap->SetWrapMethod(TextureWrapMethod::Repeat);
+  //diffuseMap->SetWrapMethod(WrapMethod::Repeat);
+  //normalMap->SetWrapMethod(WrapMethod::Repeat);
+  //specularMap->SetWrapMethod(WrapMethod::Repeat);
   sphereMaterial.SetTexture("DiffuseMap", diffuseMap);
   sphereMaterial.SetTexture("NormalMap", normalMap);
   sphereMaterial.SetTexture("SpecularMap", specularMap);

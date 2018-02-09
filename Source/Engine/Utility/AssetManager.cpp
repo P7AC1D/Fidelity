@@ -51,17 +51,15 @@ uint8* LoadFromFile(const std::string& filePath, int32& widthOut, int32& heightO
   return imageData;
 }
 
-PixelFormat CalculateTextureFormat(int32 nChannels, bool gammaCorrection)
+PixelFormat CalculateTextureFormat(int32 nChannels)
 {
   switch (nChannels)
   {
-  case 4:
-    return gammaCorrection ? PixelFormat::SRGBA : PixelFormat::RGBA;
-  case 3:
-    return gammaCorrection ? PixelFormat::SRGB : PixelFormat::RGB;
-  case 1:
-    return PixelFormat::R8;
-  default: throw std::runtime_error("Unsupported texture format.");
+  case 4: return PixelFormat::RGBA8;
+  case 3: return PixelFormat::RGB8;
+  case 2: return PixelFormat::RG8;
+  case 1: return PixelFormat::R8;
+  default: return PixelFormat::RGBA8;
   }
 }
 
@@ -74,9 +72,9 @@ AssetManager::~AssetManager()
 {
 }
 
-std::shared_ptr<Texture> AssetManager::GetTexture(const std::string& textureName, bool gammaCorrection)
+std::shared_ptr<Texture> AssetManager::GetTexture(const std::string& textureName)
 {
-  return GetTexture(_assetDirectory, textureName, gammaCorrection);
+  return GetTexture(_assetDirectory, textureName);
 }
 
 std::shared_ptr<CubeMap> AssetManager::GetCubeMap(const std::vector<std::string>& textureNames)
@@ -121,8 +119,7 @@ std::shared_ptr<Renderable> AssetManager::GetRenderable(const std::string& fileP
 }
 
 std::shared_ptr<Rendering::Texture> AssetManager::GetTexture(const std::string& texturePath, 
-                                                             const std::string& textureName,
-                                                             bool gammaCorrection)
+                                                             const std::string& textureName)
 {
   auto fullPath = texturePath + textureName;
   auto iter = _textureCache.find(fullPath);
@@ -133,10 +130,11 @@ std::shared_ptr<Rendering::Texture> AssetManager::GetTexture(const std::string& 
     int32 nChannels = 0;
     ubyte* data = LoadFromFile(fullPath, width, height, nChannels);
 
-    std::shared_ptr<Texture> texture(new Texture(CalculateTextureFormat(nChannels, gammaCorrection), width, height, data));
-    texture->SetMinFilter(TextureMinFilter::Linear);
-    texture->SetMagFilter(TextureMagFilter::Linear);
-    texture->SetWrapMethod(TextureWrapMethod::ClampToEdge);
+    TextureDesc desc;
+    desc.Width = static_cast<uint32>(width);
+    desc.Height = static_cast<uint32>(height);
+    desc.Format = CalculateTextureFormat(nChannels);
+    std::shared_ptr<Texture> texture(new Texture(desc, data));
     _textureCache.emplace(fullPath, texture);
 
     delete[] data;

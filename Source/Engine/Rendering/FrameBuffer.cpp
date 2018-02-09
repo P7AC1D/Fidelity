@@ -20,31 +20,46 @@ FrameBuffer::FrameBuffer(uint32 width, uint32 height, uint32 target):
   uint32 colourBufferCount = 0;
   if (target & FrameBufferTarget::FBT_Colour0)
   {
-    _colourTexture0.reset(new Texture(PixelFormat::RGB16F, _width, _height));
+    TextureDesc desc;
+    desc.Width = _width;
+    desc.Height = _height;
+    desc.Format = PixelFormat::RGB16F;
+    _colourTexture0.reset(new Texture(desc));
     GLCall(glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, _colourTexture0->_id, 0));
     colourBufferCount++;
     attachments.push_back(GL_COLOR_ATTACHMENT0);
   }
   if (target & FrameBufferTarget::FBT_Colour1)
   {
-    _colourTexture1.reset(new Texture(PixelFormat::RGB16F, _width, _height));
+    TextureDesc desc;
+    desc.Width = _width;
+    desc.Height = _height;
+    desc.Format = PixelFormat::RGB16F;
+    _colourTexture1.reset(new Texture(desc));
     GLCall(glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, _colourTexture1->_id, 0));
     colourBufferCount++;
     attachments.push_back(GL_COLOR_ATTACHMENT1);
   }
   if (target & FrameBufferTarget::FBT_Colour2)
   {
-    _colourTexture2.reset(new Texture(PixelFormat::RGBA, _width, _height));
+    TextureDesc desc;
+    desc.Width = _width;
+    desc.Height = _height;
+    desc.Format = PixelFormat::RGB16F;
+    _colourTexture2.reset(new Texture(desc));
     GLCall(glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D, _colourTexture2->_id, 0));
     colourBufferCount++;
     attachments.push_back(GL_COLOR_ATTACHMENT2);
   }
   if (target & FrameBufferTarget::FBT_Depth)
   {
-    _depthTexture.reset(new Texture(PixelFormat::Depth, _width, _height));
+    TextureDesc desc;
+    desc.Width = _width;
+    desc.Height = _height;
+    desc.Format = PixelFormat::D32;
+    desc.WrapMethod = WrapMethod::ClampToEdge;
+    _depthTexture.reset(new Texture(desc));
     GLCall(glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, _depthTexture->_id, 0));
-
-    _depthTexture->SetWrapMethod(TextureWrapMethod::ClampToEdge);
   }
   if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
   {
