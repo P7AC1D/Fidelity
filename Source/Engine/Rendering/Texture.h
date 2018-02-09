@@ -73,7 +73,7 @@ public:
 
   void GenerateMipMaps();
   void BindToTextureSlot(uint32 slot);
-
+  
 private:
   void Intialize(ubyte* data);
 
@@ -84,7 +84,7 @@ private:
   uint32 _id;
   TextureDesc _desc;
 
-  friend class FrameBuffer;
+  friend class RenderTarget;
   friend class Renderer;
 };
 }

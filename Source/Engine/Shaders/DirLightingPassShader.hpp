@@ -7,8 +7,12 @@
 #include "../Maths/Matrix4.hpp"
 #include "../Maths/Vector2.hpp"
 #include "../Maths/Vector3.hpp"
-#include "../Rendering/FrameBuffer.h"
 #include "../Rendering/Shader.h"
+
+namespace Rendering {
+  class RenderTarget;
+  class Texture;
+}
 
 class DirLightingPassShader : public Rendering::Shader
 {
@@ -18,9 +22,9 @@ public:
 
   void SetViewDirection(const Vector3& viewDirection);
   void SetDirectionalLight(const Light& directionalLight);
-  void SetGeometryBuffer(std::shared_ptr<Rendering::FrameBuffer> gBuffer);
+  void SetGeometryBuffer(std::shared_ptr<Rendering::RenderTarget> gBuffer);
 
-  void SetDirLightDepthBuffer(std::shared_ptr<Rendering::FrameBuffer> depthBuffer);
+  void SetDirLightDepthBuffer(std::shared_ptr<Rendering::RenderTarget> depthBuffer);
   void SetLightSpaceTransform(const Matrix4& transform);
 
   void Apply();

@@ -2,6 +2,7 @@
 
 #include <cassert>
 
+#include "../Rendering/RenderTarget.hpp"
 #include "../Rendering/ShaderCollection.h"
 #include "../Rendering/Texture.h"
 
@@ -42,17 +43,17 @@ void DirLightingPassShader::SetDirectionalLight(const Light& directionalLight)
   _dirLightCol = directionalLight.GetColour();
 }
 
-void DirLightingPassShader::SetGeometryBuffer(std::shared_ptr<Rendering::FrameBuffer> gBuffer)
+void DirLightingPassShader::SetGeometryBuffer(std::shared_ptr<Rendering::RenderTarget> gBuffer)
 {
-  _gPosition = gBuffer->GetColourTexture0();
-  _gNormal = gBuffer->GetColourTexture1();
-  _gAlbedoSpec = gBuffer->GetColourTexture2();
+  _gPosition = gBuffer->GetColourBuffer(0);
+  _gNormal = gBuffer->GetColourBuffer(1);
+  _gAlbedoSpec = gBuffer->GetColourBuffer(2);
 }
 
-void DirLightingPassShader::SetDirLightDepthBuffer(std::shared_ptr<Rendering::FrameBuffer> depthBuffer)
+void DirLightingPassShader::SetDirLightDepthBuffer(std::shared_ptr<Rendering::RenderTarget> depthBuffer)
 {
-  _dirLightDepth = depthBuffer->GetDepthTexture();
-  _shadowTexelSize = Vector2(1.0f / depthBuffer->GetWidth(), 1.0f / depthBuffer->GetHeight());
+  _dirLightDepth = depthBuffer->GetDepthBuffer();
+  _shadowTexelSize = Vector2((1.0f / depthBuffer->GetDesc().Width), (1.0f / depthBuffer->GetDesc().Height));
 }
 
 void DirLightingPassShader::SetLightSpaceTransform(const Matrix4& transform)

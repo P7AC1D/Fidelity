@@ -22,7 +22,7 @@ namespace Rendering
 {
   class ConstantBuffer;
   class CubeMap;
-  class FrameBuffer;
+  class RenderTarget;
   class Shader;
   class ShaderCollection;
   class StaticMesh;
@@ -100,8 +100,8 @@ private:
   std::unique_ptr<VertexBuffer> _quadVertexData;
   std::unique_ptr<VertexBuffer> _skyBoxVertexData;
   
-  std::shared_ptr<FrameBuffer> _gBuffer;
-  std::shared_ptr<FrameBuffer> _depthBuffer;
+  std::shared_ptr<RenderTarget> _gBuffer;
+  std::shared_ptr<RenderTarget> _depthBuffer;
 
   int32 _renderWidth;
   int32 _renderHeight;

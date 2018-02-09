@@ -11,10 +11,10 @@
 #include "../Shaders/DirLightingPassShader.hpp"
 #include "ConstantBuffer.h"
 #include "CubeMap.h"
-#include "FrameBuffer.h"
 #include "Material.h"
 #include "OpenGL.h"
 #include "Renderable.hpp"
+#include "RenderTarget.hpp"
 #include "Shader.h"
 #include "ShaderCollection.h"
 #include "Texture.h"
@@ -111,8 +111,20 @@ bool Renderer::Initialize()
 
   _cameraBuffer.reset(new ConstantBuffer(144));
   _lightBuffer.reset(new ConstantBuffer(52));
-  _gBuffer.reset(new FrameBuffer(_renderWidth, _renderHeight, FBT_Colour0 | FBT_Colour1 | FBT_Colour2 | FBT_Depth));
-  _depthBuffer.reset(new FrameBuffer(_shadowResolution, _shadowResolution, FBT_Depth));
+
+  RenderTargetDesc gBufferDesc;
+  gBufferDesc.Width = _renderWidth;
+  gBufferDesc.Height = _renderHeight;
+  gBufferDesc.ColourBufferCount = 3;
+  gBufferDesc.EnableDepthBuffer = true;
+  _gBuffer.reset(new RenderTarget(gBufferDesc));
+
+  RenderTargetDesc dirDepthBufferDesc;
+  dirDepthBufferDesc.Width = _shadowResolution;
+  dirDepthBufferDesc.Height = _shadowResolution;
+  dirDepthBufferDesc.ColourBufferCount = 0;
+  dirDepthBufferDesc.EnableDepthBuffer = true;
+  _depthBuffer.reset(new RenderTarget(dirDepthBufferDesc));
 
   if (!_quadVertexData)
   {
@@ -228,7 +240,7 @@ void Renderer::ExecuteDirectionalLightDepthPass(const Matrix4& lightSpaceTransfo
   GLCall(glDepthFunc(GL_LESS));
 
   SetViewport(shadowResolution, shadowResolution);
-  _depthBuffer->Bind();
+  _depthBuffer->Enable();
   ClearBuffer(ClearType::Depth);
 
   auto shader = _shaderCollection->GetShader<DirDepthPassShader>();
@@ -245,13 +257,13 @@ void Renderer::ExecuteDirectionalLightDepthPass(const Matrix4& lightSpaceTransfo
       staticMesh.Draw();
     }
   }
-  _gBuffer->Unbind();
+  _gBuffer->Disable();
   SetViewport(_renderWidth, _renderHeight);
 }
 
 void Renderer::ExecuteGeometryPass()
 {
-  _gBuffer->Bind();
+  _gBuffer->Enable();
   ClearBuffer(ClearType::All);
 
   //GLCall(glPolygonMode(GL_FRONT_AND_BACK, GL_LINE));
@@ -271,7 +283,7 @@ void Renderer::ExecuteGeometryPass()
       staticMesh.Draw();
     }
   }
-  _gBuffer->Unbind();
+  _gBuffer->Disable();
 
   //GLCall(glPolygonMode(GL_FRONT_AND_BACK, GL_FILL));
 }
