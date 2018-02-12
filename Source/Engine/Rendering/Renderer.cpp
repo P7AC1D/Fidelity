@@ -102,6 +102,9 @@ bool Renderer::Initialize()
   }
 #endif
 
+  GLint result = -1;
+  GLCall(glGetIntegerv(GL_MAX_FRAGMENT_INPUT_COMPONENTS, &result));
+
   GLCall(glEnable(GL_DEPTH_TEST));
   GLCall(glEnable(GL_CULL_FACE));
   GLCall(glDisable(GL_BLEND));

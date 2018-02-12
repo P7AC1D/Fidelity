@@ -25,7 +25,6 @@ uniform bool u_specularMappingEnabled;
 uniform bool u_depthMappingEnabled;
 uniform mat4 u_model;
 uniform Material u_material;
-uniform vec3 u_viewDir;
 
 #ifdef VERTEX_SHADER
 layout(location = 0) in vec3 a_position;
@@ -54,10 +53,11 @@ void main()
   vsOut.Position = u_model * vec4(a_position, 1.0f);
   vsOut.Normal = u_model * vec4(a_normal, 0.0f);
   vsOut.TexCoords = a_texCoords;
-  gl_Position = u_proj * u_view * vsOut.Position;
 
-  vsOut.ViewDirTangent = vsOut.Tbn * u_viewDir;
+  vsOut.ViewDirTangent = vsOut.Tbn * normalize(vsOut.Position.xyz - u_viewPosition);
   vsOut.PositionTangent = vsOut.Tbn * vsOut.Position.xyz;
+
+  gl_Position = u_proj * u_view * vsOut.Position;
 }
 #endif
 
@@ -76,29 +76,27 @@ layout(location = 0) out vec4 o_gPosition;
 layout(location = 1) out vec4 o_gNormal;
 layout(location = 2) out vec4 o_gAlbedoSpec;
 
-vec4 TextureGammaCorrected(in sampler2D textureToSample, in vec2 texCoords)
+vec4 CorrectGamma(vec4 inputSample)
 {
-  float gamma = 2.2;
-  return pow(texture(textureToSample, texCoords), vec4(gamma));
+  const float GAMMA = 2.2f;
+  return pow(inputSample, vec4(GAMMA));
 }
 
 vec2 GetParallaxTexCoords(vec2 texCoords, vec3 viewDir)
 {
-  const float HEIGHT_SCALE = 0.0f;
+  const float HEIGHT_SCALE = 0.1f;
   float height = texture(u_material.DepthMap, texCoords).r;
   return texCoords - viewDir.xy * (height * HEIGHT_SCALE);
 }
 
 void main()
 {
-  o_gPosition = fsIn.Position;
-
   vec2 texCoords = fsIn.TexCoords;
   if (u_depthMappingEnabled)
   {
     vec3 viewDir = normalize(fsIn.ViewDirTangent - fsIn.PositionTangent);
     texCoords = GetParallaxTexCoords(fsIn.TexCoords, viewDir);
-    if (texCoords.x > 1.0 || texCoords.y > 1.0 || texCoords.x < 0.0 || texCoords.y < 0.0)
+    if (texCoords.x > 1.0f || texCoords.y > 1.0f || texCoords.x < 0.0f || texCoords.y < 0.0f)
     {
       discard;
     }
@@ -107,7 +105,7 @@ void main()
   vec3 diffuseSample = vec3(1.0f, 1.0f, 1.0f);
   if (u_diffuseMappingEnabled)
   {
-    vec3 diffuseSample = TextureGammaCorrected(u_material.DiffuseMap, texCoords).rgb;
+    vec3 diffuseSample = CorrectGamma(texture(u_material.DiffuseMap, texCoords)).rgb;
     o_gAlbedoSpec.rgb = u_material.DiffuseColour * diffuseSample;
   }
   else
@@ -136,5 +134,7 @@ void main()
   {
     o_gAlbedoSpec.a = 1.0f;
   }
+
+  o_gPosition = fsIn.Position;
 }
 #endif
