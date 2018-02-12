@@ -10,15 +10,19 @@ using namespace Rendering;
 static const byte* DiffuseMappingEnabled = "u_diffuseMappingEnabled";
 static const byte* NormalMappingEnabled = "u_normalMappingEnabled";
 static const byte* SpecularMappingEnabled = "u_specularMappingEnabled";
+static const byte* DepthMappingEnabled = "u_depthMappingEnabled";
+static const byte* ViewDirUniformName = "u_viewDir";
 static const byte* DiffuseColourUniformName = "u_material.DiffuseColour";
 static const byte* DiffuseMapSamplerUniformName = "u_material.DiffuseMap";
 static const byte* NormalMapSamplerUniformName = "u_material.NormalMap";
 static const byte* SpecularMapSamplerUniformName = "u_material.SpecularMap";
+static const byte* DepthMapSamplerUniformName = "u_material.DepthMap";
 static const byte* ModelTransformUniformName = "u_model";
 static const byte* TransformsUniformBufferName = "Transforms";
 static const uint32 DiffuseMapTextureSlot = 0;
 static const uint32 NormalMapTextureSlot = 1;
 static const uint32 SpecularMapTextureSlot = 2;
+static const uint32 DepthMapTextureSlot = 3;
 static const uint32 TransformsUniformBufferBindingPoint = 0;
 
 GeometryPassShader::GeometryPassShader():
@@ -68,6 +72,15 @@ void GeometryPassShader::SetMaterialProperties(const Rendering::Material& materi
   {
     _specularMap.reset();
   }
+
+  if (material.HasTexture("DepthMap"))
+  {
+    SetDepthMap(material.GetTexture("DepthMap"));
+  }
+  else
+  {
+    _depthMap.reset();
+  }
 }
 
 void GeometryPassShader::SetTransformsUniformbuffer(std::weak_ptr<ConstantBuffer> transformsBuffer)
@@ -75,11 +88,17 @@ void GeometryPassShader::SetTransformsUniformbuffer(std::weak_ptr<ConstantBuffer
   _transformsBuffer = transformsBuffer;
 }
 
+void GeometryPassShader::SetViewDirection(const Vector3& viewDirection)
+{
+  _viewDirection = viewDirection;
+}
+
 void GeometryPassShader::Apply()
 {
   Bind();
   SetVec3(DiffuseColourUniformName, _diffuseColour.ToVec3());
   SetMat4(ModelTransformUniformName, _modelTransform);
+  SetVec3(ViewDirUniformName, _viewDirection);
 
   if (!_diffuseMap.expired())
   {
@@ -114,6 +133,17 @@ void GeometryPassShader::Apply()
     SetBool(SpecularMappingEnabled, false);
   }
 
+  if (!_depthMap.expired())
+  {
+    _depthMap.lock()->BindToTextureSlot(DepthMapTextureSlot);
+    SetInt(DepthMapSamplerUniformName, DepthMapTextureSlot);
+    SetBool(DepthMappingEnabled, true);
+  }
+  else
+  {
+    SetBool(DepthMappingEnabled, false);
+  }
+
   if (!_transformsBuffer.expired())
   {
     BindUniformBlock(GetUniformBlockBindingPoint(TransformsUniformBufferName), TransformsUniformBufferBindingPoint, _transformsBuffer.lock()->GetId());
@@ -142,4 +172,9 @@ void GeometryPassShader::SetNormalMap(std::weak_ptr<Rendering::Texture> normalMa
 void GeometryPassShader::SetSpecularMap(std::weak_ptr<Rendering::Texture> specularMap)
 {
   _specularMap = specularMap;
+}
+
+void GeometryPassShader::SetDepthMap(std::weak_ptr<Rendering::Texture> depthMap)
+{
+  _depthMap = depthMap;
 }

@@ -72,7 +72,7 @@ float SampleShadowMapPCF(sampler2D shadowMap, vec2 coords, float compare, vec2 t
 {
   const float NUM_SAMPLES = 5.0f;
   const float SAMPLES_START = (NUM_SAMPLES - 1.0f) / 2.0f;
-  const float NUM_SAMPLES_SQUARED = NUM_SAMPLES*NUM_SAMPLES;
+  const float NUM_SAMPLES_SQUARED = NUM_SAMPLES * NUM_SAMPLES;
 
   float result = 0.0f;
   for (float y = -SAMPLES_START; y <= SAMPLES_START; y += 1.0f)
@@ -88,7 +88,6 @@ float SampleShadowMapPCF(sampler2D shadowMap, vec2 coords, float compare, vec2 t
 
 float ShadowContribution(in vec4 fragmentPos)
 {
-  // move from NDC [-1,1] to ScreenSpace [0,1]
   vec3 shadowCoords = (fragmentPos.xyz / fragmentPos.w) * 0.5f + 0.5f;
 
   float bias = 0.002f;

@@ -21,6 +21,7 @@ public:
   void SetModelTransform(const Matrix4& modelTransform);
   void SetMaterialProperties(const Rendering::Material& material);  
   void SetTransformsUniformbuffer(std::weak_ptr<Rendering::ConstantBuffer> transformsBuffer);
+  void SetViewDirection(const Vector3& viewDirection);
 
   void Apply();
 
@@ -29,12 +30,15 @@ private:
   void SetDiffuseMap(std::weak_ptr<Rendering::Texture> diffuseMap);
   void SetNormalMap(std::weak_ptr<Rendering::Texture> normalMap);
   void SetSpecularMap(std::weak_ptr<Rendering::Texture> specularMap);
+  void SetDepthMap(std::weak_ptr<Rendering::Texture> depthMap);
 
 private:
   std::weak_ptr<Rendering::Texture> _diffuseMap;
   std::weak_ptr<Rendering::Texture> _normalMap;
   std::weak_ptr<Rendering::Texture> _specularMap;
+  std::weak_ptr<Rendering::Texture> _depthMap;
   std::weak_ptr<Rendering::ConstantBuffer> _transformsBuffer;  
   Colour _diffuseColour;
   Matrix4 _modelTransform;
+  Vector3 _viewDirection;
 };

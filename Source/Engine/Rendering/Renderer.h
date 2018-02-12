@@ -78,7 +78,7 @@ private:
   void UploadDirectionalLightData(const Light& directionalLight);
 
   void ExecuteDirectionalLightDepthPass(const Matrix4& lightSpaceTransform, uint32 shadowResolution);
-  void ExecuteGeometryPass();
+  void ExecuteGeometryPass(const Vector3& viewDirection);
   void ExecuteLightingPass(const Matrix4& lightSpaceTransform, const Vector3& viewDirection);
 
   void ClearBuffer(ClearType clearType);

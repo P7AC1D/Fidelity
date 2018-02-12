@@ -17,6 +17,7 @@ public:
   VertexBuffer();
   ~VertexBuffer();
 
+  
   inline uint32 GetId() const { return _vaoId; }
 
   void Bind() const;

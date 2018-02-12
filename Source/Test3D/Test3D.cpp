@@ -57,7 +57,7 @@ void Test3D::OnStart()
 
   _camera = std::make_shared<OrbitalCamera>(0.0f, 90.0f, 2.0f);
   _camera->UpdateProjMat(GetWidth(), GetHeight(), 0.1f, 100.0f);
-  _camera->SetPosition(Vector3(6.0f, 6.0f, 6.0f));
+  _camera->SetPosition(Vector3(0.0f, 0.0f, 6.0f));
   _sceneManager->SetCamera(_camera);
   
   
@@ -92,28 +92,37 @@ void Test3D::OnStart()
   auto& sphereANode = _sceneManager->CreateObject("sphereA");
   auto sphereA = MeshFactory::CreateIcosphere(3);
   auto diffuseMap = _assetManager->GetTexture("/Textures/brick_floor_tileable_Base_Color.jpg");
-  //diffuseMap->SetWrapMethod(WrapMethod::Repeat);
   sphereA->GetMaterial().SetTexture("DiffuseMap", diffuseMap);
   std::shared_ptr<Renderable> sphereModelA(new Renderable);
   sphereModelA->PushMesh(*sphereA);
   sphereANode.AttachRenderable(sphereModelA);
-  sphereANode.GetTransform()->Translate(Vector3(2.0f, 0.0f, 0.0f));
+  sphereANode.GetTransform()->Translate(Vector3(3.0f, 0.0f, 0.0f));
 
   auto& sphereBNode = _sceneManager->CreateObject("sphereB");
   auto sphereB = MeshFactory::CreateIcosphere(3);
-  auto& sphereMaterial = sphereB->GetMaterial();
+  auto& sphereBMaterial = sphereB->GetMaterial();
   auto normalMap = _assetManager->GetTexture("/Textures/brick_floor_tileable_Normal.jpg");
   auto specularMap = _assetManager->GetTexture("/Textures/brick_floor_tileable_Glossiness.jpg");
-  //diffuseMap->SetWrapMethod(WrapMethod::Repeat);
-  //normalMap->SetWrapMethod(WrapMethod::Repeat);
-  //specularMap->SetWrapMethod(WrapMethod::Repeat);
-  sphereMaterial.SetTexture("DiffuseMap", diffuseMap);
-  sphereMaterial.SetTexture("NormalMap", normalMap);
-  sphereMaterial.SetTexture("SpecularMap", specularMap);
+  sphereBMaterial.SetTexture("DiffuseMap", diffuseMap);
+  sphereBMaterial.SetTexture("NormalMap", normalMap);
+  sphereBMaterial.SetTexture("SpecularMap", specularMap);
   std::shared_ptr<Renderable> sphereModelB(new Renderable);
   sphereModelB->PushMesh(*sphereB);
   sphereBNode.AttachRenderable(sphereModelB);
-  sphereBNode.GetTransform()->Translate(Vector3(-2.0f, 0.0f, 0.0f));
+  sphereBNode.GetTransform()->Translate(Vector3(0.0f, 0.0f, 0.0f));
+
+  auto& sphereCNode = _sceneManager->CreateObject("sphereC");
+  auto sphereC = MeshFactory::CreateIcosphere(3);
+  auto& sphereCMaterial = sphereC->GetMaterial();
+  auto depthMap = _assetManager->GetTexture("/Textures/brick_floor_tileable_Displacement.jpg");
+  sphereCMaterial.SetTexture("DiffuseMap", diffuseMap);
+  sphereCMaterial.SetTexture("NormalMap", normalMap);
+  sphereCMaterial.SetTexture("SpecularMap", specularMap);
+  sphereCMaterial.SetTexture("DepthMap", depthMap);
+  std::shared_ptr<Renderable> sphereModelC(new Renderable);
+  sphereModelC->PushMesh(*sphereC);
+  sphereCNode.AttachRenderable(sphereModelC);
+  sphereCNode.GetTransform()->Translate(Vector3(-3.0f, 0.0f, 0.0f));
 
   /*auto& cubeNode = _sceneManager->CreateObject("cube");
   auto cubeMesh = MeshFactory::CreateCube();
