@@ -19,7 +19,7 @@ public:
   ~GeometryPassShader();
   
   void SetModelTransform(const Matrix4& modelTransform);
-  void SetMaterialProperties(const Rendering::Material& material);  
+  void SetMaterialProperties(std::shared_ptr<Rendering::Material> material);  
   void SetTransformsUniformbuffer(std::weak_ptr<Rendering::ConstantBuffer> transformsBuffer);
   void SetViewDirection(const Vector3& viewDirection);
 

@@ -112,10 +112,10 @@ void Texture::Intialize(ubyte* data)
       GLCall(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, _desc.Width, _desc.Height, 0, GL_RGBA, GL_FLOAT, data));
       break;
     case PixelFormat::D32:
-      GLCall(glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, _desc.Width, _desc.Height, 0, GL_DEPTH_COMPONENT, GL_UNSIGNED_BYTE, data));
+      GLCall(glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32F, _desc.Width, _desc.Height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, data));
       break;
     case PixelFormat::D24S8:
-      GLCall(glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_STENCIL, _desc.Width, _desc.Height, 0, GL_DEPTH_STENCIL, GL_UNSIGNED_BYTE, data));
+      GLCall(glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH24_STENCIL8, _desc.Width, _desc.Height, 0, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8, data));
       break;
     case PixelFormat::RGBA8:
     default:

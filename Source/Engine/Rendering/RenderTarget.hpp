@@ -15,7 +15,7 @@ namespace Rendering {
     uint32 Width;
     uint32 Height;
     uint32 ColourBufferCount;
-    bool EnableDepthBuffer;
+    bool EnableStencilBuffer;
   };
 
   class RenderTarget
@@ -25,7 +25,7 @@ namespace Rendering {
     ~RenderTarget();
 
     inline const RenderTargetDesc& GetDesc() const { return _desc; }
-    inline std::shared_ptr<Texture> GetDepthBuffer() const { return _depthBuffer; }
+    inline std::shared_ptr<Texture> GetDepthStencilBuffer() const { return _depthStencilBuffer; }
 
     std::shared_ptr<Texture> GetColourBuffer(uint32 index) const;
 
@@ -37,7 +37,7 @@ namespace Rendering {
 
   private:
     std::array<std::shared_ptr<Texture>, MaxColourBuffers> _colourBuffers;
-    std::shared_ptr<Texture> _depthBuffer;
+    std::shared_ptr<Texture> _depthStencilBuffer;
     RenderTargetDesc _desc;
     uint32 _fbo;
   };

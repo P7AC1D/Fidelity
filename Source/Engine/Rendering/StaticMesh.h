@@ -6,12 +6,12 @@
 #include "../Core/Types.hpp"
 #include "../Maths/Vector2.hpp"
 #include "../Maths/Vector3.hpp"
-#include "Material.h"
 #include "VertexBuffer.h"
 
 namespace Rendering
 {
 class IndexBuffer;
+class Material;
 class VertexBuffer;
 
 enum VertexDataFormat : int32
@@ -49,7 +49,7 @@ public:
   void GenerateTangents();
   void GenerateNormals();
 
-  Material& GetMaterial();
+  std::shared_ptr<Material> GetMaterial();
   std::shared_ptr<VertexBuffer> GetVertexData() const;
 
   void Draw();
@@ -63,8 +63,9 @@ private:
   void UploadIndexData();
 
   std::string _name;
-  std::shared_ptr<VertexBuffer> _vertexBuffer;
   std::shared_ptr<IndexBuffer> _indexBuffer;
+  std::shared_ptr<Material> _material;
+  std::shared_ptr<VertexBuffer> _vertexBuffer;
   std::vector<Vector3> _positionData;
   std::vector<Vector3> _normalData;
   std::vector<Vector3> _tangentData;
@@ -76,7 +77,6 @@ private:
   int32 _indexCount;
   bool _isDirty;
   bool _indexed;
-  Material _material;
 
   friend class Renderer;
 };

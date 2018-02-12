@@ -84,9 +84,33 @@ vec4 CorrectGamma(vec4 inputSample)
 
 vec2 GetParallaxTexCoords(vec2 texCoords, vec3 viewDir)
 {
-  const float HEIGHT_SCALE = 0.1f;
-  float height = texture(u_material.DepthMap, texCoords).r;
-  return texCoords - viewDir.xy * (height * HEIGHT_SCALE);
+  const float heightScale = 0.1f;
+  const float minLayers = 8;
+  const float maxLayers = 32;
+  float numLayers = mix(maxLayers, minLayers, abs(dot(vec3(0.0, 0.0, 1.0), viewDir)));
+  float layerDepth = 1.0 / numLayers;
+  float currentLayerDepth = 0.0;
+  vec2 P = viewDir.xy / viewDir.z * heightScale;
+  vec2 deltaTexCoords = P / numLayers;
+
+  vec2  currentTexCoords = texCoords;
+  float currentDepthMapValue = texture(u_material.DepthMap, currentTexCoords).r;
+
+  while (currentLayerDepth < currentDepthMapValue)
+  {
+    currentTexCoords -= deltaTexCoords;
+    currentDepthMapValue = texture(u_material.DepthMap, currentTexCoords).r;
+    currentLayerDepth += layerDepth;
+  }
+
+  vec2 prevTexCoords = currentTexCoords + deltaTexCoords;
+
+  float afterDepth = currentDepthMapValue - currentLayerDepth;
+  float beforeDepth = texture(u_material.DepthMap, prevTexCoords).r - currentLayerDepth + layerDepth;
+
+  float weight = afterDepth / (afterDepth - beforeDepth);
+  vec2 finalTexCoords = prevTexCoords * weight + currentTexCoords * (1.0 - weight);
+  return finalTexCoords;
 }
 
 void main()
@@ -96,10 +120,6 @@ void main()
   {
     vec3 viewDir = normalize(fsIn.ViewDirTangent - fsIn.PositionTangent);
     texCoords = GetParallaxTexCoords(fsIn.TexCoords, viewDir);
-    if (texCoords.x > 1.0f || texCoords.y > 1.0f || texCoords.x < 0.0f || texCoords.y < 0.0f)
-    {
-      discard;
-    }
   }
 
   vec3 diffuseSample = vec3(1.0f, 1.0f, 1.0f);

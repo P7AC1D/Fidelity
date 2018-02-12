@@ -121,14 +121,14 @@ bool Renderer::Initialize()
   gBufferDesc.Width = _renderWidth;
   gBufferDesc.Height = _renderHeight;
   gBufferDesc.ColourBufferCount = 3;
-  gBufferDesc.EnableDepthBuffer = true;
+  gBufferDesc.EnableStencilBuffer = false;
   _gBuffer.reset(new RenderTarget(gBufferDesc));
 
   RenderTargetDesc dirDepthBufferDesc;
   dirDepthBufferDesc.Width = _shadowResolution;
   dirDepthBufferDesc.Height = _shadowResolution;
   dirDepthBufferDesc.ColourBufferCount = 0;
-  dirDepthBufferDesc.EnableDepthBuffer = true;
+  dirDepthBufferDesc.EnableStencilBuffer = false;
   _depthBuffer.reset(new RenderTarget(dirDepthBufferDesc));
 
   if (!_quadVertexData)
@@ -246,7 +246,7 @@ void Renderer::ExecuteDirectionalLightDepthPass(const Matrix4& lightSpaceTransfo
 
   SetViewport(shadowResolution, shadowResolution);
   _depthBuffer->Enable();
-  ClearBuffer(ClearType::Depth);
+  ClearBuffer(ClearType::CT_Depth);
 
   auto shader = _shaderCollection->GetShader<DirDepthPassShader>();
   shader->SetLightSpaceTransform(lightSpaceTransform);
@@ -259,7 +259,7 @@ void Renderer::ExecuteDirectionalLightDepthPass(const Matrix4& lightSpaceTransfo
       shader->SetModelSpaceTransform(renderable.Transform->Get());
 
       shader->Apply();
-      staticMesh.Draw();
+      staticMesh->Draw();
     }
   }
   _gBuffer->Disable();
@@ -269,24 +269,24 @@ void Renderer::ExecuteDirectionalLightDepthPass(const Matrix4& lightSpaceTransfo
 void Renderer::ExecuteGeometryPass(const Vector3& viewDirection)
 {
   _gBuffer->Enable();
-  ClearBuffer(ClearType::All);
+  ClearBuffer(CT_Colour | CT_Depth | CT_Stencil);
 
   //GLCall(glPolygonMode(GL_FRONT_AND_BACK, GL_LINE));
 
   auto shader = _shaderCollection->GetShader<GeometryPassShader>();
   shader->SetTransformsUniformbuffer(_cameraBuffer);
   shader->SetViewDirection(viewDirection);
-  for (auto& renderable : _renderables)
+  for (auto renderable : _renderables)
   {    
     auto meshCount = renderable.Renderable->GetMeshCount();
     for (size_t i = 0; i < meshCount; i++)
     {
-      auto& staticMesh = renderable.Renderable->GetMeshAtIndex(i);
+      auto staticMesh = renderable.Renderable->GetMeshAtIndex(i);
       shader->SetModelTransform(renderable.Transform->Get());
-      shader->SetMaterialProperties(staticMesh.GetMaterial());
+      shader->SetMaterialProperties(staticMesh->GetMaterial());
 
       shader->Apply();
-      staticMesh.Draw();
+      staticMesh->Draw();
     }
   }
   _gBuffer->Disable();
@@ -297,7 +297,7 @@ void Renderer::ExecuteGeometryPass(const Vector3& viewDirection)
 void Renderer::ExecuteLightingPass(const Matrix4& lightSpaceTransform, const Vector3& viewDirection)
 {
   SetDepthTest(false);
-  ClearBuffer(ClearType::All);
+  ClearBuffer(ClearType::CT_Colour);
 
   auto shader = _shaderCollection->GetShader<DirLightingPassShader>();
   shader->SetViewDirection(viewDirection);
@@ -311,20 +311,25 @@ void Renderer::ExecuteLightingPass(const Matrix4& lightSpaceTransform, const Vec
   Draw(6);
 }
 
-void Renderer::ClearBuffer(ClearType clearType)
+void Renderer::ClearBuffer(uint32 clearType)
 {
-  switch (clearType)
+  GLbitfield clearTarget = 0;
+  if (clearType & ClearType::CT_Colour)
   {
-    case ClearType::Color:
-      GLCall(glClear(GL_COLOR_BUFFER_BIT));
-      break;
-    case ClearType::Depth:
-      GLCall(glClear(GL_DEPTH_BUFFER_BIT));
-      break;
-    case ClearType::All:
-      GLCall(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
-      break;
+    clearTarget |= GL_COLOR_BUFFER_BIT;
   }
+
+  if (clearType & ClearType::CT_Depth)
+  {
+    clearTarget |= GL_DEPTH_BUFFER_BIT;
+  }
+
+  if (clearType & ClearType::CT_Stencil)
+  {
+    clearTarget |= GL_STENCIL_BUFFER_BIT;
+  }
+
+  GLCall(glClear(clearTarget));
 }
 
 void Renderer::SetDepthTest(bool enable)

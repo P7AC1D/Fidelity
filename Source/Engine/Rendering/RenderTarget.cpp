@@ -66,14 +66,24 @@ namespace Rendering {
       attachments.push_back(GL_COLOR_ATTACHMENT0 + i);
     }
 
-    if (_desc.EnableDepthBuffer)
+    if (_desc.EnableStencilBuffer)
+    {
+      TextureDesc textureDesc;
+      textureDesc.Width = _desc.Width;
+      textureDesc.Height = _desc.Height;
+      textureDesc.Format = PixelFormat::D24S8;
+      _depthStencilBuffer.reset(new Texture(textureDesc));
+      GLCall(glFramebufferTexture2D(GL_FRAMEBUFFER, GL_STENCIL_ATTACHMENT, GL_TEXTURE_2D, _depthStencilBuffer->_id, 0));
+      GLCall(glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, _depthStencilBuffer->_id, 0));
+    }
+    else
     {
       TextureDesc textureDesc;
       textureDesc.Width = _desc.Width;
       textureDesc.Height = _desc.Height;
       textureDesc.Format = PixelFormat::D32;
-      _depthBuffer.reset(new Texture(textureDesc));
-      GLCall(glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, _depthBuffer->_id, 0));
+      _depthStencilBuffer.reset(new Texture(textureDesc));
+      GLCall(glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, _depthStencilBuffer->_id, 0));
     }
 
     if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)

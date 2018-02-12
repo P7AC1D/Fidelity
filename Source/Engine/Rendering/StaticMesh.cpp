@@ -9,6 +9,7 @@ namespace Rendering
 {
 StaticMesh::StaticMesh(const std::string& meshName) :
   _name(meshName),
+  _material(new Material),
   _vertexDataFormat(0),
   _vertexCount(0),
   _isDirty(true),
@@ -247,7 +248,7 @@ void StaticMesh::GenerateNormals()
   SetNormalVertexData(normals);
 }
 
-Material& StaticMesh::GetMaterial()
+std::shared_ptr<Material> StaticMesh::GetMaterial()
 {
   return _material;
 }

@@ -30,11 +30,11 @@ namespace Rendering
   class VertexBuffer;
   enum class RenderingTechnique;
 
-enum class ClearType
+enum ClearType : uint8
 {
-  Color,
-  Depth,
-  All,
+  CT_Colour = 1 << 0,
+  CT_Depth = 1 << 1,
+  CT_Stencil = 1 << 2
 };
 
 struct RenderableItem
@@ -81,7 +81,7 @@ private:
   void ExecuteGeometryPass(const Vector3& viewDirection);
   void ExecuteLightingPass(const Matrix4& lightSpaceTransform, const Vector3& viewDirection);
 
-  void ClearBuffer(ClearType clearType);
+  void ClearBuffer(uint32 clearType);
   void SetDepthTest(bool enable);
 
   Matrix4 BuildLightSpaceTransform(const Light& directionalLight);

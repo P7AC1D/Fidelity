@@ -57,29 +57,29 @@ void BuildVertexData(const aiVector3D* vertices, uint32 verexCount, std::vector<
   }
 }
 
-void BuildMaterial(const std::string& filePath, const aiMaterial* aiMaterial, Material& material, AssetManager& assetManager)
+void BuildMaterial(const std::string& filePath, const aiMaterial* aiMaterial, std::shared_ptr<Rendering::Material> material, AssetManager& assetManager)
 {
   aiColor3D ambientColour;
   aiMaterial->Get(AI_MATKEY_COLOR_AMBIENT, ambientColour);
-  material.SetAmbientColour(Vector3(ambientColour.r, ambientColour.g, ambientColour.b));
+  material->SetAmbientColour(Vector3(ambientColour.r, ambientColour.g, ambientColour.b));
 
   aiColor3D diffuseColour;
   aiMaterial->Get(AI_MATKEY_COLOR_DIFFUSE, diffuseColour);
-  material.SetDiffuseColour(Vector3(diffuseColour.r, diffuseColour.g, diffuseColour.b));
+  material->SetDiffuseColour(Vector3(diffuseColour.r, diffuseColour.g, diffuseColour.b));
 
   aiColor3D specularColour;
   aiMaterial->Get(AI_MATKEY_COLOR_SPECULAR, specularColour);
-  material.SetSpecularColour(Vector3(specularColour.r, specularColour.g, specularColour.b));
+  material->SetSpecularColour(Vector3(specularColour.r, specularColour.g, specularColour.b));
 
   float32 specularShininess;
   aiMaterial->Get(AI_MATKEY_SHININESS, specularShininess);
-  material.SetSpecularShininess(specularShininess);
+  material->SetSpecularShininess(specularShininess);
 
   aiString diffuseTexturePath;
   aiMaterial->Get(AI_MATKEY_TEXTURE(aiTextureType_DIFFUSE, 0), diffuseTexturePath);
   if (diffuseTexturePath.length != 0)
   {
-    material.SetTexture("DiffuseMap", assetManager.GetTexture(filePath + diffuseTexturePath.C_Str()));
+    material->SetTexture("DiffuseMap", assetManager.GetTexture(filePath + diffuseTexturePath.C_Str()));
   }
 }
 
@@ -131,7 +131,7 @@ std::shared_ptr<Renderable> BuildModel(const std::string& filePath, const aiScen
   {
     auto aiMesh = scene->mMeshes[i];
     auto mesh = BuildMesh(filePath, aiMesh, scene->mMaterials[aiMesh->mMaterialIndex], assetManager);
-    renderable->PushMesh(*mesh);
+    renderable->PushMesh(mesh);
   }
 
   return renderable;

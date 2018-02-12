@@ -52,7 +52,7 @@ void DirLightingPassShader::SetGeometryBuffer(std::shared_ptr<Rendering::RenderT
 
 void DirLightingPassShader::SetDirLightDepthBuffer(std::shared_ptr<Rendering::RenderTarget> depthBuffer)
 {
-  _dirLightDepth = depthBuffer->GetDepthBuffer();
+  _dirLightDepth = depthBuffer->GetDepthStencilBuffer();
   _shadowTexelSize = Vector2((1.0f / depthBuffer->GetDesc().Width), (1.0f / depthBuffer->GetDesc().Height));
 }
 

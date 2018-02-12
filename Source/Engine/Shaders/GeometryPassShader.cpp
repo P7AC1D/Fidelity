@@ -43,39 +43,39 @@ void GeometryPassShader::SetModelTransform(const Matrix4& modelTransform)
   _modelTransform = modelTransform;
 }
 
-void GeometryPassShader::SetMaterialProperties(const Rendering::Material& material)
+void GeometryPassShader::SetMaterialProperties(std::shared_ptr<Rendering::Material> material)
 {
-  SetDiffuseColour(material.GetDiffuseColour());
-  if (material.HasTexture("DiffuseMap"))
+  SetDiffuseColour(material->GetDiffuseColour());
+  if (material->HasTexture("DiffuseMap"))
   {
-    SetDiffuseMap(material.GetTexture("DiffuseMap"));
+    SetDiffuseMap(material->GetTexture("DiffuseMap"));
   }
   else
   {
     _diffuseMap.reset();
   }
 
-  if (material.HasTexture("NormalMap"))
+  if (material->HasTexture("NormalMap"))
   {
-    SetNormalMap(material.GetTexture("NormalMap"));
+    SetNormalMap(material->GetTexture("NormalMap"));
   }
   else
   {
     _normalMap.reset();
   }
 
-  if (material.HasTexture("SpecularMap"))
+  if (material->HasTexture("SpecularMap"))
   {
-    SetSpecularMap(material.GetTexture("SpecularMap"));
+    SetSpecularMap(material->GetTexture("SpecularMap"));
   }
   else
   {
     _specularMap.reset();
   }
 
-  if (material.HasTexture("DepthMap"))
+  if (material->HasTexture("DepthMap"))
   {
-    SetDepthMap(material.GetTexture("DepthMap"));
+    SetDepthMap(material->GetTexture("DepthMap"));
   }
   else
   {
