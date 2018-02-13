@@ -82,7 +82,10 @@ private:
   void ExecuteLightingPass(const Matrix4& lightSpaceTransform, const Vector3& viewDirection);
 
   void ClearBuffer(uint32 clearType);
-  void SetDepthTest(bool enable);
+  void EnableDepthTest();
+  void DisableDepthTest();
+  void EnableStencilTest();
+  void DisableStencilTest();
 
   Matrix4 BuildLightSpaceTransform(const Light& directionalLight);
 

@@ -10,14 +10,13 @@
 #include "../Shaders/GeometryPassShader.hpp"
 #include "../Shaders/DirLightingPassShader.hpp"
 #include "ConstantBuffer.h"
-#include "CubeMap.h"
 #include "Material.h"
 #include "OpenGL.h"
 #include "Renderable.hpp"
 #include "RenderTarget.hpp"
 #include "Shader.h"
 #include "ShaderCollection.h"
-#include "Texture.h"
+#include "Texture.hpp"
 #include "StaticMesh.h"
 #include "VertexBuffer.h"
 
@@ -241,7 +240,7 @@ void Renderer::UploadDirectionalLightData(const Light& directionalLight)
 
 void Renderer::ExecuteDirectionalLightDepthPass(const Matrix4& lightSpaceTransform, uint32 shadowResolution)
 {
-  SetDepthTest(true);
+  EnableDepthTest();
   GLCall(glDepthFunc(GL_LESS));
 
   SetViewport(shadowResolution, shadowResolution);
@@ -269,6 +268,7 @@ void Renderer::ExecuteDirectionalLightDepthPass(const Matrix4& lightSpaceTransfo
 void Renderer::ExecuteGeometryPass(const Vector3& viewDirection)
 {
   _gBuffer->Enable();
+  EnableStencilTest();
   ClearBuffer(CT_Colour | CT_Depth | CT_Stencil);
 
   //GLCall(glPolygonMode(GL_FRONT_AND_BACK, GL_LINE));
@@ -296,7 +296,7 @@ void Renderer::ExecuteGeometryPass(const Vector3& viewDirection)
 
 void Renderer::ExecuteLightingPass(const Matrix4& lightSpaceTransform, const Vector3& viewDirection)
 {
-  SetDepthTest(false);
+  DisableDepthTest();
   ClearBuffer(ClearType::CT_Colour);
 
   auto shader = _shaderCollection->GetShader<DirLightingPassShader>();
@@ -332,16 +332,24 @@ void Renderer::ClearBuffer(uint32 clearType)
   GLCall(glClear(clearTarget));
 }
 
-void Renderer::SetDepthTest(bool enable)
+void Renderer::EnableDepthTest()
 {
-  if (enable)
-  {
-    GLCall(glEnable(GL_DEPTH_TEST));
-  }
-  else
-  {
-    GLCall(glDisable(GL_DEPTH_TEST));
-  }
+  GLCall(glEnable(GL_DEPTH_TEST));
+}
+
+void Renderer::DisableDepthTest()
+{
+  GLCall(glDisable(GL_DEPTH_TEST));
+}
+
+void Renderer::EnableStencilTest()
+{
+  GLCall(glEnable(GL_STENCIL_TEST));
+}
+
+void Renderer::DisableStencilTest()
+{
+  GLCall(glDisable(GL_STENCIL_TEST));
 }
 
 Matrix4 Renderer::BuildLightSpaceTransform(const Light& directionalLight)
