@@ -6,6 +6,7 @@
 #include "../Core/Types.hpp"
 #include "../Maths/Vector3.hpp"
 #include "Light.h"
+#include "SkyBox.hpp"
 
 class OrbitalCamera;
 class WorldObject;
@@ -30,6 +31,7 @@ public:
   Light& CreateLight(LightType lightType, const std::string& name = std::string());
 
   inline void SetCamera(std::shared_ptr<OrbitalCamera> camera) { _camera = camera; }
+  inline void SetSkyBox(std::shared_ptr<SkyBox> skyBox) { _skyBox = skyBox; }
   inline void SetAmbientLight(const Colour& colour) { _ambientLight = colour; }
 
   inline const Colour& GetAmbientLight() const { return _ambientLight; }
@@ -46,5 +48,6 @@ private:
   std::shared_ptr<OrbitalCamera> _camera;
   std::shared_ptr<Utility::AssetManager> _assetManager;
   std::shared_ptr<Rendering::Renderer> _renderer;
+  std::shared_ptr<SkyBox> _skyBox;
   Colour _ambientLight;
 };

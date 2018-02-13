@@ -78,6 +78,8 @@ void SceneManager::UpdateWorldObjects(uint32 dtMs)
 
 void SceneManager::SubmitSceneToRender()
 {
+  _renderer->SetSkyBox(_skyBox);
+
   for (auto worldObject : _worldObjects)
   {
     auto renderable = worldObject->GetRenderable();

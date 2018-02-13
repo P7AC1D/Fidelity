@@ -5,6 +5,7 @@
 #include "../UI/Panel.h"
 #include "../UI/UIManager.h"
 #include "../SceneManagement/Light.h"
+#include "../SceneManagement/SkyBox.hpp"
 #include "../SceneManagement/WorldObject.h"
 #include "../Shaders/DirDepthPassShader.hpp"
 #include "../Shaders/GeometryPassShader.hpp"
@@ -100,18 +101,14 @@ bool Renderer::Initialize()
     return false;
   }
 #endif
-
-  GLint result = -1;
-  GLCall(glGetIntegerv(GL_MAX_FRAGMENT_INPUT_COMPONENTS, &result));
-
-  GLCall(glEnable(GL_DEPTH_TEST));
+  
   GLCall(glEnable(GL_CULL_FACE));
   GLCall(glDisable(GL_BLEND));
   GLCall(glCullFace(GL_BACK));
   GLCall(glFrontFace(GL_CCW));
 
-  GLCall(glViewport(0, 0, _renderWidth, _renderHeight));
-  GLCall(glClearColor(0.25f, 0.25f, 0.25f, 0.0f));
+  SetViewport(_renderWidth, _renderHeight);
+  SetClearColour(Colour::Black);
 
   _cameraBuffer.reset(new ConstantBuffer(144));
   _lightBuffer.reset(new ConstantBuffer(52));
@@ -213,7 +210,7 @@ void Renderer::SetVertexAttribPointers(StaticMesh* staticMesh, int32 stride)
   
 void Renderer::SetViewport(int32 width, int32 height)
 {
-  glViewport(0, 0, width, height);
+  GLCall(glViewport(0, 0, width, height));
 }
 
 void Renderer::UploadCameraData(OrbitalCamera& camera)

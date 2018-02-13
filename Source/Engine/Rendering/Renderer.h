@@ -12,6 +12,8 @@
 #include "../SceneManagement/Transform.h"
 #include "Renderable.hpp"
 
+class SkyBox;
+
 namespace UI
 {
 class Panel;
@@ -54,6 +56,7 @@ public:
   virtual ~Renderer();
 
   inline void SetAmbientLight(const Colour& ambientLight) { _ambientLight = ambientLight; }
+  inline void SetSkyBox(std::shared_ptr<SkyBox> skyBox) { _skyBox = skyBox; }
   inline void PushRenderable(std::shared_ptr<Renderable> renderable, std::shared_ptr<Transform> transform) { _renderables.emplace_back(renderable, transform); }
   inline void PushPointLight(const Light& pointLight) { _pointLights.push_back(pointLight); }
   inline void PushDirectionalLight(const Light& directionalLight) { _directionalLights.push_back(directionalLight); }
@@ -104,6 +107,8 @@ private:
   
   std::shared_ptr<RenderTarget> _gBuffer;
   std::shared_ptr<RenderTarget> _depthBuffer;
+
+  std::shared_ptr<SkyBox> _skyBox;
 
   int32 _renderWidth;
   int32 _renderHeight;

@@ -1,15 +1,18 @@
 #include "AssetManager.h"
 
+#include <array>
+#include <cassert>
 #include <stdexcept>
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "STB/stb_image.h"
 
-#include "../Rendering/CubeMap.h"
 #include "../Rendering/OpenGL.h"
 #include "../Rendering/Texture.hpp"
+#include "../Rendering/TextureCube.hpp"
 #include "../Rendering/Renderable.hpp"
 #include "../Utility/ObjLoader.hpp"
+#include "../Utility/StringUtil.h"
 #include "ObjLoader.hpp"
 
 using namespace Rendering;
@@ -63,6 +66,18 @@ PixelFormat CalculateTextureFormat(int32 nChannels)
   }
 }
 
+size_t GetTextureFaceIndexFromFileName(const std::string& fileName)
+{
+  auto split = StringUtil::Split(fileName, '.');
+  if (split[0] == "back") return 0;
+  if (split[0] == "bottom") return 1;
+  if (split[0] == "front") return 2;
+  if (split[0] == "left") return 3;
+  if (split[0] == "right") return 4;
+  if (split[0] == "top") return 5;
+  throw std::runtime_error("TextureCube file names must be one of the following: 'back, bottom, front, left, right and top'.");
+}
+
 AssetManager::AssetManager(std::string assetDirectory) :
   _assetDirectory(std::move(assetDirectory))
 {
@@ -77,30 +92,59 @@ std::shared_ptr<Texture> AssetManager::GetTexture(const std::string& textureName
   return GetTexture(_assetDirectory, textureName);
 }
 
-std::shared_ptr<CubeMap> AssetManager::GetCubeMap(const std::vector<std::string>& textureNames)
+std::shared_ptr<TextureCube> AssetManager::GetTextureCube(const std::string& directory, const std::vector<std::string>& fileNames)
 {
-  auto cubeMap = std::make_shared<CubeMap>();
-  glBindTexture(GL_TEXTURE_CUBE_MAP, cubeMap->_id);
+  assert(fileNames.size() == 6);
 
-  for (uint32 i = 0; i < textureNames.size(); ++i)
+  uint32 width = 0;
+  uint32 height = 0;
+  uint32 channels = 0;
+  std::array<ubyte*, 6> pixelData;
+
+  for (size_t i = 0; i < fileNames.size(); i++)
   {
-    auto fullPath = _assetDirectory + textureNames[i];
+    std::string fullPath = directory + fileNames[i];
 
-    int32 width = 0;
-    int32 height = 0;
-    int32 nChannels = 0;
-    uint8* data = LoadFromFile(fullPath, width, height, nChannels);    
-    glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
-    delete[] data;
+    int32 currentWidth = 0;
+    int32 currentHeight = 0;
+    int32 currentChannels = 0;
+    pixelData[GetTextureFaceIndexFromFileName(fileNames[i])] = LoadFromFile(fullPath, currentWidth, currentHeight, currentChannels);
+    
+    if (width != 0 && width != currentWidth)
+    {
+      throw std::runtime_error("All images in a TextureCube must be of the same width.");
+    }
+    if (height != 0 && height != currentHeight)
+    {
+      throw std::runtime_error("All images in a TextureCube must be of the same height.");
+    }
+    if (channels != 0 && channels != currentChannels)
+    {
+      throw std::runtime_error("All images in a TextureCube must have the same number of channels.");
+    }
+
+    width = currentWidth;
+    height = currentHeight;
+    channels = currentChannels;
   }
 
-  glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-  glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-  glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-  glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-  glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-  glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
-  return cubeMap;
+  TextureCubeDesc desc;
+  desc.Width = width;
+  desc.Height = height;
+  desc.Format = CalculateTextureFormat(channels);
+  std::shared_ptr<TextureCube> textureCube(new TextureCube(desc));
+  textureCube->UploadData(TextureCubeFace::Back, pixelData[0]);
+  textureCube->UploadData(TextureCubeFace::Bottom, pixelData[1]);
+  textureCube->UploadData(TextureCubeFace::Front, pixelData[2]);
+  textureCube->UploadData(TextureCubeFace::Left, pixelData[3]);
+  textureCube->UploadData(TextureCubeFace::Right, pixelData[4]);
+  textureCube->UploadData(TextureCubeFace::Top, pixelData[5]);
+
+  for (size_t i = 0; i < pixelData.size(); i++)
+  {
+    delete[] pixelData[i];
+  }
+  return textureCube;
 }
 
 std::shared_ptr<Renderable> AssetManager::GetRenderable(const std::string& filePath, const std::string& fileName)

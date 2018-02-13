@@ -2,7 +2,8 @@
 
 #include "OpenGL.h"
 
-namespace Rendering {
+namespace Rendering 
+{
 static uint32 ActiveTexture = -1;
 
 GLenum CastWrapMethod(WrapMethod wrapMethod)
