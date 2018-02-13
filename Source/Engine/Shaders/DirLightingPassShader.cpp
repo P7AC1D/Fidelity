@@ -4,7 +4,7 @@
 
 #include "../Rendering/RenderTarget.hpp"
 #include "../Rendering/ShaderCollection.h"
-#include "../Rendering/Texture.h"
+#include "../Rendering/Texture.hpp"
 
 static const byte* ShadowTexelSizeUniformName = "u_shadowTexelSize";
 static const byte* ViewDirUniformName = "u_viewDir";

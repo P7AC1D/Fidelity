@@ -4,7 +4,7 @@
 #include <vector>
 
 #include "OpenGL.h"
-#include "Texture.h"
+#include "Texture.hpp"
 
 static uint32 ActiveRenderTarget = -1;
 

@@ -1,6 +1,6 @@
 #include "Panel.h"
 
-#include "../Rendering/Texture.h"
+#include "../Rendering/Texture.hpp"
 #include "../Utility/AssetManager.h"
 
 using namespace Rendering;

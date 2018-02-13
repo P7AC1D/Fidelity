@@ -21,7 +21,6 @@ class UiManager;
 namespace Rendering
 {
   class ConstantBuffer;
-  class CubeMap;
   class RenderTarget;
   class Shader;
   class ShaderCollection;

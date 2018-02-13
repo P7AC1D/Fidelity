@@ -7,7 +7,7 @@
 
 #include "../Rendering/CubeMap.h"
 #include "../Rendering/OpenGL.h"
-#include "../Rendering/Texture.h"
+#include "../Rendering/Texture.hpp"
 #include "../Rendering/Renderable.hpp"
 #include "../Utility/ObjLoader.hpp"
 #include "ObjLoader.hpp"

@@ -3,7 +3,7 @@
 #include "../Rendering/ConstantBuffer.h"
 #include "../Rendering/Material.h"
 #include "../Rendering/ShaderCollection.h"
-#include "../Rendering/Texture.h"
+#include "../Rendering/Texture.hpp"
 
 using namespace Rendering;
 

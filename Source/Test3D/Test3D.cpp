@@ -13,7 +13,7 @@
 #include "../Engine/Rendering/Material.h"
 #include "../Engine/Rendering/Renderable.hpp"
 #include "../Engine/Rendering/StaticMesh.h"
-#include "../Engine/Rendering/Texture.h"
+#include "../Engine/Rendering/Texture.hpp"
 #include "../Engine/UI/Panel.h"
 #include "../Engine/UI/UIManager.h"
 #include "../Engine/Utility/AssetManager.h"
