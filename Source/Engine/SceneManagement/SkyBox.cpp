@@ -1,31 +1,26 @@
 #include "SkyBox.hpp"
 
+#include <vector>
+
 #include "../Geometry/Cube.hpp"
 #include "../Rendering/Renderer.h"
 #include "../Rendering/TextureCube.hpp"
 #include "../Rendering/VertexBuffer.h"
+#include "../Rendering/OpenGL.h"
 
 using namespace Rendering;
 
 SkyBox::SkyBox()
 {
-  Cube cube;
   _vertexBuffer.reset(new VertexBuffer);
 
-  auto positions = cube.GetPositions();
-  auto texCoords = cube.GetTexCoords();
+  Cube cube;
+  _vertexBuffer->UploadData(cube.GetPositions(), BufferUsage::Static);
 
-  std::vector<float32> dataToUpload;
-  dataToUpload.reserve(positions.size() * 3 + texCoords.size() * 2);
-  for (size_t i = 0; i < positions.size(); i++)
-  {
-    dataToUpload.push_back(positions[i][0]);
-    dataToUpload.push_back(positions[i][1]);
-    dataToUpload.push_back(positions[i][2]);
-    dataToUpload.push_back(texCoords[i][0]);
-    dataToUpload.push_back(texCoords[i][2]);
-  }
-  _vertexBuffer->UploadData(dataToUpload, BufferUsage::Static);
+  _vertexBuffer->Bind();
+  GLCall(glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, nullptr));
+  GLCall(glEnableVertexAttribArray(0));
+  _vertexBuffer->Unbind();
 }
 
 void SkyBox::Draw()

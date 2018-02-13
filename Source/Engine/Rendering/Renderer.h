@@ -82,6 +82,7 @@ private:
   void ExecuteDirectionalLightDepthPass(const Matrix4& lightSpaceTransform, uint32 shadowResolution);
   void ExecuteGeometryPass(const Vector3& viewDirection);
   void ExecuteLightingPass(const Matrix4& lightSpaceTransform, const Vector3& viewDirection);
+  void DrawSkyBox();
 
   void ClearBuffer(uint32 clearType);
   void EnableDepthTest();

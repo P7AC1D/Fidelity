@@ -10,6 +10,7 @@
 #include "../Shaders/DirDepthPassShader.hpp"
 #include "../Shaders/GeometryPassShader.hpp"
 #include "../Shaders/DirLightingPassShader.hpp"
+#include "../Shaders/SkyBoxShader.hpp"
 #include "ConstantBuffer.h"
 #include "Material.h"
 #include "OpenGL.h"
@@ -74,6 +75,7 @@ void Renderer::DrawScene(OrbitalCamera& camera)
   auto viewDirection = camera.GetDirection();
   ExecuteGeometryPass(viewDirection);
   ExecuteLightingPass(lightSpaceTransform, viewDirection);
+  DrawSkyBox();
 
   _renderables.clear();
   _pointLights.clear();
@@ -101,9 +103,7 @@ bool Renderer::Initialize()
     return false;
   }
 #endif
-  
-  GLCall(glEnable(GL_CULL_FACE));
-  GLCall(glDisable(GL_BLEND));
+    
   GLCall(glCullFace(GL_BACK));
   GLCall(glFrontFace(GL_CCW));
 
@@ -117,7 +117,7 @@ bool Renderer::Initialize()
   gBufferDesc.Width = _renderWidth;
   gBufferDesc.Height = _renderHeight;
   gBufferDesc.ColourBufferCount = 3;
-  gBufferDesc.EnableStencilBuffer = false;
+  gBufferDesc.EnableStencilBuffer = true;
   _gBuffer.reset(new RenderTarget(gBufferDesc));
 
   RenderTargetDesc dirDepthBufferDesc;
@@ -238,11 +238,11 @@ void Renderer::UploadDirectionalLightData(const Light& directionalLight)
 void Renderer::ExecuteDirectionalLightDepthPass(const Matrix4& lightSpaceTransform, uint32 shadowResolution)
 {
   EnableDepthTest();
-  GLCall(glDepthFunc(GL_LESS));
+  DisableStencilTest();
 
   SetViewport(shadowResolution, shadowResolution);
-  _depthBuffer->Enable();
-  ClearBuffer(ClearType::CT_Depth);
+  _depthBuffer->BindForDraw();
+  ClearBuffer(ClearType::CT_Depth | ClearType::CT_Stencil);
 
   auto shader = _shaderCollection->GetShader<DirDepthPassShader>();
   shader->SetLightSpaceTransform(lightSpaceTransform);
@@ -258,14 +258,18 @@ void Renderer::ExecuteDirectionalLightDepthPass(const Matrix4& lightSpaceTransfo
       staticMesh->Draw();
     }
   }
-  _gBuffer->Disable();
+  _gBuffer->Unbind();
   SetViewport(_renderWidth, _renderHeight);
 }
 
 void Renderer::ExecuteGeometryPass(const Vector3& viewDirection)
 {
-  _gBuffer->Enable();
   EnableStencilTest();
+
+  _gBuffer->Bind();
+  GLCall(glStencilFunc(GL_ALWAYS, 1, 0xFF));
+  GLCall(glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE));
+  GLCall(glStencilMask(0xFF));
   ClearBuffer(CT_Colour | CT_Depth | CT_Stencil);
 
   //GLCall(glPolygonMode(GL_FRONT_AND_BACK, GL_LINE));
@@ -286,7 +290,7 @@ void Renderer::ExecuteGeometryPass(const Vector3& viewDirection)
       staticMesh->Draw();
     }
   }
-  _gBuffer->Disable();
+  _gBuffer->Unbind();
 
   //GLCall(glPolygonMode(GL_FRONT_AND_BACK, GL_FILL));
 }
@@ -294,6 +298,7 @@ void Renderer::ExecuteGeometryPass(const Vector3& viewDirection)
 void Renderer::ExecuteLightingPass(const Matrix4& lightSpaceTransform, const Vector3& viewDirection)
 {
   DisableDepthTest();
+  DisableStencilTest();
   ClearBuffer(ClearType::CT_Colour);
 
   auto shader = _shaderCollection->GetShader<DirLightingPassShader>();
@@ -306,6 +311,34 @@ void Renderer::ExecuteLightingPass(const Matrix4& lightSpaceTransform, const Vec
 
   _quadVertexData->Bind();
   Draw(6);
+}
+
+void Renderer::DrawSkyBox()
+{
+  if (!_skyBox)
+  {
+    return;
+  }
+  DisableDepthTest();
+  EnableStencilTest();
+
+  _gBuffer->BindForRead();
+  GLCall(glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0));
+  GLCall(glBlitFramebuffer(0, 0, _renderWidth, _renderHeight, 0, 0, _renderWidth, _renderHeight, GL_STENCIL_BUFFER_BIT, GL_NEAREST));
+  GLCall(glBindFramebuffer(GL_FRAMEBUFFER, 0));
+
+  GLCall(glStencilFunc(GL_NOTEQUAL, 1, 0xFF));
+  
+  GLCall(glDisable(GL_CULL_FACE));
+
+  auto shader = _shaderCollection->GetShader<SkyBoxShader>();
+  shader->SetTransformBuffer(_cameraBuffer);
+  shader->SetSkyBox(_skyBox);
+  shader->Apply();
+
+  _skyBox->Draw();
+
+  GLCall(glEnable(GL_CULL_FACE));
 }
 
 void Renderer::ClearBuffer(uint32 clearType)

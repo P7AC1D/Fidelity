@@ -46,7 +46,7 @@ namespace Rendering {
     }
   }
 
-  void VertexBuffer::UploadData(void* dataPtr, int32 dataBytes, BufferUsage bufferUsage)
+  void VertexBuffer::UploadData(const void* dataPtr, int32 dataBytes, BufferUsage bufferUsage)
   {
     Bind();
     uint32 vboId;

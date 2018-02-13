@@ -29,8 +29,10 @@ namespace Rendering {
 
     std::shared_ptr<Texture> GetColourBuffer(uint32 index) const;
 
-    void Enable() const;
-    void Disable() const;
+    void BindForRead() const;
+    void BindForDraw() const;
+    void Bind() const;
+    void Unbind() const;
 
   private:
     void Initialize();

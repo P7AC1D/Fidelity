@@ -24,10 +24,10 @@ public:
   void Unbind() const;
 
   template<typename T>
-  void UploadData(std::vector<T>& data, BufferUsage bufferUsage);
+  void UploadData(const std::vector<T>& data, BufferUsage bufferUsage);
 
 private:
-  void UploadData(void* dataPtr, int32 dataBytes, BufferUsage bufferUsage);
+  void UploadData(const void* dataPtr, int32 dataBytes, BufferUsage bufferUsage);
 
   VertexBuffer(const VertexBuffer& buffer) = delete;
   VertexBuffer(const VertexBuffer&& buffer) = delete;
@@ -39,8 +39,8 @@ private:
 };
 
 template<typename T>
-inline void VertexBuffer::UploadData(std::vector<T>& data, BufferUsage bufferUsage)
+inline void VertexBuffer::UploadData(const std::vector<T>& data, BufferUsage bufferUsage)
 {
-  UploadData(reinterpret_cast<void*>(&data[0]), static_cast<int32>(sizeof(T) * data.size()), bufferUsage);
+  UploadData(reinterpret_cast<const void*>(&data[0]), static_cast<int32>(sizeof(T) * data.size()), bufferUsage);
 }
 }

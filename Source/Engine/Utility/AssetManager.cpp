@@ -103,7 +103,7 @@ std::shared_ptr<TextureCube> AssetManager::GetTextureCube(const std::string& dir
 
   for (size_t i = 0; i < fileNames.size(); i++)
   {
-    std::string fullPath = directory + fileNames[i];
+    std::string fullPath = _assetDirectory + directory + fileNames[i];
 
     int32 currentWidth = 0;
     int32 currentHeight = 0;

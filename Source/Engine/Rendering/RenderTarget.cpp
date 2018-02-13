@@ -18,7 +18,7 @@ namespace Rendering {
 
   RenderTarget::~RenderTarget()
   {
-    Disable();
+    Unbind();
     GLCall(glDeleteFramebuffers(1, &_fbo));
   }
 
@@ -32,27 +32,29 @@ namespace Rendering {
     return _colourBuffers[index];
   }
 
-  void RenderTarget::Enable() const
+  void RenderTarget::BindForRead() const
   {
-    if (ActiveRenderTarget != _fbo)
-    {
-      GLCall(glBindFramebuffer(GL_FRAMEBUFFER, _fbo));
-      ActiveRenderTarget = _fbo;
-    }
+    GLCall(glBindFramebuffer(GL_READ_FRAMEBUFFER, _fbo));
   }
 
-  void RenderTarget::Disable() const
+  void RenderTarget::BindForDraw() const
   {
-    if (ActiveRenderTarget == _fbo)
-    {
-      GLCall(glBindFramebuffer(GL_FRAMEBUFFER, 0));
-      ActiveRenderTarget = -1;
-    }
+    GLCall(glBindFramebuffer(GL_DRAW_FRAMEBUFFER, _fbo));
+  }
+
+  void RenderTarget::Bind() const
+  {
+    GLCall(glBindFramebuffer(GL_FRAMEBUFFER, _fbo));
+  }
+
+  void RenderTarget::Unbind() const
+  {
+    GLCall(glBindFramebuffer(GL_FRAMEBUFFER, 0));
   }
 
   void RenderTarget::Initialize()
   {
-    Enable();
+    Bind();
 
     std::vector<GLenum> attachments;
     for (uint32 i = 0; i < _desc.ColourBufferCount; i++)
@@ -100,6 +102,6 @@ namespace Rendering {
       GLCall(glDrawBuffer(GL_NONE));
     }
 
-    Disable();
+    Unbind();
   }
 }

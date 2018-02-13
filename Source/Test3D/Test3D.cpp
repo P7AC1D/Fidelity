@@ -60,7 +60,10 @@ void Test3D::OnStart()
   _camera->UpdateProjMat(GetWidth(), GetHeight(), 0.1f, 100.0f);
   _camera->SetPosition(Vector3(0.0f, 0.0f, 6.0f));
   _sceneManager->SetCamera(_camera);
-  
+    
+  std::shared_ptr<SkyBox> skyBox(new SkyBox);
+  skyBox->SetTexture(_assetManager->GetTextureCube("/Textures/SimpleSkyBox/", { "back.jpg", "bottom.jpg", "front.jpg", "left.jpg", "right.jpg", "top.jpg" }));
+  _sceneManager->SetSkyBox(skyBox);
   
   /*Vector3 floorScale(100.0f);
   auto& floor = _sceneManager->CreateObject("floor");
