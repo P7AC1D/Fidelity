@@ -12,11 +12,6 @@ class Renderer;
 class RenderContext;
 }
 
-namespace UI
-{
-class UIManager;
-}
-
 namespace Utility
 {
 class AssetManager;
@@ -66,7 +61,6 @@ protected:
   std::unique_ptr<EventDispatcher> _eventDispatcher;
   std::unique_ptr<InputHandler> _inputHandler;
   std::unique_ptr<SceneManager> _sceneManager;
-  std::unique_ptr<UI::UIManager> _uiManager;
   std::shared_ptr<Rendering::Renderer> _renderer;
   std::shared_ptr<Utility::AssetManager> _assetManager;
 

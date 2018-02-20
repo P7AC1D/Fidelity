@@ -13,12 +13,7 @@
 #include "Renderable.hpp"
 
 class SkyBox;
-
-namespace UI
-{
-class Panel;
-class UiManager;
-}
+class TextOverlay;
 
 namespace Rendering
 {
@@ -60,10 +55,12 @@ public:
   inline void PushRenderable(std::shared_ptr<Renderable> renderable, std::shared_ptr<Transform> transform) { _renderables.emplace_back(renderable, transform); }
   inline void PushPointLight(const Light& pointLight) { _pointLights.push_back(pointLight); }
   inline void PushDirectionalLight(const Light& directionalLight) { _directionalLights.push_back(directionalLight); }
+  inline void PushTextOverlay(const std::shared_ptr<TextOverlay>& textOverlay) { _textOverlays.push_back(textOverlay); }
 
   void SetClearColour(const Colour& colour);
 
   void DrawScene(OrbitalCamera& camera);
+  void DrawOverlay();
 
   static void Draw(uint32 vertexCount, uint32 vertexOffset = 0);
   static void DrawIndexed(uint32 indexCount);
@@ -96,6 +93,7 @@ private:
   std::vector<RenderableItem> _renderables;
   std::vector<Light> _pointLights;
   std::vector<Light> _directionalLights;
+  std::vector<std::shared_ptr<TextOverlay>> _textOverlays;
   
   std::unique_ptr<ShaderCollection> _shaderCollection;
 

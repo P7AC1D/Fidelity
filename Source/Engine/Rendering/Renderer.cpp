@@ -2,8 +2,7 @@
 
 #include "../Maths/Colour.hpp"
 #include "../Maths/Matrix4.hpp"
-#include "../UI/Panel.h"
-#include "../UI/UIManager.h"
+#include "../Overlay/TextOverlay.hpp"
 #include "../SceneManagement/Light.h"
 #include "../SceneManagement/SkyBox.hpp"
 #include "../SceneManagement/WorldObject.h"
@@ -11,6 +10,7 @@
 #include "../Shaders/GeometryPassShader.hpp"
 #include "../Shaders/DirLightingPassShader.hpp"
 #include "../Shaders/SkyBoxShader.hpp"
+#include "../Shaders/TextOverlayShader.hpp"
 #include "ConstantBuffer.h"
 #include "Material.h"
 #include "OpenGL.h"
@@ -23,7 +23,6 @@
 #include "VertexBuffer.h"
 
 using namespace Rendering;
-using namespace UI;
 
 namespace Rendering
 {
@@ -80,6 +79,20 @@ void Renderer::DrawScene(OrbitalCamera& camera)
   _renderables.clear();
   _pointLights.clear();
   _directionalLights.clear();
+}
+
+void Renderer::DrawOverlay()
+{
+  DisableStencilTest();
+  DisableDepthTest();
+
+  auto shader = _shaderCollection->GetShader<TextOverlayShader>();  
+  for (auto& textOverlay : _textOverlays)
+  {
+    shader->SetFontAtlas(textOverlay->GetDesc().Atlas);
+    shader->Apply();
+    textOverlay->Draw();
+  }
 }
 
 void Renderer::Draw(uint32 vertexCount, uint32 vertexOffset)

@@ -5,12 +5,10 @@
 #include "../Input/EventDispatcher.hpp"
 #include "../Input/InputHandler.hpp"
 #include "../Rendering/Renderer.h"
-#include "../UI/UIManager.h"
 #include "../Utility/AssetManager.h"
 #include "../SceneManagement/SceneManager.h"
 
 using namespace Rendering;
-using namespace UI;
 using namespace Utility;
 
 float32 GetAverageTickMs(int32 dtMs)
@@ -150,9 +148,8 @@ int32 Application::Run()
 Application::Application(const ApplicationDesc &desc) :
   _eventDispatcher(new EventDispatcher),
   _inputHandler(new InputHandler(*_eventDispatcher.get())),
-  _uiManager(new UIManager),
   _renderer(new Renderer(desc.Width, desc.Height)),
-  _assetManager(new AssetManager("./../../Assets/")),
+  _assetManager(new AssetManager("./../../Resources/")),
   _isRunning(false),
   _mouseFocus(true),
   _desc(desc)

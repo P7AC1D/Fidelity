@@ -4,6 +4,7 @@
 #include "../Engine/Geometry/MeshFactory.h"
 #include "../Engine/Input/InputHandler.hpp"
 #include "../Engine/Input/EventDispatcher.hpp"
+#include "../Engine/Overlay/TextOverlay.hpp"
 #include "../Engine/Maths/Degree.hpp"
 #include "../Engine/Maths/Math.hpp"
 #include "../Engine/Maths/Quaternion.hpp"
@@ -12,11 +13,11 @@
 #include "../Engine/Maths/Vector3.hpp"
 #include "../Engine/Rendering/Material.h"
 #include "../Engine/Rendering/Renderable.hpp"
+#include "../Engine/Rendering/Renderer.h"
 #include "../Engine/Rendering/StaticMesh.h"
 #include "../Engine/Rendering/Texture.hpp"
-#include "../Engine/UI/Panel.h"
-#include "../Engine/UI/UIManager.h"
 #include "../Engine/Utility/AssetManager.h"
+#include "../Engine/Utility/FntLoader.hpp"
 #include "../Engine/Utility/ObjLoader.hpp"
 #include "../Engine/SceneManagement/Light.h"
 #include "../Engine/SceneManagement/OrbitalCamera.h"
@@ -25,7 +26,6 @@
 #include "../Engine/SceneManagement/WorldObject.h"
 
 using namespace Rendering;
-using namespace UI;
 using namespace Utility;
 
 float32 GetTerrainHeight(float32 x, float32 z)
@@ -88,7 +88,7 @@ void Test3D::OnStart()
   {
     for (float32 j = -40.0f; j < 40.0f; j += 4.0f)
     {
-      auto treeModel = _sceneManager->LoadObjectFromFile("./../../Assets/Models/LowPolyTree/lowpolytree.obj");
+      auto treeModel = _sceneManager->LoadObjectFromFile("./../../Resources/Models/LowPolyTree/lowpolytree.obj");
       treeModel.GetTransform()->SetPosition(Vector3(i, SampleHeight(vertexData, floorScale, i, j), j));
     }
   }*/
@@ -101,7 +101,7 @@ void Test3D::OnStart()
   std::shared_ptr<Renderable> sphereModelA(new Renderable);
   sphereModelA->PushMesh(sphereA);
   sphereANode->AttachRenderable(sphereModelA);
-  sphereANode->GetTransform()->Translate(Vector3(3.0f, 0.0f, 0.0f));
+  sphereANode->GetTransform()->Translate(Vector3(2.0f, 0.0f, 0.0f));
 
   auto sphereBNode = _sceneManager->CreateObject("sphereB");
   auto sphereB = MeshFactory::CreateIcosphere(3);
@@ -114,20 +114,7 @@ void Test3D::OnStart()
   std::shared_ptr<Renderable> sphereModelB(new Renderable);
   sphereModelB->PushMesh(sphereB);
   sphereBNode->AttachRenderable(sphereModelB);
-  sphereBNode->GetTransform()->Translate(Vector3(0.0f, 0.0f, 0.0f));
-
-  auto sphereCNode = _sceneManager->CreateObject("sphereC");
-  auto sphereC = MeshFactory::CreateIcosphere(3);
-  auto sphereCMaterial = sphereC->GetMaterial();
-  auto depthMap = _assetManager->GetTexture("/Textures/brick_floor_tileable_Displacement.jpg");
-  sphereCMaterial->SetTexture("DiffuseMap", diffuseMap);
-  sphereCMaterial->SetTexture("NormalMap", normalMap);
-  sphereCMaterial->SetTexture("SpecularMap", specularMap);
-  //sphereCMaterial->SetTexture("DepthMap", depthMap);
-  std::shared_ptr<Renderable> sphereModelC(new Renderable);
-  sphereModelC->PushMesh(sphereC);
-  sphereCNode->AttachRenderable(sphereModelC);
-  sphereCNode->GetTransform()->Translate(Vector3(-3.0f, 0.0f, 0.0f));
+  sphereBNode->GetTransform()->Translate(Vector3(-2.0f, 0.0f, 0.0f));
 
   //auto& cubeNode = _sceneManager->CreateObject("cube");
   //auto cubeMesh = MeshFactory::CreateCube();
@@ -163,6 +150,18 @@ void Test3D::OnStart()
       _camera->Rotate(yaw, pitch);
     }
   });
+
+  auto font = FntLoader::LoadFontFromFile("./../../Resources/Fonts/FranklinGothicDemi.fnt");
+  auto fontAtlas = _assetManager->GetTexture("/Fonts/FranklinGothicDemi_0.png");
+ 
+  TextOverlayDesc textOverlayDesc;
+  textOverlayDesc.LineWidth = 100;
+  textOverlayDesc.Position = Vector2i::Zero;
+  textOverlayDesc.Text = "abcdefghijklmnopqrstuvwxyz";
+  textOverlayDesc.Font = font;
+  textOverlayDesc.Atlas = fontAtlas;
+  auto textOverlay = std::make_shared<TextOverlay>(textOverlayDesc, GetWidth(), GetHeight());
+  _renderer->PushTextOverlay(textOverlay);
 }
 
 void Test3D::OnUpdate(uint32 dtMs)
