@@ -152,7 +152,7 @@ void Test3D::OnStart()
   });
 
   auto font = FntLoader::LoadFontFromFile("./../../Resources/Fonts/FranklinGothicDemi.fnt");
-  auto fontAtlas = _assetManager->GetTexture("/Fonts/FranklinGothicDemi_0.png");
+  auto fontAtlas = _assetManager->GetTexture("/Fonts/" + font->TextureFileName);
  
   TextOverlayDesc textOverlayDesc;
   textOverlayDesc.LineWidth = 100;
@@ -160,6 +160,7 @@ void Test3D::OnStart()
   textOverlayDesc.Text = "abcdefghijklmnopqrstuvwxyz";
   textOverlayDesc.Font = font;
   textOverlayDesc.Atlas = fontAtlas;
+  textOverlayDesc.Scale = 0.5f;
   auto textOverlay = std::make_shared<TextOverlay>(textOverlayDesc, GetWidth(), GetHeight());
   _renderer->PushTextOverlay(textOverlay);
 }

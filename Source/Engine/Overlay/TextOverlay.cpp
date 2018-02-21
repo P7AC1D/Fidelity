@@ -52,14 +52,14 @@ void TextOverlay::UploadMeshData()
       throw std::runtime_error("Unsupported character.");
     }
 
-    Vector2 topLeft((cursorPos[0] + iter->XOffset) / static_cast<float32>(_windowWidth),
-                    (cursorPos[1] - iter->YOffset) / static_cast<float32>(_windowHeight));
-    Vector2 topRight((cursorPos[0] + iter->XOffset + iter->Width) / static_cast<float32>(_windowWidth),
-                     (cursorPos[1] - iter->YOffset) / static_cast<float32>(_windowHeight));
-    Vector2 bottomLeft((cursorPos[0] + iter->XOffset) / static_cast<float32>(_windowWidth),
-                       (cursorPos[1] - iter->YOffset - iter->Height) / static_cast<float32>(_windowHeight));
-    Vector2 bottomRight((cursorPos[0] + iter->XOffset + iter->Width) / static_cast<float32>(_windowWidth),
-                        (cursorPos[1] - iter->YOffset - iter->Height) / static_cast<float32>(_windowHeight));
+    Vector2 posTopLeft((cursorPos[0] + iter->XOffset) * _desc.Scale / static_cast<float32>(_windowWidth) - 1.0f,
+                       (cursorPos[1] - iter->YOffset)  * _desc.Scale/ static_cast<float32>(_windowHeight) + 1.0f);
+    Vector2 posTopRight((cursorPos[0] + iter->XOffset + iter->Width) * _desc.Scale / static_cast<float32>(_windowWidth) - 1.0f,
+                        (cursorPos[1] - iter->YOffset) * _desc.Scale / static_cast<float32>(_windowHeight) + 1.0f);
+    Vector2 posBottomLeft((cursorPos[0] + iter->XOffset) * _desc.Scale / static_cast<float32>(_windowWidth) - 1.0f,
+                          (cursorPos[1] - iter->YOffset - iter->Height) * _desc.Scale / static_cast<float32>(_windowHeight) + 1.0f);
+    Vector2 posBottomRight((cursorPos[0] + iter->XOffset + iter->Width) * _desc.Scale / static_cast<float32>(_windowWidth) - 1.0f,
+                           (cursorPos[1] - iter->YOffset - iter->Height) * _desc.Scale / static_cast<float32>(_windowHeight) + 1.0f);
 
     Vector2 uvTopLeft(iter->XPos / static_cast<float32>(_desc.Font->Width),
                       iter->YPos / static_cast<float32>(_desc.Font->Height));
@@ -70,18 +70,18 @@ void TextOverlay::UploadMeshData()
     Vector2 uvBottomRight((iter->XPos + iter->Width) / static_cast<float32>(_desc.Font->Width),
                           (iter->YPos + iter->Height) / static_cast<float32>(_desc.Font->Height));
 
-    vertices.push_back(bottomRight);
+    vertices.push_back(posBottomRight);
     vertices.push_back(uvBottomRight);
-    vertices.push_back(topRight);
+    vertices.push_back(posTopRight);
     vertices.push_back(uvTopRight);
-    vertices.push_back(topLeft);
+    vertices.push_back(posTopLeft);
     vertices.push_back(uvTopLeft);
 
-    vertices.push_back(topLeft);
+    vertices.push_back(posTopLeft);
     vertices.push_back(uvTopLeft);
-    vertices.push_back(bottomLeft);
+    vertices.push_back(posBottomLeft);
     vertices.push_back(uvBottomLeft);
-    vertices.push_back(bottomRight);
+    vertices.push_back(posBottomRight);
     vertices.push_back(uvBottomRight);
 
     cursorPos[0] += iter->XAdvance;

@@ -19,6 +19,7 @@ struct TextOverlayDesc
   std::string Text;
   std::shared_ptr<Font> Font;
   std::shared_ptr<Rendering::Texture> Atlas;
+  float32 Scale = 1.0f;
   Colour TextColour = Colour::Black;
   bool Centered = false;
 };

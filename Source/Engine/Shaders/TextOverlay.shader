@@ -1,5 +1,6 @@
 #version 400 core
 
+uniform vec3 u_textColour;
 uniform sampler2D u_FontAtlas;
 
 #ifdef VERTEX_SHADER
@@ -19,8 +20,13 @@ void main()
 in vec2 TexCoord;
 out vec4 o_Colour;
 
+const float WIDTH = 0.5f;
+const float EDGE = 0.2f;
+
 void main()
 {
-  o_Colour = texture(u_FontAtlas, TexCoord);
+  float distance = 1.0f - texture(u_FontAtlas, TexCoord).r;
+  float alpha = 1.0f - smoothstep(WIDTH, WIDTH + EDGE, distance);
+  o_Colour = vec4(u_textColour, texture(u_FontAtlas, TexCoord).r);
 }
 #endif

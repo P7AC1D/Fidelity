@@ -85,14 +85,20 @@ void Renderer::DrawOverlay()
 {
   DisableStencilTest();
   DisableDepthTest();
+  
+  GLCall(glEnable(GL_BLEND));
+  GLCall(glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
 
   auto shader = _shaderCollection->GetShader<TextOverlayShader>();  
   for (auto& textOverlay : _textOverlays)
   {
     shader->SetFontAtlas(textOverlay->GetDesc().Atlas);
+    shader->SetTextColour(textOverlay->GetDesc().TextColour);
     shader->Apply();
     textOverlay->Draw();
   }
+  
+  GLCall(glDisable(GL_BLEND));
 }
 
 void Renderer::Draw(uint32 vertexCount, uint32 vertexOffset)
@@ -264,7 +270,7 @@ void Renderer::ExecuteDirectionalLightDepthPass(const Matrix4& lightSpaceTransfo
     auto meshCount = renderable.Renderable->GetMeshCount();
     for (size_t i = 0; i < meshCount; i++)
     {
-      auto& staticMesh = renderable.Renderable->GetMeshAtIndex(i);
+      auto staticMesh = renderable.Renderable->GetMeshAtIndex(i);
       shader->SetModelSpaceTransform(renderable.Transform->Get());
 
       shader->Apply();

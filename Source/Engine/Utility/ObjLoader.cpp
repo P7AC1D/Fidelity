@@ -91,7 +91,7 @@ std::shared_ptr<StaticMesh> BuildMesh(const std::string& filePath, const aiMesh*
   }
 
   std::shared_ptr<StaticMesh> mesh(new StaticMesh(aiMesh->mName.C_Str()));
-  auto& material = mesh->GetMaterial();
+  auto material = mesh->GetMaterial();
   BuildMaterial(filePath, aiMaterial, material, assetManager);
 
   std::vector<Vector3> vertices;
