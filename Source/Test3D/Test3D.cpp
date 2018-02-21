@@ -161,7 +161,7 @@ void Test3D::OnStart()
   textOverlayDesc.Atlas = fontAtlas;
   textOverlayDesc.Scale = 1.0f;
   _onScreenFpsCounter.reset(new TextOverlay(textOverlayDesc, GetWidth(), GetHeight()));
-  _renderer->PushTextOverlay(_onScreenFpsCounter);
+  Renderer::Get()->PushTextOverlay(_onScreenFpsCounter);
 }
 
 void Test3D::OnUpdate(uint32 dtMs)

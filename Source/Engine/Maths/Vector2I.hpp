@@ -1,5 +1,6 @@
 #pragma once
 #include "../Core/Types.hpp"
+#include "Vector2.hpp"
 
 class Vector2i
 {
@@ -11,8 +12,10 @@ public:
   Vector2i(int32 a);
   Vector2i(int32 x, int32 y);
   Vector2i(const Vector2i& rhs);
+  Vector2i(const Vector2& rhs);
 
   Vector2i& operator=(const Vector2i& rhs);
+  Vector2i& operator=(const Vector2& rhs);
   Vector2i operator+(const Vector2i& rhs);
   Vector2i operator-(const Vector2i& rhs);
 

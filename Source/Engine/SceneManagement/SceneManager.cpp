@@ -15,9 +15,9 @@ static uint32 LightCount = 0;
 using namespace Rendering;
 using namespace Utility;
 
-SceneManager::SceneManager(std::shared_ptr<AssetManager> _assetManager, std::shared_ptr<Renderer> renderer) :
+SceneManager::SceneManager(std::shared_ptr<AssetManager> _assetManager) :
   _assetManager(_assetManager),
-  _renderer(renderer),
+  _renderer(Renderer::Get()),
   _ambientLight(Colour::Black)
 {
 }

@@ -52,11 +52,6 @@ protected:
   float32 GetAverageFps(int32 dtMs);
 
 private:
-  Application(Application&) = delete;
-  Application(Application&&) = delete;
-  Application& operator=(Application&) = delete;
-  Application& operator= (Application&&) = delete;
-
   bool Initialize();
   int32 GetTickDuration();
 
@@ -64,7 +59,6 @@ protected:
   std::unique_ptr<EventDispatcher> _eventDispatcher;
   std::unique_ptr<InputHandler> _inputHandler;
   std::unique_ptr<SceneManager> _sceneManager;
-  std::shared_ptr<Rendering::Renderer> _renderer;
   std::shared_ptr<Utility::AssetManager> _assetManager;
 
 private:

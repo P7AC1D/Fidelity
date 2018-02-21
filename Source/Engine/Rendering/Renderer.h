@@ -4,6 +4,7 @@
 #include <unordered_map>
 #include <vector>
 
+#include "../Core/System.hpp"
 #include "../Core/Types.hpp"
 #include "../Maths/Colour.hpp"
 #include "../Maths/Vector3.hpp"
@@ -44,11 +45,10 @@ struct RenderableItem
   std::shared_ptr<Transform> Transform;
 };
 
-class Renderer
+class Renderer : public System<Renderer>
 {
 public:
-  Renderer(int32 renderWidth, int32 renderHeight);
-  virtual ~Renderer();
+  ~Renderer();
 
   inline void SetAmbientLight(const Colour& ambientLight) { _ambientLight = ambientLight; }
   inline void SetSkyBox(std::shared_ptr<SkyBox> skyBox) { _skyBox = skyBox; }
@@ -56,6 +56,9 @@ public:
   inline void PushPointLight(const Light& pointLight) { _pointLights.push_back(pointLight); }
   inline void PushDirectionalLight(const Light& directionalLight) { _directionalLights.push_back(directionalLight); }
   inline void PushTextOverlay(const std::shared_ptr<TextOverlay>& textOverlay) { _textOverlays.push_back(textOverlay); }
+
+  inline uint32 GetWidth() const { return _renderWidth; }
+  inline uint32 GetHeight() const { return _renderHeight; }
 
   void SetClearColour(const Colour& colour);
 
@@ -70,8 +73,9 @@ public:
   static void SetVertexAttribPointers(StaticMesh* staticMesh, int32 stride);
 
 private:
-  void SetViewport(int32 renderWidth, int32 renderHeight);
-  
+  void SetViewport(uint32 renderWidth, uint32 renderHeight);  
+  Renderer();
+
   void UploadCameraData(OrbitalCamera& camera);
   void UploadPointLightData(const Light& pointLight);
   void UploadDirectionalLightData(const Light& directionalLight);
@@ -109,9 +113,12 @@ private:
 
   std::shared_ptr<SkyBox> _skyBox;
 
-  int32 _renderWidth;
-  int32 _renderHeight;
+  uint32 _renderWidth;
+  uint32 _renderHeight;
   uint32 _shadowResolution = 4096;
   Colour _ambientLight;
+
+  friend class Application;
+  friend class System<Renderer>;
 };
 }

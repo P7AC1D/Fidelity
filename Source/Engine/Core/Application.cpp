@@ -120,13 +120,12 @@ int32 Application::Run()
 Application::Application(const ApplicationDesc &desc) :
   _eventDispatcher(new EventDispatcher),
   _inputHandler(new InputHandler(*_eventDispatcher.get())),
-  _renderer(new Renderer(desc.Width, desc.Height)),
   _assetManager(new AssetManager("./../../Resources/")),
   _isRunning(false),
   _mouseFocus(true),
   _desc(desc)
 {
-  _sceneManager.reset(new SceneManager(_assetManager, _renderer));
+  _sceneManager.reset(new SceneManager(_assetManager));
 }
 
 float32 Application::GetAverageTickMs(int32 dtMs)
@@ -184,7 +183,9 @@ bool Application::Initialize()
     return false;
   }
 
-  if (!_renderer->Initialize())
+  auto renderer = Renderer::Get();
+  renderer->SetViewport(_desc.Width, _desc.Height);
+  if (!renderer->Initialize())
   {
     return false;
   }
