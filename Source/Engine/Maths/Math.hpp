@@ -2,9 +2,8 @@
 #include <cmath>
 
 #include "../Core/Types.hpp"
-
-class Degree;
-class Radian;
+#include "Degree.hpp"
+#include "Radian.hpp"
 
 class Math
 {

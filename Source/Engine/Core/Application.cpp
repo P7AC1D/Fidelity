@@ -5,12 +5,10 @@
 #include "../Input/EventDispatcher.hpp"
 #include "../Input/InputHandler.hpp"
 #include "../Rendering/Renderer.h"
-#include "../UI/UIManager.h"
 #include "../Utility/AssetManager.h"
 #include "../SceneManagement/SceneManager.h"
 
 using namespace Rendering;
-using namespace UI;
 using namespace Utility;
 
 Application::~Application()
@@ -113,9 +111,6 @@ int32 Application::Run()
     _sceneManager->UpdateScene(dtMs);
 
     SDL_GL_SwapWindow(_window);
-    
-    std::string title = _desc.Name + ": " + std::to_string(dtMs) + "ms";
-    SDL_SetWindowTitle(_window, title.c_str());
   }
 
   SDL_DestroyWindow(_window);
@@ -126,13 +121,36 @@ Application::Application(const ApplicationDesc &desc) :
   _eventDispatcher(new EventDispatcher),
   _inputHandler(new InputHandler(*_eventDispatcher.get())),
   _renderer(new Renderer(desc.Width, desc.Height)),
-  _uiManager(new UIManager),
-  _assetManager(new AssetManager("./../../Assets/")),
-  _desc(desc),
+  _assetManager(new AssetManager("./../../Resources/")),
   _isRunning(false),
-  _mouseFocus(true)
+  _mouseFocus(true),
+  _desc(desc)
 {
   _sceneManager.reset(new SceneManager(_assetManager, _renderer));
+}
+
+float32 Application::GetAverageTickMs(int32 dtMs)
+{
+  static int dtSum = 0;
+  static int dtCount = 0;
+
+  float32 avgTick = dtSum / static_cast<float32>(dtCount);
+  if (dtSum > 500)
+  {
+    dtSum = 0;
+    dtCount = 0;
+  }
+  else
+  {
+    dtSum += dtMs;
+    dtCount++;
+  }
+  return avgTick;
+}
+
+float32 Application::GetAverageFps(int32 dtMs)
+{
+  return 1.0f / (GetAverageTickMs(dtMs) * 0.001f);
 }
 
 bool Application::Initialize()

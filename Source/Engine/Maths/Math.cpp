@@ -1,7 +1,5 @@
 #include "Math.hpp"
 
-#include "Radian.hpp"
-
 float32 Math::Sin(const Radian& angle)
 {
   return std::sinf(angle.InRadians());

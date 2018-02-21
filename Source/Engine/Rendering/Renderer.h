@@ -12,17 +12,13 @@
 #include "../SceneManagement/Transform.h"
 #include "Renderable.hpp"
 
-namespace UI
-{
-class Panel;
-class UiManager;
-}
+class SkyBox;
+class TextOverlay;
 
 namespace Rendering
 {
   class ConstantBuffer;
-  class CubeMap;
-  class FrameBuffer;
+  class RenderTarget;
   class Shader;
   class ShaderCollection;
   class StaticMesh;
@@ -30,11 +26,11 @@ namespace Rendering
   class VertexBuffer;
   enum class RenderingTechnique;
 
-enum class ClearType
+enum ClearType : uint8
 {
-  Color,
-  Depth,
-  All,
+  CT_Colour = 1 << 0,
+  CT_Depth = 1 << 1,
+  CT_Stencil = 1 << 2
 };
 
 struct RenderableItem
@@ -55,18 +51,20 @@ public:
   virtual ~Renderer();
 
   inline void SetAmbientLight(const Colour& ambientLight) { _ambientLight = ambientLight; }
-  inline void PushRenderable(std::shared_ptr<Renderable> renderable, std::shared_ptr<Transform> transform) 
-  { 
-    _renderables.emplace_back(renderable, transform);
-  }
+  inline void SetSkyBox(std::shared_ptr<SkyBox> skyBox) { _skyBox = skyBox; }
+  inline void PushRenderable(std::shared_ptr<Renderable> renderable, std::shared_ptr<Transform> transform) { _renderables.emplace_back(renderable, transform); }
   inline void PushPointLight(const Light& pointLight) { _pointLights.push_back(pointLight); }
   inline void PushDirectionalLight(const Light& directionalLight) { _directionalLights.push_back(directionalLight); }
+  inline void PushTextOverlay(const std::shared_ptr<TextOverlay>& textOverlay) { _textOverlays.push_back(textOverlay); }
 
   void SetClearColour(const Colour& colour);
 
   void DrawScene(OrbitalCamera& camera);
+  void DrawOverlay();
 
-  void DrawUI(std::vector<std::shared_ptr<UI::Panel>> panelCollection);
+  static void Draw(uint32 vertexCount, uint32 vertexOffset = 0);
+  static void DrawIndexed(uint32 indexCount);
+
   bool Initialize();
 
   static void SetVertexAttribPointers(StaticMesh* staticMesh, int32 stride);
@@ -78,32 +76,42 @@ private:
   void UploadPointLightData(const Light& pointLight);
   void UploadDirectionalLightData(const Light& directionalLight);
 
-  void DirLightColourPass(OrbitalCamera& camera, const Matrix4& lightSpaceTransform, std::shared_ptr<Texture> shadowMap, const Vector2& shadowTexelSize);
-  void DirLightDepthPass(const Matrix4& lightSpaceTransform, uint32 shadowRes);
-  void PointLightRender(OrbitalCamera& camera);
+  void ExecuteDirectionalLightDepthPass(const Matrix4& lightSpaceTransform, uint32 shadowResolution);
+  void ExecuteGeometryPass(const Vector3& viewDirection);
+  void ExecuteLightingPass(const Matrix4& lightSpaceTransform, const Vector3& viewDirection);
+  void DrawSkyBox();
 
-  void ClearBuffer(ClearType clearType);
+  void ClearBuffer(uint32 clearType);
+  void EnableDepthTest();
+  void DisableDepthTest();
+  void EnableStencilTest();
+  void DisableStencilTest();
+
+  Matrix4 BuildLightSpaceTransform(const Light& directionalLight);
 
 private:
   std::vector<RenderableItem> _renderables;
   std::vector<Light> _pointLights;
   std::vector<Light> _directionalLights;
+  std::vector<std::shared_ptr<TextOverlay>> _textOverlays;
   
   std::unique_ptr<ShaderCollection> _shaderCollection;
 
-  std::unique_ptr<ConstantBuffer> _cameraBuffer;
+  std::shared_ptr<ConstantBuffer> _cameraBuffer;
   std::unique_ptr<ConstantBuffer> _lightBuffer;
   std::unique_ptr<ConstantBuffer> _ambientLightBuffer;
-  bool _projectionMatrixDirty;
-  bool _viewMatrixDirty;
 
-  std::unique_ptr<VertexBuffer> _guiQuadVertexData;
+  std::unique_ptr<VertexBuffer> _quadVertexData;
   std::unique_ptr<VertexBuffer> _skyBoxVertexData;
   
-  std::unique_ptr<FrameBuffer> _depthBuffer;
+  std::shared_ptr<RenderTarget> _gBuffer;
+  std::shared_ptr<RenderTarget> _depthBuffer;
+
+  std::shared_ptr<SkyBox> _skyBox;
 
   int32 _renderWidth;
   int32 _renderHeight;
+  uint32 _shadowResolution = 4096;
   Colour _ambientLight;
 };
 }

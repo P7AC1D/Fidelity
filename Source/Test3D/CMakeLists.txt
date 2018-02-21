@@ -13,6 +13,14 @@ IF (WIN32)
   file(COPY ${GLEW_LIBRARIES}/bin/Release/x64/glew32.dll DESTINATION ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/Release)
   file(COPY ${SDL2_INCLUDE_DIR}/../lib/x64/SDL2.dll DESTINATION ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/Debug)
   file(COPY ${SDL2_INCLUDE_DIR}/../lib/x64/SDL2.dll DESTINATION ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/Release)
+  file(COPY ${ASSIMP_LIBRARY}/assimp-vc140-mt.dll DESTINATION ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/Debug)
+  file(COPY ${ASSIMP_LIBRARY}/assimp-vc140-mt.dll DESTINATION ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/Release)
+
+  target_link_libraries(Test3D ${ASSIMP_LIBRARY}/assimp-vc140-mt.lib)
+ENDIF()
+
+IF (APPLE)
+  target_link_libraries(Test3D ${ASSIMP_LIBRARY}/libassimp.4.1.0.dylib)
 ENDIF()
 
 if (MSVC)

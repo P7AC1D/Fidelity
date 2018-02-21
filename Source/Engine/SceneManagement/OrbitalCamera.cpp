@@ -81,6 +81,11 @@ Vector3 OrbitalCamera::GetPos() const
   return m_target + PositionToCartesian();
 }
 
+Vector3 OrbitalCamera::GetDirection() const
+{
+  return m_target - GetPos();
+}
+
 Matrix4 OrbitalCamera::GetViewMat()
 {
   if (m_needsUpdate)

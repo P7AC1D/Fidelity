@@ -1,48 +1,15 @@
 #include "ShaderCollection.h"
 
-#include <iostream>
-#include <exception>
-
 #include "../Rendering/Shader.h"
 
-namespace Rendering
-{
-ShaderCollection::ShaderCollection(std::string shaderDirectory) :
-  _shaderDirectory(std::move(shaderDirectory))
-{
-}
+namespace Rendering {
+  std::string ShaderCollection::ShaderDirectory = "./../../Source/Engine/Shaders/";
 
-ShaderCollection::~ShaderCollection()
-{
-}
-
-std::shared_ptr<Shader> ShaderCollection::GetShader(const std::string& shaderName)
-{
-  auto iter = _shaderCollection.find(shaderName);
-  if (iter != _shaderCollection.end())
+  ShaderCollection::ShaderCollection()
   {
-    return iter->second;
   }
-  return LoadShader(shaderName);
-}
 
-bool ShaderCollection::HasShader(const std::string& shaderName) const
-{
-  return _shaderCollection.find(shaderName) != _shaderCollection.end();
-}
-
-std::shared_ptr<Shader> ShaderCollection::LoadShader(const std::string& shaderName)
-{
-  try
+  ShaderCollection::~ShaderCollection()
   {
-    auto shader = std::make_shared<Shader>(_shaderDirectory + shaderName);
-    _shaderCollection[shaderName] = shader;
-    return shader;
   }
-  catch (std::exception exception)
-  {
-    std::cerr << "Failed to load shader " << shaderName << ": " << exception.what();
-    return nullptr;
-  }
-}
 }

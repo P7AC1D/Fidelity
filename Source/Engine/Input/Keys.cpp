@@ -1,5 +1,7 @@
 #include "Keys.hpp"
 
+#include <stdexcept>
+
 #include <SDL.h>
 
 Key ConvertSDLKeyCode(int32 sdlKeyCode)
@@ -40,5 +42,6 @@ Key ConvertSDLKeyCode(int32 sdlKeyCode)
     case SDLK_COMMA: return Key::Comma;
     case SDLK_PERIOD: return Key::FullStop;
     case SDLK_SLASH: return Key::ForwardSlash;
+    default: throw std::runtime_error("Unsupported SDL button");
   }
 }

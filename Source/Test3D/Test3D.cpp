@@ -1,8 +1,10 @@
 #include "Test3D.h"
 
 #include "../Engine/Components/Component.h"
+#include "../Engine/Geometry/MeshFactory.h"
 #include "../Engine/Input/InputHandler.hpp"
 #include "../Engine/Input/EventDispatcher.hpp"
+#include "../Engine/Overlay/TextOverlay.hpp"
 #include "../Engine/Maths/Degree.hpp"
 #include "../Engine/Maths/Math.hpp"
 #include "../Engine/Maths/Quaternion.hpp"
@@ -11,11 +13,11 @@
 #include "../Engine/Maths/Vector3.hpp"
 #include "../Engine/Rendering/Material.h"
 #include "../Engine/Rendering/Renderable.hpp"
+#include "../Engine/Rendering/Renderer.h"
 #include "../Engine/Rendering/StaticMesh.h"
-#include "../Engine/UI/Panel.h"
-#include "../Engine/UI/UIManager.h"
+#include "../Engine/Rendering/Texture.hpp"
 #include "../Engine/Utility/AssetManager.h"
-#include "../Engine/Utility/MeshFactory.h"
+#include "../Engine/Utility/FntLoader.hpp"
 #include "../Engine/Utility/ObjLoader.hpp"
 #include "../Engine/SceneManagement/Light.h"
 #include "../Engine/SceneManagement/OrbitalCamera.h"
@@ -24,8 +26,25 @@
 #include "../Engine/SceneManagement/WorldObject.h"
 
 using namespace Rendering;
-using namespace UI;
 using namespace Utility;
+
+float32 GetTerrainHeight(float32 x, float32 z)
+{
+  return Math::Sin(Radian((x * 2.0f * Math::Pi))) + Math::Sin(Radian((z * 3.0f * Math::Pi)));
+}
+
+float32 SampleHeight(const std::vector<Vector3>& data, const Vector3& scale, float32 x, float32 z, float32 eps = 0.04f)
+{
+  auto iter = std::find_if(data.begin(), data.end(), [&](const Vector3& vec)
+  {
+    return std::fabs(vec[0] * scale[0] - x) <= eps && std::fabs(vec[2] * scale[2] - z) <= eps;
+  });
+  if (iter != data.end())
+  {
+    return (*iter)[1] * scale[1];
+  }
+  return 0.0f;
+}
 
 Test3D::Test3D(const ApplicationDesc& desc):
   Application(desc),
@@ -35,38 +54,80 @@ Test3D::Test3D(const ApplicationDesc& desc):
 
 void Test3D::OnStart()
 {
-  //_sceneManager->SetAmbientLight(Vector3(0.25f, 0.25f, 0.20f));
+  _sceneManager->SetAmbientLight(Vector3(0.25f, 0.25f, 0.20f));
 
   _camera = std::make_shared<OrbitalCamera>(0.0f, 90.0f, 2.0f);
   _camera->UpdateProjMat(GetWidth(), GetHeight(), 0.1f, 100.0f);
-  _camera->SetPosition(Vector3(6.0f, 6.0f, 6.0f));
+  _camera->SetPosition(Vector3(0.0f, 0.0f, 6.0f));
   _sceneManager->SetCamera(_camera);
     
-  //_sceneManager->LoadObjectFromFile("./../../Assets/Models/LowPolyTree/lowpolytree.obj");
-  for (int32 i = -25; i < 25; i+=5)
-  {
-    for (int32 j = -25; j < 25; j+=5)
-    {
-      auto treeModel = _sceneManager->LoadObjectFromFile("./../../Assets/Models/LowPolyTree/lowpolytree.obj");
-      treeModel.GetTransform()->SetPosition(Vector3(i, 0.0f, j));
-    }
-  }
+  std::shared_ptr<SkyBox> skyBox(new SkyBox);
+  skyBox->SetTexture(_assetManager->GetTextureCube("/Textures/SimpleSkyBox/", { "back.jpg", "bottom.jpg", "front.jpg", "left.jpg", "right.jpg", "top.jpg" }));
+  _sceneManager->SetSkyBox(skyBox);
   
+  /*Vector3 floorScale(100.0f);
   auto& floor = _sceneManager->CreateObject("floor");
-  floor.SetScale(Vector3(100.0f));
+  floor.SetScale(floorScale);
   auto plane = MeshFactory::CreatePlane(25);
-  auto material = plane->GetMaterial();
-  material->SetDiffuseColour(Colour(116, 244, 66));
-  material->SetTexture("DiffuseMap", _assetManager->GetTexture("/Textures/TexturesCom_Grass0130_1_seamless_S.jpg"));
+  auto vertexData = plane->GetPositionVertexData();
+  for (auto& vertex : vertexData)
+  {
+    vertex[1] = 0.05f * GetTerrainHeight(vertex[0], vertex[2]);
+  }
+  plane->SetPositionVertexData(vertexData);
+  plane->GenerateNormals();
+
+  auto& material = plane->GetMaterial();
+  material.SetDiffuseColour(Colour(116, 244, 66));
+  material.SetTexture("DiffuseMap", _assetManager->GetTexture("/Textures/TexturesCom_Grass0130_1_seamless_S.jpg"));
   std::shared_ptr<Renderable> planeModel(new Renderable);
-  //planeModel->CastShadows(false);
   planeModel->PushMesh(*plane);
   floor.AttachRenderable(planeModel);
 
-  //auto& light = _sceneManager->CreateLight(LightType::Point);
-  //light.SetPosition(Vector3(3.0f, 3.0f, 3.0f));
-  //light.SetColour(Vector3(1.0f, 1.0f, 1.0f));
-  //light.SetRadius(7.0f);
+  for (float32 i = -40.0f; i < 40.0f; i += 4.0f)
+  {
+    for (float32 j = -40.0f; j < 40.0f; j += 4.0f)
+    {
+      auto treeModel = _sceneManager->LoadObjectFromFile("./../../Resources/Models/LowPolyTree/lowpolytree.obj");
+      treeModel.GetTransform()->SetPosition(Vector3(i, SampleHeight(vertexData, floorScale, i, j), j));
+    }
+  }*/
+
+  auto sphereANode = _sceneManager->CreateObject("sphereA");
+  auto sphereA = MeshFactory::CreateIcosphere(3);
+  auto sphereAMaterial = sphereA->GetMaterial();
+  auto diffuseMap = _assetManager->GetTexture("/Textures/brick_floor_tileable_Base_Color.jpg");
+  sphereA->GetMaterial()->SetTexture("DiffuseMap", diffuseMap);
+  std::shared_ptr<Renderable> sphereModelA(new Renderable);
+  sphereModelA->PushMesh(sphereA);
+  sphereANode->AttachRenderable(sphereModelA);
+  sphereANode->GetTransform()->Translate(Vector3(2.0f, 0.0f, 0.0f));
+
+  auto sphereBNode = _sceneManager->CreateObject("sphereB");
+  auto sphereB = MeshFactory::CreateIcosphere(3);
+  auto sphereBMaterial = sphereB->GetMaterial();
+  auto normalMap = _assetManager->GetTexture("/Textures/brick_floor_tileable_Normal.jpg");
+  auto specularMap = _assetManager->GetTexture("/Textures/brick_floor_tileable_Glossiness.jpg");
+  sphereBMaterial->SetTexture("DiffuseMap", diffuseMap);
+  sphereBMaterial->SetTexture("NormalMap", normalMap);
+  sphereBMaterial->SetTexture("SpecularMap", specularMap);
+  std::shared_ptr<Renderable> sphereModelB(new Renderable);
+  sphereModelB->PushMesh(sphereB);
+  sphereBNode->AttachRenderable(sphereModelB);
+  sphereBNode->GetTransform()->Translate(Vector3(-2.0f, 0.0f, 0.0f));
+
+  //auto& cubeNode = _sceneManager->CreateObject("cube");
+  //auto cubeMesh = MeshFactory::CreateCube();
+  //auto& cubeMaterial = cubeMesh->GetMaterial();
+  //auto diffuseMap = _assetManager->GetTexture("/Textures/bricks2.jpg");
+  //auto normalMap = _assetManager->GetTexture("/Textures/bricks2_normal.jpg");
+  //auto depthMap = _assetManager->GetTexture("/Textures/bricks2_disp.jpg");
+  //cubeMaterial.SetTexture("DiffuseMap", diffuseMap);
+  //cubeMaterial.SetTexture("NormalMap", normalMap);
+  //cubeMaterial.SetTexture("DepthMap", depthMap);
+  //std::shared_ptr<Renderable> cubeModel(new Renderable);
+  //cubeModel->PushMesh(*cubeMesh);
+  //cubeNode.AttachRenderable(cubeModel);
 
   _light = &_sceneManager->CreateLight(LightType::Directional);
   _light->SetColour(Colour(255, 240, 170));
@@ -89,6 +150,18 @@ void Test3D::OnStart()
       _camera->Rotate(yaw, pitch);
     }
   });
+
+  auto font = FntLoader::LoadFontFromFile("./../../Resources/Fonts/GillSansMTCondensed.fnt");
+  auto fontAtlas = _assetManager->GetTexture("/Fonts/" + font->TextureFileName);
+ 
+  TextOverlayDesc textOverlayDesc;
+  textOverlayDesc.LineWidth = 100;
+  textOverlayDesc.Position = Vector2i::Zero;
+  textOverlayDesc.Font = font;
+  textOverlayDesc.Atlas = fontAtlas;
+  textOverlayDesc.Scale = 1.0f;
+  _onScreenFpsCounter.reset(new TextOverlay(textOverlayDesc, GetWidth(), GetHeight()));
+  _renderer->PushTextOverlay(_onScreenFpsCounter);
 }
 
 void Test3D::OnUpdate(uint32 dtMs)
@@ -100,4 +173,6 @@ void Test3D::OnUpdate(uint32 dtMs)
   direction[1] = -1.0f;
   direction[2] = Math::Cos(Radian(delta + delta));
   _light->SetDirection(Vector3::Normalize(direction));
+
+  _onScreenFpsCounter->UpdateText(std::to_string(GetAverageFps(dtMs)) + " FPS " + std::to_string(GetAverageTickMs(dtMs)) + " ms");
 }

@@ -12,11 +12,6 @@ class Renderer;
 class RenderContext;
 }
 
-namespace UI
-{
-class UIManager;
-}
-
 namespace Utility
 {
 class AssetManager;
@@ -53,6 +48,9 @@ public:
 protected:
   Application(const ApplicationDesc& desc);
 
+  float32 GetAverageTickMs(int32 dtMs);
+  float32 GetAverageFps(int32 dtMs);
+
 private:
   Application(Application&) = delete;
   Application(Application&&) = delete;
@@ -66,14 +64,12 @@ protected:
   std::unique_ptr<EventDispatcher> _eventDispatcher;
   std::unique_ptr<InputHandler> _inputHandler;
   std::unique_ptr<SceneManager> _sceneManager;
-  std::unique_ptr<UI::UIManager> _uiManager;
   std::shared_ptr<Rendering::Renderer> _renderer;
   std::shared_ptr<Utility::AssetManager> _assetManager;
 
 private:
   bool _isRunning;
   bool _mouseFocus;
-  bool _keyBoardFocus;
   SDL_Window* _window;
   SDL_GLContext _glContext;
   ApplicationDesc _desc;

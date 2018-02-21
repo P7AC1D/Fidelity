@@ -20,7 +20,7 @@ public:
     _radius(1.0f),
     _colour(Colour::White),
     _position(Vector3::Zero),
-    _direction(Vector3::Zero),
+    _direction(-Vector3::Identity),
     _lightType(lightType)
   {
   }

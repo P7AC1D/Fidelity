@@ -7,10 +7,9 @@
 
 namespace Rendering
 {
-enum class TextureFormat;
-class CubeMap;
 class Renderable;
 class Texture;
+class TextureCube;
 }
 
 namespace Utility
@@ -21,8 +20,9 @@ public:
   AssetManager(std::string assetDirectory);
   ~AssetManager();
 
-  std::shared_ptr<Rendering::Texture> GetTexture(const std::string& textureName, bool gammaCorrection = false);
-  std::shared_ptr<Rendering::CubeMap> GetCubeMap(const std::vector<std::string>& textureNames);
+  std::shared_ptr<Rendering::Texture> GetTexture(const std::string& textureName);
+  std::shared_ptr<Rendering::Texture> GetTexture(const std::string& textureFullPath, const std::string& textureName);
+  std::shared_ptr<Rendering::TextureCube> GetTextureCube(const std::string& directory, const std::vector<std::string>& fileNames);
   std::shared_ptr<Rendering::Renderable> GetRenderable(const std::string& filePath, const std::string& fileName);
 
   AssetManager(AssetManager&) = delete;
@@ -31,10 +31,6 @@ public:
   AssetManager& operator= (AssetManager&&) = delete;
 
   friend class ObjLoader;
-
-private:
-  std::shared_ptr<Rendering::Texture> GetTexture(const std::string& textureFullPath, const std::string& textureName, 
-                                                 bool gammaCorrection = false);
 
 private:
   std::string _assetDirectory;

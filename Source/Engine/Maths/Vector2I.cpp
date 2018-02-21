@@ -1,4 +1,4 @@
-#include "Vector2i.hpp"
+#include "Vector2I.hpp"
 
 #include <cassert>
 #include <cmath>

@@ -1,14 +1,18 @@
 #include "AssetManager.h"
 
-#include <exception>
+#include <array>
+#include <cassert>
+#include <stdexcept>
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "STB/stb_image.h"
 
-#include "../Rendering/CubeMap.h"
-#include "../Rendering/Texture.h"
+#include "../Rendering/OpenGL.h"
+#include "../Rendering/Texture.hpp"
+#include "../Rendering/TextureCube.hpp"
 #include "../Rendering/Renderable.hpp"
 #include "../Utility/ObjLoader.hpp"
+#include "../Utility/StringUtil.h"
 #include "ObjLoader.hpp"
 
 using namespace Rendering;
@@ -50,17 +54,28 @@ uint8* LoadFromFile(const std::string& filePath, int32& widthOut, int32& heightO
   return imageData;
 }
 
-TextureFormat CalculateTextureFormat(int32 nChannels, bool gammaCorrection)
+PixelFormat CalculateTextureFormat(int32 nChannels)
 {
   switch (nChannels)
   {
-  case 4:
-    return gammaCorrection ? TextureFormat::SRGBA : TextureFormat::RGBA;
-  case 3:
-    return gammaCorrection ? TextureFormat::SRGB : TextureFormat::RGB;
-  case 1:
-    return TextureFormat::Red;
+  case 4: return PixelFormat::RGBA8;
+  case 3: return PixelFormat::RGB8;
+  case 2: return PixelFormat::RG8;
+  case 1: return PixelFormat::R8;
+  default: return PixelFormat::RGBA8;
   }
+}
+
+size_t GetTextureFaceIndexFromFileName(const std::string& fileName)
+{
+  auto split = StringUtil::Split(fileName, '.');
+  if (split[0] == "back") return 0;
+  if (split[0] == "bottom") return 1;
+  if (split[0] == "front") return 2;
+  if (split[0] == "left") return 3;
+  if (split[0] == "right") return 4;
+  if (split[0] == "top") return 5;
+  throw std::runtime_error("TextureCube file names must be one of the following: 'back, bottom, front, left, right and top'.");
 }
 
 AssetManager::AssetManager(std::string assetDirectory) :
@@ -72,35 +87,64 @@ AssetManager::~AssetManager()
 {
 }
 
-std::shared_ptr<Texture> AssetManager::GetTexture(const std::string& textureName, bool gammaCorrection)
+std::shared_ptr<Texture> AssetManager::GetTexture(const std::string& textureName)
 {
-  return GetTexture(_assetDirectory, textureName, gammaCorrection);
+  return GetTexture(_assetDirectory, textureName);
 }
 
-std::shared_ptr<CubeMap> AssetManager::GetCubeMap(const std::vector<std::string>& textureNames)
+std::shared_ptr<TextureCube> AssetManager::GetTextureCube(const std::string& directory, const std::vector<std::string>& fileNames)
 {
-  auto cubeMap = std::make_shared<CubeMap>();
-  glBindTexture(GL_TEXTURE_CUBE_MAP, cubeMap->_id);
+  assert(fileNames.size() == 6);
 
-  for (uint32 i = 0; i < textureNames.size(); ++i)
+  uint32 width = 0;
+  uint32 height = 0;
+  uint32 channels = 0;
+  std::array<ubyte*, 6> pixelData;
+
+  for (size_t i = 0; i < fileNames.size(); i++)
   {
-    auto fullPath = _assetDirectory + textureNames[i];
+    std::string fullPath = _assetDirectory + directory + fileNames[i];
 
-    int32 width = 0;
-    int32 height = 0;
-    int32 nChannels = 0;
-    uint8* data = LoadFromFile(fullPath, width, height, nChannels);    
-    glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
-    delete[] data;
+    int32 currentWidth = 0;
+    int32 currentHeight = 0;
+    int32 currentChannels = 0;
+    pixelData[GetTextureFaceIndexFromFileName(fileNames[i])] = LoadFromFile(fullPath, currentWidth, currentHeight, currentChannels);
+    
+    if (width != 0 && width != currentWidth)
+    {
+      throw std::runtime_error("All images in a TextureCube must be of the same width.");
+    }
+    if (height != 0 && height != currentHeight)
+    {
+      throw std::runtime_error("All images in a TextureCube must be of the same height.");
+    }
+    if (channels != 0 && channels != currentChannels)
+    {
+      throw std::runtime_error("All images in a TextureCube must have the same number of channels.");
+    }
+
+    width = currentWidth;
+    height = currentHeight;
+    channels = currentChannels;
   }
 
-  glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-  glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-  glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-  glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-  glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-  glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
-  return cubeMap;
+  TextureCubeDesc desc;
+  desc.Width = width;
+  desc.Height = height;
+  desc.Format = CalculateTextureFormat(channels);
+  std::shared_ptr<TextureCube> textureCube(new TextureCube(desc));
+  textureCube->UploadData(TextureCubeFace::Back, pixelData[0]);
+  textureCube->UploadData(TextureCubeFace::Bottom, pixelData[1]);
+  textureCube->UploadData(TextureCubeFace::Front, pixelData[2]);
+  textureCube->UploadData(TextureCubeFace::Left, pixelData[3]);
+  textureCube->UploadData(TextureCubeFace::Right, pixelData[4]);
+  textureCube->UploadData(TextureCubeFace::Top, pixelData[5]);
+
+  for (size_t i = 0; i < pixelData.size(); i++)
+  {
+    delete[] pixelData[i];
+  }
+  return textureCube;
 }
 
 std::shared_ptr<Renderable> AssetManager::GetRenderable(const std::string& filePath, const std::string& fileName)
@@ -112,28 +156,14 @@ std::shared_ptr<Renderable> AssetManager::GetRenderable(const std::string& fileP
     return iter->second;
   }
   
+  //auto renderable = ObjLoader::LoadFromFile(filePath, fileName, *this);
   auto renderable = ObjLoader::LoadFromFile(filePath, fileName, *this);
   _renderableCache[fullPath] = renderable;
   return renderable;
 }
 
-//std::shared_ptr<Model> AssetManager::GetModel(const std::string& relativePath, const std::string fileName)
-//{
-//  auto fullPath = _assetDirectory + relativePath + fileName;
-//  auto iter = _modelCache.find(fullPath);
-//  if (iter != _modelCache.end())
-//  {
-//    return iter->second;
-//  }
-//
-//  std::shared_ptr<Model> model(ObjLoader::LoadFromFile(_assetDirectory + relativePath, fileName, *this));
-//  _modelCache[fullPath] = model;
-//  return model;
-//}
-
 std::shared_ptr<Rendering::Texture> AssetManager::GetTexture(const std::string& texturePath, 
-                                                             const std::string& textureName,
-                                                             bool gammaCorrection)
+                                                             const std::string& textureName)
 {
   auto fullPath = texturePath + textureName;
   auto iter = _textureCache.find(fullPath);
@@ -142,14 +172,13 @@ std::shared_ptr<Rendering::Texture> AssetManager::GetTexture(const std::string& 
     int32 width = 0;
     int32 height = 0;
     int32 nChannels = 0;
-    uint8* data = LoadFromFile(fullPath, width, height, nChannels);
+    ubyte* data = LoadFromFile(fullPath, width, height, nChannels);
 
-    std::shared_ptr<Texture> texture(new Texture(CalculateTextureFormat(nChannels, gammaCorrection), width, height, data));
-    texture->Bind();
-    texture->SetMinFilter(TextureMinFilter::Linear);
-    texture->SetMagFilter(TextureMagFilter::Linear);
-    texture->SetWrapMethod(TextureWrapMethod::ClampToEdge);
-    texture->Unbind();
+    TextureDesc desc;
+    desc.Width = static_cast<uint32>(width);
+    desc.Height = static_cast<uint32>(height);
+    desc.Format = CalculateTextureFormat(nChannels);
+    std::shared_ptr<Texture> texture(new Texture(desc, data));
     _textureCache.emplace(fullPath, texture);
 
     delete[] data;

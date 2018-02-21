@@ -2,23 +2,27 @@
 
 #include "../Maths/Colour.hpp"
 #include "../Maths/Matrix4.hpp"
-#include "../UI/Panel.h"
-#include "../UI/UIManager.h"
+#include "../Overlay/TextOverlay.hpp"
 #include "../SceneManagement/Light.h"
+#include "../SceneManagement/SkyBox.hpp"
 #include "../SceneManagement/WorldObject.h"
+#include "../Shaders/DirDepthPassShader.hpp"
+#include "../Shaders/GeometryPassShader.hpp"
+#include "../Shaders/DirLightingPassShader.hpp"
+#include "../Shaders/SkyBoxShader.hpp"
+#include "../Shaders/TextOverlayShader.hpp"
 #include "ConstantBuffer.h"
-#include "CubeMap.h"
-#include "FrameBuffer.h"
 #include "Material.h"
+#include "OpenGL.h"
 #include "Renderable.hpp"
+#include "RenderTarget.hpp"
 #include "Shader.h"
 #include "ShaderCollection.h"
-#include "Texture.h"
+#include "Texture.hpp"
 #include "StaticMesh.h"
 #include "VertexBuffer.h"
 
 using namespace Rendering;
-using namespace UI;
 
 namespace Rendering
 {
@@ -44,7 +48,7 @@ enum class UniformBindingPoint
 };
 
 Renderer::Renderer(int32 renderWidth, int32 renderHeight) :
-  _shaderCollection(new ShaderCollection("./../../Source/Engine/Shaders/")),
+  _shaderCollection(new ShaderCollection),
   _renderWidth(renderWidth),
   _renderHeight(renderHeight),
   _ambientLight(Vector3::Identity)
@@ -64,28 +68,85 @@ void Renderer::DrawScene(OrbitalCamera& camera)
 {
   UploadCameraData(camera);
 
-  // One light for now...
-  auto dirLight = _directionalLights[0];
+  auto lightSpaceTransform = BuildLightSpaceTransform(_directionalLights[0]);
+  ExecuteDirectionalLightDepthPass(lightSpaceTransform, _shadowResolution);
 
-  auto lightProj = Matrix4::Orthographic(-50.0f, 50.0f, -50.0f, 50.0f, -50.0f, 50.0f);
-  auto lightView = Matrix4::LookAt(-dirLight.GetDirection(), Vector3::Zero, Vector3(0.0f, 1.0f, 0.0f));
-  auto lightSpaceTransform = lightProj * lightView;
-
-  uint32 shadowRes = 1024;
-  DirLightDepthPass(lightSpaceTransform, shadowRes);
-  ClearBuffer(ClearType::Depth);
-  
-  float32 shadowTexelSize = 1 / static_cast<float32>(shadowRes);
-  DirLightColourPass(camera, lightSpaceTransform, _depthBuffer->GetDepthTexture(), Vector2(shadowTexelSize, shadowTexelSize));
+  auto viewDirection = camera.GetDirection();
+  ExecuteGeometryPass(viewDirection);
+  ExecuteLightingPass(lightSpaceTransform, viewDirection);
+  DrawSkyBox();
 
   _renderables.clear();
   _pointLights.clear();
   _directionalLights.clear();
 }
 
-void Renderer::DrawUI(std::vector<std::shared_ptr<Panel>> panelCollection)
+void Renderer::DrawOverlay()
 {
-  if (!_guiQuadVertexData)
+  DisableStencilTest();
+  DisableDepthTest();
+  
+  GLCall(glEnable(GL_BLEND));
+  GLCall(glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
+
+  auto shader = _shaderCollection->GetShader<TextOverlayShader>();  
+  for (auto& textOverlay : _textOverlays)
+  {
+    shader->SetFontAtlas(textOverlay->GetDesc().Atlas);
+    shader->SetTextColour(textOverlay->GetDesc().TextColour);
+    shader->Apply();
+    textOverlay->Draw();
+  }
+  
+  GLCall(glDisable(GL_BLEND));
+}
+
+void Renderer::Draw(uint32 vertexCount, uint32 vertexOffset)
+{
+  GLCall(glDrawArrays(GL_TRIANGLES, vertexOffset, vertexCount));
+}
+
+void Renderer::DrawIndexed(uint32 indexCount)
+{
+  GLCall(glDrawElements(GL_TRIANGLES, indexCount, GL_UNSIGNED_INT, 0));
+}
+
+bool Renderer::Initialize()
+{
+#ifdef _WIN32
+  glewExperimental = GL_TRUE;
+  GLenum error = glewInit();
+  if (error != GLEW_OK)
+  {
+    //LOG_ERROR << "Could not initialize GLEW: " + std::string((char*)glewGetErrorString(error));
+    return false;
+  }
+#endif
+    
+  GLCall(glCullFace(GL_BACK));
+  GLCall(glFrontFace(GL_CCW));
+
+  SetViewport(_renderWidth, _renderHeight);
+  SetClearColour(Colour::Black);
+
+  _cameraBuffer.reset(new ConstantBuffer(144));
+  _lightBuffer.reset(new ConstantBuffer(52));
+
+  RenderTargetDesc gBufferDesc;
+  gBufferDesc.Width = _renderWidth;
+  gBufferDesc.Height = _renderHeight;
+  gBufferDesc.ColourBufferCount = 3;
+  gBufferDesc.EnableStencilBuffer = true;
+  _gBuffer.reset(new RenderTarget(gBufferDesc));
+
+  RenderTargetDesc dirDepthBufferDesc;
+  dirDepthBufferDesc.Width = _shadowResolution;
+  dirDepthBufferDesc.Height = _shadowResolution;
+  dirDepthBufferDesc.ColourBufferCount = 0;
+  dirDepthBufferDesc.EnableStencilBuffer = false;
+  _depthBuffer.reset(new RenderTarget(dirDepthBufferDesc));
+
+  if (!_quadVertexData)
   {
     std::vector<Vector2> quadVertexData
     {
@@ -108,74 +169,19 @@ void Renderer::DrawUI(std::vector<std::shared_ptr<Panel>> panelCollection)
       Vector2(0.0f, 1.0f)
     };
 
-    _guiQuadVertexData.reset(new VertexBuffer());
-    _guiQuadVertexData->UploadData<Vector2>(quadVertexData, BufferUsage::Static);
+    _quadVertexData.reset(new VertexBuffer());
+    _quadVertexData->UploadData<Vector2>(quadVertexData, BufferUsage::Static);
 
     auto posLoc = static_cast<uint32>(VertexArribLocation::Position);
     auto uvLoc = static_cast<uint32>(VertexArribLocation::TexCoord);
 
-    GLCall(glBindVertexArray(_guiQuadVertexData->_vaoId));
+    GLCall(glBindVertexArray(_quadVertexData->GetId()));
     GLCall(glVertexAttribPointer(posLoc, 2, GL_FLOAT, GL_FALSE, 16, nullptr));
     GLCall(glEnableVertexAttribArray(posLoc));
     GLCall(glVertexAttribPointer(uvLoc, 2, GL_FLOAT, GL_FALSE, 16, (void*)8));
     GLCall(glEnableVertexAttribArray(uvLoc));
     GLCall(glBindVertexArray(0));
   }
-  
-  auto shader = _shaderCollection->GetShader("Gui.glsl");
-  if (!shader)
-  {
-    return;
-  }
-  shader->Bind();
-
-  for (auto panel : panelCollection)
-  {
-    if (panel->_texture)
-    {
-      GLCall(glActiveTexture(GL_TEXTURE0));
-      panel->_texture->Bind();
-      shader->SetInt("textureMap", GL_TEXTURE0);
-    }
-
-    float32 xScale = panel->_width / static_cast<float32>(_renderWidth);
-    float32 yScale = panel->_height / static_cast<float32>(_renderHeight);
-    float32 xOffset = 2.0f * panel->_xPos / _renderWidth - (1.0f - xScale);
-    float32 yOffset = 2.0f * panel->_yPos / _renderHeight - (1.0f - yScale);
-
-    shader->SetFloat("xScale", xScale);
-    shader->SetFloat("yScale", yScale);
-    shader->SetFloat("xOffset", xOffset);
-    shader->SetFloat("yOffset", yOffset);
-    
-    GLCall(glBindVertexArray(_guiQuadVertexData->_vaoId));
-    GLCall(glDrawArrays(GL_TRIANGLES, 0, 6));
-    GLCall(glBindVertexArray(0));
-  }
-}
-
-bool Renderer::Initialize()
-{
-#ifdef _WIN32
-  glewExperimental = GL_TRUE;
-  GLenum error = glewInit();
-  if (error != GLEW_OK)
-  {
-    //LOG_ERROR << "Could not initialize GLEW: " + std::string((char*)glewGetErrorString(error));
-    return false;
-  }
-#endif
-
-  GLCall(glEnable(GL_DEPTH_TEST));
-  GLCall(glEnable(GL_CULL_FACE));
-  GLCall(glCullFace(GL_BACK));
-  GLCall(glFrontFace(GL_CCW));
-
-  GLCall(glViewport(0, 0, _renderWidth, _renderHeight));
-  GLCall(glClearColor(0.25f, 0.25f, 0.25f, 0.0f));
-
-  _cameraBuffer.reset(new ConstantBuffer(144));
-  _lightBuffer.reset(new ConstantBuffer(52));
 
   return true;
 }
@@ -187,7 +193,7 @@ void Renderer::SetVertexAttribPointers(StaticMesh* staticMesh, int32 stride)
     return;
   }
 
-  GLCall(glBindVertexArray(staticMesh->_vertexBuffer->_vaoId));
+  GLCall(glBindVertexArray(staticMesh->_vertexBuffer->GetId()));
   if (staticMesh->_vertexDataFormat & VertexDataFormat::Position)
   {
     auto positionLocation = static_cast<int32>(VertexArribLocation::Position);
@@ -206,12 +212,24 @@ void Renderer::SetVertexAttribPointers(StaticMesh* staticMesh, int32 stride)
     GLCall(glVertexAttribPointer(uvLocation, 2, GL_FLOAT, GL_FALSE, stride, (void*)24));
     GLCall(glEnableVertexAttribArray(uvLocation));
   }
+  if (staticMesh->_vertexDataFormat & VertexDataFormat::Tangent)
+  {
+    auto uvLocation = static_cast<int32>(VertexArribLocation::Tangent);
+    GLCall(glVertexAttribPointer(uvLocation, 3, GL_FLOAT, GL_FALSE, stride, (void*)32));
+    GLCall(glEnableVertexAttribArray(uvLocation));
+  }
+  if (staticMesh->_vertexDataFormat & VertexDataFormat::Bitanget)
+  {
+    auto uvLocation = static_cast<int32>(VertexArribLocation::Bitangent);
+    GLCall(glVertexAttribPointer(uvLocation, 3, GL_FLOAT, GL_FALSE, stride, (void*)44));
+    GLCall(glEnableVertexAttribArray(uvLocation));
+  }
   GLCall(glBindVertexArray(0));
 }
   
 void Renderer::SetViewport(int32 width, int32 height)
 {
-  glViewport(0, 0, width, height);
+  GLCall(glViewport(0, 0, width, height));
 }
 
 void Renderer::UploadCameraData(OrbitalCamera& camera)
@@ -236,172 +254,157 @@ void Renderer::UploadDirectionalLightData(const Light& directionalLight)
   _lightBuffer->UploadData(32, 12, &(directionalLight.GetColour().ToVec3())[0]);
 }
 
-void Renderer::DirLightColourPass(OrbitalCamera& camera, const Matrix4& lightSpaceTransform, std::shared_ptr<Texture> shadowMap, const Vector2& shadowTexelSize)
+void Renderer::ExecuteDirectionalLightDepthPass(const Matrix4& lightSpaceTransform, uint32 shadowResolution)
 {
-  ClearBuffer(ClearType::Color);
+  EnableDepthTest();
+  DisableStencilTest();
+
+  SetViewport(shadowResolution, shadowResolution);
+  _depthBuffer->BindForDraw();
+  ClearBuffer(ClearType::CT_Depth | ClearType::CT_Stencil);
+
+  auto shader = _shaderCollection->GetShader<DirDepthPassShader>();
+  shader->SetLightSpaceTransform(lightSpaceTransform);
+  for (auto& renderable : _renderables)
+  {
+    auto meshCount = renderable.Renderable->GetMeshCount();
+    for (size_t i = 0; i < meshCount; i++)
+    {
+      auto staticMesh = renderable.Renderable->GetMeshAtIndex(i);
+      shader->SetModelSpaceTransform(renderable.Transform->Get());
+
+      shader->Apply();
+      staticMesh->Draw();
+    }
+  }
+  _gBuffer->Unbind();
   SetViewport(_renderWidth, _renderHeight);
-  
-  auto shader = _shaderCollection->GetShader("DirLightColourPass.shader");
-  shader->Bind();
-  shader->SetVec3("u_ambientColour", _ambientLight.ToVec3());
-  shader->SetMat4("u_lightSpaceTransform", lightSpaceTransform);
-  shader->SetVec2("u_shadowTexelSize", shadowTexelSize);
+}
 
-  glActiveTexture(GL_TEXTURE0);
-  shadowMap->Bind();
-  shader->SetInt("u_shadowMap", 0);
-  shader->BindUniformBlock(shader->GetUniformBlockIndex("Transforms"), static_cast<int32>(UniformBindingPoint::Transforms), _cameraBuffer->_uboId, _cameraBuffer->_sizeBytes);
-  shader->BindUniformBlock(shader->GetUniformBlockIndex("Light"), static_cast<int32>(UniformBindingPoint::Light), _lightBuffer->_uboId, _lightBuffer->_sizeBytes);
+void Renderer::ExecuteGeometryPass(const Vector3& viewDirection)
+{
+  EnableStencilTest();
 
-  GLCall(glDepthFunc(GL_LESS));
-  // One light for now...
-  auto light = _directionalLights[0];
+  _gBuffer->Bind();
+  GLCall(glStencilFunc(GL_ALWAYS, 1, 0xFF));
+  GLCall(glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE));
+  GLCall(glStencilMask(0xFF));
+  ClearBuffer(CT_Colour | CT_Depth | CT_Stencil);
 
-  UploadDirectionalLightData(light);
+  //GLCall(glPolygonMode(GL_FRONT_AND_BACK, GL_LINE));
 
-  for (auto& renderable : _renderables)
-  {
-    shader->SetBool("u_diffuseMappingEnabled", false);
-
+  auto shader = _shaderCollection->GetShader<GeometryPassShader>();
+  shader->SetTransformsUniformbuffer(_cameraBuffer);
+  shader->SetViewDirection(viewDirection);
+  for (auto renderable : _renderables)
+  {    
     auto meshCount = renderable.Renderable->GetMeshCount();
     for (size_t i = 0; i < meshCount; i++)
     {
-      auto& staticMesh = renderable.Renderable->GetMeshAtIndex(i);
-      shader->SetMat4("u_model", renderable.Transform->Get());
+      auto staticMesh = renderable.Renderable->GetMeshAtIndex(i);
+      shader->SetModelTransform(renderable.Transform->Get());
+      shader->SetMaterialProperties(staticMesh->GetMaterial());
 
-      auto material = staticMesh.GetMaterial();
-      if (material->HasTexture("DiffuseMap"))
-      {
-        auto diffuseMap = material->GetTexture("DiffuseMap");
-        glActiveTexture(GL_TEXTURE1);
-        diffuseMap->Bind();
-        shader->SetInt("u_material.DiffuseMap", 1);
-        shader->SetBool("u_diffuseMappingEnabled", true);
-      }
-
-      shader->SetFloat("u_material.SpecularExponent", material->GetSpecularExponent());
-      shader->SetVec3("u_material.AmbientColour", material->GetAmbientColour().ToVec3());
-      shader->SetVec3("u_material.DiffuseColour", material->GetDiffuseColour().ToVec3());
-      shader->SetVec3("u_material.SpecularColour", material->GetSpecularColour().ToVec3());
-
-      auto vertexData = staticMesh.GetVertexData();
-      GLCall(glBindVertexArray(vertexData->_vaoId));
-      GLCall(glDrawArrays(GL_TRIANGLES, 0, staticMesh._vertexCount));
-      GLCall(glBindVertexArray(0));
+      shader->Apply();
+      staticMesh->Draw();
     }
   }
-}
-  
-void Renderer::DirLightDepthPass(const Matrix4& lightSpaceTransform, uint32 shadowRes)
-{
-  GLCall(glDepthFunc(GL_LESS));
-  if (_depthBuffer == nullptr)
-  {
-    _depthBuffer.reset(new FrameBuffer(shadowRes, shadowRes, FBT_Depth));
-  }
-  
-  SetViewport(shadowRes, shadowRes);
-  _depthBuffer->Bind();
-  ClearBuffer(ClearType::Depth);
-  
-  auto depthPassShader = _shaderCollection->GetShader("DirLightDepthPass.shader");
-  if (!depthPassShader)
-  {
-    throw std::runtime_error("Failed to get shader 'DirLightDepthPass.shader'");
-  }
-  depthPassShader->Bind();
-  depthPassShader->SetMat4("u_lightSpaceTransform", lightSpaceTransform);
-  
-  for (auto& renderable : _renderables)
-  {
-    if (!renderable.Renderable->CastShadows())
-    {
-      continue;
-    }
+  _gBuffer->Unbind();
 
-    auto meshCount = renderable.Renderable->GetMeshCount();
-    for (size_t i = 0; i < meshCount; i++)
-    {
-      auto& staticMesh = renderable.Renderable->GetMeshAtIndex(i);
-      depthPassShader->SetMat4("u_modelTransform", renderable.Transform->Get());
-      
-      auto vertexData = staticMesh.GetVertexData();
-      GLCall(glBindVertexArray(vertexData->_vaoId));
-      GLCall(glDrawArrays(GL_TRIANGLES, 0, staticMesh._vertexCount));
-      GLCall(glBindVertexArray(0));
-    }
-  }
-  _depthBuffer->Unbind();
-  depthPassShader->Unbind();
-}
-  
-
-void Renderer::PointLightRender(OrbitalCamera& camera)
-{
-  auto shader = _shaderCollection->GetShader("Standard.shader");
-  shader->Bind();
-  shader->SetVec3("u_ambientColour", _ambientLight.ToVec3());
-  shader->BindUniformBlock(shader->GetUniformBlockIndex("Transforms"), static_cast<int32>(UniformBindingPoint::Transforms), _cameraBuffer->_uboId, _cameraBuffer->_sizeBytes);
-  shader->BindUniformBlock(shader->GetUniformBlockIndex("Light"), static_cast<int32>(UniformBindingPoint::Light), _lightBuffer->_uboId, _lightBuffer->_sizeBytes);
-
-  GLCall(glDepthFunc(GL_LESS));
-  for (auto& light : _pointLights)
-  {
-    UploadPointLightData(light);
-
-    for (auto& renderable : _renderables)
-    {
-      shader->SetBool("u_diffuseMappingEnabled", false);
-
-      auto meshCount = renderable.Renderable->GetMeshCount();
-      for (size_t i = 0; i < meshCount; i++)
-      {
-        auto& staticMesh = renderable.Renderable->GetMeshAtIndex(i);
-        shader->SetMat4("u_model", renderable.Transform->Get());
-
-        auto material = staticMesh.GetMaterial();
-        if (material->HasTexture("DiffuseMap"))
-        {
-          auto diffuseMap = material->GetTexture("DiffuseMap");
-          glActiveTexture(GL_TEXTURE0);
-          diffuseMap->Bind();
-          shader->SetInt("u_material.DiffuseMap", 0);
-          shader->SetBool("u_diffuseMappingEnabled", true);
-        }
-
-        shader->SetFloat("u_material.SpecularExponent", material->GetSpecularExponent());
-        shader->SetVec3("u_material.AmbientColour", material->GetAmbientColour().ToVec3());
-        shader->SetVec3("u_material.DiffuseColour", material->GetDiffuseColour().ToVec3());
-        shader->SetVec3("u_material.SpecularColour", material->GetSpecularColour().ToVec3());
-
-        auto vertexData = staticMesh.GetVertexData();
-        GLCall(glBindVertexArray(vertexData->_vaoId));
-        GLCall(glDrawArrays(GL_TRIANGLES, 0, staticMesh._vertexCount));
-        GLCall(glBindVertexArray(0));
-      }
-    }
-
-    GLCall(glDepthFunc(GL_EQUAL));
-    GLCall(glEnable(GL_BLEND));
-    GLCall(glBlendEquation(GL_FUNC_ADD));
-    GLCall(glBlendFunc(GL_ONE, GL_ONE));
-  }
-  GLCall(glDisable(GL_BLEND));
+  //GLCall(glPolygonMode(GL_FRONT_AND_BACK, GL_FILL));
 }
 
-void Renderer::ClearBuffer(ClearType clearType)
+void Renderer::ExecuteLightingPass(const Matrix4& lightSpaceTransform, const Vector3& viewDirection)
 {
-  switch (clearType)
+  DisableDepthTest();
+  DisableStencilTest();
+  ClearBuffer(ClearType::CT_Colour);
+
+  auto shader = _shaderCollection->GetShader<DirLightingPassShader>();
+  shader->SetViewDirection(viewDirection);
+  shader->SetDirectionalLight(_directionalLights[0]);
+  shader->SetGeometryBuffer(_gBuffer);
+  shader->SetDirLightDepthBuffer(_depthBuffer);
+  shader->SetLightSpaceTransform(lightSpaceTransform);
+  shader->Apply();
+
+  _quadVertexData->Bind();
+  Draw(6);
+}
+
+void Renderer::DrawSkyBox()
+{
+  if (!_skyBox)
   {
-    case ClearType::Color:
-      GLCall(glClear(GL_COLOR_BUFFER_BIT));
-      break;
-    case ClearType::Depth:
-      GLCall(glClear(GL_DEPTH_BUFFER_BIT));
-      break;
-    case ClearType::All:
-      GLCall(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
-      break;
+    return;
   }
+  DisableDepthTest();
+  EnableStencilTest();
+
+  _gBuffer->BindForRead();
+  GLCall(glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0));
+  GLCall(glBlitFramebuffer(0, 0, _renderWidth, _renderHeight, 0, 0, _renderWidth, _renderHeight, GL_STENCIL_BUFFER_BIT, GL_NEAREST));
+  GLCall(glBindFramebuffer(GL_FRAMEBUFFER, 0));
+
+  GLCall(glStencilFunc(GL_NOTEQUAL, 1, 0xFF));
+  
+  GLCall(glDisable(GL_CULL_FACE));
+
+  auto shader = _shaderCollection->GetShader<SkyBoxShader>();
+  shader->SetTransformBuffer(_cameraBuffer);
+  shader->SetSkyBox(_skyBox);
+  shader->Apply();
+
+  _skyBox->Draw();
+
+  GLCall(glEnable(GL_CULL_FACE));
+}
+
+void Renderer::ClearBuffer(uint32 clearType)
+{
+  GLbitfield clearTarget = 0;
+  if (clearType & ClearType::CT_Colour)
+  {
+    clearTarget |= GL_COLOR_BUFFER_BIT;
+  }
+
+  if (clearType & ClearType::CT_Depth)
+  {
+    clearTarget |= GL_DEPTH_BUFFER_BIT;
+  }
+
+  if (clearType & ClearType::CT_Stencil)
+  {
+    clearTarget |= GL_STENCIL_BUFFER_BIT;
+  }
+
+  GLCall(glClear(clearTarget));
+}
+
+void Renderer::EnableDepthTest()
+{
+  GLCall(glEnable(GL_DEPTH_TEST));
+}
+
+void Renderer::DisableDepthTest()
+{
+  GLCall(glDisable(GL_DEPTH_TEST));
+}
+
+void Renderer::EnableStencilTest()
+{
+  GLCall(glEnable(GL_STENCIL_TEST));
+}
+
+void Renderer::DisableStencilTest()
+{
+  GLCall(glDisable(GL_STENCIL_TEST));
+}
+
+Matrix4 Renderer::BuildLightSpaceTransform(const Light& directionalLight)
+{
+  auto lightProj = Matrix4::Orthographic(-100.0f, 100.0f, -100.0f, 100.0f, -100.0f, 100.0f);
+  auto lightView = Matrix4::LookAt(-directionalLight.GetDirection(), Vector3::Zero, Vector3(0.0f, 1.0f, 0.0f));
+  return lightProj * lightView; 
 }
 }

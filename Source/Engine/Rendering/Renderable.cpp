@@ -2,6 +2,8 @@
 
 #include <cassert>
 
+#include "StaticMesh.h"
+
 namespace Rendering
 {
 Renderable::Renderable():
@@ -9,12 +11,12 @@ _castShadows(true)
 {
 }
 
-void Renderable::PushMesh(const StaticMesh& mesh)
+void Renderable::PushMesh(std::shared_ptr<StaticMesh> mesh)
 {
-  _subMeshes.emplace_back(mesh);
+  _subMeshes.push_back(mesh);
 }
 
-StaticMesh& Renderable::GetMeshAtIndex(size_t index)
+std::shared_ptr<StaticMesh> Renderable::GetMeshAtIndex(size_t index) const
 {
   assert(index < _subMeshes.size());
   return _subMeshes[index];
