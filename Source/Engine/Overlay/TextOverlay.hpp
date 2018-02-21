@@ -31,6 +31,8 @@ public:
 
   inline TextOverlayDesc GetDesc() const { return _desc; }
 
+  void UpdateText(const std::string& text);
+
   void Draw();
 
 private:

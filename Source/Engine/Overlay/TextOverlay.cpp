@@ -17,6 +17,12 @@ TextOverlay::TextOverlay(const TextOverlayDesc& desc, uint32 windowWidth, uint32
 {
 }
 
+void TextOverlay::UpdateText(const std::string& text)
+{
+  _desc.Text = text;
+  _dirty = true;
+}
+
 void TextOverlay::Draw()
 {
   if (!_vertexBuffer)

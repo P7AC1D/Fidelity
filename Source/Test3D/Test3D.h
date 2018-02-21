@@ -6,6 +6,7 @@
 
 class Light;
 class OrbitalCamera;
+class TextOverlay;
 class WorldObject;
 
 class Test3D : public Application
@@ -23,4 +24,5 @@ private:
   uint32 _prevMouseY;
   bool _rotatingCamera;
   Light* _light;
+  std::shared_ptr<TextOverlay> _onScreenFpsCounter;
 };

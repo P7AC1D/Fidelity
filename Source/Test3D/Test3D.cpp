@@ -151,18 +151,17 @@ void Test3D::OnStart()
     }
   });
 
-  auto font = FntLoader::LoadFontFromFile("./../../Resources/Fonts/FranklinGothicDemi.fnt");
+  auto font = FntLoader::LoadFontFromFile("./../../Resources/Fonts/GillSansMTCondensed.fnt");
   auto fontAtlas = _assetManager->GetTexture("/Fonts/" + font->TextureFileName);
  
   TextOverlayDesc textOverlayDesc;
   textOverlayDesc.LineWidth = 100;
   textOverlayDesc.Position = Vector2i::Zero;
-  textOverlayDesc.Text = "abcdefghijklmnopqrstuvwxyz";
   textOverlayDesc.Font = font;
   textOverlayDesc.Atlas = fontAtlas;
-  textOverlayDesc.Scale = 0.5f;
-  auto textOverlay = std::make_shared<TextOverlay>(textOverlayDesc, GetWidth(), GetHeight());
-  _renderer->PushTextOverlay(textOverlay);
+  textOverlayDesc.Scale = 1.0f;
+  _onScreenFpsCounter.reset(new TextOverlay(textOverlayDesc, GetWidth(), GetHeight()));
+  _renderer->PushTextOverlay(_onScreenFpsCounter);
 }
 
 void Test3D::OnUpdate(uint32 dtMs)
@@ -174,4 +173,6 @@ void Test3D::OnUpdate(uint32 dtMs)
   direction[1] = -1.0f;
   direction[2] = Math::Cos(Radian(delta + delta));
   _light->SetDirection(Vector3::Normalize(direction));
+
+  _onScreenFpsCounter->UpdateText(std::to_string(GetAverageFps(dtMs)) + " FPS " + std::to_string(GetAverageTickMs(dtMs)) + " ms");
 }

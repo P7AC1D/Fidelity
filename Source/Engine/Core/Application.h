@@ -48,6 +48,9 @@ public:
 protected:
   Application(const ApplicationDesc& desc);
 
+  float32 GetAverageTickMs(int32 dtMs);
+  float32 GetAverageFps(int32 dtMs);
+
 private:
   Application(Application&) = delete;
   Application(Application&&) = delete;

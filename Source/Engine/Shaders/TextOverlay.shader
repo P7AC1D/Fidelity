@@ -20,13 +20,13 @@ void main()
 in vec2 TexCoord;
 out vec4 o_Colour;
 
-const float WIDTH = 0.5f;
-const float EDGE = 0.2f;
+const float WIDTH = 0.4f;
+const float EDGE = 0.5f;
 
 void main()
 {
-  float distance = 1.0f - texture(u_FontAtlas, TexCoord).r;
+  float distance = 1.0f - texture(u_FontAtlas, TexCoord).a;
   float alpha = 1.0f - smoothstep(WIDTH, WIDTH + EDGE, distance);
-  o_Colour = vec4(u_textColour, texture(u_FontAtlas, TexCoord).r);
+  o_Colour = vec4(u_textColour, alpha);
 }
 #endif
