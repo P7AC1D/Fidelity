@@ -61,6 +61,9 @@ private:
   std::vector<float32> CreateVertexDataArray() const;
   void UploadVertexData();
   void UploadIndexData();
+  void SetVertexAttribs();
+
+private:
 
   std::string _name;
   std::shared_ptr<IndexBuffer> _indexBuffer;

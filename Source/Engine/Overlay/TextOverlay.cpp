@@ -28,6 +28,8 @@ void TextOverlay::Draw()
   if (!_vertexBuffer)
   {
     _vertexBuffer.reset(new VertexBuffer);
+    _vertexBuffer->PushVertexAttrib(VertexAttribType::Vec2);
+    _vertexBuffer->PushVertexAttrib(VertexAttribType::Vec2);
   }
 
   if (_dirty)
@@ -35,8 +37,8 @@ void TextOverlay::Draw()
     UploadMeshData();
   }
 
-  _vertexBuffer->Bind();
-  Renderer::Draw(_desc.Text.size() * 6);
+  _vertexBuffer->Apply();
+  Renderer::Draw(static_cast<uint32>(_desc.Text.size() * 6));
 }
 
 void TextOverlay::UploadMeshData()
@@ -93,12 +95,4 @@ void TextOverlay::UploadMeshData()
     cursorPos[0] += iter->XAdvance;
   }
   _vertexBuffer->UploadData(vertices, BufferUsage::Static);
-
-  // TODO: This needs to be moved into the VertexBuffer object
-  _vertexBuffer->Bind();
-  GLCall(glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 16, nullptr));
-  GLCall(glEnableVertexAttribArray(0));
-  GLCall(glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 16, (void*)8));
-  GLCall(glEnableVertexAttribArray(1));
-  _vertexBuffer->Unbind();
 }

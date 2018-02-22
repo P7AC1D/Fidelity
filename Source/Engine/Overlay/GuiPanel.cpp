@@ -33,6 +33,9 @@ void GuiPanel::Draw()
     _dirty = false;
   }
 
+  _vertexBuffer->Apply();
+  Rendering::Renderer::Get()->Draw(6);
+
   for (auto childElement : _childElements)
   {
     childElement->Draw();
@@ -44,16 +47,27 @@ void GuiPanel::UploadToGpu()
   if (!_vertexBuffer)
   {
     _vertexBuffer.reset(new Rendering::VertexBuffer);
+    _vertexBuffer->PushVertexAttrib(Rendering::VertexAttribType::Vec2);
   }
   
   auto renderer = Rendering::Renderer::Get();
-  auto viewportWidth = renderer->GetWidth();
-  auto viewportHeight = renderer->GetHeight();
+  auto viewportWidth = static_cast<float32>(renderer->GetWidth());
+  auto viewportHeight = static_cast<float32>(renderer->GetHeight());
   
-  Vector2 topLeft((_position[0] - 1.0f) / viewportWidth, (_position[1] + 1.0f) / viewportHeight);
-  Vector2 topRight((_position[0] + _dimensions[0] - 1.0f) / viewportWidth, (_position[1] + 1.0f) / viewportHeight);
-  Vector2 bottomLeft((_position[0] - 1.0f) / viewportWidth, (_position[1] - _dimensions[1] + 1.0f) / viewportHeight);
-  Vector2 bottomRight((_position[0] + _dimensions[0] - 1.0f) / viewportWidth, (_position[1] - _dimensions[1] + 1.0f) / viewportHeight);
+  Vector2 topLeft(_position[0] / viewportWidth, _position[1]/ viewportHeight);
+  Vector2 topRight((_position[0] + _dimensions[0]) / viewportWidth, _position[1] / viewportHeight);
+  Vector2 bottomLeft((_position[0]) / viewportWidth, (_position[1] - _dimensions[1]) / viewportHeight);
+  Vector2 bottomRight((_position[0] + _dimensions[0]) / viewportWidth, (_position[1] - _dimensions[1]) / viewportHeight);
+
+  topLeft[0] -= 1.0f;
+  topRight[0] -= 1.0f;
+  bottomLeft[0] -= 1.0f;
+  bottomRight[0] -= 1.0f;
+
+  topLeft[1] += 1.0f;
+  topRight[1] += 1.0f;
+  bottomLeft[1] += 1.0f;
+  bottomRight[1] += 1.0f;
 
   std::vector<Vector2> vertexData;
   vertexData.emplace_back(bottomRight);
@@ -64,8 +78,4 @@ void GuiPanel::UploadToGpu()
   vertexData.emplace_back(topLeft);
 
   _vertexBuffer->UploadData(vertexData, Rendering::BufferUsage::Dynamic);
-  _vertexBuffer->Bind();
-  GLCall(glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 16, nullptr));
-  GLCall(glEnableVertexAttribArray(0));
-  renderer->Draw(6);
 }

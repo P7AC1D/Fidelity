@@ -17,14 +17,11 @@ SkyBox::SkyBox()
   Cube cube;
   _vertexBuffer->UploadData(cube.GetPositions(), BufferUsage::Static);
 
-  _vertexBuffer->Bind();
-  GLCall(glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, nullptr));
-  GLCall(glEnableVertexAttribArray(0));
-  _vertexBuffer->Unbind();
+  _vertexBuffer->PushVertexAttrib(VertexAttribType::Vec3);
 }
 
 void SkyBox::Draw()
 {
-  _vertexBuffer->Bind();
+  _vertexBuffer->Apply();
   Renderer::Draw(36);
 }

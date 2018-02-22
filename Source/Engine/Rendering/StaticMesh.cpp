@@ -264,10 +264,11 @@ void StaticMesh::Draw()
   {
     UploadVertexData();
     UploadIndexData();
+    SetVertexAttribs();
     _isDirty = false;
   }
-  _vertexBuffer->Bind();
 
+  _vertexBuffer->Apply();
   if (_indexed)
   {
     _indexBuffer->Bind();
@@ -375,8 +376,6 @@ void StaticMesh::UploadVertexData()
   auto dataToUpload = CreateRestructuredVertexDataArray(stride);
   _vertexBuffer->UploadData(dataToUpload, BufferUsage::Static);
 
-  Renderer::SetVertexAttribPointers(this, stride);
-
   _positionData.clear();
   _positionData.shrink_to_fit();
   _normalData.clear();
@@ -395,5 +394,30 @@ void StaticMesh::UploadIndexData()
   _indexBuffer->UploadData(_indexData);
   _indexData.clear();
   _indexData.shrink_to_fit();
+}
+
+void StaticMesh::SetVertexAttribs()
+{
+  _vertexBuffer->ResetVertexAttribs();
+  if (_vertexDataFormat & VertexDataFormat::Position)
+  {
+    _vertexBuffer->PushVertexAttrib(VertexAttribType::Vec3);
+  }
+  if (_vertexDataFormat & VertexDataFormat::Normal)
+  {
+    _vertexBuffer->PushVertexAttrib(VertexAttribType::Vec3);
+  }
+  if (_vertexDataFormat & VertexDataFormat::Uv)
+  {
+    _vertexBuffer->PushVertexAttrib(VertexAttribType::Vec2);
+  }
+  if (_vertexDataFormat & VertexDataFormat::Tangent)
+  {
+    _vertexBuffer->PushVertexAttrib(VertexAttribType::Vec3);
+  }
+  if (_vertexDataFormat & VertexDataFormat::Bitanget)
+  {
+    _vertexBuffer->PushVertexAttrib(VertexAttribType::Vec3);
+  }
 }
 }

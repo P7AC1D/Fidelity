@@ -161,61 +161,12 @@ bool Renderer::Initialize()
     };
 
     _quadVertexData.reset(new VertexBuffer());
+    _quadVertexData->PushVertexAttrib(VertexAttribType::Vec2);
+    _quadVertexData->PushVertexAttrib(VertexAttribType::Vec2);
     _quadVertexData->UploadData<Vector2>(quadVertexData, BufferUsage::Static);
-
-    auto posLoc = static_cast<uint32>(VertexArribLocation::Position);
-    auto uvLoc = static_cast<uint32>(VertexArribLocation::TexCoord);
-
-    GLCall(glBindVertexArray(_quadVertexData->GetId()));
-    GLCall(glVertexAttribPointer(posLoc, 2, GL_FLOAT, GL_FALSE, 16, nullptr));
-    GLCall(glEnableVertexAttribArray(posLoc));
-    GLCall(glVertexAttribPointer(uvLoc, 2, GL_FLOAT, GL_FALSE, 16, (void*)8));
-    GLCall(glEnableVertexAttribArray(uvLoc));
-    GLCall(glBindVertexArray(0));
   }
 
   return true;
-}
-
-void Renderer::SetVertexAttribPointers(StaticMesh* staticMesh, int32 stride)
-{
-  if (!staticMesh)
-  {
-    return;
-  }
-
-  GLCall(glBindVertexArray(staticMesh->_vertexBuffer->GetId()));
-  if (staticMesh->_vertexDataFormat & VertexDataFormat::Position)
-  {
-    auto positionLocation = static_cast<int32>(VertexArribLocation::Position);
-    GLCall(glVertexAttribPointer(positionLocation, 3, GL_FLOAT, GL_FALSE, stride, nullptr));
-    GLCall(glEnableVertexAttribArray(positionLocation));
-  }
-  if (staticMesh->_vertexDataFormat & VertexDataFormat::Normal)
-  {
-    auto normalLocation = static_cast<int32>(VertexArribLocation::Normal);
-    GLCall(glVertexAttribPointer(normalLocation, 3, GL_FLOAT, GL_FALSE, stride, (void*)12));
-    GLCall(glEnableVertexAttribArray(normalLocation));
-  }
-  if (staticMesh->_vertexDataFormat & VertexDataFormat::Uv)
-  {
-    auto uvLocation = static_cast<int32>(VertexArribLocation::TexCoord);
-    GLCall(glVertexAttribPointer(uvLocation, 2, GL_FLOAT, GL_FALSE, stride, (void*)24));
-    GLCall(glEnableVertexAttribArray(uvLocation));
-  }
-  if (staticMesh->_vertexDataFormat & VertexDataFormat::Tangent)
-  {
-    auto uvLocation = static_cast<int32>(VertexArribLocation::Tangent);
-    GLCall(glVertexAttribPointer(uvLocation, 3, GL_FLOAT, GL_FALSE, stride, (void*)32));
-    GLCall(glEnableVertexAttribArray(uvLocation));
-  }
-  if (staticMesh->_vertexDataFormat & VertexDataFormat::Bitanget)
-  {
-    auto uvLocation = static_cast<int32>(VertexArribLocation::Bitangent);
-    GLCall(glVertexAttribPointer(uvLocation, 3, GL_FLOAT, GL_FALSE, stride, (void*)44));
-    GLCall(glEnableVertexAttribArray(uvLocation));
-  }
-  GLCall(glBindVertexArray(0));
 }
   
 void Renderer::SetRenderDimensions(uint32 width, uint32 height)
@@ -334,7 +285,7 @@ void Renderer::ExecuteLightingPass(const Matrix4& lightSpaceTransform, const Vec
   shader->SetLightSpaceTransform(lightSpaceTransform);
   shader->Apply();
 
-  _quadVertexData->Bind();
+  _quadVertexData->Apply();
   Draw(6);
 }
 

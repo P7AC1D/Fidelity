@@ -69,8 +69,6 @@ public:
   static void DrawIndexed(uint32 indexCount);
 
   bool Initialize();
-
-  static void SetVertexAttribPointers(StaticMesh* staticMesh, int32 stride);
   
   void SetRenderDimensions(uint32 width, uint32 height);
 
