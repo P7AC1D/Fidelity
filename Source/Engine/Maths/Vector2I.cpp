@@ -31,23 +31,10 @@ Vector2i& Vector2i::operator=(const Vector2i& rhs)
   return *this;
 }
 
-Vector2i& Vector2i::operator=(const Vector2& rhs)
-{
-  _x = static_cast<float32>(rhs[0]);
-  _y = static_cast<float32>(rhs[1]);
-  return *this;
-}
-
 Vector2i::Vector2i(const Vector2i& rhs)
 {
   _x = rhs._x;
   _y = rhs._y;
-}
-
-Vector2i::Vector2i(const Vector2& rhs)
-{
-  _x = static_cast<float32>(rhs[0]);
-  _y = static_cast<float32>(rhs[1]);
 }
 
 Vector2i Vector2i::operator+(const Vector2i& rhs)

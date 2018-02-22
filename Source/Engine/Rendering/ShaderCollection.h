@@ -6,11 +6,12 @@
 #include <type_traits>
 #include <unordered_map>
 #include <vector>
+#include "../Core/System.hpp"
 
 namespace Rendering {
   class Shader;
 
-  class ShaderCollection
+  class ShaderCollection : public System<ShaderCollection>
   {
   public:
     ShaderCollection();
@@ -25,6 +26,8 @@ namespace Rendering {
   private:
     std::string _shaderDirectory;
     std::vector<std::shared_ptr<Shader>> _shaderCollection;
+    
+    friend class System<ShaderCollection>;
   };
 
   template <typename T>

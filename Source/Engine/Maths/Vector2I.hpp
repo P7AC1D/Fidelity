@@ -12,10 +12,8 @@ public:
   Vector2i(int32 a);
   Vector2i(int32 x, int32 y);
   Vector2i(const Vector2i& rhs);
-  Vector2i(const Vector2& rhs);
 
   Vector2i& operator=(const Vector2i& rhs);
-  Vector2i& operator=(const Vector2& rhs);
   Vector2i operator+(const Vector2i& rhs);
   Vector2i operator-(const Vector2i& rhs);
 

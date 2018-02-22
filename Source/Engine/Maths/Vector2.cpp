@@ -42,23 +42,10 @@ Vector2& Vector2::operator=(const Vector2& rhs)
   return *this;
 }
 
-Vector2& Vector2::operator=(const Vector2i& rhs)
-{
-  _x = rhs[0];
-  _y = rhs[1];
-  return *this;
-}
-
 Vector2::Vector2(const Vector2& rhs)
 {
   _x = rhs._x;
   _y = rhs._y;
-}
-
-Vector2::Vector2(const Vector2i& rhs)
-{
-  _x = rhs[0];
-  _y = rhs[1];
 }
 
 Vector2 Vector2::operator+(const Vector2& rhs) const

@@ -218,10 +218,14 @@ void Renderer::SetVertexAttribPointers(StaticMesh* staticMesh, int32 stride)
   GLCall(glBindVertexArray(0));
 }
   
-void Renderer::SetViewport(uint32 width, uint32 height)
+void Renderer::SetRenderDimensions(uint32 width, uint32 height)
 {
   _renderWidth = width;
   _renderHeight = height;
+}
+  
+void Renderer::SetViewport(uint32 width, uint32 height)
+{
   GLCall(glViewport(0, 0, static_cast<GLsizei>(width), static_cast<GLsizei>(height)));
 }
 
@@ -260,8 +264,6 @@ void Renderer::ExecuteDirectionalLightDepthPass(const Matrix4& lightSpaceTransfo
   EnableDepthTest();
   DisableStencilTest();
 
-  auto currentRenderWidth = _renderWidth;
-  auto currentRenderHeight = _renderHeight;
   SetViewport(shadowResolution, shadowResolution);
 
   _depthBuffer->BindForDraw();
@@ -282,7 +284,7 @@ void Renderer::ExecuteDirectionalLightDepthPass(const Matrix4& lightSpaceTransfo
     }
   }
   _gBuffer->Unbind();
-  SetViewport(currentRenderWidth, currentRenderHeight);
+  SetViewport(_renderWidth, _renderHeight);
 }
 
 void Renderer::ExecuteGeometryPass(const Vector3& viewDirection)

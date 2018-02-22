@@ -1,6 +1,6 @@
 #pragma once
 #include <memory>
-#include "../Maths/Vector2i.hpp"
+#include "../Maths/Vector2I.hpp"
 #include "IScreenElement.hpp"
 
 class GuiElement : public IScreenElement

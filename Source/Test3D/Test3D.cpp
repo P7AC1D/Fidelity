@@ -4,6 +4,7 @@
 #include "../Engine/Geometry/MeshFactory.h"
 #include "../Engine/Input/InputHandler.hpp"
 #include "../Engine/Input/EventDispatcher.hpp"
+#include "../Engine/Overlay/GuiSystem.hpp"
 #include "../Engine/Overlay/TextOverlay.hpp"
 #include "../Engine/Maths/Degree.hpp"
 #include "../Engine/Maths/Math.hpp"
@@ -162,6 +163,10 @@ void Test3D::OnStart()
   textOverlayDesc.Scale = 1.0f;
   _onScreenFpsCounter.reset(new TextOverlay(textOverlayDesc, GetWidth(), GetHeight()));
   Renderer::Get()->PushTextOverlay(_onScreenFpsCounter);
+  
+  GuiPanelDesc guiPanelDesc;
+  guiPanelDesc.Name = "Test panel";
+  GuiSystem::Get()->CreatePanel(guiPanelDesc);
 }
 
 void Test3D::OnUpdate(uint32 dtMs)

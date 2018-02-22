@@ -4,6 +4,7 @@
 
 #include "../Input/EventDispatcher.hpp"
 #include "../Input/InputHandler.hpp"
+#include "../Overlay/GuiSystem.hpp"
 #include "../Rendering/Renderer.h"
 #include "../Utility/AssetManager.h"
 #include "../SceneManagement/SceneManager.h"
@@ -109,6 +110,7 @@ int32 Application::Run()
     }   
 
     _sceneManager->UpdateScene(dtMs);
+    GuiSystem::Get()->Draw();
 
     SDL_GL_SwapWindow(_window);
   }
@@ -184,7 +186,7 @@ bool Application::Initialize()
   }
 
   auto renderer = Renderer::Get();
-  renderer->SetViewport(_desc.Width, _desc.Height);
+  renderer->SetRenderDimensions(_desc.Width, _desc.Height);
   if (!renderer->Initialize())
   {
     return false;

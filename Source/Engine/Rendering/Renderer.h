@@ -71,6 +71,8 @@ public:
   bool Initialize();
 
   static void SetVertexAttribPointers(StaticMesh* staticMesh, int32 stride);
+  
+  void SetRenderDimensions(uint32 width, uint32 height);
 
 private:
   void SetViewport(uint32 renderWidth, uint32 renderHeight);  
@@ -118,7 +120,6 @@ private:
   uint32 _shadowResolution = 4096;
   Colour _ambientLight;
 
-  friend class Application;
   friend class System<Renderer>;
 };
 }
