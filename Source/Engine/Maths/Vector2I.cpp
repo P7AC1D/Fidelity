@@ -8,133 +8,133 @@ Vector2i Vector2i::Zero = Vector2i(0);
 
 Vector2i::Vector2i()
 {
-  _x = 0;
-  _y = 0;
+  X = 0;
+  Y = 0;
 }
 
 Vector2i::Vector2i(int32 a)
 {
-  _x = a;
-  _y = a;
+  X = a;
+  Y = a;
 }
 
 Vector2i::Vector2i(int32 x, int32 y)
 {
-  _x = x;
-  _y = y;
+  X = x;
+  Y = y;
 }
 
 Vector2i& Vector2i::operator=(const Vector2i& rhs)
 {
-  _x = rhs._x;
-  _y = rhs._y;
+  X = rhs.X;
+  Y = rhs.Y;
   return *this;
 }
 
 Vector2i::Vector2i(const Vector2i& rhs)
 {
-  _x = rhs._x;
-  _y = rhs._y;
+  X = rhs.X;
+  Y = rhs.Y;
 }
 
 Vector2i Vector2i::operator+(const Vector2i& rhs)
 {
-  return Vector2i(_x + rhs._x, _y + rhs._y);
+  return Vector2i(X + rhs.X, Y + rhs.Y);
 }
 
 Vector2i Vector2i::operator-(const Vector2i& rhs)
 {
-  return Vector2i(_x - rhs._x, _y - rhs._y);
+  return Vector2i(X - rhs.X, Y - rhs.Y);
 }
 
 Vector2i Vector2i::operator+(int32 rhs)
 {
-  return Vector2i(_x + rhs, _y + rhs);
+  return Vector2i(X + rhs, Y + rhs);
 }
 
 Vector2i Vector2i::operator-(int32 rhs)
 {
-  return Vector2i(_x - rhs, _y - rhs);
+  return Vector2i(X - rhs, Y - rhs);
 }
 
 Vector2i Vector2i::operator*(int32 rhs)
 {
-  return Vector2i(rhs * _x, rhs * _y);
+  return Vector2i(rhs * X, rhs * Y);
 }
 
 Vector2i& Vector2i::operator+=(const Vector2i& rhs)
 {
-  _x += rhs._x;
-  _y += rhs._y;
+  X += rhs.X;
+  Y += rhs.Y;
   return *this;
 }
 
 Vector2i& Vector2i::operator-=(const Vector2i& rhs)
 {
-  _x -= rhs._x;
-  _y -= rhs._y;
+  X -= rhs.X;
+  Y -= rhs.Y;
   return *this;
 }
 
 Vector2i& Vector2i::operator-=(int32 rhs)
 {
-  _x -= rhs;
-  _y -= rhs;
+  X -= rhs;
+  Y -= rhs;
   return *this;
 }
 
 Vector2i& Vector2i::operator+=(int32 rhs)
 {
-  _x += rhs;
-  _y += rhs;
+  X += rhs;
+  Y += rhs;
   return *this;
 }
 
 Vector2i& Vector2i::operator*=(int32 rhs)
 {
-  _x *= rhs;
-  _y *= rhs;
+  X *= rhs;
+  Y *= rhs;
   return *this;
 }
 
 bool Vector2i::operator==(const Vector2i& rhs) const
 {
-  return _x == rhs._x && _y == rhs._y;
+  return X == rhs.X && Y == rhs.Y;
 }
 
 bool Vector2i::operator!=(const Vector2i& rhs) const
 {
-  return _x != rhs._x && _y != rhs._y;
+  return X != rhs.X && Y != rhs.Y;
 }
 
 int32& Vector2i::operator[](uint32 i)
 {
   assert(i < 2);
-  return *(&_x + i);
+  return *(&X + i);
 }
 
 int32 Vector2i::operator[](uint32 i) const
 {
   assert(i < 2);
-  return *(&_x + i);
+  return *(&X + i);
 }
 
 const int32* Vector2i::Ptr() const
 {
-  return &_x;
+  return &X;
 }
 
 Vector2i operator+(int32 a, const Vector2i& b)
 {
-  return Vector2i(a + b._x, a + b._y);
+  return Vector2i(a + b.X, a + b.Y);
 }
 
 Vector2i operator-(int32 a, const Vector2i& b)
 {
-  return Vector2i(a - b._x, a - b._y);
+  return Vector2i(a - b.X, a - b.Y);
 }
 
 Vector2i operator*(int32 a, const Vector2i& b)
 {
-  return Vector2i(a * b._x, a * b._y);
+  return Vector2i(a * b.X, a * b.Y);
 }

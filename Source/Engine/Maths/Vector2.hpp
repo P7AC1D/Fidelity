@@ -44,8 +44,8 @@ public:
   friend Vector2 operator+(float32 a, const Vector2& b);
   friend Vector2 operator-(float32 a, const Vector2& b);
   friend Vector2 operator*(float32 a, const Vector2& b);
-  
-private:
-  float32 _x;
-  float32 _y;
+
+public:
+  float32 X;
+  float32 Y;
 };

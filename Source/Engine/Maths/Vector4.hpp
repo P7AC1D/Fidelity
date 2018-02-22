@@ -49,10 +49,10 @@ public:
   friend Vector4 operator+(float32 lhs, const Vector4& rhs);
   friend Vector4 operator-(float32 lhs, const Vector4& rhs);
   friend Vector4 operator*(float32 lhs, const Vector4& rhs);
-  
-private:
-  float32 _x;
-  float32 _y;
-  float32 _z;
-  float32 _w;
+
+public:  
+  float32 X;
+  float32 Y;
+  float32 Z;
+  float32 W;
 };

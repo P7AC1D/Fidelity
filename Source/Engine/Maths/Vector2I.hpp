@@ -40,7 +40,7 @@ public:
   friend Vector2i operator-(int32 a, const Vector2i& b);
   friend Vector2i operator*(int32 a, const Vector2i& b);
 
-private:
-  int32 _x;
-  int32 _y;
+public:
+  int32 X;
+  int32 Y;
 };

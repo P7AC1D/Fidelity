@@ -7,7 +7,8 @@
 GuiPanel::GuiPanel(const GuiPanelDesc& desc):
   _name(desc.Name),
   _colour(desc.Colour),
-  _dirty(true)
+  _dirty(true),
+  _mouseOver(false)
 {
   SetPosition(desc.Position);
   SetDimensions(Vector2i(desc.Width, desc.Height));
@@ -25,6 +26,12 @@ void GuiPanel::SetDimensions(const Vector2i& dimensions)
   _dirty = true;
 }
 
+void GuiPanel::SetColour(const Colour& colour)
+{
+  _colour = colour;
+  _dirty = true;
+}
+
 void GuiPanel::Draw()
 {
   if (_dirty)
@@ -34,11 +41,30 @@ void GuiPanel::Draw()
   }
 
   _vertexBuffer->Apply();
+
   Rendering::Renderer::Get()->Draw(6);
 
   for (auto childElement : _childElements)
   {
     childElement->Draw();
+  }
+}
+
+void GuiPanel::OnMouseEnter()
+{
+  _mouseOver = true;
+  if (_onMouseEnter)
+  {
+    _onMouseEnter();
+  }
+}
+
+void GuiPanel::OnMouseLeave()
+{
+  _mouseOver = false;
+  if (_onMouseLeave)
+  {
+    _onMouseLeave();
   }
 }
 
@@ -58,6 +84,11 @@ void GuiPanel::UploadToGpu()
   Vector2 topRight((_position[0] + _dimensions[0]) / viewportWidth, _position[1] / viewportHeight);
   Vector2 bottomLeft((_position[0]) / viewportWidth, (_position[1] - _dimensions[1]) / viewportHeight);
   Vector2 bottomRight((_position[0] + _dimensions[0]) / viewportWidth, (_position[1] - _dimensions[1]) / viewportHeight);
+
+  topLeft *= 2.0f;
+  topRight *= 2.0f;
+  bottomLeft *= 2.0f;
+  bottomRight *= 2.0f;
 
   topLeft[0] -= 1.0f;
   topRight[0] -= 1.0f;

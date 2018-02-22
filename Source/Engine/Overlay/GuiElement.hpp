@@ -6,8 +6,10 @@
 class GuiElement : public IScreenElement
 {
 public:
-  GuiElement() { }
-  virtual ~GuiElement() { }
+  GuiElement();
+  virtual ~GuiElement();
+
+  bool Intersects(const Vector2i& mousePosition);
 
 protected:
   Vector2i _position;

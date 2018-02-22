@@ -34,6 +34,12 @@ enum ClearType : uint8
   CT_Stencil = 1 << 2
 };
 
+enum class BlendType
+{
+  SrcAlpha,
+  OneMinusSrcAlpha
+};
+
 struct RenderableItem
 {
   RenderableItem(std::shared_ptr<Renderable> renderable, std::shared_ptr<Transform> transform):
@@ -71,6 +77,9 @@ public:
   bool Initialize();
   
   void SetRenderDimensions(uint32 width, uint32 height);
+
+  void EnableBlend(BlendType source, BlendType destination);
+  void DisableBlend();
 
 private:
   void SetViewport(uint32 renderWidth, uint32 renderHeight);  

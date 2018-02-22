@@ -166,7 +166,16 @@ void Test3D::OnStart()
   
   GuiPanelDesc guiPanelDesc;
   guiPanelDesc.Name = "Test panel";
-  GuiSystem::Get()->CreatePanel(guiPanelDesc);
+  guiPanelDesc.Colour = Colour(0, 0, 0, 150);
+  _testPanel = GuiSystem::Get()->CreatePanel(guiPanelDesc);
+  _testPanel->SetOnMouseEnter([&]()
+  {
+    _testPanel->SetColour(Colour::Red);
+  });
+  _testPanel->SetOnMouseLeave([&]()
+  {
+    _testPanel->SetColour(Colour::Blue);
+  });
 }
 
 void Test3D::OnUpdate(uint32 dtMs)

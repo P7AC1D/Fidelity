@@ -61,6 +61,7 @@ int32 Application::Run()
           inputEvent.Button = SDLToButton(sdlEvent.key.keysym.sym);
           inputEvent.ButtonEvent = ButtonEvent::Released;
           _inputHandler->Dispatch(inputEvent, dtMs);
+          GuiSystem::Get()->OnEvent(inputEvent);
           break;
         }
         case SDL_KEYDOWN:
@@ -69,22 +70,27 @@ int32 Application::Run()
           inputEvent.Button = SDLToButton(sdlEvent.key.keysym.sym);
           inputEvent.ButtonEvent = ButtonEvent::Pressed;
           _inputHandler->Dispatch(inputEvent, dtMs);
+          GuiSystem::Get()->OnEvent(inputEvent);
           break;
         }          
         case SDL_MOUSEBUTTONUP:
         {
           InputEvent inputEvent;
+          inputEvent.AxisPos = Vector2i(sdlEvent.button.x, sdlEvent.button.y);
           inputEvent.Button = SDLToButton(sdlEvent.button.button);
           inputEvent.ButtonEvent = ButtonEvent::Released;
           _inputHandler->Dispatch(inputEvent, dtMs);
+          GuiSystem::Get()->OnEvent(inputEvent);
           break;
         }
         case SDL_MOUSEBUTTONDOWN:
         {
           InputEvent inputEvent;
+          inputEvent.AxisPos = Vector2i(sdlEvent.button.x, sdlEvent.button.y);
           inputEvent.Button = SDLToButton(sdlEvent.button.button);
           inputEvent.ButtonEvent = ButtonEvent::Pressed;
           _inputHandler->Dispatch(inputEvent, dtMs);
+          GuiSystem::Get()->OnEvent(inputEvent);
           break;
         }
         case SDL_MOUSEMOTION:
@@ -94,6 +100,7 @@ int32 Application::Run()
           inputEvent.AxisPos = Vector2i(sdlEvent.motion.x, sdlEvent.motion.y);
           inputEvent.AxisPosDelta = _cursorPosition - inputEvent.AxisPos;
           _inputHandler->Dispatch(inputEvent, dtMs);
+          GuiSystem::Get()->OnEvent(inputEvent);
 
           _cursorPosition = inputEvent.AxisPos;
           break;
@@ -104,6 +111,7 @@ int32 Application::Run()
           inputEvent.Axis = Axis::MouseScrollXY;
           inputEvent.AxisPosDelta = Vector2i(sdlEvent.wheel.x, sdlEvent.wheel.y);
           _inputHandler->Dispatch(inputEvent, dtMs);
+          GuiSystem::Get()->OnEvent(inputEvent);
           break;
         }
       }

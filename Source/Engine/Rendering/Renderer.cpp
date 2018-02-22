@@ -22,24 +22,17 @@
 #include "StaticMesh.h"
 #include "VertexBuffer.h"
 
-using namespace Rendering;
-
 namespace Rendering
 {
-enum class RenderingTechnique
+GLenum ToBlendType(BlendType blendType)
 {
-  Coloured = 0,
-  Textured = 1,
-};
-
-enum class VertexArribLocation
-{
-  Position = 0,
-  Normal = 1,
-  TexCoord = 2,
-  Tangent = 3,
-  Bitangent = 4,
-};
+  switch (blendType)
+  {
+    case BlendType::SrcAlpha: return GL_SRC_ALPHA;
+    case BlendType::OneMinusSrcAlpha: return GL_ONE_MINUS_SRC_ALPHA;
+    default: GL_ONE;
+  }
+}
 
 enum class UniformBindingPoint
 {
@@ -78,8 +71,7 @@ void Renderer::DrawOverlay()
   DisableStencilTest();
   DisableDepthTest();
   
-  GLCall(glEnable(GL_BLEND));
-  GLCall(glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
+  EnableBlend(BlendType::SrcAlpha, BlendType::OneMinusSrcAlpha);
 
   auto shader = _shaderCollection->GetShader<TextOverlayShader>();  
   for (auto& textOverlay : _textOverlays)
@@ -90,7 +82,7 @@ void Renderer::DrawOverlay()
     textOverlay->Draw();
   }
   
-  GLCall(glDisable(GL_BLEND));
+  DisableBlend();
 }
 
 void Renderer::Draw(uint32 vertexCount, uint32 vertexOffset)
@@ -173,6 +165,17 @@ void Renderer::SetRenderDimensions(uint32 width, uint32 height)
 {
   _renderWidth = width;
   _renderHeight = height;
+}
+
+void Renderer::EnableBlend(BlendType source, BlendType destination)
+{
+  GLCall(glEnable(GL_BLEND));
+  GLCall(glBlendFunc(ToBlendType(source), ToBlendType(destination)));
+}
+
+void Renderer::DisableBlend()
+{
+  GLCall(glDisable(GL_BLEND));
 }
   
 void Renderer::SetViewport(uint32 width, uint32 height)

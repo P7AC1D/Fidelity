@@ -19,146 +19,146 @@ Vector2 Vector2::Normalize(const Vector2& vec)
 
 Vector2::Vector2()
 {
-  _x = 0.0f;
-  _y = 0.0f;
+  X = 0.0f;
+  Y = 0.0f;
 }
 
 Vector2::Vector2(float32 a)
 {
-  _x = a;
-  _y = a;
+  X = a;
+  Y = a;
 }
 
 Vector2::Vector2(float32 x, float32 y)
 {
-  _x = x;
-  _y = y;
+  X = x;
+  Y = y;
 }
 
 Vector2& Vector2::operator=(const Vector2& rhs)
 {
-  _x = rhs._x;
-  _y = rhs._y;
+  X = rhs.X;
+  Y = rhs.Y;
   return *this;
 }
 
 Vector2::Vector2(const Vector2& rhs)
 {
-  _x = rhs._x;
-  _y = rhs._y;
+  X = rhs.X;
+  Y = rhs.Y;
 }
 
 Vector2 Vector2::operator+(const Vector2& rhs) const
 {
-  return Vector2(_x + rhs._x, _y + rhs._y);
+  return Vector2(X + rhs.X, Y + rhs.Y);
 }
 
 Vector2 Vector2::operator-(const Vector2& rhs) const
 {
-  return Vector2(_x - rhs._x, _y - rhs._y);
+  return Vector2(X - rhs.X, Y - rhs.Y);
 }
 
 Vector2 Vector2::operator+(float32 rhs) const
 {
-  return Vector2(_x + rhs, _y + rhs);
+  return Vector2(X + rhs, Y + rhs);
 }
 
 Vector2 Vector2::operator-(float32 rhs) const
 {
-  return Vector2(_x - rhs, _y - rhs);
+  return Vector2(X - rhs, Y - rhs);
 }
 
 Vector2 Vector2::operator*(float32 rhs) const
 {
-  return Vector2(rhs * _x, rhs * _y);
+  return Vector2(rhs * X, rhs * Y);
 }
 
 Vector2& Vector2::operator+=(const Vector2& rhs)
 {
-  _x += rhs._x;
-  _y += rhs._y;
+  X += rhs.X;
+  Y += rhs.Y;
   return *this;
 }
 
 Vector2& Vector2::operator-=(const Vector2& rhs)
 {
-  _x -= rhs._x;
-  _y -= rhs._y;
+  X -= rhs.X;
+  Y -= rhs.Y;
   return *this;
 }
 
 Vector2& Vector2::operator-=(float32 rhs)
 {
-  _x -= rhs;
-  _y -= rhs;
+  X -= rhs;
+  Y -= rhs;
   return *this;
 }
 
 Vector2& Vector2::operator+=(float32 rhs)
 {
-  _x += rhs;
-  _y += rhs;
+  X += rhs;
+  Y += rhs;
   return *this;
 }
 
 Vector2& Vector2::operator*=(float32 rhs)
 {
-  _x *= rhs;
-  _y *= rhs;
+  X *= rhs;
+  Y *= rhs;
   return *this;
 }
 
 bool Vector2::operator==(const Vector2& rhs) const
 {
-  return _x == rhs._x && _y == rhs._y;
+  return X == rhs.X && Y == rhs.Y;
 }
 
 bool Vector2::operator!=(const Vector2& rhs) const
 {
-  return _x != rhs._x && _y != rhs._y;
+  return X != rhs.X && Y != rhs.Y;
 }
 
 float32& Vector2::operator[](uint32 i)
 {
   assert(i < 2);
-  return *(&_x + i);
+  return *(&X + i);
 }
 
 float32 Vector2::operator[](uint32 i) const
 {
   assert(i < 2);
-  return *(&_x + i);
+  return *(&X + i);
 }
 
 float32 Vector2::Length() const
 {
-  return sqrtf(_x * _x + _y * _y);
+  return sqrtf(X * X + Y * Y);
 }
 
 void Vector2::Normalize()
 {
   float32 length = Length();
   float32 lengthInv = 1.0f / length;
-  _x *= lengthInv;
-  _y *= lengthInv;
+  X *= lengthInv;
+  Y *= lengthInv;
 }
 
 const float32* Vector2::Ptr() const
 {
-  return &_x;
+  return &X;
 }
 
 Vector2 operator+(float32 a, const Vector2& b)
 {
-  return Vector2(a + b._x, a + b._y);
+  return Vector2(a + b.X, a + b.Y);
 }
 
 Vector2 operator-(float32 a, const Vector2& b)
 {
-  return Vector2(a - b._x, a - b._y);
+  return Vector2(a - b.X, a - b.Y);
 }
 
 Vector2 operator*(float32 a, const Vector2& b)
 {
-  return Vector2(a * b._x, a * b._y);
+  return Vector2(a * b.X, a * b.Y);
 }

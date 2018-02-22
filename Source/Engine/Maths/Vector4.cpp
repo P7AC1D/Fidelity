@@ -10,7 +10,7 @@ Vector4 Vector4::One = Vector4(1.0f);
 
 float32 Vector4::Dot(const Vector4& lhs, const Vector4& rhs)
 {
-  return lhs._x * rhs._x + lhs._y * rhs._y + lhs._z * rhs._z + lhs._w * rhs._w;
+  return lhs.X * rhs.X + lhs.Y * rhs.Y + lhs.Z * rhs.Z + lhs.W * rhs.W;
 }
 
 Vector4 Vector4::Normalize(const Vector4& vec)
@@ -22,225 +22,225 @@ Vector4 Vector4::Normalize(const Vector4& vec)
 
 Vector4::Vector4()
 {
-  _x = 0.0f;
-  _y = 0.0f;
-  _z = 0.0f;
-  _w = 0.0f;
+  X = 0.0f;
+  Y = 0.0f;
+  Z = 0.0f;
+  W = 0.0f;
 }
 
 Vector4::Vector4(float32 k)
 {
-  _x = k;
-  _y = k;
-  _z = k;
-  _w = k;
+  X = k;
+  Y = k;
+  Z = k;
+  W = k;
 }
 
 Vector4::Vector4(float32 a, float32 b, float32 c, float32 d)
 {
-  _x = a;
-  _y = b;
-  _z = c;
-  _w = d;
+  X = a;
+  Y = b;
+  Z = c;
+  W = d;
 }
 
 Vector4::Vector4(const Vector2& vec, float32 c, float32 d)
 {
-  _x = vec[0];
-  _y = vec[1];
-  _z = c;
-  _w = d;
+  X = vec[0];
+  Y = vec[1];
+  Z = c;
+  W = d;
 }
 
 Vector4::Vector4(const Vector3& vec, float32 d)
 {
-  _x = vec[0];
-  _y = vec[1];
-  _z = vec[2];
-  _w = d;
+  X = vec[0];
+  Y = vec[1];
+  Z = vec[2];
+  W = d;
 }
 
 Vector4::Vector4(const Vector4& vec)
 {
-  _x = vec[0];
-  _y = vec[1];
-  _z = vec[2];
-  _w = vec[3];
+  X = vec[0];
+  Y = vec[1];
+  Z = vec[2];
+  W = vec[3];
 }
 
 Vector4& Vector4::operator=(const Vector4& rhs)
 {
-  _x = rhs._x;
-  _y = rhs._y;
-  _z = rhs._z;
-  _w = rhs._w;
+  X = rhs.X;
+  Y = rhs.Y;
+  Z = rhs.Z;
+  W = rhs.W;
   return *this;
 }
 
 Vector4 Vector4::operator+(const Vector4 &rhs) const
 {
-  float32 x = _x + rhs._x;
-  float32 y = _y + rhs._y;
-  float32 z = _z + rhs._z;
-  float32 w = _w + rhs._w;
+  float32 x = X + rhs.X;
+  float32 y = Y + rhs.Y;
+  float32 z = Z + rhs.Z;
+  float32 w = W + rhs.W;
   return Vector4(x, y, z, w);
 }
 
 Vector4 Vector4::operator-(const Vector4 &rhs) const
 {
-  float32 x = _x - rhs._x;
-  float32 y = _y - rhs._y;
-  float32 z = _z - rhs._z;
-  float32 w = _w - rhs._w;
+  float32 x = X - rhs.X;
+  float32 y = Y - rhs.Y;
+  float32 z = Z - rhs.Z;
+  float32 w = W - rhs.W;
   return Vector4(x, y, z, w);
 }
 
 Vector4 Vector4::operator*(const Vector4& rhs) const
 {
-  float32 x = _x * rhs._x;
-  float32 y = _y * rhs._y;
-  float32 z = _z * rhs._z;
-  float32 w = _w * rhs._w;
+  float32 x = X * rhs.X;
+  float32 y = Y * rhs.Y;
+  float32 z = Z * rhs.Z;
+  float32 w = W * rhs.W;
   return Vector4(x, y, z, w);
 }
 
 Vector4 Vector4::operator+(float32 rhs) const
 {
-  float32 x = _x + rhs;
-  float32 y = _y + rhs;
-  float32 z = _z + rhs;
-  float32 w = _w + rhs;
+  float32 x = X + rhs;
+  float32 y = Y + rhs;
+  float32 z = Z + rhs;
+  float32 w = W + rhs;
   return Vector4(x, y, z, w);
 }
 
 Vector4 Vector4::operator-(float32 rhs) const
 {
-  float32 x = _x - rhs;
-  float32 y = _y - rhs;
-  float32 z = _z - rhs;
-  float32 w = _w - rhs;
+  float32 x = X - rhs;
+  float32 y = Y - rhs;
+  float32 z = Z - rhs;
+  float32 w = W - rhs;
   return Vector4(x, y, z, w);
 }
 
 Vector4 Vector4::operator*(float32 rhs) const
 {
-  float32 x = _x * rhs;
-  float32 y = _y * rhs;
-  float32 z = _z * rhs;
-  float32 w = _w * rhs;
+  float32 x = X * rhs;
+  float32 y = Y * rhs;
+  float32 z = Z * rhs;
+  float32 w = W * rhs;
   return Vector4(x, y, z, w);
 }
 
 Vector4 Vector4::operator+=(const Vector4& rhs)
 {
-  _x += rhs._x;
-  _y += rhs._y;
-  _z += rhs._z;
-  _w += rhs._w;
+  X += rhs.X;
+  Y += rhs.Y;
+  Z += rhs.Z;
+  W += rhs.W;
   return *this;
 }
 
 Vector4 Vector4::operator-=(const Vector4& rhs)
 {
-  _x -= rhs._x;
-  _y -= rhs._y;
-  _z -= rhs._z;
-  _w -= rhs._w;
+  X -= rhs.X;
+  Y -= rhs.Y;
+  Z -= rhs.Z;
+  W -= rhs.W;
   return *this;
 }
 
 Vector4& Vector4::operator+=(float32 rhs)
 {
-  _x += rhs;
-  _y += rhs;
-  _z += rhs;
-  _w += rhs;
+  X += rhs;
+  Y += rhs;
+  Z += rhs;
+  W += rhs;
   return *this;
 }
 
 Vector4& Vector4::operator-=(float32 rhs)
 {
-  _x -= rhs;
-  _y -= rhs;
-  _z -= rhs;
-  _w -= rhs;
+  X -= rhs;
+  Y -= rhs;
+  Z -= rhs;
+  W -= rhs;
   return *this;
 }
 
 Vector4& Vector4::operator*=(float32 rhs)
 {
-  _x *= rhs;
-  _y *= rhs;
-  _z *= rhs;
-  _w *= rhs;
+  X *= rhs;
+  Y *= rhs;
+  Z *= rhs;
+  W *= rhs;
   return *this;
 }
 
 bool Vector4::operator==(const Vector4& rhs) const
 {
-  return _x == rhs._x && _y == rhs._y && _z && rhs._z && _w == rhs._w;
+  return X == rhs.X && Y == rhs.Y && Z && rhs.Z && W == rhs.W;
 }
 
 bool Vector4::operator!=(const Vector4& rhs) const
 {
-  return _x != rhs._x && _y != rhs._y && _z != rhs._z && _w != rhs._w;
+  return X != rhs.X && Y != rhs.Y && Z != rhs.Z && W != rhs.W;
 }
 
 float32& Vector4::operator[](uint32 i)
 {
   assert(i < 4);
-  return *(&_x + i);
+  return *(&X + i);
 }
 
 const float32& Vector4::operator[](uint32 i) const
 {
   assert(i < 4);
-  return *(&_x + i);
+  return *(&X + i);
 }
 
 float32 Vector4::Length() const
 {
-  return sqrtf(_x * _x + _y * _y + _z * _z + _w * _w);
+  return sqrtf(X * X + Y * Y + Z * Z + W * W);
 }
 
 void Vector4::Normalize()
 {
   float32 length = Length();
   float32 lengthInv = 1.0f / length;
-  _x *= lengthInv;
-  _y *= lengthInv;
-  _z *= lengthInv;
-  _w *= lengthInv;
+  X *= lengthInv;
+  Y *= lengthInv;
+  Z *= lengthInv;
+  W *= lengthInv;
 }
 
 const float32* Vector4::Ptr() const
 {
-  return &_x;
+  return &X;
 }
 
 Vector4 operator+(float32 lhs, const Vector4& rhs)
 {
-  float32 x = lhs + rhs._x;
-  float32 y = lhs + rhs._y;
-  float32 z = lhs + rhs._z;
-  float32 w = lhs + rhs._w;
+  float32 x = lhs + rhs.X;
+  float32 y = lhs + rhs.Y;
+  float32 z = lhs + rhs.Z;
+  float32 w = lhs + rhs.W;
   return Vector4(x, y, z, w);
 }
 
 Vector4 operator-(float32 lhs, const Vector4& rhs)
 {
-  float32 x = lhs - rhs._x;
-  float32 y = lhs - rhs._y;
-  float32 z = lhs - rhs._z;
-  float32 w = lhs - rhs._w;
+  float32 x = lhs - rhs.X;
+  float32 y = lhs - rhs.Y;
+  float32 z = lhs - rhs.Z;
+  float32 w = lhs - rhs.W;
   return Vector4(x, y, z, w);
 }
 
 Vector4 operator*(float32 lhs, const Vector4& rhs)
 {
-  float32 x = lhs * rhs._x;
-  float32 y = lhs * rhs._y;
-  float32 z = lhs * rhs._z;
-  float32 w = lhs * rhs._w;
+  float32 x = lhs * rhs.X;
+  float32 y = lhs * rhs.Y;
+  float32 z = lhs * rhs.Z;
+  float32 w = lhs * rhs.W;
   return Vector4(x, y, z, w);
 }

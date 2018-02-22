@@ -13,7 +13,7 @@ Quaternion Quaternion::Identity = Quaternion(1.0f, 0.0f, 0.0f, 0.0f);
 
 float32 Quaternion::Dot(const Quaternion& lhs, const Quaternion& rhs)
 {
-  return lhs._x * rhs._x + lhs._y * rhs._y + lhs._z * rhs._z + lhs._w * rhs._w;
+  return lhs.X * rhs.X + lhs.Y * rhs.Y + lhs.Z * rhs.Z + lhs.W * rhs.W;
 }
 
 Quaternion Quaternion::Normalize(const Quaternion& quat)
@@ -24,18 +24,18 @@ Quaternion Quaternion::Normalize(const Quaternion& quat)
 }
 
 Quaternion::Quaternion():
-_x(0.0f),
-_y(0.0f),
-_z(0.0f),
-_w(0.0f)
+X(0.0f),
+Y(0.0f),
+Z(0.0f),
+W(0.0f)
 {
 }
 
 Quaternion::Quaternion(float32 _w, float32 _x, float32 _y, float32 _z):
-_x(_x),
-_y(_y),
-_z(_z),
-_w(_w)
+X(_x),
+Y(_y),
+Z(_z),
+W(_w)
 {
 }
 
@@ -61,47 +61,47 @@ Quaternion::Quaternion(const Radian& xAngle, const Radian& yAngle, const Radian&
 float32& Quaternion::operator[](uint32 i)
 {
   assert(i < 4);
-  return *(&_x + i);
+  return *(&X + i);
 }
 
 float32 Quaternion::operator[](uint32 i) const
 {
   assert(i < 4);
-  return *(&_x + i);
+  return *(&X + i);
 }
 
 Quaternion& Quaternion::operator=(const Quaternion& rhs)
 {
-  _w = rhs._w;
-  _z = rhs._z;
-  _y = rhs._y;
-  _x = rhs._x;
+  W = rhs.W;
+  Z = rhs.Z;
+  Y = rhs.Y;
+  X = rhs.X;
   return *this;
 }
 
 Quaternion Quaternion::operator+(float32 rhs) const
 {
-  return Quaternion(_w + rhs, _x + rhs, _y + rhs, _z + rhs);
+  return Quaternion(W + rhs, X + rhs, Y + rhs, Z + rhs);
 }
 
 Quaternion Quaternion::operator-(float32 rhs) const
 {
-  return Quaternion(_w - rhs, _x - rhs, _y - rhs, _z - rhs);
+  return Quaternion(W - rhs, X - rhs, Y - rhs, Z - rhs);
 }
 
 Quaternion Quaternion::operator*(float32 rhs) const
 {
-  return Quaternion(_w * rhs, _x * rhs, _y * rhs, _z * rhs);
+  return Quaternion(W * rhs, X * rhs, Y * rhs, Z * rhs);
 }
 
 Quaternion Quaternion::operator+(const Quaternion &rhs) const
 {
-  return Quaternion(_w + rhs._w, _x + rhs._x, _y + rhs._y, _z + rhs._z);
+  return Quaternion(W + rhs.W, X + rhs.X, Y + rhs.Y, Z + rhs.Z);
 }
 
 Quaternion Quaternion::operator-(const Quaternion &rhs) const
 {
-  return Quaternion(_w - rhs._w, _x - rhs._x, _y - rhs._y, _z - rhs._z);
+  return Quaternion(W - rhs.W, X - rhs.X, Y - rhs.Y, Z - rhs.Z);
 }
 
 Quaternion Quaternion::operator*(const Quaternion& rhs) const
@@ -111,81 +111,81 @@ Quaternion Quaternion::operator*(const Quaternion& rhs) const
 
 Quaternion& Quaternion::operator+=(float32 rhs)
 {
-  _w += rhs;
-  _x += rhs;
-  _y += rhs;
-  _z += rhs;
+  W += rhs;
+  X += rhs;
+  Y += rhs;
+  Z += rhs;
   return *this;
 }
 
 Quaternion& Quaternion::operator-=(float32 rhs)
 {
-  _w -= rhs;
-  _x -= rhs;
-  _y -= rhs;
-  _z -= rhs;
+  W -= rhs;
+  X -= rhs;
+  Y -= rhs;
+  Z -= rhs;
   return *this;
 }
 
 Quaternion& Quaternion::operator*=(float32 rhs)
 {
-  _w *= rhs;
-  _x *= rhs;
-  _y *= rhs;
-  _z *= rhs;
+  W *= rhs;
+  X *= rhs;
+  Y *= rhs;
+  Z *= rhs;
   return *this;
 }
 
 Quaternion& Quaternion::operator+=(const Quaternion &rhs)
 {
-  _w += rhs._w;
-  _x += rhs._x;
-  _y += rhs._z;
-  _z += rhs._z;
+  W += rhs.W;
+  X += rhs.X;
+  Y += rhs.Z;
+  Z += rhs.Z;
   return *this;
 }
 
 Quaternion& Quaternion::operator-=(const Quaternion &rhs)
 {
-  _w -= rhs._w;
-  _x -= rhs._x;
-  _y -= rhs._z;
-  _z -= rhs._z;
+  W -= rhs.W;
+  X -= rhs.X;
+  Y -= rhs.Z;
+  Z -= rhs.Z;
   return *this;
 }
 
 Quaternion& Quaternion::operator*=(const Quaternion& rhs)
 {
-  _w *= _w * rhs._w - _x * rhs._x - _y * rhs._y - _z * rhs._z;
-  _x *= _w * rhs._x + _x * rhs._w + _y * rhs._z - _z * rhs._y;
-  _y *= _w * rhs._y + _y * rhs._w + _z * rhs._x - _x * rhs._z;
-  _x *= _w * rhs._z + _z * rhs._w + _x * rhs._y - _y * rhs._x;
+  W *= W * rhs.W - X * rhs.X - Y * rhs.Y - Z * rhs.Z;
+  X *= W * rhs.X + X * rhs.W + Y * rhs.Z - Z * rhs.Y;
+  Y *= W * rhs.Y + Y * rhs.W + Z * rhs.X - X * rhs.Z;
+  X *= W * rhs.Z + Z * rhs.W + X * rhs.Y - Y * rhs.X;
   return *this;
 }
 
 bool Quaternion::operator==(const Quaternion& rhs) const
 {
-  return _w == rhs._w && _x == rhs._x && _y == rhs._y && _z == rhs._z;
+  return W == rhs.W && X == rhs.X && Y == rhs.Y && Z == rhs.Z;
 }
 
 bool Quaternion::operator!=(const Quaternion& rhs) const
 {
-  return _w != rhs._w && _x != rhs._x && _y != rhs._y && _z != rhs._z;
+  return W != rhs.W && X != rhs.X && Y != rhs.Y && Z != rhs.Z;
 }
 
 float32 Quaternion::Norm() const
 {
-  return sqrtf(_x * _x + _y * _y + _z * _z + _w * _w);
+  return sqrtf(X * X + Y * Y + Z * Z + W * W);
 }
 
 void Quaternion::Normalize()
 {
   float32 norm = Norm();
   float32 normInv = 1.0f / norm;
-  _x *= normInv;
-  _y *= normInv;
-  _z *= normInv;
-  _w *= normInv;
+  X *= normInv;
+  Y *= normInv;
+  Z *= normInv;
+  W *= normInv;
 }
 
 Vector3 Quaternion::Rotate(const Vector3& vec) const
@@ -216,25 +216,25 @@ Quaternion Quaternion::Slerp(const Quaternion& a, const Quaternion& b, float32 t
 
 Quaternion operator+(float32 lhs, const Quaternion& rhs)
 {
-  return Quaternion(lhs + rhs._w, lhs + rhs._x, lhs + rhs._y, lhs + rhs._z);
+  return Quaternion(lhs + rhs.W, lhs + rhs.X, lhs + rhs.Y, lhs + rhs.Z);
 }
 
 Quaternion operator-(float32 lhs, const Quaternion& rhs)
 {
-  return Quaternion(lhs - rhs._w, lhs - rhs._x, lhs - rhs._y, lhs - rhs._z);
+  return Quaternion(lhs - rhs.W, lhs - rhs.X, lhs - rhs.Y, lhs - rhs.Z);
 }
 
 Quaternion operator*(float32 lhs, const Quaternion& rhs)
 {
-  return Quaternion(lhs * rhs._w, lhs * rhs._x, lhs * rhs._y, lhs * rhs._z);
+  return Quaternion(lhs * rhs.W, lhs * rhs.X, lhs * rhs.Y, lhs * rhs.Z);
 }
 
 Quaternion Quaternion::Multiply(const Quaternion& q1, const Quaternion& q2)
 {
-  float32 x =  q1._x * q2._w + q1._y * q2._z - q1._z * q2._y + q1._w * q2._x;
-  float32 y = -q1._x * q2._z + q1._y * q2._w + q1._z * q2._x + q1._w * q2._y;
-  float32 z =  q1._x * q2._y - q1._y * q2._x + q1._z * q2._w + q1._w * q2._z;
-  float32 w = -q1._x * q2._x - q1._y * q2._y - q1._z * q2._z + q1._w * q2._w;
+  float32 x =  q1.X * q2.W + q1.Y * q2.Z - q1.Z * q2.Y + q1.W * q2.X;
+  float32 y = -q1.X * q2.Z + q1.Y * q2.W + q1.Z * q2.X + q1.W * q2.Y;
+  float32 z =  q1.X * q2.Y - q1.Y * q2.X + q1.Z * q2.W + q1.W * q2.Z;
+  float32 w = -q1.X * q2.X - q1.Y * q2.Y - q1.Z * q2.Z + q1.W * q2.W;
   return Quaternion(w, x, y, z);
 }
 
@@ -265,8 +265,8 @@ void Quaternion::FromAxisAngle(const Vector3& axis, const Radian& angle)
   Radian halfAngle = 0.5f * angle;
   float32 sin = Math::Sin(halfAngle);
   
-  _w = Math::Cos(halfAngle);
-  _z = sin * axis[2];
-  _y = sin * axis[1];
-  _x = sin * axis[0];
+  W = Math::Cos(halfAngle);
+  Z = sin * axis[2];
+  Y = sin * axis[1];
+  X = sin * axis[0];
 }

@@ -4,6 +4,7 @@
 #include "../Engine/Core/Application.h"
 #include "../Engine/SceneManagement/WorldObject.h"
 
+class GuiPanel;
 class Light;
 class OrbitalCamera;
 class TextOverlay;
@@ -25,4 +26,5 @@ private:
   bool _rotatingCamera;
   Light* _light;
   std::shared_ptr<TextOverlay> _onScreenFpsCounter;
+  std::shared_ptr<GuiPanel> _testPanel;
 };

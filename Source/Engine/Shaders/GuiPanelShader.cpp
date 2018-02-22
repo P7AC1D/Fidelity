@@ -2,7 +2,7 @@
 
 #include "../Rendering/ShaderCollection.h"
 
-static const byte* ColourUniformName = "u_TextColour";
+static const byte* ColourUniformName = "u_PanelColour";
 
 GuiPanelShader::GuiPanelShader() :
 Shader(Rendering::ShaderCollection::ShaderDirectory + "GuiPanel.shader")

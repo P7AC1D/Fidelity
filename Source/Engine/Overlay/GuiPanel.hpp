@@ -1,8 +1,13 @@
 #pragma once
+#include <functional>
 #include <string>
 #include <vector>
+
 #include "../Maths/Colour.hpp"
+#include "../Maths/Vector2.hpp"
 #include "GuiElement.hpp"
+
+struct InputEvent;
 
 namespace Rendering
 {
@@ -18,7 +23,7 @@ struct GuiPanelDesc
   Colour Colour = Colour::Black;
 };
 
-class GuiPanel : GuiElement
+class GuiPanel : public GuiElement
 {
 public:
   GuiPanel(const GuiPanelDesc& desc);
@@ -26,15 +31,20 @@ public:
 
   void SetPosition(const Vector2i& position);
   void SetDimensions(const Vector2i& dimensions);
+  void SetColour(const Colour& colour);
+  inline void SetOnMouseEnter(const std::function<void()>& onMouseEnter) { _onMouseEnter = onMouseEnter; }
+  inline void SetOnMouseLeave(const std::function<void()>& onMouseLeave) { _onMouseLeave = onMouseLeave; }
 
   inline Vector2i GetPosition() const { return _position; }
   inline Vector2i GetDimensions() const { return _dimensions; }
   inline Colour GetColour() const { return _colour; }
 
-  void Draw() override;
-
 private:
+  void Draw() override;
+  void OnMouseEnter();
+  void OnMouseLeave();
   void UploadToGpu();
+  inline bool MouseOver() const { return _mouseOver; }
 
 private:
   std::string _name;
@@ -42,4 +52,9 @@ private:
   std::shared_ptr<Rendering::VertexBuffer> _vertexBuffer;  
   Colour _colour;
   bool _dirty;
+  bool _mouseOver;
+  std::function<void()> _onMouseEnter;
+  std::function<void()> _onMouseLeave;
+
+  friend class GuiSystem;
 };
