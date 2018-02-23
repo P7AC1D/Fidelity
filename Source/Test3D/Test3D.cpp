@@ -167,10 +167,8 @@ void Test3D::OnStart()
   GuiPanelDesc guiPanelDesc;
   guiPanelDesc.Name = "Test panel";
   guiPanelDesc.Colour = Colour(0, 0, 0, 150);
-  guiPanelDesc.Left = 100;
-  guiPanelDesc.Right = 400;
-  guiPanelDesc.Top = 100;
-  guiPanelDesc.Bottom = 400;
+  guiPanelDesc.Right = 300;
+  guiPanelDesc.Bottom = GetHeight();
   _testPanel = GuiSystem::Get()->CreatePanel(guiPanelDesc);
 
   GuiPanelDesc guiChildPanelDesc;

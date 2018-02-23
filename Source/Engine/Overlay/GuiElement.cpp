@@ -3,6 +3,16 @@
 #include <algorithm>
 #include <cassert>
 
+#include "../Rendering/Renderer.h"
+
+BoundingBox::BoundingBox():
+  Left(0),
+  Right(100),
+  Top(0),
+  Bottom(100)
+{
+}
+
 BoundingBox::BoundingBox(uint32 left, uint32 right, uint32 top, uint32 bottom) :
   Left(left),
   Right(right),
@@ -48,18 +58,24 @@ void GuiElement::SetBounds(const BoundingBox& bounds)
   assert(bounds.Left < bounds.Right);
   assert(bounds.Top < bounds.Bottom);
 
+  BoundingBox parentBounds;
   if (_parent.expired())
   {
-    _boundingBox = bounds;
+    auto renderer = Rendering::Renderer::Get();
+    parentBounds.Left = 0;
+    parentBounds.Right = renderer->GetWidth();
+    parentBounds.Top = 0;
+    parentBounds.Bottom = renderer->GetHeight();
   }
   else
   {
     std::shared_ptr<GuiElement> parent = _parent.lock();
-    BoundingBox parentBounds = parent->GetBounds();
-    _boundingBox.Left = std::min(parentBounds.Left + bounds.Left, parentBounds.Right);
-    _boundingBox.Top = std::min(parentBounds.Top + bounds.Top, parentBounds.Bottom);
-    _boundingBox.Right = std::min(parentBounds.Left + bounds.Right, parentBounds.Right);
-    _boundingBox.Bottom = std::min(parentBounds.Top + bounds.Bottom, parentBounds.Bottom);
+    parentBounds = parent->GetBounds();
   }
+
+  _boundingBox.Left = std::min(parentBounds.Left + bounds.Left, parentBounds.Right);
+  _boundingBox.Top = std::min(parentBounds.Top + bounds.Top, parentBounds.Bottom);
+  _boundingBox.Right = std::min(parentBounds.Left + bounds.Right, parentBounds.Right);
+  _boundingBox.Bottom = std::min(parentBounds.Top + bounds.Bottom, parentBounds.Bottom);
   SetDirty(true);
 }
