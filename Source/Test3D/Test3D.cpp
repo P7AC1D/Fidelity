@@ -157,7 +157,7 @@ void Test3D::OnStart()
  
   TextOverlayDesc textOverlayDesc;
   textOverlayDesc.LineWidth = 100;
-  textOverlayDesc.Position = Vector2i::Zero;
+  textOverlayDesc.Position = Vector2I::Zero;
   textOverlayDesc.Font = font;
   textOverlayDesc.Atlas = fontAtlas;
   textOverlayDesc.Scale = 1.0f;

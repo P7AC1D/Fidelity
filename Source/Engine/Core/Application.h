@@ -67,5 +67,5 @@ private:
   SDL_Window* _window;
   SDL_GLContext _glContext;
   ApplicationDesc _desc;
-  Vector2i _cursorPosition;
+  Vector2I _cursorPosition;
 };

@@ -20,7 +20,7 @@ BoundingBox BoundingBox::operator+(const BoundingBox& rhs)
   return BoundingBox(Left, Right, Top, Bottom);
 }
 
-bool BoundingBox::Intersects(const Vector2i& position)
+bool BoundingBox::Intersects(const Vector2I& position)
 {
   return position.X >= Left && position.X <= Right && position.Y >= Top && position.Y <= Bottom;
 }

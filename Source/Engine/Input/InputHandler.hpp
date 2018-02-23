@@ -25,8 +25,8 @@ struct InputEvent
   Button Button = Button::_null;
   ButtonEvent ButtonEvent = ButtonEvent::_null;
   Axis Axis = Axis::_null;
-  Vector2i AxisPos = Vector2i::Zero;
-  Vector2i AxisPosDelta = Vector2i::Zero;
+  Vector2I AxisPos = Vector2I::Zero;
+  Vector2I AxisPosDelta = Vector2I::Zero;
 };
 
 class InputHandler

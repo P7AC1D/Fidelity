@@ -3,138 +3,138 @@
 #include <cassert>
 #include <cmath>
 
-Vector2i Vector2i::Identity = Vector2i(1);
-Vector2i Vector2i::Zero = Vector2i(0);
+Vector2I Vector2I::Identity = Vector2I(1);
+Vector2I Vector2I::Zero = Vector2I(0);
 
-Vector2i::Vector2i()
+Vector2I::Vector2I()
 {
   X = 0;
   Y = 0;
 }
 
-Vector2i::Vector2i(int32 a)
+Vector2I::Vector2I(int32 a)
 {
   X = a;
   Y = a;
 }
 
-Vector2i::Vector2i(int32 x, int32 y)
+Vector2I::Vector2I(int32 x, int32 y)
 {
   X = x;
   Y = y;
 }
 
-Vector2i& Vector2i::operator=(const Vector2i& rhs)
+Vector2I& Vector2I::operator=(const Vector2I& rhs)
 {
   X = rhs.X;
   Y = rhs.Y;
   return *this;
 }
 
-Vector2i::Vector2i(const Vector2i& rhs)
+Vector2I::Vector2I(const Vector2I& rhs)
 {
   X = rhs.X;
   Y = rhs.Y;
 }
 
-Vector2i Vector2i::operator+(const Vector2i& rhs)
+Vector2I Vector2I::operator+(const Vector2I& rhs)
 {
-  return Vector2i(X + rhs.X, Y + rhs.Y);
+  return Vector2I(X + rhs.X, Y + rhs.Y);
 }
 
-Vector2i Vector2i::operator-(const Vector2i& rhs)
+Vector2I Vector2I::operator-(const Vector2I& rhs)
 {
-  return Vector2i(X - rhs.X, Y - rhs.Y);
+  return Vector2I(X - rhs.X, Y - rhs.Y);
 }
 
-Vector2i Vector2i::operator+(int32 rhs)
+Vector2I Vector2I::operator+(int32 rhs)
 {
-  return Vector2i(X + rhs, Y + rhs);
+  return Vector2I(X + rhs, Y + rhs);
 }
 
-Vector2i Vector2i::operator-(int32 rhs)
+Vector2I Vector2I::operator-(int32 rhs)
 {
-  return Vector2i(X - rhs, Y - rhs);
+  return Vector2I(X - rhs, Y - rhs);
 }
 
-Vector2i Vector2i::operator*(int32 rhs)
+Vector2I Vector2I::operator*(int32 rhs)
 {
-  return Vector2i(rhs * X, rhs * Y);
+  return Vector2I(rhs * X, rhs * Y);
 }
 
-Vector2i& Vector2i::operator+=(const Vector2i& rhs)
+Vector2I& Vector2I::operator+=(const Vector2I& rhs)
 {
   X += rhs.X;
   Y += rhs.Y;
   return *this;
 }
 
-Vector2i& Vector2i::operator-=(const Vector2i& rhs)
+Vector2I& Vector2I::operator-=(const Vector2I& rhs)
 {
   X -= rhs.X;
   Y -= rhs.Y;
   return *this;
 }
 
-Vector2i& Vector2i::operator-=(int32 rhs)
+Vector2I& Vector2I::operator-=(int32 rhs)
 {
   X -= rhs;
   Y -= rhs;
   return *this;
 }
 
-Vector2i& Vector2i::operator+=(int32 rhs)
+Vector2I& Vector2I::operator+=(int32 rhs)
 {
   X += rhs;
   Y += rhs;
   return *this;
 }
 
-Vector2i& Vector2i::operator*=(int32 rhs)
+Vector2I& Vector2I::operator*=(int32 rhs)
 {
   X *= rhs;
   Y *= rhs;
   return *this;
 }
 
-bool Vector2i::operator==(const Vector2i& rhs) const
+bool Vector2I::operator==(const Vector2I& rhs) const
 {
   return X == rhs.X && Y == rhs.Y;
 }
 
-bool Vector2i::operator!=(const Vector2i& rhs) const
+bool Vector2I::operator!=(const Vector2I& rhs) const
 {
   return X != rhs.X && Y != rhs.Y;
 }
 
-int32& Vector2i::operator[](uint32 i)
+int32& Vector2I::operator[](uint32 i)
 {
   assert(i < 2);
   return *(&X + i);
 }
 
-int32 Vector2i::operator[](uint32 i) const
+int32 Vector2I::operator[](uint32 i) const
 {
   assert(i < 2);
   return *(&X + i);
 }
 
-const int32* Vector2i::Ptr() const
+const int32* Vector2I::Ptr() const
 {
   return &X;
 }
 
-Vector2i operator+(int32 a, const Vector2i& b)
+Vector2I operator+(int32 a, const Vector2I& b)
 {
-  return Vector2i(a + b.X, a + b.Y);
+  return Vector2I(a + b.X, a + b.Y);
 }
 
-Vector2i operator-(int32 a, const Vector2i& b)
+Vector2I operator-(int32 a, const Vector2I& b)
 {
-  return Vector2i(a - b.X, a - b.Y);
+  return Vector2I(a - b.X, a - b.Y);
 }
 
-Vector2i operator*(int32 a, const Vector2i& b)
+Vector2I operator*(int32 a, const Vector2I& b)
 {
-  return Vector2i(a * b.X, a * b.Y);
+  return Vector2I(a * b.X, a * b.Y);
 }

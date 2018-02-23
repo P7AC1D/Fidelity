@@ -21,7 +21,7 @@ struct GuiPanelDesc
   uint32 Right = 100;
   uint32 Bottom = 100;
   uint32 Top = 0;
-  Vector2i Position = Vector2i::Zero;
+  Vector2I Position = Vector2I::Zero;
   Colour Colour = Colour::Black;
 };
 

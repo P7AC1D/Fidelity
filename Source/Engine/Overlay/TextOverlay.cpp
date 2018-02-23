@@ -46,7 +46,7 @@ void TextOverlay::UploadMeshData()
   _dirty = false;
   std::vector<Vector2> vertices;
   vertices.reserve(24 * _desc.Text.size());
-  Vector2i cursorPos(_desc.Position);
+  Vector2I cursorPos(_desc.Position);
 
   for (auto& textCharacter : _desc.Text)
   {

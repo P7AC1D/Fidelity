@@ -14,7 +14,7 @@ class VertexBuffer;
 
 struct TextOverlayDesc
 {
-  Vector2i Position;
+  Vector2I Position;
   uint32 LineWidth;
   std::string Text;
   std::shared_ptr<Font> Font;

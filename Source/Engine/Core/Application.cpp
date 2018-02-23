@@ -76,7 +76,7 @@ int32 Application::Run()
         case SDL_MOUSEBUTTONUP:
         {
           InputEvent inputEvent;
-          inputEvent.AxisPos = Vector2i(sdlEvent.button.x, sdlEvent.button.y);
+          inputEvent.AxisPos = Vector2I(sdlEvent.button.x, sdlEvent.button.y);
           inputEvent.Button = SDLToButton(sdlEvent.button.button);
           inputEvent.ButtonEvent = ButtonEvent::Released;
           _inputHandler->Dispatch(inputEvent, dtMs);
@@ -86,7 +86,7 @@ int32 Application::Run()
         case SDL_MOUSEBUTTONDOWN:
         {
           InputEvent inputEvent;
-          inputEvent.AxisPos = Vector2i(sdlEvent.button.x, sdlEvent.button.y);
+          inputEvent.AxisPos = Vector2I(sdlEvent.button.x, sdlEvent.button.y);
           inputEvent.Button = SDLToButton(sdlEvent.button.button);
           inputEvent.ButtonEvent = ButtonEvent::Pressed;
           _inputHandler->Dispatch(inputEvent, dtMs);
@@ -97,7 +97,7 @@ int32 Application::Run()
         {
           InputEvent inputEvent;
           inputEvent.Axis = Axis::MouseXY;
-          inputEvent.AxisPos = Vector2i(sdlEvent.motion.x, sdlEvent.motion.y);
+          inputEvent.AxisPos = Vector2I(sdlEvent.motion.x, sdlEvent.motion.y);
           inputEvent.AxisPosDelta = _cursorPosition - inputEvent.AxisPos;
           _inputHandler->Dispatch(inputEvent, dtMs);
           GuiSystem::Get()->OnEvent(inputEvent);
@@ -109,7 +109,7 @@ int32 Application::Run()
         {
           InputEvent inputEvent;
           inputEvent.Axis = Axis::MouseScrollXY;
-          inputEvent.AxisPosDelta = Vector2i(sdlEvent.wheel.x, sdlEvent.wheel.y);
+          inputEvent.AxisPosDelta = Vector2I(sdlEvent.wheel.x, sdlEvent.wheel.y);
           _inputHandler->Dispatch(inputEvent, dtMs);
           GuiSystem::Get()->OnEvent(inputEvent);
           break;

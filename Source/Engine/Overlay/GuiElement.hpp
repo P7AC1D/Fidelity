@@ -8,7 +8,7 @@ struct BoundingBox
   BoundingBox(uint32 left, uint32 right, uint32 top, uint32 bottom);
   BoundingBox operator+(const BoundingBox& rhs);
 
-  bool Intersects(const Vector2i& position);
+  bool Intersects(const Vector2I& position);
 
   uint32 Left;
   uint32 Right;
