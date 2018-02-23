@@ -1,4 +1,7 @@
 #pragma once
+#include <queue>
+#include <stack>
+
 #include "../Core/System.hpp"
 #include "GuiPanel.hpp"
 
@@ -18,7 +21,11 @@ protected:
   GuiSystem();
   
 private:
-  std::vector<std::shared_ptr<GuiPanel>> _panels;
+  void SetupDraw();
+
+private:
+  std::list<std::shared_ptr<GuiPanel>> _panels;
+  std::queue<std::weak_ptr<GuiPanel>> _panelDrawQueue;
   
   friend class System<GuiSystem>;
 };

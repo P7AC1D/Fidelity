@@ -1,4 +1,5 @@
 #include "GuiPanel.hpp"
+
 #include "../Maths/Vector2.hpp"
 #include "../Rendering/Renderer.h"
 #include "../Rendering/VertexBuffer.h"
@@ -7,47 +8,32 @@
 GuiPanel::GuiPanel(const GuiPanelDesc& desc):
   _name(desc.Name),
   _colour(desc.Colour),
-  _dirty(true),
   _mouseOver(false)
 {
-  SetPosition(desc.Position);
-  SetDimensions(Vector2i(desc.Width, desc.Height));
-}
-
-void GuiPanel::SetPosition(const Vector2i& position)
-{
-  _position = position;
-  _dirty = true;
-}
-
-void GuiPanel::SetDimensions(const Vector2i& dimensions)
-{
-  _dimensions = dimensions;
-  _dirty = true;
+  SetBounds(BoundingBox(desc.Left, desc.Right, desc.Top, desc.Bottom));
 }
 
 void GuiPanel::SetColour(const Colour& colour)
 {
   _colour = colour;
-  _dirty = true;
+  SetDirty(true);
+}
+
+void GuiPanel::AttachChild(std::weak_ptr<GuiElement> child)
+{
+  _childElements.emplace_back(child);
 }
 
 void GuiPanel::Draw()
 {
-  if (_dirty)
+  if (IsDirty())
   {
     UploadToGpu();
-    _dirty = false;
+    SetDirty(false);
   }
 
   _vertexBuffer->Apply();
-
   Rendering::Renderer::Get()->Draw(6);
-
-  for (auto childElement : _childElements)
-  {
-    childElement->Draw();
-  }
 }
 
 void GuiPanel::OnMouseEnter()
@@ -79,26 +65,18 @@ void GuiPanel::UploadToGpu()
   auto renderer = Rendering::Renderer::Get();
   auto viewportWidth = static_cast<float32>(renderer->GetWidth());
   auto viewportHeight = static_cast<float32>(renderer->GetHeight());
+
+  BoundingBox bounds = GetBounds();
+
+  float32 left = 2.0f * bounds.Left / viewportWidth - 1.0f;
+  float32 right = 2.0f * bounds.Right / viewportWidth - 1.0f;
+  float32 top = 1.0f - 2.0f * bounds.Top / viewportHeight;
+  float32 bottom = 1.0f - 2.0f * bounds.Bottom / viewportHeight;
   
-  Vector2 topLeft(_position[0] / viewportWidth, _position[1]/ viewportHeight);
-  Vector2 topRight((_position[0] + _dimensions[0]) / viewportWidth, _position[1] / viewportHeight);
-  Vector2 bottomLeft((_position[0]) / viewportWidth, (_position[1] - _dimensions[1]) / viewportHeight);
-  Vector2 bottomRight((_position[0] + _dimensions[0]) / viewportWidth, (_position[1] - _dimensions[1]) / viewportHeight);
-
-  topLeft *= 2.0f;
-  topRight *= 2.0f;
-  bottomLeft *= 2.0f;
-  bottomRight *= 2.0f;
-
-  topLeft[0] -= 1.0f;
-  topRight[0] -= 1.0f;
-  bottomLeft[0] -= 1.0f;
-  bottomRight[0] -= 1.0f;
-
-  topLeft[1] += 1.0f;
-  topRight[1] += 1.0f;
-  bottomLeft[1] += 1.0f;
-  bottomRight[1] += 1.0f;
+  Vector2 topLeft(left, top);
+  Vector2 topRight(right, top);
+  Vector2 bottomLeft(left, bottom);
+  Vector2 bottomRight(right, bottom);
 
   std::vector<Vector2> vertexData;
   vertexData.emplace_back(bottomRight);

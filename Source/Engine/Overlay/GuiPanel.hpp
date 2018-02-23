@@ -1,7 +1,7 @@
 #pragma once
 #include <functional>
+#include <list>
 #include <string>
-#include <vector>
 
 #include "../Maths/Colour.hpp"
 #include "../Maths/Vector2.hpp"
@@ -17,8 +17,10 @@ class VertexBuffer;
 struct GuiPanelDesc
 {
   std::string Name;
-  uint32 Width = 100;
-  uint32 Height = 100;
+  uint32 Left = 0;
+  uint32 Right = 100;
+  uint32 Bottom = 100;
+  uint32 Top = 0;
   Vector2i Position = Vector2i::Zero;
   Colour Colour = Colour::Black;
 };
@@ -29,15 +31,13 @@ public:
   GuiPanel(const GuiPanelDesc& desc);
   ~GuiPanel() {}
 
-  void SetPosition(const Vector2i& position);
-  void SetDimensions(const Vector2i& dimensions);
   void SetColour(const Colour& colour);
   inline void SetOnMouseEnter(const std::function<void()>& onMouseEnter) { _onMouseEnter = onMouseEnter; }
   inline void SetOnMouseLeave(const std::function<void()>& onMouseLeave) { _onMouseLeave = onMouseLeave; }
 
-  inline Vector2i GetPosition() const { return _position; }
-  inline Vector2i GetDimensions() const { return _dimensions; }
   inline Colour GetColour() const { return _colour; }
+
+  void AttachChild(std::weak_ptr<GuiElement> child);
 
 private:
   void Draw() override;
@@ -48,10 +48,9 @@ private:
 
 private:
   std::string _name;
-  std::vector<std::shared_ptr<GuiElement>> _childElements;
+  std::list<std::weak_ptr<GuiElement>> _childElements;
   std::shared_ptr<Rendering::VertexBuffer> _vertexBuffer;  
   Colour _colour;
-  bool _dirty;
   bool _mouseOver;
   std::function<void()> _onMouseEnter;
   std::function<void()> _onMouseLeave;

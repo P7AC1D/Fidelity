@@ -19,14 +19,14 @@ void GuiSystem::OnEvent(const InputEvent& event)
   {
     if (panel->MouseOver())
     {
-      if (!panel->Intersects(cursorPosition))
+      if (!panel->GetBounds().Intersects(cursorPosition))
       {
         panel->OnMouseLeave();
       }
     }
     else
     {
-      if (panel->Intersects(cursorPosition))
+      if (panel->GetBounds().Intersects(cursorPosition))
       {
         panel->OnMouseEnter();
       }
@@ -36,15 +36,23 @@ void GuiSystem::OnEvent(const InputEvent& event)
 
 void GuiSystem::Draw()
 {
+  SetupDraw();
+
   auto renderer = Rendering::Renderer::Get();
   renderer->EnableBlend(Rendering::BlendType::SrcAlpha, Rendering::BlendType::OneMinusSrcAlpha);
-
   auto shader = Rendering::ShaderCollection::Get()->GetShader<GuiPanelShader>();
-  for (auto panel : _panels)
+
+  while (!_panelDrawQueue.empty())
   {
-    shader->SetColour(panel->GetColour());
-    shader->Apply();
-    panel->Draw();
+    auto queuedItem = _panelDrawQueue.front();
+    if (!queuedItem.expired())
+    {
+      auto panel = queuedItem.lock();
+      shader->SetColour(panel->GetColour());
+      shader->Apply();
+      panel->Draw();
+    }    
+    _panelDrawQueue.pop();
   }
 
   renderer->DisableBlend();
@@ -52,4 +60,27 @@ void GuiSystem::Draw()
 
 GuiSystem::GuiSystem()
 {
+}
+
+void GuiSystem::SetupDraw()
+{
+  uint32 currentDepth(0);
+  std::list<std::shared_ptr<GuiPanel>> panels(_panels);
+  do
+  {    
+    for (auto iter = panels.begin(); iter != panels.end();)
+    {
+      if ((*iter)->GetDepth() == currentDepth)
+      {
+        _panelDrawQueue.emplace((*iter));
+        iter = panels.erase(iter);
+      }
+      else
+      {
+        iter++;
+      }
+    }
+    currentDepth++;
+  }
+  while (!panels.empty());
 }

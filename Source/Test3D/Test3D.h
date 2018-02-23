@@ -27,4 +27,5 @@ private:
   Light* _light;
   std::shared_ptr<TextOverlay> _onScreenFpsCounter;
   std::shared_ptr<GuiPanel> _testPanel;
+  std::shared_ptr<GuiPanel> _testChildPanel;
 };

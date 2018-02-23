@@ -167,16 +167,29 @@ void Test3D::OnStart()
   GuiPanelDesc guiPanelDesc;
   guiPanelDesc.Name = "Test panel";
   guiPanelDesc.Colour = Colour(0, 0, 0, 150);
+  guiPanelDesc.Left = 100;
+  guiPanelDesc.Right = 400;
+  guiPanelDesc.Top = 100;
+  guiPanelDesc.Bottom = 400;
   _testPanel = GuiSystem::Get()->CreatePanel(guiPanelDesc);
-  _testPanel->SetOnMouseEnter([&]()
+
+  GuiPanelDesc guiChildPanelDesc;
+  guiChildPanelDesc.Name = "Test child panel";
+  guiChildPanelDesc.Colour = Colour(0, 0, 255, 150);
+  guiChildPanelDesc.Left = 50;
+  guiChildPanelDesc.Right = 100;
+  guiChildPanelDesc.Top = 50;
+  guiChildPanelDesc.Bottom = 100;
+  _testChildPanel = GuiSystem::Get()->CreatePanel(guiChildPanelDesc);
+  _testChildPanel->SetParent(_testPanel);
+  _testChildPanel->SetOnMouseEnter([&]()
   {
-    _testPanel->SetColour(Colour::Red);
+    _testChildPanel->SetColour(Colour(255, 0, 0, 150));
   });
-  _testPanel->SetOnMouseLeave([&]()
+  _testChildPanel->SetOnMouseLeave([&]()
   {
-    _testPanel->SetColour(Colour::Blue);
-  });
-}
+    _testChildPanel->SetColour(Colour(0, 0, 255, 150));
+  });}
 
 void Test3D::OnUpdate(uint32 dtMs)
 {
