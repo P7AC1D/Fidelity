@@ -16,15 +16,10 @@ namespace Rendering
 class Renderer;
 }
 
-namespace Utility
-{
-class AssetManager;
-}
-
 class SceneManager
 {
 public:
-  SceneManager(std::shared_ptr<Utility::AssetManager> _assetManager);
+  SceneManager();
 
   std::shared_ptr<WorldObject> CreateObject(const std::string& name = std::string());  
   std::shared_ptr<WorldObject> LoadObjectFromFile(const std::string& filePath);
@@ -46,7 +41,6 @@ private:
   std::vector<std::shared_ptr<WorldObject>> _worldObjects;
   std::vector<Light> _lights;
   std::shared_ptr<OrbitalCamera> _camera;
-  std::shared_ptr<Utility::AssetManager> _assetManager;
   std::shared_ptr<SkyBox> _skyBox;
   Colour _ambientLight;
   Rendering::Renderer* _renderer;

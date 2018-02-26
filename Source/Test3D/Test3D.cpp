@@ -4,6 +4,7 @@
 #include "../Engine/Geometry/MeshFactory.h"
 #include "../Engine/Input/InputHandler.hpp"
 #include "../Engine/Input/EventDispatcher.hpp"
+#include "../Engine/Overlay/GuiCaption.hpp"
 #include "../Engine/Overlay/GuiSystem.hpp"
 #include "../Engine/Overlay/TextOverlay.hpp"
 #include "../Engine/Maths/Degree.hpp"
@@ -63,7 +64,7 @@ void Test3D::OnStart()
   _sceneManager->SetCamera(_camera);
     
   std::shared_ptr<SkyBox> skyBox(new SkyBox);
-  skyBox->SetTexture(_assetManager->GetTextureCube("/Textures/SimpleSkyBox/", { "back.jpg", "bottom.jpg", "front.jpg", "left.jpg", "right.jpg", "top.jpg" }));
+  skyBox->SetTexture(AssetManager::GetTextureCube("/Textures/SimpleSkyBox/", { "back.jpg", "bottom.jpg", "front.jpg", "left.jpg", "right.jpg", "top.jpg" }));
   _sceneManager->SetSkyBox(skyBox);
   
   /*Vector3 floorScale(100.0f);
@@ -97,7 +98,7 @@ void Test3D::OnStart()
   auto sphereANode = _sceneManager->CreateObject("sphereA");
   auto sphereA = MeshFactory::CreateIcosphere(3);
   auto sphereAMaterial = sphereA->GetMaterial();
-  auto diffuseMap = _assetManager->GetTexture("/Textures/brick_floor_tileable_Base_Color.jpg");
+  auto diffuseMap = AssetManager::GetTexture("/Textures/brick_floor_tileable_Base_Color.jpg");
   sphereA->GetMaterial()->SetTexture("DiffuseMap", diffuseMap);
   std::shared_ptr<Renderable> sphereModelA(new Renderable);
   sphereModelA->PushMesh(sphereA);
@@ -107,8 +108,8 @@ void Test3D::OnStart()
   auto sphereBNode = _sceneManager->CreateObject("sphereB");
   auto sphereB = MeshFactory::CreateIcosphere(3);
   auto sphereBMaterial = sphereB->GetMaterial();
-  auto normalMap = _assetManager->GetTexture("/Textures/brick_floor_tileable_Normal.jpg");
-  auto specularMap = _assetManager->GetTexture("/Textures/brick_floor_tileable_Glossiness.jpg");
+  auto normalMap = AssetManager::GetTexture("/Textures/brick_floor_tileable_Normal.jpg");
+  auto specularMap = AssetManager::GetTexture("/Textures/brick_floor_tileable_Glossiness.jpg");
   sphereBMaterial->SetTexture("DiffuseMap", diffuseMap);
   sphereBMaterial->SetTexture("NormalMap", normalMap);
   sphereBMaterial->SetTexture("SpecularMap", specularMap);
@@ -151,18 +152,14 @@ void Test3D::OnStart()
       _camera->Rotate(yaw, pitch);
     }
   });
-
-  auto font = FntLoader::LoadFontFromFile("./../../Resources/Fonts/GillSansMTCondensed.fnt");
-  auto fontAtlas = _assetManager->GetTexture("/Fonts/" + font->TextureFileName);
- 
-  TextOverlayDesc textOverlayDesc;
-  textOverlayDesc.LineWidth = 100;
-  textOverlayDesc.Position = Vector2I::Zero;
-  textOverlayDesc.Font = font;
-  textOverlayDesc.Atlas = fontAtlas;
-  textOverlayDesc.Scale = 1.0f;
-  _onScreenFpsCounter.reset(new TextOverlay(textOverlayDesc, GetWidth(), GetHeight()));
-  Renderer::Get()->PushTextOverlay(_onScreenFpsCounter);
+  
+  GuiCaptionDesc guiCaptionDesc;
+  guiCaptionDesc.FontColour = Colour::Black;
+  guiCaptionDesc.Name = "Test Caption";
+  guiCaptionDesc.Text = "Test Caption";
+  guiCaptionDesc.Width = 100;
+  guiCaptionDesc.Font = "GillSansMTCondensed";
+  auto caption = GuiSystem::Get()->CreateCaption(guiCaptionDesc);
   
   GuiPanelDesc guiPanelDesc;
   guiPanelDesc.Name = "Test panel";
@@ -180,6 +177,7 @@ void Test3D::OnStart()
   guiChildPanelDesc.Bottom = 100;
   _testChildPanel = GuiSystem::Get()->CreatePanel(guiChildPanelDesc);
   _testChildPanel->SetParent(_testPanel);
+  caption->SetParent(_testPanel);
   _testChildPanel->SetOnMouseEnter([&]()
   {
     _testChildPanel->SetColour(Colour(255, 0, 0, 150));
@@ -199,5 +197,5 @@ void Test3D::OnUpdate(uint32 dtMs)
   direction[2] = Math::Cos(Radian(delta + delta));
   _light->SetDirection(Vector3::Normalize(direction));
 
-  _onScreenFpsCounter->UpdateText(std::to_string(GetAverageFps(dtMs)) + " FPS " + std::to_string(GetAverageTickMs(dtMs)) + " ms");
+  //_onScreenFpsCounter->UpdateText(std::to_string(GetAverageFps(dtMs)) + " FPS " + std::to_string(GetAverageTickMs(dtMs)) + " ms");
 }

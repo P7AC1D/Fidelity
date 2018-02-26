@@ -38,6 +38,7 @@ bool BoundingBox::Intersects(const Vector2I& position)
 GuiElement::GuiElement():
   _boundingBox(0, 100, 0, 100),
   _dirty(true),
+  _mouseOver(false),
   _depth(0)
 {
 }
@@ -78,4 +79,22 @@ void GuiElement::SetBounds(const BoundingBox& bounds)
   _boundingBox.Right = std::min(parentBounds.Left + bounds.Right, parentBounds.Right);
   _boundingBox.Bottom = std::min(parentBounds.Top + bounds.Bottom, parentBounds.Bottom);
   SetDirty(true);
+}
+
+void GuiElement::OnMouseEnter()
+{
+  _mouseOver = true;
+  if (_onMouseEnter)
+  {
+    _onMouseEnter();
+  }
+}
+
+void GuiElement::OnMouseLeave()
+{
+  _mouseOver = false;
+  if (_onMouseLeave)
+  {
+    _onMouseLeave();
+  }
 }

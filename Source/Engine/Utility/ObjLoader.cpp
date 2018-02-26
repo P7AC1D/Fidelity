@@ -57,7 +57,7 @@ void BuildVertexData(const aiVector3D* vertices, uint32 verexCount, std::vector<
   }
 }
 
-void BuildMaterial(const std::string& filePath, const aiMaterial* aiMaterial, std::shared_ptr<Rendering::Material> material, AssetManager& assetManager)
+void BuildMaterial(const std::string& filePath, const aiMaterial* aiMaterial, std::shared_ptr<Rendering::Material> material)
 {
   aiColor3D ambientColour;
   aiMaterial->Get(AI_MATKEY_COLOR_AMBIENT, ambientColour);
@@ -79,11 +79,11 @@ void BuildMaterial(const std::string& filePath, const aiMaterial* aiMaterial, st
   aiMaterial->Get(AI_MATKEY_TEXTURE(aiTextureType_DIFFUSE, 0), diffuseTexturePath);
   if (diffuseTexturePath.length != 0)
   {
-    material->SetTexture("DiffuseMap", assetManager.GetTexture(filePath + diffuseTexturePath.C_Str()));
+    material->SetTexture("DiffuseMap", AssetManager::GetTexture(filePath + diffuseTexturePath.C_Str()));
   }
 }
 
-std::shared_ptr<StaticMesh> BuildMesh(const std::string& filePath, const aiMesh* aiMesh, const aiMaterial* aiMaterial, AssetManager& assetManager)
+std::shared_ptr<StaticMesh> BuildMesh(const std::string& filePath, const aiMesh* aiMesh, const aiMaterial* aiMaterial)
 {
   if (!aiMesh->HasPositions() || !aiMesh->HasNormals())
   {
@@ -92,7 +92,7 @@ std::shared_ptr<StaticMesh> BuildMesh(const std::string& filePath, const aiMesh*
 
   std::shared_ptr<StaticMesh> mesh(new StaticMesh(aiMesh->mName.C_Str()));
   auto material = mesh->GetMaterial();
-  BuildMaterial(filePath, aiMaterial, material, assetManager);
+  BuildMaterial(filePath, aiMaterial, material);
 
   std::vector<Vector3> vertices;
   std::vector<Vector3> normals;
@@ -119,7 +119,7 @@ std::shared_ptr<StaticMesh> BuildMesh(const std::string& filePath, const aiMesh*
   return mesh;
 }
 
-std::shared_ptr<Renderable> BuildModel(const std::string& filePath, const aiScene* scene, AssetManager& assetManager)
+std::shared_ptr<Renderable> BuildModel(const std::string& filePath, const aiScene* scene)
 {
   if (!scene->HasMeshes() || !scene->HasMaterials())
   {
@@ -130,14 +130,14 @@ std::shared_ptr<Renderable> BuildModel(const std::string& filePath, const aiScen
   for (uint32 i = 0; i < scene->mNumMeshes; i++)
   {
     auto aiMesh = scene->mMeshes[i];
-    auto mesh = BuildMesh(filePath, aiMesh, scene->mMaterials[aiMesh->mMaterialIndex], assetManager);
+    auto mesh = BuildMesh(filePath, aiMesh, scene->mMaterials[aiMesh->mMaterialIndex]);
     renderable->PushMesh(mesh);
   }
 
   return renderable;
 }
 
-std::shared_ptr<Renderable> ObjLoader::LoadFromFile(const std::string& filePath, const std::string& fileName, AssetManager& assetManager)
+std::shared_ptr<Renderable> ObjLoader::LoadFromFile(const std::string& filePath, const std::string& fileName)
 {
   Assimp::Importer importer;
   auto scene = importer.ReadFile(filePath + fileName, aiProcess_Triangulate);
@@ -146,7 +146,7 @@ std::shared_ptr<Renderable> ObjLoader::LoadFromFile(const std::string& filePath,
     throw std::runtime_error("Failed to load model from " + filePath + fileName);
     return nullptr;
   }
-  return BuildModel(filePath, scene, assetManager);
+  return BuildModel(filePath, scene);
 }
 }
 

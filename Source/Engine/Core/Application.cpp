@@ -10,7 +10,6 @@
 #include "../SceneManagement/SceneManager.h"
 
 using namespace Rendering;
-using namespace Utility;
 
 Application::~Application()
 {
@@ -130,12 +129,11 @@ int32 Application::Run()
 Application::Application(const ApplicationDesc &desc) :
   _eventDispatcher(new EventDispatcher),
   _inputHandler(new InputHandler(*_eventDispatcher.get())),
-  _assetManager(new AssetManager("./../../Resources/")),
   _isRunning(false),
   _mouseFocus(true),
   _desc(desc)
 {
-  _sceneManager.reset(new SceneManager(_assetManager));
+  _sceneManager.reset(new SceneManager());
 }
 
 float32 Application::GetAverageTickMs(int32 dtMs)

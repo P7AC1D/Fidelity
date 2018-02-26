@@ -1,5 +1,7 @@
 #include "GuiSystem.hpp"
 
+#include <algorithm>
+
 #include "../Input/InputHandler.hpp"
 #include "../Rendering/Renderer.h"
 #include "../Rendering/ShaderCollection.h"
@@ -8,14 +10,21 @@
 std::shared_ptr<GuiPanel> GuiSystem::CreatePanel(const GuiPanelDesc& desc)
 {
   auto panel = std::make_shared<GuiPanel>(desc);
-  _panels.emplace_back(panel);
+  _elements.push_back(panel);
   return panel;
+}
+
+std::shared_ptr<GuiCaption> GuiSystem::CreateCaption(const GuiCaptionDesc& desc)
+{
+  auto caption = std::make_shared<GuiCaption>(desc);
+  _elements.push_back(caption);
+  return caption;
 }
 
 void GuiSystem::OnEvent(const InputEvent& event)
 {
   auto cursorPosition = event.AxisPos;
-  for (auto panel : _panels)
+  for (auto panel : _elements)
   {
     if (panel->MouseOver())
     {
@@ -36,25 +45,15 @@ void GuiSystem::OnEvent(const InputEvent& event)
 
 void GuiSystem::Draw()
 {
-  SetupDraw();
+  SortDraws();
 
   auto renderer = Rendering::Renderer::Get();
   renderer->EnableBlend(Rendering::BlendType::SrcAlpha, Rendering::BlendType::OneMinusSrcAlpha);
-  auto shader = Rendering::ShaderCollection::Get()->GetShader<GuiPanelShader>();
-
-  while (!_panelDrawQueue.empty())
+  
+  for (auto element : _elements)
   {
-    auto queuedItem = _panelDrawQueue.front();
-    if (!queuedItem.expired())
-    {
-      auto panel = queuedItem.lock();
-      shader->SetColour(panel->GetColour());
-      shader->Apply();
-      panel->Draw();
-    }    
-    _panelDrawQueue.pop();
+    element->Draw();
   }
-
   renderer->DisableBlend();
 }
 
@@ -62,30 +61,24 @@ GuiSystem::GuiSystem()
 {
 }
 
-void GuiSystem::SetupDraw()
-{
-  uint32 currentDepth(0);
-  std::list<std::shared_ptr<GuiPanel>> panels(_panels);
-  do
-  {    
-    for (auto iter = panels.begin(); iter != panels.end();)
-    {
-      if ((*iter)->GetDepth() == currentDepth)
-      {
-        _panelDrawQueue.emplace((*iter));
-        iter = panels.erase(iter);
-      }
-      else
-      {
-        iter++;
-      }
-    }
-    currentDepth++;
-  }
-  while (!panels.empty());
-}
-
 void GuiSystem::SortDraws()
 {
-
+  // This check won't work if we add the option to remove GUI elements.
+  if (_elements.size() == _elementDrawQueue.size())
+  {
+    return;
+  }
+  
+  _elementDrawQueue.clear();
+  for (auto element : _elements)
+  {
+    _elementDrawQueue.push_back(element);
+  }
+  
+  _elementDrawQueue.sort([=](const std::weak_ptr<GuiElement>& a, const std::weak_ptr<GuiElement>& b)
+                         {
+                           auto elementA = a.lock();
+                           auto elementB = b.lock();
+                           return elementA->GetDepth() == elementB->GetDepth() && elementA->GetShader() == elementB->GetShader();
+                         });
 }

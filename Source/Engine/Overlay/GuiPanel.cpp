@@ -2,13 +2,14 @@
 
 #include "../Maths/Vector2.hpp"
 #include "../Rendering/Renderer.h"
+#include "../Rendering/ShaderCollection.h"
 #include "../Rendering/VertexBuffer.h"
 #include "../Rendering/OpenGL.h"
+#include "../Shaders/GuiPanelShader.hpp"
 
 GuiPanel::GuiPanel(const GuiPanelDesc& desc):
   _name(desc.Name),
-  _colour(desc.Colour),
-  _mouseOver(false)
+  _colour(desc.Colour)
 {
   SetBounds(BoundingBox(desc.Left, desc.Right, desc.Top, desc.Bottom));
 }
@@ -24,8 +25,17 @@ void GuiPanel::AttachChild(std::weak_ptr<GuiElement> child)
   _childElements.emplace_back(child);
 }
 
+std::shared_ptr<Rendering::Shader> GuiPanel::GetShader() const
+{
+  return Rendering::ShaderCollection::Get()->GetShader<GuiPanelShader>();
+}
+
 void GuiPanel::Draw()
 {
+  auto shader = std::dynamic_pointer_cast<GuiPanelShader>(GetShader());
+  shader->SetColour(_colour);
+  shader->Apply();
+  
   if (IsDirty())
   {
     UploadToGpu();
@@ -34,24 +44,6 @@ void GuiPanel::Draw()
 
   _vertexBuffer->Apply();
   Rendering::Renderer::Get()->Draw(6);
-}
-
-void GuiPanel::OnMouseEnter()
-{
-  _mouseOver = true;
-  if (_onMouseEnter)
-  {
-    _onMouseEnter();
-  }
-}
-
-void GuiPanel::OnMouseLeave()
-{
-  _mouseOver = false;
-  if (_onMouseLeave)
-  {
-    _onMouseLeave();
-  }
 }
 
 void GuiPanel::UploadToGpu()

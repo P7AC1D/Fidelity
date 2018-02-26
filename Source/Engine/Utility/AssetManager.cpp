@@ -15,32 +15,11 @@
 #include "../Utility/StringUtil.h"
 #include "ObjLoader.hpp"
 
+using namespace Utility;
 using namespace Rendering;
 
-namespace Utility
-{
-void FlipImage(uint8* imageData, int32 xSize, int32 ySize, int32 nChannels)
-{
-  int32 widthBytes = xSize * nChannels;
-  uint8* top = nullptr;
-  uint8* bottom = nullptr;
-  uint8 temp = 0;
-  int32 halfHeight = ySize / 2;
-
-  for (int32 row = 0; row < halfHeight; ++row)
-  {
-    top = imageData + row * widthBytes;
-    bottom = imageData + (ySize - row - 1) * widthBytes;
-    for (int32 col = 0; col < widthBytes; ++col)
-    {
-      temp = *top;
-      *top = *bottom;
-      *bottom = temp;
-      ++top;
-      ++bottom;
-    }
-  }
-}
+std::unordered_map<std::string, std::shared_ptr<Texture>> AssetManager::_textureCache;
+std::unordered_map<std::string, std::shared_ptr<Renderable>> AssetManager::_renderableCache;
 
 uint8* LoadFromFile(const std::string& filePath, int32& widthOut, int32& heightOut, int32& nChannels)
 {
@@ -78,18 +57,9 @@ size_t GetTextureFaceIndexFromFileName(const std::string& fileName)
   throw std::runtime_error("TextureCube file names must be one of the following: 'back, bottom, front, left, right and top'.");
 }
 
-AssetManager::AssetManager(std::string assetDirectory) :
-  _assetDirectory(std::move(assetDirectory))
-{
-}
-
-AssetManager::~AssetManager()
-{
-}
-
 std::shared_ptr<Texture> AssetManager::GetTexture(const std::string& textureName)
 {
-  return GetTexture(_assetDirectory, textureName);
+  return GetTexture(RESOURCE_PATH, textureName);
 }
 
 std::shared_ptr<TextureCube> AssetManager::GetTextureCube(const std::string& directory, const std::vector<std::string>& fileNames)
@@ -103,7 +73,7 @@ std::shared_ptr<TextureCube> AssetManager::GetTextureCube(const std::string& dir
 
   for (size_t i = 0; i < fileNames.size(); i++)
   {
-    std::string fullPath = _assetDirectory + directory + fileNames[i];
+    std::string fullPath = RESOURCE_PATH + directory + fileNames[i];
 
     int32 currentWidth = 0;
     int32 currentHeight = 0;
@@ -157,7 +127,7 @@ std::shared_ptr<Renderable> AssetManager::GetRenderable(const std::string& fileP
   }
   
   //auto renderable = ObjLoader::LoadFromFile(filePath, fileName, *this);
-  auto renderable = ObjLoader::LoadFromFile(filePath, fileName, *this);
+  auto renderable = ObjLoader::LoadFromFile(filePath, fileName);
   _renderableCache[fullPath] = renderable;
   return renderable;
 }
@@ -184,5 +154,4 @@ std::shared_ptr<Rendering::Texture> AssetManager::GetTexture(const std::string& 
     delete[] data;
   }
   return _textureCache[fullPath];
-}
 }

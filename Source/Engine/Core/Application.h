@@ -12,11 +12,6 @@ class Renderer;
 class RenderContext;
 }
 
-namespace Utility
-{
-class AssetManager;
-}
-
 class EventDispatcher;
 class InputHandler;
 class SceneManager;
@@ -59,7 +54,6 @@ protected:
   std::unique_ptr<EventDispatcher> _eventDispatcher;
   std::unique_ptr<InputHandler> _inputHandler;
   std::unique_ptr<SceneManager> _sceneManager;
-  std::shared_ptr<Utility::AssetManager> _assetManager;
 
 private:
   bool _isRunning;

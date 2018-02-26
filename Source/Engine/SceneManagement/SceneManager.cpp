@@ -13,12 +13,10 @@ static uint32 WorldObjectCount = 0;
 static uint32 LightCount = 0;
 
 using namespace Rendering;
-using namespace Utility;
 
-SceneManager::SceneManager(std::shared_ptr<AssetManager> _assetManager) :
-  _assetManager(_assetManager),
-  _renderer(Renderer::Get()),
-  _ambientLight(Colour::Black)
+SceneManager::SceneManager() :
+  _ambientLight(Colour::Black),
+  _renderer(Renderer::Get())
 {
 }
 
@@ -40,7 +38,7 @@ std::shared_ptr<WorldObject> SceneManager::LoadObjectFromFile(const std::string&
   auto fileName = tokens.back();
   tokens.pop_back();
 
-  auto renderable = _assetManager->GetRenderable(StringUtil::Join(tokens, '/'), fileName);
+  auto renderable = AssetManager::GetRenderable(StringUtil::Join(tokens, '/'), fileName);
   
   _worldObjects.emplace_back(std::make_shared<WorldObject>(fileName));
   auto worldObject = _worldObjects.back();
