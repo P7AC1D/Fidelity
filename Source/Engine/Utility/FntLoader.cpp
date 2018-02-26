@@ -40,11 +40,11 @@ void ParseCommon(const std::shared_ptr<Font>& font, const std::string& line)
     }
     else if (token.find("scaleW") != std::string::npos)
     {
-      font->Width = ParseIntegerValue(token, "scaleW");
+      font->TextureWidth = ParseIntegerValue(token, "scaleW");
     }
     else if (token.find("scaleH") != std::string::npos)
     {
-      font->Height = ParseIntegerValue(token, "scaleH");
+      font->TextureHeight = ParseIntegerValue(token, "scaleH");
     }
   }
 }

@@ -84,3 +84,8 @@ void GuiSystem::SetupDraw()
   }
   while (!panels.empty());
 }
+
+void GuiSystem::SortDraws()
+{
+
+}

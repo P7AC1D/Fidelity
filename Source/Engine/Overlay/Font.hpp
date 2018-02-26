@@ -35,9 +35,9 @@ struct Font
   /** The amount of offset from the top of line to the base of each character.*/
   uint32 Base;
   /** The width of the font texture atlas.*/
-  uint32 Width;
+  uint32 TextureWidth;
   /** The height of the font texture atlas.*/
-  uint32 Height;
+  uint32 TextureHeight;
   /** The total number of characters contained in this font.*/
   uint32 Count;
   /** The collection of characters contained in this font.*/

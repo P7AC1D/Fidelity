@@ -3,6 +3,7 @@
 #include <stack>
 
 #include "../Core/System.hpp"
+#include "GuiCaption.hpp"
 #include "GuiPanel.hpp"
 
 struct InputEvent;
@@ -22,6 +23,7 @@ protected:
   
 private:
   void SetupDraw();
+  void SortDraws();
 
 private:
   std::list<std::shared_ptr<GuiPanel>> _panels;

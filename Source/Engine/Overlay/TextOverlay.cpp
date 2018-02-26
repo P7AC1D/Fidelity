@@ -57,7 +57,7 @@ void TextOverlay::UploadMeshData()
 
     if (iter == _desc.Font->Characters.end())
     {
-      throw std::runtime_error("Unsupported character.");
+      iter == _desc.Font->Characters.end() - 1;
     }
 
     Vector2 posTopLeft((cursorPos[0] + iter->XOffset) * _desc.Scale / static_cast<float32>(_windowWidth) - 1.0f,
@@ -69,14 +69,14 @@ void TextOverlay::UploadMeshData()
     Vector2 posBottomRight((cursorPos[0] + iter->XOffset + iter->Width) * _desc.Scale / static_cast<float32>(_windowWidth) - 1.0f,
                            (cursorPos[1] - iter->YOffset - iter->Height) * _desc.Scale / static_cast<float32>(_windowHeight) + 1.0f);
 
-    Vector2 uvTopLeft(iter->XPos / static_cast<float32>(_desc.Font->Width),
-                      iter->YPos / static_cast<float32>(_desc.Font->Height));
-    Vector2 uvTopRight((iter->XPos + iter->Width) / static_cast<float32>(_desc.Font->Width),
-                       iter->YPos / static_cast<float32>(_desc.Font->Height));
-    Vector2 uvBottomLeft(iter->XPos / static_cast<float32>(_desc.Font->Width),
-                        (iter->YPos + iter->Height) / static_cast<float32>(_desc.Font->Height));
-    Vector2 uvBottomRight((iter->XPos + iter->Width) / static_cast<float32>(_desc.Font->Width),
-                          (iter->YPos + iter->Height) / static_cast<float32>(_desc.Font->Height));
+    Vector2 uvTopLeft(iter->XPos / static_cast<float32>(_desc.Font->TextureWidth),
+                      iter->YPos / static_cast<float32>(_desc.Font->TextureHeight));
+    Vector2 uvTopRight((iter->XPos + iter->Width) / static_cast<float32>(_desc.Font->TextureWidth),
+                       iter->YPos / static_cast<float32>(_desc.Font->TextureHeight));
+    Vector2 uvBottomLeft(iter->XPos / static_cast<float32>(_desc.Font->TextureWidth),
+                        (iter->YPos + iter->Height) / static_cast<float32>(_desc.Font->TextureHeight));
+    Vector2 uvBottomRight((iter->XPos + iter->Width) / static_cast<float32>(_desc.Font->TextureWidth),
+                          (iter->YPos + iter->Height) / static_cast<float32>(_desc.Font->TextureHeight));
 
     vertices.push_back(posBottomRight);
     vertices.push_back(uvBottomRight);
