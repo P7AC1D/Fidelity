@@ -95,10 +95,10 @@ void GuiCaption::UploadToGpu()
       return textCharacter == character.Id;
     });
 
-    float32 posLeft = 2.0f * (cursorPos.X + charImage->XOffset) / viewportWidth - 1.0f;
-    float32 posRight = 2.0f * (cursorPos.X + (charImage->XOffset + charImage->Width) * fontRelativeSize) / viewportWidth - 1.0f;
-    float32 posTop = 1.0f - 2.0f * (cursorPos.Y + charImage->YOffset * fontRelativeSize) / viewportHeight;
-    float32 posBottom = 1.0f - 2.0f * (cursorPos.Y + (charImage->YOffset + charImage->Height) * fontRelativeSize) / viewportHeight;
+    float32 posLeft = 2.0f * (cursorPos.X + charImage->XOffset) * fontRelativeSize / viewportWidth - 1.0f;
+    float32 posRight = 2.0f * (cursorPos.X + charImage->XOffset + charImage->Width) * fontRelativeSize / viewportWidth - 1.0f;
+    float32 posTop = 1.0f - 2.0f * (cursorPos.Y + charImage->YOffset) * fontRelativeSize / viewportHeight;
+    float32 posBottom = 1.0f - 2.0f * (cursorPos.Y + charImage->YOffset + charImage->Height) * fontRelativeSize / viewportHeight;
 
     float32 uvLeft = charImage->XPos / static_cast<float32>(_font->TextureWidth);
     float32 uvRight = (charImage->XPos + charImage->Width) / static_cast<float32>(_font->TextureWidth);
@@ -134,7 +134,7 @@ void GuiCaption::UploadToGpu()
     vertices.emplace_back(bottomLeft);
     vertices.emplace_back(bottomRight);
 
-    cursorPos.X += (charImage->XAdvance * fontRelativeSize);
+    cursorPos.X += charImage->XAdvance;
   }
   _vertexBuffer->UploadData(vertices, Rendering::BufferUsage::Static);
 }

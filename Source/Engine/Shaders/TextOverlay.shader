@@ -22,7 +22,7 @@ out vec4 o_Colour;
 
 void main()
 {
-  float alpha = 1.0f - texture(u_FontAtlas, TexCoord).a;
+  float alpha = texture(u_FontAtlas, TexCoord).a;
   o_Colour = vec4(u_textColour, alpha);
 }
 #endif

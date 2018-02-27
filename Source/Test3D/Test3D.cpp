@@ -155,7 +155,7 @@ void Test3D::OnStart()
   guiCaptionDesc.FontColour = Colour::Black;
   guiCaptionDesc.Name = "Test Caption";
   guiCaptionDesc.Text = "Test Caption";
-  guiCaptionDesc.FontSize = 30;
+  guiCaptionDesc.FontSize = 50;
   guiCaptionDesc.MaxWidth = 100;
   guiCaptionDesc.Font = "GillSansMTCondensed";
   auto caption = GuiSystem::Get()->CreateCaption(guiCaptionDesc);
