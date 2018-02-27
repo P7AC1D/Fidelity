@@ -6,9 +6,9 @@ static const byte* LightTransformUniformName = "u_lightSpaceTransform";
 static const byte* ModelTransformUniformName = "u_modelTransform";
 
 DirDepthPassShader::DirDepthPassShader() :
+  Shader(Rendering::ShaderCollection::ShaderDirectory + "DirLightingDepth.shader"),
   _modelTransform(Matrix4::Identity),
-  _lightTransform(Matrix4::Identity),
-  Shader(Rendering::ShaderCollection::ShaderDirectory + "DirLightingDepth.shader")
+  _lightTransform(Matrix4::Identity)
 {}
 
 DirDepthPassShader::~DirDepthPassShader()

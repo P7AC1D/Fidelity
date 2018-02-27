@@ -36,10 +36,10 @@ enum class ShaderDataType
 struct ShaderUniform
 {
   ShaderUniform(uint32 location, uint32 size, ShaderDataType type, const std::string& name):
+    Name(name),
     Location(location),
-    Size(size),
     Type(type),
-    Name(name)
+    Size(size)
   {}
 
   std::string Name;

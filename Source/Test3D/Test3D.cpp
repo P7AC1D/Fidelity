@@ -6,7 +6,6 @@
 #include "../Engine/Input/EventDispatcher.hpp"
 #include "../Engine/Overlay/GuiCaption.hpp"
 #include "../Engine/Overlay/GuiSystem.hpp"
-#include "../Engine/Overlay/TextOverlay.hpp"
 #include "../Engine/Maths/Degree.hpp"
 #include "../Engine/Maths/Math.hpp"
 #include "../Engine/Maths/Quaternion.hpp"
@@ -49,8 +48,7 @@ float32 SampleHeight(const std::vector<Vector3>& data, const Vector3& scale, flo
 }
 
 Test3D::Test3D(const ApplicationDesc& desc):
-  Application(desc),
-  _rotatingCamera(false)
+  Application(desc)
 {
 }
 
@@ -157,7 +155,8 @@ void Test3D::OnStart()
   guiCaptionDesc.FontColour = Colour::Black;
   guiCaptionDesc.Name = "Test Caption";
   guiCaptionDesc.Text = "Test Caption";
-  guiCaptionDesc.Width = 100;
+  guiCaptionDesc.FontSize = 30;
+  guiCaptionDesc.MaxWidth = 100;
   guiCaptionDesc.Font = "GillSansMTCondensed";
   auto caption = GuiSystem::Get()->CreateCaption(guiCaptionDesc);
   

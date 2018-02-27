@@ -15,7 +15,8 @@ GuiCaption::GuiCaption(const GuiCaptionDesc& desc):
   _name(desc.Name),
   _text(desc.Text),
   _fontName(desc.Font),
-  _fontColour(desc.FontColour)
+  _fontColour(desc.FontColour),
+  _fontSize(desc.FontSize)
 {
   _font = FntLoader::LoadFontFromFile(RESOURCE_PATH + "/Fonts/" + _fontName + ".fnt");
 }
@@ -86,6 +87,7 @@ void GuiCaption::UploadToGpu()
   float32 viewportWidth = static_cast<float32>(renderer->GetWidth());
   float32 viewportHeight = static_cast<float32>(renderer->GetHeight());
 
+  float32 fontRelativeSize = _fontSize / static_cast<float32>(_font->Size);
   for (auto& textCharacter : _text)
   {
     auto charImage = std::find_if(_font->Characters.begin(), _font->Characters.end(), [&](const Character& character)
@@ -94,9 +96,9 @@ void GuiCaption::UploadToGpu()
     });
 
     float32 posLeft = 2.0f * (cursorPos.X + charImage->XOffset) / viewportWidth - 1.0f;
-    float32 posRight = 2.0f * (cursorPos.X + charImage->XOffset + charImage->Width) / viewportWidth - 1.0f;
-    float32 posTop = 1.0f - 2.0f * (cursorPos.Y + charImage->YOffset) / viewportHeight;
-    float32 posBottom = 1.0f - 2.0f * (cursorPos.Y + charImage->YOffset + charImage->Height) / viewportHeight;
+    float32 posRight = 2.0f * (cursorPos.X + (charImage->XOffset + charImage->Width) * fontRelativeSize) / viewportWidth - 1.0f;
+    float32 posTop = 1.0f - 2.0f * (cursorPos.Y + charImage->YOffset * fontRelativeSize) / viewportHeight;
+    float32 posBottom = 1.0f - 2.0f * (cursorPos.Y + (charImage->YOffset + charImage->Height) * fontRelativeSize) / viewportHeight;
 
     float32 uvLeft = charImage->XPos / static_cast<float32>(_font->TextureWidth);
     float32 uvRight = (charImage->XPos + charImage->Width) / static_cast<float32>(_font->TextureWidth);
@@ -132,7 +134,7 @@ void GuiCaption::UploadToGpu()
     vertices.emplace_back(bottomLeft);
     vertices.emplace_back(bottomRight);
 
-    cursorPos.X += charImage->XAdvance;
+    cursorPos.X += (charImage->XAdvance * fontRelativeSize);
   }
   _vertexBuffer->UploadData(vertices, Rendering::BufferUsage::Static);
 }

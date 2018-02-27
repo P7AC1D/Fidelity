@@ -4,7 +4,7 @@
 #include "../Maths/Colour.hpp"
 #include "GuiElement.hpp"
 
-class Font;
+struct Font;
 
 namespace Rendering
 {
@@ -15,7 +15,8 @@ struct GuiCaptionDesc
 {
   std::string Name;
   std::string Text;
-  uint32 Width;
+  uint32 MaxWidth;
+  uint32 FontSize;
   Colour FontColour = Colour::Black;
   std::string Font = "GillSansMTCondensed";
 };
@@ -43,4 +44,5 @@ private:
   Colour _fontColour;
   std::shared_ptr<Rendering::VertexBuffer> _vertexBuffer;
   std::shared_ptr<Font> _font;
+  uint32 _fontSize;
 };

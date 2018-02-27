@@ -15,8 +15,8 @@ std::string GLErrorToStr(GLenum error)
     case GL_INVALID_OPERATION: return "GL_INVALID_OPERATION";
     case GL_OUT_OF_MEMORY: return "GL_OUT_OF_MEMORY";
     case GL_INVALID_FRAMEBUFFER_OPERATION: return "GL_INVALID_FRAMEBUFFER_OPERATION";
-    default: std::to_string(static_cast<uint32>(error));
   }
+  return std::to_string(static_cast<uint32>(error));
 }
 
 void GLClearError()

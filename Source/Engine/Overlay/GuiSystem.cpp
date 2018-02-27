@@ -48,11 +48,20 @@ void GuiSystem::Draw()
   SortDraws();
 
   auto renderer = Rendering::Renderer::Get();
+  renderer->DisableDepthTest();
+  renderer->DisableStencilTest();
   renderer->EnableBlend(Rendering::BlendType::SrcAlpha, Rendering::BlendType::OneMinusSrcAlpha);
   
-  for (auto element : _elements)
+  for (auto iter = _elementDrawQueue.begin(); iter != _elementDrawQueue.end(); iter++)
   {
-    element->Draw();
+    if (iter->expired())
+    {
+      _elementDrawQueue.erase(iter);
+    }
+    else
+    {
+      iter->lock()->Draw();
+    }
   }
   renderer->DisableBlend();
 }

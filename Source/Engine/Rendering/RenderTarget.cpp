@@ -6,8 +6,6 @@
 #include "OpenGL.h"
 #include "Texture.hpp"
 
-static uint32 ActiveRenderTarget = -1;
-
 namespace Rendering {
   RenderTarget::RenderTarget(RenderTargetDesc desc):
     _desc(desc)

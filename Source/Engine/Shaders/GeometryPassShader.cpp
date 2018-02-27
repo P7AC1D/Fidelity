@@ -26,9 +26,9 @@ static const uint32 DepthMapTextureSlot = 3;
 static const uint32 TransformsUniformBufferBindingPoint = 0;
 
 GeometryPassShader::GeometryPassShader():
+  Shader(Rendering::ShaderCollection::ShaderDirectory + "GBuffer.shader"),
   _diffuseColour(Colour::White),
-  _modelTransform(Matrix4::Identity),
-  Shader(Rendering::ShaderCollection::ShaderDirectory + "GBuffer.shader")
+  _modelTransform(Matrix4::Identity)
 {}
 
 GeometryPassShader::~GeometryPassShader()

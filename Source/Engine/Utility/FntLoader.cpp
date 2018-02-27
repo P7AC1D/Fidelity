@@ -9,7 +9,13 @@
 
 std::string ParseStringValue(const std::string& line, const std::string& attributeName)
 {
-  size_t startPos = line.find(attributeName + "=\"") + attributeName.size() + 2;
+  size_t startPos = line.find(attributeName + "=\"");
+  if (startPos == std::string::npos)
+  {
+    throw std::runtime_error("Could not find attribute " + attributeName + " contained in line:\n" + line);
+  }
+  
+  startPos += attributeName.size() + 2;
   size_t endPos = line.find('\"', startPos);
 
   if (startPos == std::string::npos)
@@ -21,8 +27,15 @@ std::string ParseStringValue(const std::string& line, const std::string& attribu
 
 int32 ParseIntegerValue(const std::string& line, const std::string& attributeName)
 {
-  size_t startPos = line.find(attributeName + "=") + attributeName.size() + 1;
-  return std::stoi(line.substr(startPos));
+  size_t startPos = line.find(attributeName + "=");
+  if (startPos == std::string::npos)
+  {
+    throw std::runtime_error("Could not find attribute " + attributeName + " contained in line:\n" + line);
+  }
+  
+  startPos += attributeName.size() + 1;
+  size_t endPos = line.find(' ', startPos);
+  return std::stoi(line.substr(startPos, endPos - startPos));
 }
 
 void ParseCommon(const std::shared_ptr<Font>& font, const std::string& line)
@@ -92,12 +105,18 @@ void ParseCharacter(const std::shared_ptr<Font>& font, const std::string& line)
   font->Characters.emplace_back(character);
 }
 
+void ParseInfo(const std::shared_ptr<Font>& font, const std::string& line)
+{
+  font->Name = ParseStringValue(line, "face");
+  font->Size = ParseIntegerValue(line, "size");
+}
+
 void ParseLine(const std::shared_ptr<Font>& font, const std::string& line)
 {
   auto tokens = StringUtil::Split(line, ' ');
   if (tokens[0] == "info")
   {
-    font->Name = ParseStringValue(line, "face");
+    ParseInfo(font, line);
   }
   else if (tokens[0] == "common")
   {

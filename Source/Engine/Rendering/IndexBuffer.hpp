@@ -21,6 +21,5 @@ namespace Rendering {
 
   private:
     uint32 _ibo;
-    uint32 _indexCount;
   };
 }

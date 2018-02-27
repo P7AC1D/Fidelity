@@ -141,7 +141,7 @@ void VertexBuffer::RefreshVertexAttribs()
   GLCall(glBindBuffer(GL_ARRAY_BUFFER, _vbo));
   for (auto& vertexAttrib : _vertexAttribs)
   {
-    GLCall(glVertexAttribPointer(vertexAttrib.Index, vertexAttrib.Size, GL_FLOAT, GL_FALSE, _vertexAttributeCount > 0 ?_vertexStrideBytes : 0, (GLvoid*)vertexAttrib.Offset));
+    GLCall(glVertexAttribPointer(vertexAttrib.Index, vertexAttrib.Size, GL_FLOAT, GL_FALSE, _vertexAttributeCount > 0 ?_vertexStrideBytes : 0, reinterpret_cast<GLvoid*>(vertexAttrib.Offset)));
     GLCall(glEnableVertexAttribArray(vertexAttrib.Index));
   }
   GLCall(glBindBuffer(GL_ARRAY_BUFFER, 0));

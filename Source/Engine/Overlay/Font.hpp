@@ -30,6 +30,8 @@ struct Font
   std::string Name;
   /** The name of the texture atlas image file that this font uses.*/
   std::string TextureFileName;
+  /** The size of the font in pixels.*/
+  uint32 Size;
   /** The amount the cursor should move when going to a new line.*/
   uint32 LineHeight;
   /** The amount of offset from the top of line to the base of each character.*/

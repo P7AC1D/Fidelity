@@ -21,10 +21,10 @@ static const uint32 GAlbedoSpecTextureSlot = 2;
 static const uint32 DirLightDepthTextureSlot = 3;
 
 DirLightingPassShader::DirLightingPassShader() :
-  _viewDir(Vector3::Identity),
-  _dirLightDir(Vector3::Identity),
+  Shader(Rendering::ShaderCollection::ShaderDirectory + "DirLighting.shader"),
   _dirLightCol(Colour::White),
-  Shader(Rendering::ShaderCollection::ShaderDirectory + "DirLighting.shader")
+  _viewDir(Vector3::Identity),
+  _dirLightDir(Vector3::Identity)
 {}
 
 DirLightingPassShader::~DirLightingPassShader()

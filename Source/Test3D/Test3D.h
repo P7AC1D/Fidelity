@@ -21,9 +21,6 @@ public:
 private:
   std::shared_ptr<OrbitalCamera> _camera;
   std::shared_ptr<WorldObject> _object;
-  uint32 _prevMouseX;
-  uint32 _prevMouseY;
-  bool _rotatingCamera;
   Light* _light;
   std::shared_ptr<TextOverlay> _onScreenFpsCounter;
   std::shared_ptr<GuiPanel> _testPanel;

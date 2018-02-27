@@ -2,7 +2,6 @@
 
 #include "../Maths/Colour.hpp"
 #include "../Maths/Matrix4.hpp"
-#include "../Overlay/TextOverlay.hpp"
 #include "../SceneManagement/Light.h"
 #include "../SceneManagement/SkyBox.hpp"
 #include "../SceneManagement/WorldObject.h"
@@ -64,25 +63,6 @@ void Renderer::DrawScene(OrbitalCamera& camera)
   _renderables.clear();
   _pointLights.clear();
   _directionalLights.clear();
-}
-
-void Renderer::DrawOverlay()
-{
-  DisableStencilTest();
-  DisableDepthTest();
-  
-  EnableBlend(BlendType::SrcAlpha, BlendType::OneMinusSrcAlpha);
-
-  auto shader = _shaderCollection->GetShader<TextOverlayShader>();  
-  for (auto& textOverlay : _textOverlays)
-  {
-    shader->SetFontAtlas(textOverlay->GetDesc().Atlas);
-    shader->SetTextColour(textOverlay->GetDesc().TextColour);
-    shader->Apply();
-    textOverlay->Draw();
-  }
-  
-  DisableBlend();
 }
 
 void Renderer::Draw(uint32 vertexCount, uint32 vertexOffset)
