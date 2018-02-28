@@ -8,6 +8,7 @@ struct Font;
 
 namespace Rendering
 {
+class Texture;
 class VertexBuffer;
 }
 
@@ -45,4 +46,5 @@ private:
   std::shared_ptr<Rendering::VertexBuffer> _vertexBuffer;
   std::shared_ptr<Font> _font;
   uint32 _fontSize;
+  std::shared_ptr<Rendering::Texture> _fontAtlas;
 };

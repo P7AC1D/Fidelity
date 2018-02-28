@@ -1,7 +1,8 @@
 #version 400 core
 
-uniform vec3 u_textColour;
-uniform sampler2D u_FontAtlas;
+uniform float u_fontScale;
+uniform vec3 u_fontColour;
+uniform sampler2D u_fontAtlas;
 
 #ifdef VERTEX_SHADER
 layout(location = 0) in vec2 a_position;
@@ -20,12 +21,13 @@ void main()
 in vec2 TexCoord;
 out vec4 o_Colour;
 
-const float SMOOTHING = 1.0f / 16.0f;
+const float SPREAD = 4.0f;
 
 void main()
 {
-  float distance = texture(u_FontAtlas, TexCoord).a;
-  float alpha = smoothstep(0.5f - SMOOTHING, 0.5 + SMOOTHING, distance);
-  o_Colour = vec4(u_textColour, alpha);
+  float smoothing = 0.25f / (SPREAD * u_fontScale);
+  float distance = texture(u_fontAtlas, TexCoord).a;
+  float alpha = smoothstep(0.5f - smoothing, 0.5f + smoothing, distance);
+  o_Colour = vec4(u_fontColour, alpha);
 }
 #endif

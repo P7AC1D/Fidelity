@@ -5,6 +5,7 @@
 #include "../Rendering/Renderer.h"
 #include "../Rendering/Shader.h"
 #include "../Rendering/ShaderCollection.h"
+#include "../Rendering/Texture.hpp"
 #include "../Rendering/VertexBuffer.h"
 #include "../Shaders/TextOverlayShader.hpp"
 #include "../Utility/AssetManager.h"
@@ -19,6 +20,9 @@ GuiCaption::GuiCaption(const GuiCaptionDesc& desc):
   _fontSize(desc.FontSize)
 {
   _font = FntLoader::LoadFontFromFile(RESOURCE_PATH + "/Fonts/" + _fontName + ".fnt");
+  _fontAtlas = AssetManager::GetTexture("Fonts/" + _font->TextureFileName);
+  _fontAtlas->SetMinFilter(MinFilter::Linear);
+  _fontAtlas->SetMagFilter(MagFilter::Linear);
 }
 
 void GuiCaption::SetText(const std::string& text)
@@ -43,8 +47,9 @@ void GuiCaption::SetFontColour(const Colour& colour)
 void GuiCaption::Draw()
 {
   auto shader = std::dynamic_pointer_cast<TextOverlayShader>(GetShader());
-  shader->SetFontAtlas(AssetManager::GetTexture("Fonts/" + _font->TextureFileName));
+  shader->SetFontAtlas(_fontAtlas);
   shader->SetTextColour(_fontColour);
+  shader->SetTextScale(_fontSize / static_cast<float32>(_font->Size));
   shader->Apply();
   
   if (IsDirty())

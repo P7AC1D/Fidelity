@@ -155,15 +155,15 @@ void Test3D::OnStart()
   guiCaptionDesc.FontColour = Colour::Black;
   guiCaptionDesc.Name = "Test Caption";
   guiCaptionDesc.Text = "Test Caption";
-  guiCaptionDesc.FontSize = 32;
+  guiCaptionDesc.FontSize = 20;
   guiCaptionDesc.MaxWidth = 100;
-  guiCaptionDesc.Font = "ArialBlack";
+  guiCaptionDesc.Font = "GillSans";
   auto caption = GuiSystem::Get()->CreateCaption(guiCaptionDesc);
   
   GuiPanelDesc guiPanelDesc;
   guiPanelDesc.Name = "Test panel";
   guiPanelDesc.Colour = Colour(0, 0, 0, 150);
-  guiPanelDesc.Right = 300;
+  guiPanelDesc.Right = 150;
   guiPanelDesc.Bottom = GetHeight();
   _testPanel = GuiSystem::Get()->CreatePanel(guiPanelDesc);
 
