@@ -10,6 +10,7 @@ struct InputEvent;
 
 namespace Rendering
 {
+class Texture;
 class VertexBuffer;
 }
 
@@ -31,6 +32,7 @@ public:
   ~GuiPanel() {}
 
   void SetColour(const Colour& colour);
+  void SetTexture(std::shared_ptr<Rendering::Texture> texture);
 
   inline Colour GetColour() const { return _colour; }
 
@@ -46,5 +48,6 @@ private:
   std::string _name;
   std::list<std::weak_ptr<GuiElement>> _childElements;
   std::shared_ptr<Rendering::VertexBuffer> _vertexBuffer;  
+  std::shared_ptr<Rendering::Texture> _texture;
   Colour _colour;
 };

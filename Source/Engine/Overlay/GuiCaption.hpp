@@ -16,8 +16,8 @@ struct GuiCaptionDesc
 {
   std::string Name;
   std::string Text;
-  uint32 MaxWidth;
   uint32 FontSize;
+  uint32 MaxWidth = 100;
   Colour FontColour = Colour::Black;
   std::string Font = "GillSansMTCondensed";
 };

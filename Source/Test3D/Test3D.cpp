@@ -96,7 +96,7 @@ void Test3D::OnStart()
   auto sphereANode = _sceneManager->CreateObject("sphereA");
   auto sphereA = MeshFactory::CreateIcosphere(3);
   auto sphereAMaterial = sphereA->GetMaterial();
-  auto diffuseMap = AssetManager::GetTexture("/Textures/brick_floor_tileable_Base_Color.jpg");
+  auto diffuseMap = AssetManager::GetTexture("/Textures/brick_floor_tileable_Base_Color.jpg"); 
   sphereA->GetMaterial()->SetTexture("DiffuseMap", diffuseMap);
   std::shared_ptr<Renderable> sphereModelA(new Renderable);
   sphereModelA->PushMesh(sphereA);
@@ -176,6 +176,7 @@ void Test3D::OnStart()
   guiChildPanelDesc.Bottom = 100;
   _testChildPanel = GuiSystem::Get()->CreatePanel(guiChildPanelDesc);
   _testChildPanel->SetParent(_testPanel);
+  _testChildPanel->SetTexture(AssetManager::GetTexture("/Textures/container2.png"));
   caption->SetParent(_testPanel);
   _testChildPanel->SetOnMouseEnter([&]()
   {
