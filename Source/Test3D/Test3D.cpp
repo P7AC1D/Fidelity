@@ -158,12 +158,13 @@ void Test3D::OnStart()
   guiCaptionDesc.FontSize = 20;
   guiCaptionDesc.MaxWidth = 100;
   guiCaptionDesc.Font = "GillSans";
-  auto caption = GuiSystem::Get()->CreateCaption(guiCaptionDesc);
+  _fpsCounter = GuiSystem::Get()->CreateCaption(guiCaptionDesc);
   
   GuiPanelDesc guiPanelDesc;
   guiPanelDesc.Name = "Test panel";
   guiPanelDesc.Colour = Colour(0, 0, 0, 150);
-  guiPanelDesc.Right = 150;
+  guiPanelDesc.Left = GetWidth() - 150;
+  guiPanelDesc.Right = GetWidth();
   guiPanelDesc.Bottom = GetHeight();
   _testPanel = GuiSystem::Get()->CreatePanel(guiPanelDesc);
 
@@ -185,7 +186,8 @@ void Test3D::OnStart()
   _testChildPanel->SetOnMouseLeave([&]()
   {
     _testChildPanel->SetColour(Colour(0, 0, 255, 150));
-  });}
+  });
+}
 
 void Test3D::OnUpdate(uint32 dtMs)
 {
@@ -197,5 +199,5 @@ void Test3D::OnUpdate(uint32 dtMs)
   direction[2] = Math::Cos(Radian(delta + delta));
   _light->SetDirection(Vector3::Normalize(direction));
 
-  //_onScreenFpsCounter->UpdateText(std::to_string(GetAverageFps(dtMs)) + " FPS " + std::to_string(GetAverageTickMs(dtMs)) + " ms");
+  _fpsCounter->SetText(std::to_string(GetAverageFps(dtMs)) + " FPS " + std::to_string(GetAverageTickMs(dtMs)) + " ms");
 }
