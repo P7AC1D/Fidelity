@@ -178,7 +178,6 @@ void Test3D::OnStart()
   _testChildPanel = GuiSystem::Get()->CreatePanel(guiChildPanelDesc);
   _testChildPanel->SetParent(_testPanel);
   _testChildPanel->SetTexture(AssetManager::GetTexture("/Textures/container2.png"));
-  caption->SetParent(_testPanel);
   _testChildPanel->SetOnMouseEnter([&]()
   {
     _testChildPanel->SetColour(Colour(255, 0, 0, 150));
