@@ -3,7 +3,9 @@
 #include <stack>
 
 #include "../Core/System.hpp"
+#include "../Input/InputBindings.hpp"
 #include "GuiCaption.hpp"
+#include "GuiCheckBox.hpp"
 #include "GuiPanel.hpp"
 
 struct InputEvent;
@@ -20,6 +22,7 @@ public:
   
   std::shared_ptr<GuiPanel> CreatePanel(const GuiPanelDesc& desc);
   std::shared_ptr<GuiCaption> CreateCaption(const GuiCaptionDesc& desc);
+  std::shared_ptr<GuiCheckBox> CreateCheckBox(const GuiCheckBoxDesc& desc);
 
   void OnEvent(const InputEvent& event);
   void Draw();
@@ -28,6 +31,7 @@ protected:
   GuiSystem();
   
 private:
+  bool IsMouseButtonEvent(Button button) const;
   void SortDraws();
 
 private:

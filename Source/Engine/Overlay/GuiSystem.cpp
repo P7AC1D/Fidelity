@@ -5,7 +5,6 @@
 #include "../Input/InputHandler.hpp"
 #include "../Rendering/Renderer.h"
 #include "../Rendering/ShaderCollection.h"
-#include "../Shaders/GuiPanelShader.hpp"
 
 std::shared_ptr<GuiPanel> GuiSystem::CreatePanel(const GuiPanelDesc& desc)
 {
@@ -21,24 +20,37 @@ std::shared_ptr<GuiCaption> GuiSystem::CreateCaption(const GuiCaptionDesc& desc)
   return caption;
 }
 
+std::shared_ptr<GuiCheckBox> GuiSystem::CreateCheckBox(const GuiCheckBoxDesc& desc)
+{
+  auto textBox = std::make_shared<GuiCheckBox>(desc);
+  _elements.push_back(textBox);
+  return textBox;
+}
+
 void GuiSystem::OnEvent(const InputEvent& event)
 {
   auto cursorPosition = event.AxisPos;
-  for (auto panel : _elements)
+  for (auto element : _elements)
   {
-    if (panel->MouseOver())
+    bool doesMouseIntersect = element->GetBounds().Intersects(event.AxisPos);
+    if (element->MouseOver())
     {
-      if (!panel->GetBounds().Intersects(cursorPosition))
+      if (!doesMouseIntersect)
       {
-        panel->OnMouseLeave();
+        element->MouseLeft();
       }
     }
     else
     {
-      if (panel->GetBounds().Intersects(cursorPosition))
+      if (doesMouseIntersect)
       {
-        panel->OnMouseEnter();
+        element->MouseEntered();
       }
+    }
+
+    if (doesMouseIntersect && IsMouseButtonEvent(event.Button))
+    {
+      element->MouseClicked(event.Button);
     }
   }
 }
@@ -70,6 +82,22 @@ GuiSystem::GuiSystem()
 {
 }
 
+bool GuiSystem::IsMouseButtonEvent(Button button) const
+{
+  switch (button)
+  {
+    case Button::Button_LMouse:
+    case Button::Button_RMouse:
+    case Button::Button_Mouse3:
+    case Button::Button_Mouse4:
+    case Button::Button_Mouse5:
+    {
+      return true;
+    }
+  }
+  return false;
+}
+
 void GuiSystem::SortDraws()
 {
   // This check won't work if we add the option to remove GUI elements.
@@ -88,6 +116,16 @@ void GuiSystem::SortDraws()
                          {
                            auto elementA = a.lock();
                            auto elementB = b.lock();
-                           return elementA->GetDepth() == elementB->GetDepth() && elementA->GetShader() == elementB->GetShader();
+                           bool areDepthsEqual = elementA->GetDepth() == elementB->GetDepth();
+                           if (!areDepthsEqual)
+                           {
+                             return false;
+                           }
+                           bool areShadersEqual = elementA->GetShader() == elementB->GetShader();
+                           if (!areShadersEqual)
+                           {
+                             return false;
+                           }
+                           return true;
                          });
 }

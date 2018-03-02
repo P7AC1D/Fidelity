@@ -31,23 +31,17 @@ public:
   GuiPanel(const GuiPanelDesc& desc);
   ~GuiPanel() {}
 
-  void SetColour(const Colour& colour);
   void SetTexture(std::shared_ptr<Rendering::Texture> texture);
-
-  inline Colour GetColour() const { return _colour; }
 
   void AttachChild(std::weak_ptr<GuiElement> child);
   
-  std::shared_ptr<Rendering::Shader> GetShader() const override;
+  std::shared_ptr<Rendering::Shader> GetShader() const override;  
 
 private:
-  void Draw() override;
-  void UploadToGpu();
+  void Draw() override final;
+  void OnMouseClicked(Button button) override final {}
 
 private:
-  std::string _name;
   std::list<std::weak_ptr<GuiElement>> _childElements;
-  std::shared_ptr<Rendering::VertexBuffer> _vertexBuffer;  
   std::shared_ptr<Rendering::Texture> _texture;
-  Colour _colour;
 };

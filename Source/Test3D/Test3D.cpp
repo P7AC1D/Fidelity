@@ -1,10 +1,14 @@
 #include "Test3D.h"
 
+#include <iomanip>
+#include <sstream>
+
 #include "../Engine/Components/Component.h"
 #include "../Engine/Geometry/MeshFactory.h"
 #include "../Engine/Input/InputHandler.hpp"
 #include "../Engine/Input/EventDispatcher.hpp"
 #include "../Engine/Overlay/GuiCaption.hpp"
+#include "../Engine/Overlay/GuiCheckBox.hpp"
 #include "../Engine/Overlay/GuiSystem.hpp"
 #include "../Engine/Maths/Degree.hpp"
 #include "../Engine/Maths/Math.hpp"
@@ -168,6 +172,15 @@ void Test3D::OnStart()
   guiPanelDesc.Bottom = GetHeight();
   _testPanel = GuiSystem::Get()->CreatePanel(guiPanelDesc);
 
+  GuiCheckBoxDesc guiCheckBoxDesc;
+  guiCheckBoxDesc.Name = "Test Checkbox";
+  guiCheckBoxDesc.Position.X = 50;
+  guiCheckBoxDesc.Position.Y = 50;
+  auto testCheckBox = GuiSystem::Get()->CreateCheckBox(guiCheckBoxDesc);
+  testCheckBox->SetUncheckedTexture(AssetManager::GetTexture("/Textures/EmptyCheckBox.png"));
+  testCheckBox->SetCheckedTexture(AssetManager::GetTexture("/Textures/CheckBox.png"));
+  testCheckBox->SetParent(_testPanel);
+
   GuiPanelDesc guiChildPanelDesc;
   guiChildPanelDesc.Name = "Test child panel";
   guiChildPanelDesc.Colour = Colour(0, 0, 255, 150);
@@ -178,11 +191,11 @@ void Test3D::OnStart()
   _testChildPanel = GuiSystem::Get()->CreatePanel(guiChildPanelDesc);
   _testChildPanel->SetParent(_testPanel);
   _testChildPanel->SetTexture(AssetManager::GetTexture("/Textures/container2.png"));
-  _testChildPanel->SetOnMouseEnter([&]()
+  _testChildPanel->SetMouseEnteredCallback([&]()
   {
     _testChildPanel->SetColour(Colour(255, 0, 0, 150));
   });
-  _testChildPanel->SetOnMouseLeave([&]()
+  _testChildPanel->SetMouseLeftCallback([&]()
   {
     _testChildPanel->SetColour(Colour(0, 0, 255, 150));
   });
@@ -198,5 +211,8 @@ void Test3D::OnUpdate(uint32 dtMs)
   direction[2] = Math::Cos(Radian(delta + delta));
   _light->SetDirection(Vector3::Normalize(direction));
 
-  _fpsCounter->SetText(std::to_string(GetAverageFps(dtMs)) + " FPS " + std::to_string(GetAverageTickMs(dtMs)) + " ms");
+  std::stringstream ss;
+  ss.precision(4);
+  ss << GetAverageFps(dtMs) << " FPS " << GetAverageTickMs(dtMs) << " ms";
+  _fpsCounter->SetText(ss.str());
 }

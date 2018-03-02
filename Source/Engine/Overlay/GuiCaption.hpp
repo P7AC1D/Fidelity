@@ -31,12 +31,13 @@ public:
   void SetFont(const std::string& font);
   void SetFontColour(const Colour& colour);
 
-  void Draw() override;
+  void Draw() override final;
   
   std::shared_ptr<Rendering::Shader> GetShader() const override;
 
 private:
-  void UploadToGpu();
+  void UploadToGpu() override final;
+  void OnMouseClicked(Button button) override final {}
 
 private:
   std::string _name;

@@ -138,20 +138,20 @@ Application::Application(const ApplicationDesc &desc) :
 
 float32 Application::GetAverageTickMs(int32 dtMs)
 {
-  static int dtSum = 0;
-  static int dtCount = 0;
-
+  static int dtSum = dtMs;
+  static int dtCount = 1;  
   float32 avgTick = dtSum / static_cast<float32>(dtCount);
-  if (dtSum > 500)
+
+  if (dtSum >= 1000)
   {
-    dtSum = 0;
-    dtCount = 0;
+    dtSum = dtMs;
+    dtCount = 1;
   }
   else
   {
     dtSum += dtMs;
     dtCount++;
-  }
+  }  
   return avgTick;
 }
 
