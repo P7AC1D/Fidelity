@@ -8,7 +8,7 @@
 GuiCheckBox::GuiCheckBox(const GuiCheckBoxDesc& desc):
   _checked(false)
 {
-  SetBounds(BoundingBox(desc.Position.X, desc.Size, desc.Position.Y, desc.Size));
+  SetBounds(BoundingBox(desc.Position.X, desc.Position.X + desc.Size, desc.Position.Y, desc.Position.Y + desc.Size));
   SetColour(desc.Colour);
 }
 

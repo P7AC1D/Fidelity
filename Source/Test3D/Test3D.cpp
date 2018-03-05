@@ -174,8 +174,9 @@ void Test3D::OnStart()
 
   GuiCheckBoxDesc guiCheckBoxDesc;
   guiCheckBoxDesc.Name = "Test Checkbox";
-  guiCheckBoxDesc.Position.X = 50;
-  guiCheckBoxDesc.Position.Y = 50;
+  guiCheckBoxDesc.Position.X = 10;
+  guiCheckBoxDesc.Position.Y = 10;
+  guiCheckBoxDesc.Size = 25;
   auto testCheckBox = GuiSystem::Get()->CreateCheckBox(guiCheckBoxDesc);
   testCheckBox->SetUncheckedTexture(AssetManager::GetTexture("/Textures/EmptyCheckBox.png"));
   testCheckBox->SetCheckedTexture(AssetManager::GetTexture("/Textures/CheckBox.png"));

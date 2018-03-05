@@ -4,6 +4,7 @@
 
 #include "../Input/InputHandler.hpp"
 #include "../Rendering/Renderer.h"
+#include "../Rendering/Shader.h"
 #include "../Rendering/ShaderCollection.h"
 
 std::shared_ptr<GuiPanel> GuiSystem::CreatePanel(const GuiPanelDesc& desc)
@@ -48,7 +49,9 @@ void GuiSystem::OnEvent(const InputEvent& event)
       }
     }
 
-    if (doesMouseIntersect && IsMouseButtonEvent(event.Button))
+    if (doesMouseIntersect && 
+        IsMouseButtonEvent(event.Button) && 
+        event.ButtonEvent == ButtonEvent::Pressed)
     {
       element->MouseClicked(event.Button);
     }
@@ -116,16 +119,8 @@ void GuiSystem::SortDraws()
                          {
                            auto elementA = a.lock();
                            auto elementB = b.lock();
-                           bool areDepthsEqual = elementA->GetDepth() == elementB->GetDepth();
-                           if (!areDepthsEqual)
-                           {
-                             return false;
-                           }
-                           bool areShadersEqual = elementA->GetShader() == elementB->GetShader();
-                           if (!areShadersEqual)
-                           {
-                             return false;
-                           }
-                           return true;
+                           uint32 depthA = elementA->GetDepth();
+                           uint32 depthB = elementB->GetDepth();
+                           return (depthA < depthB) || ((depthA == depthB) && (elementA->GetShader() < elementB->GetShader()));
                          });
 }

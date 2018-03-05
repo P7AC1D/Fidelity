@@ -72,6 +72,11 @@ Shader::~Shader()
   _programId = 0;
 }
 
+bool Shader::operator<(const Shader& rhs) const
+{
+  return _programId < rhs._programId;
+}
+
 void Shader::SetBool(const std::string& uniformName, bool value)
 {
   auto location = GetUniformLocation(uniformName);

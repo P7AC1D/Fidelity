@@ -38,6 +38,5 @@ private:
   std::function<void(bool)> _onToggle;
   std::shared_ptr<Rendering::Texture> _uncheckedTexture;
   std::shared_ptr<Rendering::Texture> _checkedTexture;
-  std::shared_ptr<Rendering::VertexBuffer> _vertexBuffer;
   bool _checked;
 };

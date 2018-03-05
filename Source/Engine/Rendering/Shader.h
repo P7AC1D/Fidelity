@@ -64,6 +64,8 @@ class Shader
 public:
   virtual ~Shader();
 
+  bool operator<(const Shader& rhs) const;
+
 protected:
   Shader(const std::string& fileName);
 

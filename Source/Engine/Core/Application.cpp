@@ -138,21 +138,22 @@ Application::Application(const ApplicationDesc &desc) :
 
 float32 Application::GetAverageTickMs(int32 dtMs)
 {
-  static int dtSum = dtMs;
-  static int dtCount = 1;  
-  float32 avgTick = dtSum / static_cast<float32>(dtCount);
+  static float32 currentDt = 0;
+  static int32 dtSum = 0;
+  static int32 count = 0;
 
-  if (dtSum >= 1000)
+  if (dtSum >= 500)
   {
-    dtSum = dtMs;
-    dtCount = 1;
+    currentDt = dtSum / static_cast<float32>(count);
+    dtSum = 0;
+    count = 0;
   }
   else
   {
     dtSum += dtMs;
-    dtCount++;
+    count++;
   }  
-  return avgTick;
+  return currentDt;
 }
 
 float32 Application::GetAverageFps(int32 dtMs)
