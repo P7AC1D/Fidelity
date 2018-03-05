@@ -112,22 +112,22 @@ void GuiElement::UploadToGpu()
   topLeft.Position.X = posLeft;
   topLeft.Position.Y = posTop;
   topLeft.TexCoord.X = 0.0f;
-  topLeft.TexCoord.Y = 1.0f;
+  topLeft.TexCoord.Y = 0.0f;
 
   topRight.Position.X = posRight;
   topRight.Position.Y = posTop;
   topRight.TexCoord.X = 1.0f;
-  topRight.TexCoord.Y = 1.0f;
+  topRight.TexCoord.Y = 0.0f;
 
   bottomLeft.Position.X = posLeft;
   bottomLeft.Position.Y = posBottom;
   bottomLeft.TexCoord.X = 0.0f;
-  bottomLeft.TexCoord.Y = 0.0f;
+  bottomLeft.TexCoord.Y = 1.0f;
 
   bottomRight.Position.X = posRight;
   bottomRight.Position.Y = posBottom;
   bottomRight.TexCoord.X = 1.0f;
-  bottomRight.TexCoord.Y = 0.0f;
+  bottomRight.TexCoord.Y = 1.0f;
 
   std::vector<Vertex> vertexData;
   vertexData.push_back(bottomRight);

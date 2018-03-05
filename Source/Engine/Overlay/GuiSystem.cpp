@@ -94,11 +94,10 @@ bool GuiSystem::IsMouseButtonEvent(Button button) const
     case Button::Button_Mouse3:
     case Button::Button_Mouse4:
     case Button::Button_Mouse5:
-    {
       return true;
-    }
+    default:
+      return false;
   }
-  return false;
 }
 
 void GuiSystem::SortDraws()

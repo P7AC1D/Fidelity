@@ -28,8 +28,6 @@ uint8* LoadFromFile(const std::string& filePath, int32& widthOut, int32& heightO
   {
     throw std::runtime_error("Failed to load texture from file " + filePath);
   }
-
-  //FlipImage(imageData, widthOut, heightOut, nChannels);
   return imageData;
 }
 

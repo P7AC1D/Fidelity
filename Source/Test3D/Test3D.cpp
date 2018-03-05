@@ -166,7 +166,7 @@ void Test3D::OnStart()
   
   GuiPanelDesc guiPanelDesc;
   guiPanelDesc.Name = "Test panel";
-  guiPanelDesc.Colour = Colour(0, 0, 0, 150);
+  guiPanelDesc.Colour = Colour(0, 0, 0, 100);
   guiPanelDesc.Left = GetWidth() - 150;
   guiPanelDesc.Right = GetWidth();
   guiPanelDesc.Bottom = GetHeight();
@@ -177,9 +177,10 @@ void Test3D::OnStart()
   guiCheckBoxDesc.Position.X = 10;
   guiCheckBoxDesc.Position.Y = 10;
   guiCheckBoxDesc.Size = 25;
+  guiCheckBoxDesc.Colour = Colour::White;
   auto testCheckBox = GuiSystem::Get()->CreateCheckBox(guiCheckBoxDesc);
-  testCheckBox->SetUncheckedTexture(AssetManager::GetTexture("/Textures/EmptyCheckBox.png"));
-  testCheckBox->SetCheckedTexture(AssetManager::GetTexture("/Textures/CheckBox.png"));
+  testCheckBox->SetUncheckedTexture(AssetManager::GetTexture("/Textures/unchecked-checkbox.png"));
+  testCheckBox->SetCheckedTexture(AssetManager::GetTexture("/Textures/checked-checkbox.png"));
   testCheckBox->SetParent(_testPanel);
 
   GuiPanelDesc guiChildPanelDesc;
