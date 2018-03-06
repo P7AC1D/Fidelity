@@ -86,13 +86,13 @@ void GuiCaption::UploadToGpu()
   vertices.reserve(24 * _text.size());
 
   BoundingBox boundingBox = GetBounds();
-  Vector2I cursorPos(boundingBox.Left, boundingBox.Top);
+  float32 fontRelativeSize = _fontSize / static_cast<float32>(_font->Size);
+  Vector2I cursorPos(boundingBox.Left / fontRelativeSize, boundingBox.Top / fontRelativeSize);
 
   auto renderer = Rendering::Renderer::Get();
   float32 viewportWidth = static_cast<float32>(renderer->GetWidth());
   float32 viewportHeight = static_cast<float32>(renderer->GetHeight());
 
-  float32 fontRelativeSize = _fontSize / static_cast<float32>(_font->Size);
   for (auto& textCharacter : _text)
   {
     auto charImage = std::find_if(_font->Characters.begin(), _font->Characters.end(), [&](const Character& character)

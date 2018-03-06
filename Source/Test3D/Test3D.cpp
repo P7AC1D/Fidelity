@@ -166,7 +166,7 @@ void Test3D::OnStart()
   
   GuiPanelDesc guiPanelDesc;
   guiPanelDesc.Name = "Test panel";
-  guiPanelDesc.Colour = Colour(0, 0, 0, 100);
+  guiPanelDesc.Colour = Colour(0, 0, 0, 200);
   guiPanelDesc.Left = GetWidth() - 150;
   guiPanelDesc.Right = GetWidth();
   guiPanelDesc.Bottom = GetHeight();
@@ -176,31 +176,24 @@ void Test3D::OnStart()
   guiCheckBoxDesc.Name = "Test Checkbox";
   guiCheckBoxDesc.Position.X = 10;
   guiCheckBoxDesc.Position.Y = 10;
-  guiCheckBoxDesc.Size = 25;
+  guiCheckBoxDesc.Size = 15;
   guiCheckBoxDesc.Colour = Colour::White;
   auto testCheckBox = GuiSystem::Get()->CreateCheckBox(guiCheckBoxDesc);
+  auto checkedTexture = AssetManager::GetTexture("/Textures/unchecked-checkbox.png");
   testCheckBox->SetUncheckedTexture(AssetManager::GetTexture("/Textures/unchecked-checkbox.png"));
   testCheckBox->SetCheckedTexture(AssetManager::GetTexture("/Textures/checked-checkbox.png"));
   testCheckBox->SetParent(_testPanel);
 
-  GuiPanelDesc guiChildPanelDesc;
-  guiChildPanelDesc.Name = "Test child panel";
-  guiChildPanelDesc.Colour = Colour(0, 0, 255, 150);
-  guiChildPanelDesc.Left = 50;
-  guiChildPanelDesc.Right = 100;
-  guiChildPanelDesc.Top = 50;
-  guiChildPanelDesc.Bottom = 100;
-  _testChildPanel = GuiSystem::Get()->CreatePanel(guiChildPanelDesc);
-  _testChildPanel->SetParent(_testPanel);
-  _testChildPanel->SetTexture(AssetManager::GetTexture("/Textures/container2.png"));
-  _testChildPanel->SetMouseEnteredCallback([&]()
-  {
-    _testChildPanel->SetColour(Colour(255, 0, 0, 150));
-  });
-  _testChildPanel->SetMouseLeftCallback([&]()
-  {
-    _testChildPanel->SetColour(Colour(0, 0, 255, 150));
-  });
+  GuiCaptionDesc checkboxLabelDesc;
+  checkboxLabelDesc.FontColour = Colour::White;
+  checkboxLabelDesc.Name = "Checkbox Label";
+  checkboxLabelDesc.Text = "Checkbox Label";
+  checkboxLabelDesc.FontSize = 13;
+  checkboxLabelDesc.MaxWidth = 100;
+  checkboxLabelDesc.Font = "GillSans";
+  auto checkboxLabel = GuiSystem::Get()->CreateCaption(checkboxLabelDesc);
+  checkboxLabel->SetParent(_testPanel);
+  checkboxLabel->SetBounds(BoundingBox(30, 100, 10, 25));
 }
 
 void Test3D::OnUpdate(uint32 dtMs)
