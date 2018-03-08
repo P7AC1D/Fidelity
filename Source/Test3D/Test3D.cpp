@@ -60,9 +60,9 @@ void Test3D::OnStart()
 {
   _sceneManager->SetAmbientLight(Vector3(0.25f, 0.25f, 0.20f));
 
-  _camera = std::make_shared<OrbitalCamera>(0.0f, 90.0f, 2.0f);
+  _camera = std::make_shared<OrbitalCamera>(0.0f, 90.0f, 0.0f);
   _camera->UpdateProjMat(GetWidth(), GetHeight(), 0.1f, 100.0f);
-  _camera->SetPosition(Vector3(0.0f, 0.0f, 6.0f));
+  _camera->SetPosition(Vector3(0.0f, 25.0f, 0.0f));
   _sceneManager->SetCamera(_camera);
     
   std::shared_ptr<SkyBox> skyBox(new SkyBox);
@@ -97,7 +97,7 @@ void Test3D::OnStart()
     }
   }*/
 
-  auto sphereANode = _sceneManager->CreateObject("sphereA");
+  /*auto sphereANode = _sceneManager->CreateObject("sphereA");
   auto sphereA = MeshFactory::CreateIcosphere(3);
   auto sphereAMaterial = sphereA->GetMaterial();
   auto diffuseMap = AssetManager::GetTexture("/Textures/brick_floor_tileable_Base_Color.jpg"); 
@@ -118,7 +118,7 @@ void Test3D::OnStart()
   std::shared_ptr<Renderable> sphereModelB(new Renderable);
   sphereModelB->PushMesh(sphereB);
   sphereBNode->AttachRenderable(sphereModelB);
-  sphereBNode->GetTransform()->Translate(Vector3(-2.0f, 0.0f, 0.0f));
+  sphereBNode->GetTransform()->Translate(Vector3(-2.0f, 0.0f, 0.0f));*/
 
   //auto& cubeNode = _sceneManager->CreateObject("cube");
   //auto cubeMesh = MeshFactory::CreateCube();
@@ -132,6 +132,8 @@ void Test3D::OnStart()
   //std::shared_ptr<Renderable> cubeModel(new Renderable);
   //cubeModel->PushMesh(*cubeMesh);
   //cubeNode.AttachRenderable(cubeModel);
+
+  auto sponza = _sceneManager->LoadObjectFromFile("Models/StarWars/at-at.obj");
 
   _light = &_sceneManager->CreateLight(LightType::Directional);
   _light->SetColour(Colour(255, 240, 170));

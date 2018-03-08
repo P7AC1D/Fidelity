@@ -106,15 +106,15 @@ std::shared_ptr<StaticMesh> BuildMesh(const std::string& filePath, const aiMesh*
   if (aiMesh->HasTextureCoords(0))
   {
     std::vector<Vector2> texCoords;
-    BuildTexCoordData(aiMesh->mTextureCoords[0], aiMesh->mNumUVComponents[0], texCoords);
+    BuildTexCoordData(aiMesh->mTextureCoords[0], aiMesh->mNumVertices, texCoords);
     mesh->SetTextureVertexData(texCoords);
-  }
+  }/*
 
   if (aiMesh->HasFaces())
   {
     std::vector<uint32> indices;
     BuildIndexData(aiMesh->mFaces, aiMesh->mNumFaces, indices);
-  }
+  }*/
 
   return mesh;
 }
@@ -140,7 +140,7 @@ std::shared_ptr<Renderable> BuildModel(const std::string& filePath, const aiScen
 std::shared_ptr<Renderable> ObjLoader::LoadFromFile(const std::string& filePath, const std::string& fileName)
 {
   Assimp::Importer importer;
-  auto scene = importer.ReadFile(filePath + fileName, aiProcess_Triangulate);
+  auto scene = importer.ReadFile(RESOURCE_PATH + filePath + fileName, aiProcess_Triangulate);
   if (!scene)
   {
     throw std::runtime_error("Failed to load model from " + filePath + fileName);
