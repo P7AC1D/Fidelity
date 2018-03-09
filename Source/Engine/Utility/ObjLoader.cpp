@@ -33,9 +33,9 @@ void BuildIndexData(const aiFace* faces, uint32 indexCount, std::vector<uint32>&
     {
       throw std::runtime_error("Non-triangle face read");
     }
-    indicesOut.push_back(faces->mIndices[0]);
-    indicesOut.push_back(faces->mIndices[1]);
-    indicesOut.push_back(faces->mIndices[2]);
+    indicesOut.push_back(face->mIndices[0]);
+    indicesOut.push_back(face->mIndices[1]);
+    indicesOut.push_back(face->mIndices[2]);
   }
 }
 
@@ -108,13 +108,14 @@ std::shared_ptr<StaticMesh> BuildMesh(const std::string& filePath, const aiMesh*
     std::vector<Vector2> texCoords;
     BuildTexCoordData(aiMesh->mTextureCoords[0], aiMesh->mNumVertices, texCoords);
     mesh->SetTextureVertexData(texCoords);
-  }/*
+  }
 
   if (aiMesh->HasFaces())
   {
     std::vector<uint32> indices;
     BuildIndexData(aiMesh->mFaces, aiMesh->mNumFaces, indices);
-  }*/
+    mesh->SetIndexData(indices);
+  }
 
   return mesh;
 }

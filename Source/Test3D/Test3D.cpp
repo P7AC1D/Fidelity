@@ -61,7 +61,7 @@ void Test3D::OnStart()
   _sceneManager->SetAmbientLight(Vector3(0.25f, 0.25f, 0.20f));
 
   _camera = std::make_shared<OrbitalCamera>(0.0f, 90.0f, 0.0f);
-  _camera->UpdateProjMat(GetWidth(), GetHeight(), 0.1f, 100.0f);
+  _camera->UpdateProjMat(GetWidth(), GetHeight(), 0.1f, 1000.0f);
   _camera->SetPosition(Vector3(0.0f, 25.0f, 0.0f));
   _sceneManager->SetCamera(_camera);
     
@@ -133,7 +133,8 @@ void Test3D::OnStart()
   //cubeModel->PushMesh(*cubeMesh);
   //cubeNode.AttachRenderable(cubeModel);
 
-  auto sponza = _sceneManager->LoadObjectFromFile("Models/StarWars/at-at.obj");
+  auto object = _sceneManager->LoadObjectFromFile("Models/Sponza/sponza.obj");
+  object->GetTransform()->SetScale(Vector3(0.1f));
 
   _light = &_sceneManager->CreateLight(LightType::Directional);
   _light->SetColour(Colour(255, 240, 170));
