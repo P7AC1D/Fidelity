@@ -15,9 +15,9 @@ SkyBoxShader::SkyBoxShader():
 {
 }
 
-void SkyBoxShader::SetTransformBuffer(std::weak_ptr<Rendering::ConstantBuffer> transformsBuffer)
+void SkyBoxShader::SetTransformsBindingPoint(uint32 bindingPoint)
 {
-  _transformsBuffer = transformsBuffer;
+  _transformsBufferBindingIndex = bindingPoint;
 }
 
 void SkyBoxShader::SetSkyBox(std::weak_ptr<SkyBox> skyBox)
@@ -28,10 +28,7 @@ void SkyBoxShader::SetSkyBox(std::weak_ptr<SkyBox> skyBox)
 void SkyBoxShader::Apply()
 {
   Bind();
-  if (!_transformsBuffer.expired())
-  {
-    BindUniformBlock(GetUniformBlockBindingPoint(TransformsUniformBufferName), TransformsUniformBufferBindingPoint, _transformsBuffer.lock()->GetId());
-  }
+  BindUniformBlock(GetUniformBlockBindingPoint(TransformsUniformBufferName), TransformsUniformBufferBindingPoint, _transformsBufferBindingIndex);
 
   if (!_skyBox.expired())
   {

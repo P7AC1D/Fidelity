@@ -83,9 +83,9 @@ void GeometryPassShader::SetMaterialProperties(std::shared_ptr<Rendering::Materi
   }
 }
 
-void GeometryPassShader::SetTransformsUniformbuffer(std::weak_ptr<ConstantBuffer> transformsBuffer)
+void GeometryPassShader::SetTransformsBindingPoint(uint32 bindingPoint)
 {
-  _transformsBuffer = transformsBuffer;
+  _transformsBufferBindingIndex = bindingPoint;
 }
 
 void GeometryPassShader::SetViewDirection(const Vector3& viewDirection)
@@ -144,10 +144,7 @@ void GeometryPassShader::Apply()
     SetBool(DepthMappingEnabled, false);
   }
 
-  if (!_transformsBuffer.expired())
-  {
-    BindUniformBlock(GetUniformBlockBindingPoint(TransformsUniformBufferName), TransformsUniformBufferBindingPoint, _transformsBuffer.lock()->GetId());
-  }
+  BindUniformBlock(GetUniformBlockBindingPoint(TransformsUniformBufferName), TransformsUniformBufferBindingPoint, _transformsBufferBindingIndex);
 }
 
 void GeometryPassShader::SetDiffuseColour(const Colour& colour)

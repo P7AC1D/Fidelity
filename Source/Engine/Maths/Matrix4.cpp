@@ -123,36 +123,7 @@ Matrix4::Matrix4(float32 a, float32 b, float32 c, float32 d,
 
 Matrix4::Matrix4(const Quaternion& qat)
 {
-  float32 tx  = qat[0]+qat[0];
-  float32 ty  = qat[1]+qat[1];
-  float32 fTz  = qat[2]+qat[2];
-  float32 twx = tx*qat[3];
-  float32 twy = ty*qat[3];
-  float32 twz = fTz*qat[3];
-  float32 txx = tx*qat[0];
-  float32 txy = ty*qat[0];
-  float32 txz = fTz*qat[0];
-  float32 tyy = ty*qat[1];
-  float32 tyz = fTz*qat[1];
-  float32 tzz = fTz*qat[2];
-  
-  _m[0][0] = 1.0f - (tyy + tzz);
-  _m[0][1] = txy - twz;
-  _m[0][2] = txz + twy;
-  _m[1][0] = txy + twz;
-  _m[1][1] = 1.0f - (txx + tzz);
-  _m[1][2] = tyz - twx;
-  _m[2][0] = txz - twy;
-  _m[2][1] = tyz + twx;
-  _m[2][2] = 1.0f - (txx + tyy);
-
-  _m[0][3] = 0.0f;
-  _m[1][3] = 0.0f;
-  _m[2][3] = 0.0f;
-  _m[3][0] = 0.0f;
-  _m[3][1] = 0.0f;
-  _m[3][2] = 0.0f;
-  _m[3][3] = 1.0f;
+  *this = Matrix4(Matrix3(qat));
 }
 
 Matrix4 Matrix4::operator+(float32 rhs) const

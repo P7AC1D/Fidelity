@@ -33,30 +33,31 @@ Matrix3::Matrix3(float32 a, float32 b, float32 c,
   _m[2][0] = g; _m[2][1] = h; _m[2][2] = i;
 }
 
-Matrix3::Matrix3(const Quaternion& qat)
+Matrix3::Matrix3(const Quaternion& q)
 {
-  float tx  = qat[0]+qat[0];
-  float ty  = qat[1]+qat[1];
-  float fTz  = qat[2]+qat[2];
-  float twx = tx*qat[3];
-  float twy = ty*qat[3];
-  float twz = fTz*qat[3];
-  float txx = tx*qat[0];
-  float txy = ty*qat[0];
-  float txz = fTz*qat[0];
-  float tyy = ty*qat[1];
-  float tyz = fTz*qat[1];
-  float tzz = fTz*qat[2];
-  
-  _m[0][0] = 1.0f-(tyy+tzz);
-  _m[0][1] = txy-twz;
-  _m[0][2] = txz+twy;
-  _m[1][0] = txy+twz;
-  _m[1][1] = 1.0f-(txx+tzz);
-  _m[1][2] = tyz-twx;
-  _m[2][0] = txz-twy;
-  _m[2][1] = tyz+twx;
-  _m[2][2] = 1.0f-(txx+tyy);
+  Matrix3 result(Matrix3::Identity);
+  float32 qxx(q.X * q.X);
+  float32 qyy(q.Y * q.Y);
+  float32 qzz(q.Z * q.Z);
+  float32 qxz(q.X * q.Z);
+  float32 qxy(q.X * q.Y);
+  float32 qyz(q.Y * q.Z);
+  float32 qwx(q.W * q.X);
+  float32 qwy(q.W * q.Y);
+  float32 qwz(q.W * q.Z);
+
+  result[0][0] = 1.0f - 2.0f * (qyy + qzz);
+  result[0][1] = 2.0f * (qxy + qwz);
+  result[0][2] = 2.0f * (qxz - qwy);
+
+  result[1][0] = 2.0f * (qxy - qwz);
+  result[1][1] = 1.0f - 2.0f * (qxx + qzz);
+  result[1][2] = 2.0f * (qyz + qwx);
+
+  result[2][0] = 2.0f * (qxz + qwy);
+  result[2][1] = 2.0f * (qyz - qwx);
+  result[2][2] = 1.0f - 2.0f * (qxx + qyy);
+  *this = result;
 }
 
 Matrix3 Matrix3::operator+(float32 rhs) const

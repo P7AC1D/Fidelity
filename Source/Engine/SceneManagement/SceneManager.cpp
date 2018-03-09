@@ -63,7 +63,7 @@ void SceneManager::UpdateScene(uint32 dtMs)
   UpdateWorldObjects(dtMs);
   SubmitSceneToRender();
   _renderer->SetAmbientLight(_ambientLight);
-  _renderer->DrawScene(*_camera.get());
+  _renderer->DrawScene(_camera);
 }
 
 void SceneManager::UpdateWorldObjects(uint32 dtMs)

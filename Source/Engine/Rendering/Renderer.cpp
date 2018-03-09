@@ -48,17 +48,14 @@ void Renderer::SetClearColour(const Colour& colour)
   glClearColor(colour[0], colour[1], colour[2], 0.0f);
 }
 
-void Renderer::DrawScene(OrbitalCamera& camera)
+void Renderer::DrawScene(std::weak_ptr<Camera> camera)
 {
-  UploadCameraData(camera);
-
   auto lightSpaceTransform = BuildLightSpaceTransform(_directionalLights[0]);
   ExecuteDirectionalLightDepthPass(lightSpaceTransform, _shadowResolution);
 
-  auto viewDirection = camera.GetDirection();
-  ExecuteGeometryPass(viewDirection);
-  ExecuteLightingPass(lightSpaceTransform, viewDirection);
-  DrawSkyBox();
+  ExecuteGeometryPass(camera);
+  ExecuteLightingPass(camera, lightSpaceTransform);
+  DrawSkyBox(camera);
 
   _renderables.clear();
   _pointLights.clear();
@@ -91,8 +88,6 @@ bool Renderer::Initialize()
   GLCall(glFrontFace(GL_CCW));
 
   SetClearColour(Colour::Black);
-
-  _cameraBuffer.reset(new ConstantBuffer(144));
   _lightBuffer.reset(new ConstantBuffer(52));
 
   RenderTargetDesc gBufferDesc;
@@ -171,13 +166,6 @@ Renderer::Renderer() :
 {
 }
 
-void Renderer::UploadCameraData(OrbitalCamera& camera)
-{
-  _cameraBuffer->UploadData(0, 64, &camera.GetProjMat()[0]);
-  _cameraBuffer->UploadData(64, 64, &camera.GetViewMat()[0]);
-  _cameraBuffer->UploadData(128, 12, &camera.GetPos()[0]);
-}
-
 void Renderer::UploadPointLightData(const Light& pointLight)
 {
   _lightBuffer->UploadData(0, 12, &pointLight.GetPosition()[0]);
@@ -221,7 +209,7 @@ void Renderer::ExecuteDirectionalLightDepthPass(const Matrix4& lightSpaceTransfo
   SetViewport(_renderWidth, _renderHeight);
 }
 
-void Renderer::ExecuteGeometryPass(const Vector3& viewDirection)
+void Renderer::ExecuteGeometryPass(std::weak_ptr<Camera> camera)
 {
   EnableStencilTest();
 
@@ -233,9 +221,10 @@ void Renderer::ExecuteGeometryPass(const Vector3& viewDirection)
 
   //GLCall(glPolygonMode(GL_FRONT_AND_BACK, GL_LINE));
 
+  auto cameraLocked = camera.lock();
   auto shader = _shaderCollection->GetShader<GeometryPassShader>();
-  shader->SetTransformsUniformbuffer(_cameraBuffer);
-  shader->SetViewDirection(viewDirection);
+  shader->SetTransformsBindingPoint(camera.lock()->GetInternalBufferIndex());
+  shader->SetViewDirection(cameraLocked->GetCameraForward());
   for (auto renderable : _renderables)
   {    
     auto meshCount = renderable.Renderable->GetMeshCount();
@@ -254,14 +243,14 @@ void Renderer::ExecuteGeometryPass(const Vector3& viewDirection)
   //GLCall(glPolygonMode(GL_FRONT_AND_BACK, GL_FILL));
 }
 
-void Renderer::ExecuteLightingPass(const Matrix4& lightSpaceTransform, const Vector3& viewDirection)
+void Renderer::ExecuteLightingPass(std::weak_ptr<Camera> camera, const Matrix4& lightSpaceTransform)
 {
   DisableDepthTest();
   DisableStencilTest();
   ClearBuffer(ClearType::CT_Colour);
 
   auto shader = _shaderCollection->GetShader<DirLightingPassShader>();
-  shader->SetViewDirection(viewDirection);
+  shader->SetViewDirection(camera.lock()->GetCameraForward());
   shader->SetDirectionalLight(_directionalLights[0]);
   shader->SetGeometryBuffer(_gBuffer);
   shader->SetDirLightDepthBuffer(_depthBuffer);
@@ -272,7 +261,7 @@ void Renderer::ExecuteLightingPass(const Matrix4& lightSpaceTransform, const Vec
   Draw(6);
 }
 
-void Renderer::DrawSkyBox()
+void Renderer::DrawSkyBox(std::weak_ptr<Camera> camera)
 {
   if (!_skyBox)
   {
@@ -291,7 +280,7 @@ void Renderer::DrawSkyBox()
   GLCall(glDisable(GL_CULL_FACE));
 
   auto shader = _shaderCollection->GetShader<SkyBoxShader>();
-  shader->SetTransformBuffer(_cameraBuffer);
+  shader->SetTransformsBindingPoint(camera.lock()->GetInternalBufferIndex());
   shader->SetSkyBox(_skyBox);
   shader->Apply();
 

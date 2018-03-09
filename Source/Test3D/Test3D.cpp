@@ -60,9 +60,9 @@ void Test3D::OnStart()
 {
   _sceneManager->SetAmbientLight(Vector3(0.25f, 0.25f, 0.20f));
 
-  _camera = std::make_shared<OrbitalCamera>(0.0f, 90.0f, 0.0f);
-  _camera->UpdateProjMat(GetWidth(), GetHeight(), 0.1f, 1000.0f);
-  _camera->SetPosition(Vector3(0.0f, 25.0f, 0.0f));
+  _camera.reset(new OrbitalCamera());
+  _camera->SetPerspective(Degree(67.67f), GetWidth(), GetHeight(), 0.1f, 1000.0f);
+  _camera->LookAt(Vector3(0.0f, 0.0f, 5.0f), Vector3(0.0f, 0.0f, 0.0f));
   _sceneManager->SetCamera(_camera);
     
   std::shared_ptr<SkyBox> skyBox(new SkyBox);
@@ -97,7 +97,7 @@ void Test3D::OnStart()
     }
   }*/
 
-  /*auto sphereANode = _sceneManager->CreateObject("sphereA");
+  auto sphereANode = _sceneManager->CreateObject("sphereA");
   auto sphereA = MeshFactory::CreateIcosphere(3);
   auto sphereAMaterial = sphereA->GetMaterial();
   auto diffuseMap = AssetManager::GetTexture("/Textures/brick_floor_tileable_Base_Color.jpg"); 
@@ -118,23 +118,10 @@ void Test3D::OnStart()
   std::shared_ptr<Renderable> sphereModelB(new Renderable);
   sphereModelB->PushMesh(sphereB);
   sphereBNode->AttachRenderable(sphereModelB);
-  sphereBNode->GetTransform()->Translate(Vector3(-2.0f, 0.0f, 0.0f));*/
+  sphereBNode->GetTransform()->Translate(Vector3(-2.0f, 0.0f, 0.0f));
 
-  //auto& cubeNode = _sceneManager->CreateObject("cube");
-  //auto cubeMesh = MeshFactory::CreateCube();
-  //auto& cubeMaterial = cubeMesh->GetMaterial();
-  //auto diffuseMap = _assetManager->GetTexture("/Textures/bricks2.jpg");
-  //auto normalMap = _assetManager->GetTexture("/Textures/bricks2_normal.jpg");
-  //auto depthMap = _assetManager->GetTexture("/Textures/bricks2_disp.jpg");
-  //cubeMaterial.SetTexture("DiffuseMap", diffuseMap);
-  //cubeMaterial.SetTexture("NormalMap", normalMap);
-  //cubeMaterial.SetTexture("DepthMap", depthMap);
-  //std::shared_ptr<Renderable> cubeModel(new Renderable);
-  //cubeModel->PushMesh(*cubeMesh);
-  //cubeNode.AttachRenderable(cubeModel);
-
-  auto object = _sceneManager->LoadObjectFromFile("Models/Sponza/sponza.obj");
-  object->GetTransform()->SetScale(Vector3(0.1f));
+ /* auto object = _sceneManager->LoadObjectFromFile("Models/Sponza/sponza.obj");
+  object->GetTransform()->SetScale(Vector3(0.1f));*/
 
   _light = &_sceneManager->CreateLight(LightType::Directional);
   _light->SetColour(Colour(255, 240, 170));
@@ -145,16 +132,15 @@ void Test3D::OnStart()
 
   _eventDispatcher->Register("CameraZoom", [&](const InputEvent& inputEvent, int32 dt)
   {
-    _camera->Zoom(dt * inputEvent.AxisPosDelta[1] * 0.1f);
+    _camera->Zoom(static_cast<float32>(inputEvent.AxisPosDelta[1]), dt);
   });
   _eventDispatcher->Register("CameraLook", [&](const InputEvent& inputEvent, int32 dt)
   {
     if (_inputHandler->IsButtonStateActive("ActivateCameraLook"))
     {
-      float32 sensitivity = 0.1f;
-      float32 yaw = Radian(static_cast<float32>(inputEvent.AxisPosDelta[0]) * sensitivity * dt).InRadians();
-      float32 pitch = Radian(static_cast<float32>(inputEvent.AxisPosDelta[1]) * sensitivity * dt).InRadians();
-      _camera->Rotate(yaw, pitch);
+      Radian yaw(static_cast<float32>(-inputEvent.AxisPosDelta[1]));
+      Radian pitch(static_cast<float32>(-inputEvent.AxisPosDelta[0]));
+      _camera->RotateAboutTarget(yaw, pitch, dt);
     }
   });
   

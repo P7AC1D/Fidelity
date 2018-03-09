@@ -9,7 +9,7 @@
 #include "../Maths/Colour.hpp"
 #include "../Maths/Vector3.hpp"
 #include "../SceneManagement/Light.h"
-#include "../SceneManagement/OrbitalCamera.h"
+#include "../SceneManagement/Camera.hpp"
 #include "../SceneManagement/Transform.h"
 #include "Renderable.hpp"
 
@@ -67,7 +67,7 @@ public:
 
   void SetClearColour(const Colour& colour);
 
-  void DrawScene(OrbitalCamera& camera);
+  void DrawScene(std::weak_ptr<Camera> camera);
 
   static void Draw(uint32 vertexCount, uint32 vertexOffset = 0);
   static void DrawIndexed(uint32 indexCount);
@@ -88,14 +88,13 @@ private:
   void SetViewport(uint32 renderWidth, uint32 renderHeight);  
   Renderer();
 
-  void UploadCameraData(OrbitalCamera& camera);
   void UploadPointLightData(const Light& pointLight);
   void UploadDirectionalLightData(const Light& directionalLight);
 
   void ExecuteDirectionalLightDepthPass(const Matrix4& lightSpaceTransform, uint32 shadowResolution);
-  void ExecuteGeometryPass(const Vector3& viewDirection);
-  void ExecuteLightingPass(const Matrix4& lightSpaceTransform, const Vector3& viewDirection);
-  void DrawSkyBox();
+  void ExecuteGeometryPass(std::weak_ptr<Camera> camera);
+  void ExecuteLightingPass(std::weak_ptr<Camera> camera, const Matrix4& lightSpaceTransform);
+  void DrawSkyBox(std::weak_ptr<Camera> camera);
 
   void ClearBuffer(uint32 clearType);
 
@@ -108,7 +107,6 @@ private:
   
   std::unique_ptr<ShaderCollection> _shaderCollection;
 
-  std::shared_ptr<ConstantBuffer> _cameraBuffer;
   std::unique_ptr<ConstantBuffer> _lightBuffer;
   std::unique_ptr<ConstantBuffer> _ambientLightBuffer;
 

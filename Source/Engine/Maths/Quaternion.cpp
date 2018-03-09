@@ -41,6 +41,7 @@ W(_w)
 
 Quaternion::Quaternion(const Matrix3& rotMax)
 {
+  FromRotationMatrix(rotMax);
 }
 
 Quaternion::Quaternion(const Vector3& axis, const Radian& angle)
@@ -79,6 +80,12 @@ Quaternion& Quaternion::operator=(const Quaternion& rhs)
   return *this;
 }
 
+Quaternion& Quaternion::operator=(const Matrix3& rotMat)
+{
+  FromRotationMatrix(rotMat);
+  return *this;
+}
+
 Quaternion Quaternion::operator+(float32 rhs) const
 {
   return Quaternion(W + rhs, X + rhs, Y + rhs, Z + rhs);
@@ -106,7 +113,7 @@ Quaternion Quaternion::operator-(const Quaternion &rhs) const
 
 Quaternion Quaternion::operator*(const Quaternion& rhs) const
 {
-  return Multiply(*this, rhs);
+  return Quaternion(*this) *= rhs;
 }
 
 Quaternion& Quaternion::operator+=(float32 rhs)
@@ -154,12 +161,13 @@ Quaternion& Quaternion::operator-=(const Quaternion &rhs)
   return *this;
 }
 
-Quaternion& Quaternion::operator*=(const Quaternion& rhs)
+Quaternion& Quaternion::operator*=(const Quaternion& q)
 {
-  W *= W * rhs.W - X * rhs.X - Y * rhs.Y - Z * rhs.Z;
-  X *= W * rhs.X + X * rhs.W + Y * rhs.Z - Z * rhs.Y;
-  Y *= W * rhs.Y + Y * rhs.W + Z * rhs.X - X * rhs.Z;
-  X *= W * rhs.Z + Z * rhs.W + X * rhs.Y - Y * rhs.X;
+  Quaternion p(*this);
+  this->W = p.W * q.W - p.X * q.X - p.Y * q.Y - p.Z * q.Z;
+  this->X = p.W * q.X + p.X * q.W + p.Y * q.Z - p.Z * q.Y;
+  this->Y = p.W * q.Y + p.Y * q.W + p.Z * q.X - p.X * q.Z;
+  this->Z = p.W * q.Z + p.Z * q.W + p.X * q.Y - p.Y * q.X;
   return *this;
 }
 
@@ -229,15 +237,6 @@ Quaternion operator*(float32 lhs, const Quaternion& rhs)
   return Quaternion(lhs * rhs.W, lhs * rhs.X, lhs * rhs.Y, lhs * rhs.Z);
 }
 
-Quaternion Quaternion::Multiply(const Quaternion& q1, const Quaternion& q2)
-{
-  float32 x =  q1.X * q2.W + q1.Y * q2.Z - q1.Z * q2.Y + q1.W * q2.X;
-  float32 y = -q1.X * q2.Z + q1.Y * q2.W + q1.Z * q2.X + q1.W * q2.Y;
-  float32 z =  q1.X * q2.Y - q1.Y * q2.X + q1.Z * q2.W + q1.W * q2.Z;
-  float32 w = -q1.X * q2.X - q1.Y * q2.Y - q1.Z * q2.Z + q1.W * q2.W;
-  return Quaternion(w, x, y, z);
-}
-
 void Quaternion::FromEulerAngles(const Radian& xAngle, const Radian& yAngle, const Radian& zAngle)
 {
   Radian halfXAngle = xAngle * 0.5f;
@@ -266,7 +265,54 @@ void Quaternion::FromAxisAngle(const Vector3& axis, const Radian& angle)
   float32 sin = Math::Sin(halfAngle);
   
   W = Math::Cos(halfAngle);
-  Z = sin * axis[2];
-  Y = sin * axis[1];
-  X = sin * axis[0];
+  Z = sin * axis.Z;
+  Y = sin * axis.Y;
+  X = sin * axis.X;
+}
+
+void Quaternion::FromRotationMatrix(const Matrix3 & m)
+{
+  float32 fourXSquaredMinus1 = m[0][0] - m[1][1] - m[2][2];
+  float32 fourYSquaredMinus1 = m[1][1] - m[0][0] - m[2][2];
+  float32 fourZSquaredMinus1 = m[2][2] - m[0][0] - m[1][1];
+  float32 fourWSquaredMinus1 = m[0][0] + m[1][1] + m[2][2];
+
+  int biggestIndex = 0;
+  float32 fourBiggestSquaredMinus1 = fourWSquaredMinus1;
+  if (fourXSquaredMinus1 > fourBiggestSquaredMinus1)
+  {
+    fourBiggestSquaredMinus1 = fourXSquaredMinus1;
+    biggestIndex = 1;
+  }
+  if (fourYSquaredMinus1 > fourBiggestSquaredMinus1)
+  {
+    fourBiggestSquaredMinus1 = fourYSquaredMinus1;
+    biggestIndex = 2;
+  }
+  if (fourZSquaredMinus1 > fourBiggestSquaredMinus1)
+  {
+    fourBiggestSquaredMinus1 = fourZSquaredMinus1;
+    biggestIndex = 3;
+  }
+
+  float32 biggestVal = sqrt(fourBiggestSquaredMinus1 + 1.0f) * 0.5f;
+  float32 mult = 0.25f / biggestVal;
+
+  switch (biggestIndex)
+  {
+    case 0:
+      *this = Quaternion(biggestVal, (m[1][2] - m[2][1]) * mult, (m[2][0] - m[0][2]) * mult, (m[0][1] - m[1][0]) * mult);
+      break;
+    case 1:
+      *this = Quaternion((m[1][2] - m[2][1]) * mult, biggestVal, (m[0][1] + m[1][0]) * mult, (m[2][0] + m[0][2]) * mult);
+      break;
+    case 2:
+      *this = Quaternion((m[2][0] - m[0][2]) * mult, (m[0][1] + m[1][0]) * mult, biggestVal, (m[1][2] + m[2][1]) * mult);
+      break;
+    case 3:
+      *this = Quaternion((m[0][1] - m[1][0]) * mult, (m[2][0] + m[0][2]) * mult, (m[1][2] + m[2][1]) * mult, biggestVal);
+      break;
+    default: 
+      *this = Quaternion(1, 0, 0, 0);
+  }
 }
