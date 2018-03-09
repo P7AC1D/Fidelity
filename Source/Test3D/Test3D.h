@@ -7,7 +7,7 @@
 class GuiCaption;
 class GuiPanel;
 class Light;
-class OrbitalCamera;
+class FpsCamera;
 class TextOverlay;
 class WorldObject;
 
@@ -20,7 +20,7 @@ public:
   void OnUpdate(uint32 dtMs) override;
 
 private:
-  std::shared_ptr<OrbitalCamera> _camera;
+  std::shared_ptr<FpsCamera> _camera;
   std::shared_ptr<WorldObject> _object;
   Light* _light;
   std::shared_ptr<TextOverlay> _onScreenFpsCounter;

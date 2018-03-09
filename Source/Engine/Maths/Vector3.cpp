@@ -21,6 +21,10 @@ Vector3 Vector3::Cross(const Vector3 &a, const Vector3 &b)
 Vector3 Vector3::Normalize(const Vector3& vec)
 {
   float32 length = vec.Length();
+  if (length == 0.0f)
+  {
+    return vec;
+  }
   float32 lengthInv = 1.0f / length;
   return Vector3(vec[0] * lengthInv, vec[1] * lengthInv, vec[2] * lengthInv);
 }
@@ -168,7 +172,7 @@ bool Vector3::operator==(const Vector3& rhs) const
 
 bool Vector3::operator!=(const Vector3& rhs) const
 {
-  return X != rhs.X && Y != rhs.Y && Z != rhs.Z;
+  return !(*this == rhs);
 }
 
 float32& Vector3::operator[](uint32 i)

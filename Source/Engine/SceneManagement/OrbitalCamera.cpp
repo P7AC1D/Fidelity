@@ -1,4 +1,4 @@
-#include "OrbitalCamera.h"
+#include "OrbitalCamera.hpp"
 
 OrbitalCamera::OrbitalCamera(float32 rotationAcceleration, float32 zoomAcceleration) :
   _rotationAcceleration(rotationAcceleration),
@@ -33,5 +33,5 @@ void OrbitalCamera::Zoom(float32 delta, int32 dtMs)
   {
     newPosition = cameraTarget + GetCameraForward() * 0.1f;
   }
-  SetPosition(newPosition);
+  LookAt(newPosition, GetTarget());
 }

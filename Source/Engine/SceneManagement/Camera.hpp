@@ -32,10 +32,9 @@ public:
 
   const uint32 GetInternalBufferIndex() const;
 
+private:
   void SetPosition(const Vector3& position);
   void SetOrientation(const Quaternion& orientation);
-
-private:
   void InitializeBuffer();
   void UpdateView();
   void UpdateProjection();

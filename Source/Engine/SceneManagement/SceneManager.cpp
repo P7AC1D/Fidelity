@@ -6,7 +6,7 @@
 #include "../SceneManagement/WorldObject.h"
 #include "../Utility/AssetManager.h"
 #include "../Utility/StringUtil.h"
-#include "OrbitalCamera.h"
+#include "Camera.hpp"
 #include "WorldObject.h"
 
 static uint32 WorldObjectCount = 0;

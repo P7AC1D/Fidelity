@@ -25,7 +25,8 @@
 #include "../Engine/Utility/FntLoader.hpp"
 #include "../Engine/Utility/ObjLoader.hpp"
 #include "../Engine/SceneManagement/Light.h"
-#include "../Engine/SceneManagement/OrbitalCamera.h"
+#include "../Engine/SceneManagement/FpsCamera.hpp"
+#include "../Engine/SceneManagement/OrbitalCamera.hpp"
 #include "../Engine/SceneManagement/SceneManager.h"
 #include "../Engine/SceneManagement/Transform.h"
 #include "../Engine/SceneManagement/WorldObject.h"
@@ -60,7 +61,7 @@ void Test3D::OnStart()
 {
   _sceneManager->SetAmbientLight(Vector3(0.25f, 0.25f, 0.20f));
 
-  _camera.reset(new OrbitalCamera());
+  _camera.reset(new FpsCamera());
   _camera->SetPerspective(Degree(67.67f), GetWidth(), GetHeight(), 0.1f, 1000.0f);
   _camera->LookAt(Vector3(0.0f, 0.0f, 5.0f), Vector3(0.0f, 0.0f, 0.0f));
   _sceneManager->SetCamera(_camera);
@@ -97,42 +98,75 @@ void Test3D::OnStart()
     }
   }*/
 
-  auto sphereANode = _sceneManager->CreateObject("sphereA");
-  auto sphereA = MeshFactory::CreateIcosphere(3);
-  auto sphereAMaterial = sphereA->GetMaterial();
-  auto diffuseMap = AssetManager::GetTexture("/Textures/brick_floor_tileable_Base_Color.jpg"); 
-  sphereA->GetMaterial()->SetTexture("DiffuseMap", diffuseMap);
-  std::shared_ptr<Renderable> sphereModelA(new Renderable);
-  sphereModelA->PushMesh(sphereA);
-  sphereANode->AttachRenderable(sphereModelA);
-  sphereANode->GetTransform()->Translate(Vector3(2.0f, 0.0f, 0.0f));
+  //auto sphereANode = _sceneManager->CreateObject("sphereA");
+  //auto sphereA = MeshFactory::CreateIcosphere(3);
+  //auto sphereAMaterial = sphereA->GetMaterial();
+  //auto diffuseMap = AssetManager::GetTexture("/Textures/brick_floor_tileable_Base_Color.jpg"); 
+  //sphereA->GetMaterial()->SetTexture("DiffuseMap", diffuseMap);
+  //std::shared_ptr<Renderable> sphereModelA(new Renderable);
+  //sphereModelA->PushMesh(sphereA);
+  //sphereANode->AttachRenderable(sphereModelA);
+  //sphereANode->GetTransform()->Translate(Vector3(2.0f, 0.0f, 0.0f));
 
-  auto sphereBNode = _sceneManager->CreateObject("sphereB");
-  auto sphereB = MeshFactory::CreateIcosphere(3);
-  auto sphereBMaterial = sphereB->GetMaterial();
-  auto normalMap = AssetManager::GetTexture("/Textures/brick_floor_tileable_Normal.jpg");
-  auto specularMap = AssetManager::GetTexture("/Textures/brick_floor_tileable_Glossiness.jpg");
-  sphereBMaterial->SetTexture("DiffuseMap", diffuseMap);
-  sphereBMaterial->SetTexture("NormalMap", normalMap);
-  sphereBMaterial->SetTexture("SpecularMap", specularMap);
-  std::shared_ptr<Renderable> sphereModelB(new Renderable);
-  sphereModelB->PushMesh(sphereB);
-  sphereBNode->AttachRenderable(sphereModelB);
-  sphereBNode->GetTransform()->Translate(Vector3(-2.0f, 0.0f, 0.0f));
+  //auto sphereBNode = _sceneManager->CreateObject("sphereB");
+  //auto sphereB = MeshFactory::CreateIcosphere(3);
+  //auto sphereBMaterial = sphereB->GetMaterial();
+  //auto normalMap = AssetManager::GetTexture("/Textures/brick_floor_tileable_Normal.jpg");
+  //auto specularMap = AssetManager::GetTexture("/Textures/brick_floor_tileable_Glossiness.jpg");
+  //sphereBMaterial->SetTexture("DiffuseMap", diffuseMap);
+  //sphereBMaterial->SetTexture("NormalMap", normalMap);
+  //sphereBMaterial->SetTexture("SpecularMap", specularMap);
+  //std::shared_ptr<Renderable> sphereModelB(new Renderable);
+  //sphereModelB->PushMesh(sphereB);
+  //sphereBNode->AttachRenderable(sphereModelB);
+  //sphereBNode->GetTransform()->Translate(Vector3(-2.0f, 0.0f, 0.0f));
 
- /* auto object = _sceneManager->LoadObjectFromFile("Models/Sponza/sponza.obj");
-  object->GetTransform()->SetScale(Vector3(0.1f));*/
+  auto object = _sceneManager->LoadObjectFromFile("Models/Sponza/sponza.obj");
+  object->GetTransform()->SetScale(Vector3(0.1f));
 
   _light = &_sceneManager->CreateLight(LightType::Directional);
   _light->SetColour(Colour(255, 240, 170));
 
+  //_inputHandler->BindButtonToState("ActivateCameraLook", Button::Button_RMouse);
+  //_inputHandler->BindAxisToState("CameraZoom", Axis::MouseScrollXY);
+  //_inputHandler->BindAxisToState("CameraLook", Axis::MouseXY);
+
+  //_eventDispatcher->Register("CameraZoom", [&](const InputEvent& inputEvent, int32 dt)
+  //{
+  //  _camera->Zoom(static_cast<float32>(inputEvent.AxisPosDelta[1]), dt);
+  //});
+  //_eventDispatcher->Register("CameraLook", [&](const InputEvent& inputEvent, int32 dt)
+  //{
+  //  if (_inputHandler->IsButtonStateActive("ActivateCameraLook"))
+  //  {
+  //    Radian yaw(static_cast<float32>(-inputEvent.AxisPosDelta[1]));
+  //    Radian pitch(static_cast<float32>(-inputEvent.AxisPosDelta[0]));
+  //    _camera->RotateAboutTarget(yaw, pitch, dt);
+  //  }
+  //});
+
+  _inputHandler->BindButtonToState("MoveForward", Button::Key_W);
+  _inputHandler->BindButtonToState("MoveBackward", Button::Key_S);
+  _inputHandler->BindButtonToState("StrafeLeft", Button::Key_A);
+  _inputHandler->BindButtonToState("StrafeRight", Button::Key_D);
   _inputHandler->BindButtonToState("ActivateCameraLook", Button::Button_RMouse);
-  _inputHandler->BindAxisToState("CameraZoom", Axis::MouseScrollXY);
   _inputHandler->BindAxisToState("CameraLook", Axis::MouseXY);
 
-  _eventDispatcher->Register("CameraZoom", [&](const InputEvent& inputEvent, int32 dt)
+  _eventDispatcher->Register("MoveForward", [&](const InputEvent& inputEvent, int32 dt)
   {
-    _camera->Zoom(static_cast<float32>(inputEvent.AxisPosDelta[1]), dt);
+    _camera->MoveForward(dt);
+  });
+  _eventDispatcher->Register("MoveBackward", [&](const InputEvent& inputEvent, int32 dt)
+  {
+    _camera->MoveBackward(dt);
+  });
+  _eventDispatcher->Register("StrafeLeft", [&](const InputEvent& inputEvent, int32 dt)
+  {
+    _camera->StrafeLeft(dt);
+  });
+  _eventDispatcher->Register("StrafeRight", [&](const InputEvent& inputEvent, int32 dt)
+  {
+    _camera->StrafeRight(dt);
   });
   _eventDispatcher->Register("CameraLook", [&](const InputEvent& inputEvent, int32 dt)
   {
@@ -140,7 +174,7 @@ void Test3D::OnStart()
     {
       Radian yaw(static_cast<float32>(-inputEvent.AxisPosDelta[1]));
       Radian pitch(static_cast<float32>(-inputEvent.AxisPosDelta[0]));
-      _camera->RotateAboutTarget(yaw, pitch, dt);
+      _camera->Rotate(yaw, pitch, dt);
     }
   });
   

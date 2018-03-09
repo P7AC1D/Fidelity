@@ -8,7 +8,7 @@
 #include "Light.h"
 #include "SkyBox.hpp"
 
-class OrbitalCamera;
+class Camera;
 class WorldObject;
 
 namespace Rendering
@@ -25,7 +25,7 @@ public:
   std::shared_ptr<WorldObject> LoadObjectFromFile(const std::string& filePath);
   Light& CreateLight(LightType lightType, const std::string& name = std::string());
 
-  inline void SetCamera(std::shared_ptr<OrbitalCamera> camera) { _camera = camera; }
+  inline void SetCamera(std::shared_ptr<Camera> camera) { _camera = camera; }
   inline void SetSkyBox(std::shared_ptr<SkyBox> skyBox) { _skyBox = skyBox; }
   inline void SetAmbientLight(const Colour& colour) { _ambientLight = colour; }
 
@@ -40,7 +40,7 @@ private:
 private:
   std::vector<std::shared_ptr<WorldObject>> _worldObjects;
   std::vector<Light> _lights;
-  std::shared_ptr<OrbitalCamera> _camera;
+  std::shared_ptr<Camera> _camera;
   std::shared_ptr<SkyBox> _skyBox;
   Colour _ambientLight;
   Rendering::Renderer* _renderer;
