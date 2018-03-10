@@ -63,7 +63,7 @@ void Test3D::OnStart()
 
   _camera.reset(new FpsCamera());
   _camera->SetPerspective(Degree(67.67f), GetWidth(), GetHeight(), 0.1f, 1000.0f);
-  _camera->LookAt(Vector3(0.0f, 0.0f, 5.0f), Vector3(0.0f, 0.0f, 0.0f));
+  _camera->LookAt(Vector3(69.0f, 88.0f, 0.8f), Vector3(-28056.1523f, -16285.3330f, -2427.24756f));
   _sceneManager->SetCamera(_camera);
     
   std::shared_ptr<SkyBox> skyBox(new SkyBox);
@@ -126,6 +126,7 @@ void Test3D::OnStart()
 
   _light = &_sceneManager->CreateLight(LightType::Directional);
   _light->SetColour(Colour(255, 240, 170));
+  _light->SetDirection(Vector3::Normalize(Vector3(-0.8f, -1.0f, 0.2f)));
 
   //_inputHandler->BindButtonToState("ActivateCameraLook", Button::Button_RMouse);
   //_inputHandler->BindAxisToState("CameraZoom", Axis::MouseScrollXY);
@@ -179,7 +180,7 @@ void Test3D::OnStart()
   });
   
   GuiCaptionDesc guiCaptionDesc;
-  guiCaptionDesc.FontColour = Colour::Black;
+  guiCaptionDesc.FontColour = Colour::White;
   guiCaptionDesc.Name = "Test Caption";
   guiCaptionDesc.Text = "Test Caption";
   guiCaptionDesc.FontSize = 20;
@@ -221,14 +222,6 @@ void Test3D::OnStart()
 
 void Test3D::OnUpdate(uint32 dtMs)
 {
-  static float32 delta = 0.0f;
-  auto direction = _light->GetDirection();
-  delta += dtMs * 0.0001f;
-  direction[0] = Math::Cos(Radian(delta));
-  direction[1] = -1.0f;
-  direction[2] = Math::Cos(Radian(delta + delta));
-  _light->SetDirection(Vector3::Normalize(direction));
-
   std::stringstream ss;
   ss.precision(4);
   ss << GetAverageFps(dtMs) << " FPS " << GetAverageTickMs(dtMs) << " ms";

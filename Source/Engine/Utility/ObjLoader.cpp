@@ -16,6 +16,7 @@
 #include "../Rendering/Material.h"
 #include "../Rendering/Renderable.hpp"
 #include "../Rendering/StaticMesh.h"
+#include "../Rendering/Texture.hpp"
 #include "../Utility/AssetManager.h"
 #include "../Utility/StringUtil.h"
 
@@ -79,7 +80,31 @@ void BuildMaterial(const std::string& filePath, const aiMaterial* aiMaterial, st
   aiMaterial->Get(AI_MATKEY_TEXTURE(aiTextureType_DIFFUSE, 0), diffuseTexturePath);
   if (diffuseTexturePath.length != 0)
   {
-    material->SetTexture("DiffuseMap", AssetManager::GetTexture(filePath + diffuseTexturePath.C_Str()));
+    auto diffuseTexture = AssetManager::GetTexture(filePath + diffuseTexturePath.C_Str());
+    diffuseTexture->SetWrapMethod(WrapMethod::Repeat);
+    diffuseTexture->GenerateMipMaps();
+    material->SetTexture("DiffuseMap", diffuseTexture);
+  }
+
+  // Assimp for some reason loads normal maps as aiTextureType_HEIGHT - this is probably a bug.
+  aiString normalTexturePath;
+  aiMaterial->Get(AI_MATKEY_TEXTURE(aiTextureType_HEIGHT, 0), normalTexturePath);
+  if (normalTexturePath.length != 0)
+  {
+    auto normalTexture = AssetManager::GetTexture(filePath + normalTexturePath.C_Str());
+    normalTexture->SetWrapMethod(WrapMethod::Repeat);
+    normalTexture->GenerateMipMaps();
+    material->SetTexture("NormalMap", normalTexture);
+  }
+
+  aiString specularTexturePath;
+  aiMaterial->Get(AI_MATKEY_TEXTURE(aiTextureType_SPECULAR, 0), specularTexturePath);
+  if (specularTexturePath.length != 0)
+  {
+    auto specularTexture = AssetManager::GetTexture(filePath + specularTexturePath.C_Str());
+    specularTexture->SetWrapMethod(WrapMethod::Repeat);
+    specularTexture->GenerateMipMaps();
+    material->SetTexture("SpecularMap", specularTexture);
   }
 }
 

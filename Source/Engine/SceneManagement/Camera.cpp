@@ -42,9 +42,10 @@ void Camera::LookAt(const Vector3& position, const Vector3& target, const Vector
   view[1][2] = -camDir.Y;
   view[2][2] = -camDir.Z;
 
-  _orientation = view;
   _position = position;
   _target = target;
+
+  _orientation = view;
   UpdateView();
 }
 
@@ -88,7 +89,7 @@ void Camera::SetOrientation(const Quaternion& orientation)
 {
   if (orientation != _orientation)
   {
-    _orientation = orientation;
+    _orientation = Quaternion::Normalize(orientation);
     UpdateView();
   }
 }
