@@ -28,6 +28,12 @@ file(GLOB RenderingSrc
 	${CMAKE_CURRENT_SOURCE_DIR}/Rendering/*.cpp
 	)
 	
+file(GLOB RenderApiSrc 
+	${CMAKE_CURRENT_SOURCE_DIR}/RenderApi/*.h 
+	${CMAKE_CURRENT_SOURCE_DIR}/RenderApi/*.hpp
+	${CMAKE_CURRENT_SOURCE_DIR}/RenderApi/*.cpp
+	)
+	
 file(GLOB GeometrySrc
 	${CMAKE_CURRENT_SOURCE_DIR}/Geometry/*.h 
 	${CMAKE_CURRENT_SOURCE_DIR}/Geometry/*.hpp
@@ -61,7 +67,8 @@ file(GLOB ShaderSrc
 source_group(Components FILES ${ComponentsSrc})
 source_group(Core FILES ${CoreSrc})
 source_group(Maths FILES ${MathsSrc})
-source_group(Rendering FILES ${RenderingSrc})
+source_group(Rendering FILES ${RenderingSrc}) 
+source_group(RenderApi FILES ${RenderApiSrc})
 source_group(Geometry FILES ${GeometrySrc})
 source_group(SceneManagement FILES ${SceneManagementSrc})
 source_group(Overlay FILES ${OverlaySrc})
@@ -77,4 +84,4 @@ IF (APPLE)
 include_directories(${OPENGL_INCLUDE_DIRS})
 ENDIF()
 
-add_library(Engine STATIC ${ComponentsSrc} ${CoreSrc} ${GeometrySrc} ${MathsSrc} ${OverlaySrc} ${RenderingSrc} ${SceneManagementSrc} ${UtilitySrc} ${ShaderSrc} ${InputSrc})
+add_library(Engine STATIC ${ComponentsSrc} ${CoreSrc} ${GeometrySrc} ${MathsSrc} ${OverlaySrc} ${RenderApiSrc} ${RenderingSrc} ${SceneManagementSrc} ${UtilitySrc} ${ShaderSrc} ${InputSrc})
