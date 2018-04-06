@@ -65,6 +65,6 @@ class BlendState
 public:
   const BlendStateDesc& GetDesc() const { return _desc; }
 
-private:
+protected:
   BlendStateDesc _desc;
 };

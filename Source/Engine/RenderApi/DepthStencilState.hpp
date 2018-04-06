@@ -56,6 +56,6 @@ class DepthStencilState
 public:
   const DepthStencilStateDesc& GetDesc() { return _desc; }
 
-private:
+protected:
   DepthStencilStateDesc _desc;
 };

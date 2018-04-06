@@ -34,6 +34,6 @@ class RasterizerState
 public: 
   const RasterizerStateDesc& GetDesc() const { return _desc; }
 
-private:
+protected:
   RasterizerStateDesc _desc;
 };

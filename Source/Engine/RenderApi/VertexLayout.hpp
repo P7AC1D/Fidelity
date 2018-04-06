@@ -42,6 +42,6 @@ class VertexLayout
 public:
   const std::vector<VertexLayoutDesc>& GetDesc() const { return _desc; }
 
-private:
+protected:
   std::vector<VertexLayoutDesc> _desc;
 };

@@ -56,6 +56,6 @@ class PipelineState
 public:
   const PipelineStateDesc& GetDesc() const { return _desc; }
 
-private:
+protected:
   PipelineStateDesc _desc;
 };
