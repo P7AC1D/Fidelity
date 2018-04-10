@@ -3,7 +3,18 @@
 #include "DepthStencilState.hpp"
 #include "PipelineState.hpp"
 #include "RasterizerState.hpp"
+#include "Shader.hpp"
 #include "VertexLayout.hpp"
+
+struct Viewport
+{
+  float32 TopLeftX;
+  float32 TopLeftY;
+  float32 Width;
+  float32 Height;
+  float32 MinDepth;
+  float32 MaxDepth;
+};
 
 struct RenderDeviceDesc
 {
@@ -24,8 +35,11 @@ public:
   virtual std::shared_ptr<PipelineState> CreatePipelineState(const PipelineStateDesc& desc) = 0;
   virtual std::shared_ptr<RasterizerState> CreateRasterizerState(const RasterizerStateDesc& desc) = 0;
   virtual std::shared_ptr<VertexLayout> CreateVertexLayout(const VertexLayoutDesc& desc) = 0;
+  virtual std::shared_ptr<Shader> CreateShader(const ShaderDesc& desc) = 0;
 
   virtual void SetPipelineState(std::weak_ptr<PipelineState> pipelineState) = 0;
+  virtual void SetPrimitiveTopology(PrimitiveTopology primitiveTopology) = 0;
+  virtual void SetViewport(const Viewport& viewport) = 0;
 
   virtual void Draw(uint32 vertexCount, uint32 vertexOffset) = 0;
   virtual void DrawIndexed(uint32 indexCount, uint32 indexOffset, uint32 vertexOffset) = 0;
