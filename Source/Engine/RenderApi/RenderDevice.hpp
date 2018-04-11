@@ -1,6 +1,7 @@
 #pragma once
 #include "BlendState.hpp"
 #include "DepthStencilState.hpp"
+#include "GpuBuffer.hpp"
 #include "PipelineState.hpp"
 #include "RasterizerState.hpp"
 #include "Shader.hpp"
@@ -36,6 +37,7 @@ public:
   virtual std::shared_ptr<RasterizerState> CreateRasterizerState(const RasterizerStateDesc& desc) = 0;
   virtual std::shared_ptr<VertexLayout> CreateVertexLayout(const VertexLayoutDesc& desc) = 0;
   virtual std::shared_ptr<Shader> CreateShader(const ShaderDesc& desc) = 0;
+  virtual std::shared_ptr<GpuBuffer> CreateGpuBuffer(const GpuBufferDesc& desc) = 0;
 
   virtual void SetPipelineState(std::weak_ptr<PipelineState> pipelineState) = 0;
   virtual void SetPrimitiveTopology(PrimitiveTopology primitiveTopology) = 0;
