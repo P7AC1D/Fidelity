@@ -1,5 +1,5 @@
 #pragma once
-#include "Shader.hpp"
+#include "../Shader.hpp"
 
 class GLShader : public Shader
 {

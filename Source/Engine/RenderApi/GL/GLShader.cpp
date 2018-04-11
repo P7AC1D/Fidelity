@@ -1,7 +1,7 @@
 #include "GLShader.hpp"
 
 #include <sstream>
-#include "../Utility/Assert.hpp"
+#include "../../Utility/Assert.hpp"
 #include "GL.hpp"
 
 GLenum GetShaderType(ShaderType shaderType)

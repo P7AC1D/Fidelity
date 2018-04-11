@@ -8,7 +8,7 @@
   #include <GL/glew.h>
 #endif
 
-#include "../Core/Types.hpp"
+#include "../../Core/Types.hpp"
 
 #ifdef __clang__
   #define ASSERT(x) if (!(x)) __asm__("int $3")
