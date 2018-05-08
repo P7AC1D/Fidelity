@@ -22,14 +22,14 @@ public:
   void SetTexture(const std::string& name, std::shared_ptr<Texture> texture);
   void SetShadowsCast(bool castShadows) { _castShadows = castShadows; }
 
-  bool HasTexture(const std::string& name);
+  bool HasTexture(const std::string& name)  const;
 
   inline const Colour& GetAmbientColour() const { return _ambientColour; }
   inline const Colour& GetDiffuseColour() const { return _diffuseColour; }
   inline const Colour& GetSpecularColour() const { return _specularColour; }
   inline float32 GetSpecularExponent() const { return _specularShininess; }
 
-  std::shared_ptr<Texture> GetTexture(const std::string& name);
+  std::shared_ptr<Texture> GetTexture(const std::string& name) const;
   bool AreShadowsCast() const { return _castShadows; }
 
 private:

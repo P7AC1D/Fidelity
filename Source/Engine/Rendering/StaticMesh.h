@@ -6,10 +6,12 @@
 #include "../Core/Types.hpp"
 #include "../Maths/Vector2.hpp"
 #include "../Maths/Vector3.hpp"
-#include "Material.h"
+#include "VertexBuffer.h"
 
 namespace Rendering
 {
+class IndexBuffer;
+class Material;
 class VertexBuffer;
 
 enum VertexDataFormat : int32
@@ -24,34 +26,49 @@ enum VertexDataFormat : int32
 class StaticMesh
 {
 public:
-  StaticMesh(const std::string& meshName, std::shared_ptr<Rendering::Material> material = std::make_shared<Rendering::Material>());
+  StaticMesh(const std::string& meshName);
   ~StaticMesh();
 
   void SetPositionVertexData(const std::vector<Vector3>& positionData);
   void SetNormalVertexData(const std::vector<Vector3>& normalData);
   void SetTextureVertexData(const std::vector<Vector2>& textureData);
+  void SetTangentVertexData(const std::vector<Vector3>& tangentData);
+  void SetBitangentVertexData(const std::vector<Vector3>& bitangentData);
   void SetIndexData(const std::vector<uint32>& indexData);
 
-  inline const std::vector<Vector3>& GetPositionVertexData() const { return _positionData; }
-  inline const std::vector<Vector3>& GetNormalVertexData() const { return _normalData; }
-  inline const std::vector<Vector3>& GetTangentVertexData() const { return _tangentData; }
-  inline const std::vector<Vector3>& GetBitangentVertexData() const { return _bitangentData; }
-  inline const std::vector<Vector2>& GetTextureVertexData() const { return _textureData; }
+  inline const std::vector<Vector3>& GetPositionVertexData() { return _positionData; }
+  inline const std::vector<Vector3>& GetNormalVertexData() { return _normalData; }
+  inline const std::vector<Vector3>& GetTangentVertexData() { return _tangentData; }
+  inline const std::vector<Vector3>& GetBitangentVertexData() { return _bitangentData; }
+  inline const std::vector<Vector2>& GetTextureVertexData() { return _textureData; }
+
+  inline uint32 GetVertexCount() const { return _vertexCount; }
+  inline uint32 GetIndexCount() const { return _indexCount; }
 
   void CalculateTangents(const std::vector<Vector3>& positionData, const std::vector<Vector2>& textureData);
+  void GenerateTangents();
+  void GenerateNormals();
 
-  std::shared_ptr<Rendering::Material> GetMaterial();
-  std::shared_ptr<Rendering::VertexBuffer> GetVertexData();
+  std::shared_ptr<Material> GetMaterial();
+  std::shared_ptr<VertexBuffer> GetVertexData() const;
 
-  bool IsInitialized() const { return _isInitialized; }
+  void Draw();
+
+  bool IsInitialized() const { return _isDirty; }
 
 private:
   std::vector<float32> CreateRestructuredVertexDataArray(int32& stride) const;
   std::vector<float32> CreateVertexDataArray() const;
+  void UploadVertexData();
+  void UploadIndexData();
+  void SetVertexAttribs();
+
+private:
 
   std::string _name;
-  std::shared_ptr<Rendering::Material> _material;
-  std::shared_ptr<Rendering::VertexBuffer> _vertexBuffer;
+  std::shared_ptr<IndexBuffer> _indexBuffer;
+  std::shared_ptr<Material> _material;
+  std::shared_ptr<VertexBuffer> _vertexBuffer;
   std::vector<Vector3> _positionData;
   std::vector<Vector3> _normalData;
   std::vector<Vector3> _tangentData;
@@ -60,7 +77,9 @@ private:
   std::vector<uint32> _indexData;
   int32 _vertexDataFormat;
   int32 _vertexCount;
-  bool _isInitialized;
+  int32 _indexCount;
+  bool _isDirty;
+  bool _indexed;
 
   friend class Renderer;
 };

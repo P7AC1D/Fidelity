@@ -4,25 +4,22 @@
 #include <unordered_map>
 #include <vector>
 
+#include "../Core/System.hpp"
 #include "../Core/Types.hpp"
 #include "../Maths/Colour.hpp"
 #include "../Maths/Vector3.hpp"
 #include "../SceneManagement/Light.h"
-#include "../SceneManagement/OrbitalCamera.h"
+#include "../SceneManagement/Camera.hpp"
 #include "../SceneManagement/Transform.h"
 #include "Renderable.hpp"
 
-namespace UI
-{
-class Panel;
-class UiManager;
-}
+class SkyBox;
+class TextOverlay;
 
 namespace Rendering
 {
   class ConstantBuffer;
-  class CubeMap;
-  class FrameBuffer;
+  class RenderTarget;
   class Shader;
   class ShaderCollection;
   class StaticMesh;
@@ -30,11 +27,17 @@ namespace Rendering
   class VertexBuffer;
   enum class RenderingTechnique;
 
-enum class ClearType
+enum ClearType : uint8
 {
-  Color,
-  Depth,
-  All,
+  CT_Colour = 1 << 0,
+  CT_Depth = 1 << 1,
+  CT_Stencil = 1 << 2
+};
+
+enum class BlendType
+{
+  SrcAlpha,
+  OneMinusSrcAlpha
 };
 
 struct RenderableItem
@@ -48,41 +51,54 @@ struct RenderableItem
   std::shared_ptr<Transform> Transform;
 };
 
-class Renderer
+class Renderer : public System<Renderer>
 {
 public:
-  Renderer(int32 renderWidth, int32 renderHeight);
-  virtual ~Renderer();
+  ~Renderer();
 
   inline void SetAmbientLight(const Colour& ambientLight) { _ambientLight = ambientLight; }
-  inline void PushRenderable(std::shared_ptr<Renderable> renderable, std::shared_ptr<Transform> transform) 
-  { 
-    _renderables.emplace_back(renderable, transform);
-  }
+  inline void SetSkyBox(std::shared_ptr<SkyBox> skyBox) { _skyBox = skyBox; }
+  inline void PushRenderable(std::shared_ptr<Renderable> renderable, std::shared_ptr<Transform> transform) { _renderables.emplace_back(renderable, transform); }
   inline void PushPointLight(const Light& pointLight) { _pointLights.push_back(pointLight); }
   inline void PushDirectionalLight(const Light& directionalLight) { _directionalLights.push_back(directionalLight); }
 
+  inline uint32 GetWidth() const { return _renderWidth; }
+  inline uint32 GetHeight() const { return _renderHeight; }
+
   void SetClearColour(const Colour& colour);
 
-  void DrawScene(OrbitalCamera& camera);
+  void DrawScene(std::weak_ptr<Camera> camera);
 
-  void DrawUI(std::vector<std::shared_ptr<UI::Panel>> panelCollection);
+  static void Draw(uint32 vertexCount, uint32 vertexOffset = 0);
+  static void DrawIndexed(uint32 indexCount);
+
   bool Initialize();
+  
+  void SetRenderDimensions(uint32 width, uint32 height);
 
-  static void SetVertexAttribPointers(StaticMesh* staticMesh, int32 stride);
+  void EnableBlend(BlendType source, BlendType destination);
+  void DisableBlend();
+  
+  void EnableDepthTest();
+  void DisableDepthTest();
+  void EnableStencilTest();
+  void DisableStencilTest();
 
 private:
-  void SetViewport(int32 renderWidth, int32 renderHeight);
-  
-  void UploadCameraData(OrbitalCamera& camera);
+  void SetViewport(uint32 renderWidth, uint32 renderHeight);  
+  Renderer();
+
   void UploadPointLightData(const Light& pointLight);
   void UploadDirectionalLightData(const Light& directionalLight);
 
-  void DirLightColourPass(OrbitalCamera& camera, const Matrix4& lightSpaceTransform, std::shared_ptr<Texture> shadowMap, const Vector2& shadowTexelSize);
-  void DirLightDepthPass(const Matrix4& lightSpaceTransform, uint32 shadowRes);
-  void PointLightRender(OrbitalCamera& camera);
+  void ExecuteDirectionalLightDepthPass(const Matrix4& lightSpaceTransform, uint32 shadowResolution);
+  void ExecuteGeometryPass(std::weak_ptr<Camera> camera);
+  void ExecuteLightingPass(std::weak_ptr<Camera> camera, const Matrix4& lightSpaceTransform);
+  void DrawSkyBox(std::weak_ptr<Camera> camera);
 
-  void ClearBuffer(ClearType clearType);
+  void ClearBuffer(uint32 clearType);
+
+  Matrix4 BuildLightSpaceTransform(const Light& directionalLight);
 
 private:
   std::vector<RenderableItem> _renderables;
@@ -91,19 +107,22 @@ private:
   
   std::unique_ptr<ShaderCollection> _shaderCollection;
 
-  std::unique_ptr<ConstantBuffer> _cameraBuffer;
   std::unique_ptr<ConstantBuffer> _lightBuffer;
   std::unique_ptr<ConstantBuffer> _ambientLightBuffer;
-  bool _projectionMatrixDirty;
-  bool _viewMatrixDirty;
 
-  std::unique_ptr<VertexBuffer> _guiQuadVertexData;
+  std::unique_ptr<VertexBuffer> _quadVertexData;
   std::unique_ptr<VertexBuffer> _skyBoxVertexData;
   
-  std::unique_ptr<FrameBuffer> _depthBuffer;
+  std::shared_ptr<RenderTarget> _gBuffer;
+  std::shared_ptr<RenderTarget> _depthBuffer;
 
-  int32 _renderWidth;
-  int32 _renderHeight;
+  std::shared_ptr<SkyBox> _skyBox;
+
+  uint32 _renderWidth;
+  uint32 _renderHeight;
+  uint32 _shadowResolution = 4096;
   Colour _ambientLight;
+
+  friend class System<Renderer>;
 };
 }

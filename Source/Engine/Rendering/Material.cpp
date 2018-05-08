@@ -13,13 +13,13 @@ void Material::SetTexture(const std::string& name, std::shared_ptr<Texture> text
   _textures[name] = texture;
 }
 
-bool Material::HasTexture(const std::string& name)
+bool Material::HasTexture(const std::string& name) const
 {
   auto iter = _textures.find(name);
   return iter != _textures.end();
 }
 
-std::shared_ptr<Texture> Material::GetTexture(const std::string& name)
+std::shared_ptr<Texture> Material::GetTexture(const std::string& name) const
 {
   auto iter = _textures.find(name);
   if (iter == _textures.end())

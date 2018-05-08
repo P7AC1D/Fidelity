@@ -4,7 +4,7 @@
 #include <string>
 
 #include "../Core/Types.hpp"
-#include "../Maths/Vector2i.hpp"
+#include "../Maths/Vector2I.hpp"
 #include "InputBindings.hpp"
 
 class EventDispatcher;
@@ -25,8 +25,8 @@ struct InputEvent
   Button Button = Button::_null;
   ButtonEvent ButtonEvent = ButtonEvent::_null;
   Axis Axis = Axis::_null;
-  Vector2i AxisPos = Vector2i::Zero;
-  Vector2i AxisPosDelta = Vector2i::Zero;
+  Vector2I AxisPos = Vector2I::Zero;
+  Vector2I AxisPosDelta = Vector2I::Zero;
 };
 
 class InputHandler
@@ -53,8 +53,6 @@ private:
   std::unordered_map<Axis, State> _axisStateBindings;
 
   std::array<bool, static_cast<size_t>(Button::_count)> _buttonsDown;
-  std::array<float32, static_cast<size_t>(Axis::_count)> _currentAxisValues;
-  std::array<float32, static_cast<size_t>(Axis::_count)> _prevAxisValues;
 
   const EventDispatcher& _eventDispatcher;
 };

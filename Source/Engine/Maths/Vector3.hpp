@@ -52,9 +52,9 @@ public:
   friend Vector3 operator-(float32 lhs, const Vector3& rhs);
   friend Vector3 operator*(float32 lhs, const Vector3& rhs);
   
-private:
-  float32 _x;
-  float32 _y;
-  float32 _z;
+public:
+  float32 X;
+  float32 Y;
+  float32 Z;
 };
 

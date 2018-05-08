@@ -36,10 +36,10 @@ enum class ShaderDataType
 struct ShaderUniform
 {
   ShaderUniform(uint32 location, uint32 size, ShaderDataType type, const std::string& name):
+    Name(name),
     Location(location),
-    Size(size),
     Type(type),
-    Name(name)
+    Size(size)
   {}
 
   std::string Name;
@@ -48,11 +48,26 @@ struct ShaderUniform
   uint32 Size;
 };
 
+struct ShaderUniformBlock
+{
+  ShaderUniformBlock(const std::string& name, uint32 bindingPoint):
+    Name(name),
+    BindingPoint(bindingPoint)
+  {}
+
+  std::string Name;
+  uint32 BindingPoint;
+};
+
 class Shader
 {
 public:
+  virtual ~Shader();
+
+  bool operator<(const Shader& rhs) const;
+
+protected:
   Shader(const std::string& fileName);
-  ~Shader();
 
   void SetBool(const std::string& uniformName, bool value);
 
@@ -68,10 +83,8 @@ public:
   void SetVec3Array(const std::string& uniformName, const std::vector<Vector3>& values);
   void SetVec4Array(const std::string& uniformName, const std::vector<Vector4>& values);
 
-  void BindUniformBlock(int32 location, int32 bindingPoint, int32 ubo, int32 sizeBytes);
-  
-  int32 GetAttributeLocation(const std::string& name);
-  int32 GetUniformBlockIndex(const std::string& name);
+  void BindUniformBlock(int32 location, int32 bindingPoint, int32 ubo);  
+  int32 GetUniformBlockBindingPoint(const std::string& name);
 
   void Bind();
   void Unbind();
@@ -85,6 +98,7 @@ private:
   void AttachShaders(uint32 vertexShaderId, uint32 fragmentShaderId);
   void Link();
   void BuildUniformDeclaration();
+  void BuildUniformBufferDeclaration();
 
   int32 GetUniformLocation(const std::string& name);
 
@@ -92,5 +106,8 @@ private:
   uint32 _programId;
   std::string _fileName;  
   std::unordered_map<std::string, ShaderUniform> _uniforms;
+  std::unordered_map<std::string, ShaderUniformBlock> _uniformBlocks;
+
+  friend class RenderApi;
 };
 }

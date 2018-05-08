@@ -2,9 +2,13 @@
 
 #include <algorithm>
 #include <fstream>
-#include <exception>
 #include <memory>
+#include <stdexcept>
 #include <vector>
+
+#include <assimp/Importer.hpp>
+#include <assimp/scene.h>
+#include <assimp/postprocess.h>
 
 #include "../Maths/Colour.hpp"
 #include "../Maths/Vector2.hpp"
@@ -12,6 +16,7 @@
 #include "../Rendering/Material.h"
 #include "../Rendering/Renderable.hpp"
 #include "../Rendering/StaticMesh.h"
+#include "../Rendering/Texture.hpp"
 #include "../Utility/AssetManager.h"
 #include "../Utility/StringUtil.h"
 
@@ -19,245 +24,155 @@ using namespace Rendering;
 
 namespace Utility
 {
-struct MaterialData
+void BuildIndexData(const aiFace* faces, uint32 indexCount, std::vector<uint32>& indicesOut)
 {
-  MaterialData(const std::string& name) :
-    Name(name)
+  indicesOut.reserve(indexCount);
+  for (uint32 i = 0; i < indexCount; i++)
   {
-  }
-
-  std::string Name;
-  float32 SpecularExponent;
-  Colour AmbientColour;
-  Colour DiffuseColour;
-  Colour SpecularColour;
-  Colour EmittanceColour;
-  std::string MapKd;
-  std::string MapKn;
-};
-
-void BuildVertexFromIndexTriplet(const std::string& line, const std::vector<Vector3>& positions,
-                                 const std::vector<Vector3>& normals, const std::vector<Vector2>& texCoords,
-                                 std::vector<Vector3>& positionsOut, std::vector<Vector3>& normalsOut,
-                                 std::vector<Vector2>& texCoordsOut)
-{
-  auto vertexTokens = StringUtil::Split(line, ' ');
-  if (vertexTokens.size() > 4)
-  {
-    throw std::runtime_error("Only triangulated faces are supported.");
-  }
-
-  for (uint32 i = 1; i < 4; i++)
-  {
-    auto indexToken = StringUtil::Split(vertexTokens[i], '/');
-    auto indexTokenCount = indexToken.size();
-    if (indexTokenCount == 1) // v
+    auto face = faces + i;
+    if (face->mNumIndices != 3)
     {
-      positionsOut.push_back(positions[std::stoi(indexToken[0]) - 1]);
+      throw std::runtime_error("Non-triangle face read");
     }
-    else if (indexTokenCount == 2) // v/vt
-    {
-      positionsOut.push_back(positions[std::stoi(indexToken[0]) - 1]);
-      texCoordsOut.push_back(texCoords[std::stoi(indexToken[1]) - 1]);
-    }
-    else if (indexTokenCount == 3)
-    {
-      if (indexToken[1] == "") // v//vn
-      {
-        positionsOut.push_back(positions[std::stoi(indexToken[0]) - 1]);
-        normalsOut.push_back(normals[std::stoi(indexToken[2]) - 1]);
-      }
-      else // v/vt/vn
-      {
-        positionsOut.push_back(positions[std::stoi(indexToken[0]) - 1]);
-        texCoordsOut.push_back(texCoords[std::stoi(indexToken[1]) - 1]);
-        normalsOut.push_back(normals[std::stoi(indexToken[2]) - 1]);
-      }
-    }
-    else
-    {
-      throw std::runtime_error("Face vertices must only contain either positions, normals or texture-coordinates.");
-    }
+    indicesOut.push_back(face->mIndices[0]);
+    indicesOut.push_back(face->mIndices[1]);
+    indicesOut.push_back(face->mIndices[2]);
   }
 }
 
-std::vector<std::shared_ptr<MaterialData>> LoadMaterialsFromFile(std::ifstream& fstream)
+void BuildTexCoordData(const aiVector3D* texCoords, uint32 texCoordCount, std::vector<Vector2>& texCoordsOut)
 {
-  std::vector<std::shared_ptr<MaterialData>> materials;
-  std::shared_ptr<MaterialData> material;
-
-  std::string line;
-  while (std::getline(fstream, line))
+  texCoordsOut.reserve(texCoordCount);
+  for (uint32 i = 0; i < texCoordCount; i++)
   {
-    auto tokens = StringUtil::Split(line, ' ');
-    if (tokens[0] == "#" && tokens[1] == "Material" && tokens[2] == "Count:")
-    {
-      materials.reserve(std::stoi(tokens[3]));
-    }
-    else if (tokens[0] == "newmtl")
-    {
-      material.reset(new MaterialData(tokens[1]));      
-      materials.push_back(material);
-    }
-    else if (tokens[0] == "Ns")
-    {
-      material->SpecularExponent = std::stof(tokens[1]);
-    }
-    else if (tokens[0] == "Ka")
-    {
-      Vector3 colour(std::stof(tokens[1]), std::stof(tokens[2]), std::stof(tokens[3]));
-      material->AmbientColour = Colour(colour);
-    }
-    else if (tokens[0] == "Kd")
-    {
-      Vector3 colour(std::stof(tokens[1]), std::stof(tokens[2]), std::stof(tokens[3]));
-      material->DiffuseColour = Colour(colour);
-    }
-    else if (tokens[0] == "Ks")
-    {
-      Vector3 colour(std::stof(tokens[1]), std::stof(tokens[2]), std::stof(tokens[3]));
-      material->SpecularColour = Colour(colour);
-    }
-    else if (tokens[0] == "Ke")
-    {
-      Vector3 colour(std::stof(tokens[1]), std::stof(tokens[2]), std::stof(tokens[3]));
-      material->EmittanceColour = Colour(colour);
-    }
-    else if (tokens[0] == "map_Kd")
-    {
-      material->MapKd = tokens[1];
-    }
-    else
-    {
-      // Ignore other types
-    }    
+    texCoordsOut.emplace_back(texCoords[i].x, texCoords[i].y);
   }
-  return materials;
 }
 
-std::shared_ptr<Renderable> ObjLoader::LoadFromFile(const std::string& filePath, const std::string& fileName, Utility::AssetManager& assetManager)
+void BuildVertexData(const aiVector3D* vertices, uint32 verexCount, std::vector<Vector3>& verticesOut)
 {
-  std::ifstream fstream;
-  fstream.open(filePath + fileName, std::fstream::in);
-  if (!fstream.is_open())
+  verticesOut.reserve(verexCount);
+  for (uint32 i = 0; i < verexCount; i++)
   {
-    throw std::runtime_error("Failed to open file '" + filePath + "'");
+    verticesOut.emplace_back(vertices[i].x, vertices[i].y, vertices[i].z);
   }
-    
-  std::shared_ptr<Renderable> activeModel = nullptr;
-  std::shared_ptr<StaticMesh> activeMesh = nullptr;
-  std::shared_ptr<Material> activeMaterial = nullptr;
+}
 
-  std::vector<std::shared_ptr<MaterialData>> materials;
-  std::vector<Renderable> models;
-  models.reserve(4);
-  
-  std::vector<Vector3> positions;
+void BuildMaterial(const std::string& filePath, const aiMaterial* aiMaterial, std::shared_ptr<Rendering::Material> material)
+{
+  aiColor3D ambientColour;
+  aiMaterial->Get(AI_MATKEY_COLOR_AMBIENT, ambientColour);
+  material->SetAmbientColour(Vector3(ambientColour.r, ambientColour.g, ambientColour.b));
+
+  aiColor3D diffuseColour;
+  aiMaterial->Get(AI_MATKEY_COLOR_DIFFUSE, diffuseColour);
+  material->SetDiffuseColour(Vector3(diffuseColour.r, diffuseColour.g, diffuseColour.b));
+
+  aiColor3D specularColour;
+  aiMaterial->Get(AI_MATKEY_COLOR_SPECULAR, specularColour);
+  material->SetSpecularColour(Vector3(specularColour.r, specularColour.g, specularColour.b));
+
+  float32 specularShininess;
+  aiMaterial->Get(AI_MATKEY_SHININESS, specularShininess);
+  material->SetSpecularShininess(specularShininess);
+
+  aiString diffuseTexturePath;
+  aiMaterial->Get(AI_MATKEY_TEXTURE(aiTextureType_DIFFUSE, 0), diffuseTexturePath);
+  if (diffuseTexturePath.length != 0)
+  {
+    auto diffuseTexture = AssetManager::GetTexture(filePath + diffuseTexturePath.C_Str());
+    diffuseTexture->SetWrapMethod(WrapMethod::Repeat);
+    diffuseTexture->GenerateMipMaps();
+    material->SetTexture("DiffuseMap", diffuseTexture);
+  }
+
+  // Assimp for some reason loads normal maps as aiTextureType_HEIGHT - this is probably a bug.
+  aiString normalTexturePath;
+  aiMaterial->Get(AI_MATKEY_TEXTURE(aiTextureType_HEIGHT, 0), normalTexturePath);
+  if (normalTexturePath.length != 0)
+  {
+    auto normalTexture = AssetManager::GetTexture(filePath + normalTexturePath.C_Str());
+    normalTexture->SetWrapMethod(WrapMethod::Repeat);
+    normalTexture->GenerateMipMaps();
+    material->SetTexture("NormalMap", normalTexture);
+  }
+
+  aiString specularTexturePath;
+  aiMaterial->Get(AI_MATKEY_TEXTURE(aiTextureType_SPECULAR, 0), specularTexturePath);
+  if (specularTexturePath.length != 0)
+  {
+    auto specularTexture = AssetManager::GetTexture(filePath + specularTexturePath.C_Str());
+    specularTexture->SetWrapMethod(WrapMethod::Repeat);
+    specularTexture->GenerateMipMaps();
+    material->SetTexture("SpecularMap", specularTexture);
+  }
+}
+
+std::shared_ptr<StaticMesh> BuildMesh(const std::string& filePath, const aiMesh* aiMesh, const aiMaterial* aiMaterial)
+{
+  if (!aiMesh->HasPositions() || !aiMesh->HasNormals())
+  {
+    return nullptr;
+  }
+
+  std::shared_ptr<StaticMesh> mesh(new StaticMesh(aiMesh->mName.C_Str()));
+  auto material = mesh->GetMaterial();
+  BuildMaterial(filePath, aiMaterial, material);
+
+  std::vector<Vector3> vertices;
   std::vector<Vector3> normals;
-  std::vector<Vector2> texCoords;
+  BuildVertexData(aiMesh->mVertices, aiMesh->mNumVertices, vertices);
+  BuildVertexData(aiMesh->mNormals, aiMesh->mNumVertices, normals);
 
-  std::vector<Vector3> positionsOut;
-  std::vector<Vector3> normalsOut;
-  std::vector<Vector2> texCoordsOut;
-  
-  std::string line;
-  while (std::getline(fstream, line))
+  mesh->SetPositionVertexData(vertices);
+  mesh->SetNormalVertexData(normals);
+
+  // Assume that mesh contains a single set of texture coordinate data.
+  if (aiMesh->HasTextureCoords(0))
   {
-    auto tokens = StringUtil::Split(line, ' ');
-    if (tokens[0] == "o")
-    {
-      if (activeModel != nullptr)
-      {
-        positions.clear();
-        normals.clear();
-        texCoords.clear();
-
-        activeMesh->SetPositionVertexData(positionsOut);
-        activeMesh->SetNormalVertexData(normalsOut);
-        activeMesh->SetTextureVertexData(texCoordsOut);        
-        activeModel->PushMesh(*activeMesh);
-        models.push_back(*activeModel);
-
-        positionsOut.clear();
-        normalsOut.clear();
-        texCoordsOut.clear();
-      }
-      activeModel.reset(new Renderable);
-    }
-    else if (tokens[0] == "mtllib")
-    {
-      std::ifstream matFile;
-      std::string matFilePath = filePath + &line[7];
-      matFile.open(matFilePath, std::fstream::in);
-      if (!matFile.is_open())
-      {
-        throw std::runtime_error("Failed to open file '" + matFilePath + "'");
-      }
-      materials = LoadMaterialsFromFile(matFile);
-    }
-    else if (tokens[0] == "v")
-    {
-      positions.emplace_back(std::stof(tokens[1]), std::stof(tokens[2]), std::stof(tokens[3]));
-    }
-    else if (tokens[0] == "vn")
-    {
-      normals.emplace_back(std::stof(tokens[1]), std::stof(tokens[2]), std::stof(tokens[3]));
-    }
-    else if (tokens[0] == "vt")
-    {
-      texCoords.emplace_back(std::stof(tokens[1]), std::stof(tokens[2]));
-    }
-    else if (tokens[0] == "usemtl")
-    {
-      auto iter = std::find_if(materials.begin(), materials.end(), [&](const std::shared_ptr<MaterialData>& material)
-      {
-        return material->Name == tokens[1];
-      });
-      if (iter == materials.end())
-      {
-        throw std::runtime_error("Could not find a material with name " + tokens[1]);
-      }
-
-      if (activeMesh != nullptr)
-      {
-        activeMesh->SetPositionVertexData(positionsOut);
-        activeMesh->SetNormalVertexData(normalsOut);
-        activeMesh->SetTextureVertexData(texCoordsOut);
-        activeModel->PushMesh(*activeMesh);
-
-        positionsOut.clear();
-        normalsOut.clear();
-        texCoordsOut.clear();
-      }
-
-      activeMesh.reset(new StaticMesh(tokens[1]));
-      auto material = activeMesh->GetMaterial();
-      material->SetAmbientColour((*iter)->AmbientColour);
-      material->SetDiffuseColour((*iter)->DiffuseColour);
-      material->SetSpecularColour((*iter)->SpecularColour);
-      material->SetSpecularShininess((*iter)->SpecularExponent);
-      if ((*iter)->MapKd != "")
-      {
-        material->SetTexture("DiffuseMap", assetManager.GetTexture(filePath, (*iter)->MapKd));
-      }
-    }
-    else if (tokens[0] == "f")
-    {
-      BuildVertexFromIndexTriplet(line, positions, normals, texCoords, positionsOut, normalsOut, texCoordsOut);
-    }
-    else if (tokens[0] == "#")
-    {
-      // do nothing
-    }
+    std::vector<Vector2> texCoords;
+    BuildTexCoordData(aiMesh->mTextureCoords[0], aiMesh->mNumVertices, texCoords);
+    mesh->SetTextureVertexData(texCoords);
   }
 
-  activeMesh->SetPositionVertexData(positionsOut);
-  activeMesh->SetNormalVertexData(normalsOut);
-  activeMesh->SetTextureVertexData(texCoordsOut);
-  activeModel->PushMesh(*activeMesh);
-  models.push_back(*activeModel);
-  std::shared_ptr<Renderable> model(new Renderable(models[0]));
-  return model;
+  if (aiMesh->HasFaces())
+  {
+    std::vector<uint32> indices;
+    BuildIndexData(aiMesh->mFaces, aiMesh->mNumFaces, indices);
+    mesh->SetIndexData(indices);
+  }
+
+  return mesh;
+}
+
+std::shared_ptr<Renderable> BuildModel(const std::string& filePath, const aiScene* scene)
+{
+  if (!scene->HasMeshes() || !scene->HasMaterials())
+  {
+    return nullptr;
+  }
+
+  std::shared_ptr<Renderable> renderable(new Renderable);
+  for (uint32 i = 0; i < scene->mNumMeshes; i++)
+  {
+    auto aiMesh = scene->mMeshes[i];
+    auto mesh = BuildMesh(filePath, aiMesh, scene->mMaterials[aiMesh->mMaterialIndex]);
+    renderable->PushMesh(mesh);
+  }
+
+  return renderable;
+}
+
+std::shared_ptr<Renderable> ObjLoader::LoadFromFile(const std::string& filePath, const std::string& fileName)
+{
+  Assimp::Importer importer;
+  auto scene = importer.ReadFile(RESOURCE_PATH + filePath + fileName, aiProcess_Triangulate);
+  if (!scene)
+  {
+    throw std::runtime_error("Failed to load model from " + filePath + fileName);
+    return nullptr;
+  }
+  return BuildModel(filePath, scene);
 }
 }
 

@@ -5,8 +5,8 @@
 #include "Transform.h"
 
 WorldObject::WorldObject(const std::string& name) :
-  _name(std::move(name)),
   _isDirty(true),
+  _name(std::move(name)),
   _transform(new Transform)
 {}
 

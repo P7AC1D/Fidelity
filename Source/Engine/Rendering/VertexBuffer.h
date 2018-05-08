@@ -2,49 +2,64 @@
 #include <vector>
 
 #include "../Core/Types.hpp"
-#include "OpenGL.h"
 
 namespace Rendering
 {
-enum class BufferUsage : GLenum
+enum class BufferUsage
 {
-  Static = GL_STATIC_DRAW,
-  Dynamic = GL_DYNAMIC_DRAW
+  Static,
+  Dynamic,
 };
 
-enum class BufferType : GLenum
+enum class VertexAttribType
 {
-  Array = GL_ARRAY_BUFFER,
-  Texture = GL_TEXTURE_BUFFER,
-  Uniform = GL_UNIFORM_BUFFER,
+  Vec2,
+  Vec3,
+  Vec4
 };
+
+struct VertexAttrib;
 
 class VertexBuffer
 {
 public: 
-  VertexBuffer(BufferType bufferType = BufferType::Array);
+  VertexBuffer();
   ~VertexBuffer();
+  
+  inline uint32 GetId() const { return _vao; }
+
+  void Apply();
+  void PushVertexAttrib(VertexAttribType vertexDeclType);
+  void ResetVertexAttribs();
 
   template<typename T>
   void UploadData(const std::vector<T>& data, BufferUsage bufferUsage);
 
 private:
-  void UploadData(const void* dataPtr, int32 dataBytes, uint32 bufferUsage);
+  void Bind();
+  void Unbind();
+  void UploadData(const void* dataPtr, int32 dataBytes, BufferUsage bufferUsage);
 
-  VertexBuffer(VertexBuffer&) = delete;
-  VertexBuffer(VertexBuffer&&) = delete;
-  VertexBuffer& operator=(VertexBuffer&) = delete;
-  VertexBuffer& operator=(VertexBuffer&&) = delete;
+  void RefreshVertexAttribs();
 
-  uint32 _vaoId;
-  BufferType _bufferType;
+  VertexBuffer(const VertexBuffer& buffer) = delete;
+  VertexBuffer(const VertexBuffer&& buffer) = delete;
+  VertexBuffer& operator=(const VertexBuffer& buffer) = delete;
+  VertexBuffer& operator=(const VertexBuffer&& buffer) = delete;
 
-  friend class Renderer;
+private:
+  uint32 _vao;
+  uint32 _vbo;
+  uint32 _vertexAttributeCount;
+  uint32 _vertexStrideBytes;
+  uint32 _vertexOffsetBytes;
+  bool _refreshVertexAttribs;
+  std::vector<VertexAttrib> _vertexAttribs;
 };
 
 template<typename T>
 inline void VertexBuffer::UploadData(const std::vector<T>& data, BufferUsage bufferUsage)
 {
-  UploadData(reinterpret_cast<const void*>(data.data()), static_cast<int32>(sizeof(T) * data.size()), static_cast<uint32>(bufferUsage));
+  UploadData(reinterpret_cast<const void*>(&data[0]), static_cast<int32>(sizeof(T) * data.size()), bufferUsage);
 }
 }

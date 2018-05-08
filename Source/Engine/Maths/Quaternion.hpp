@@ -26,6 +26,7 @@ public:
   float32 operator[](uint32 i) const;
   
   Quaternion& operator=(const Quaternion& rhs);
+  Quaternion& operator=(const Matrix3& rotMat);
   
   Quaternion operator+(float32 rhs) const;
   Quaternion operator-(float32 rhs) const;
@@ -58,13 +59,13 @@ public:
   friend Quaternion operator*(float32 lhs, const Quaternion& rhs);
   
 private:
-  static Quaternion Multiply(const Quaternion& q1, const Quaternion& q2);
   void FromEulerAngles(const Radian& pitch, const Radian& yaw, const Radian& roll);
   void FromAxisAngle(const Vector3& axis, const Radian& angle);
+  void FromRotationMatrix(const Matrix3& rotMatrix);
   
-private:
-  float32 _x;
-  float32 _y;
-  float32 _z;
-  float32 _w;
+public:
+  float32 X;
+  float32 Y;
+  float32 Z;
+  float32 W;
 };

@@ -69,6 +69,14 @@ Colour& Colour::operator=(const Colour& rhs)
   return *this;
 }
 
+bool Colour::operator==(const Colour& rhs) const
+{
+  return _red == rhs._red
+    && _green == rhs._green
+    && _blue == rhs._blue
+    && _alpha == rhs._alpha;
+}
+
 float32 Colour::operator[](int32 i) const
 {
   assert(i < 4);
