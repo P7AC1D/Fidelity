@@ -14,6 +14,15 @@ GLenum GetShaderType(ShaderType shaderType)
     case ShaderType::Hull: return GL_TESS_EVALUATION_SHADER;
     case ShaderType::Geometry: return GL_GEOMETRY_SHADER;
   }
+  throw std::runtime_error("Unsupported ShaderType");
+}
+
+GLShader::~GLShader()
+{
+  if (_id != 0)
+  {
+    GLCall(glDeleteShaders(1, &_id));
+  }
 }
 
 void GLShader::Compile()

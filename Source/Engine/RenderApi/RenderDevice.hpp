@@ -4,10 +4,12 @@
 #include "GpuBuffer.hpp"
 #include "PipelineState.hpp"
 #include "RasterizerState.hpp"
+#include "RenderTarget.hpp"
 #include "Shader.hpp"
+#include "Texture.hpp"
 #include "VertexLayout.hpp"
 
-struct Viewport
+struct ViewportDesc
 {
   float32 TopLeftX;
   float32 TopLeftY;
@@ -38,10 +40,14 @@ public:
   virtual std::shared_ptr<VertexLayout> CreateVertexLayout(const VertexLayoutDesc& desc) = 0;
   virtual std::shared_ptr<Shader> CreateShader(const ShaderDesc& desc) = 0;
   virtual std::shared_ptr<GpuBuffer> CreateGpuBuffer(const GpuBufferDesc& desc) = 0;
+  virtual std::shared_ptr<Texture> CreateTexture(const TextureDesc& desc) = 0;
+  virtual std::shared_ptr<RenderTarget> CreateRenderTarget(const RenderTargetDesc& desc) = 0;
 
-  virtual void SetPipelineState(std::weak_ptr<PipelineState> pipelineState) = 0;
+  virtual void SetPipelineState(const std::shared_ptr<PipelineState>& pipelineState) = 0;
   virtual void SetPrimitiveTopology(PrimitiveTopology primitiveTopology) = 0;
-  virtual void SetViewport(const Viewport& viewport) = 0;
+  virtual void SetTexture(uint32 slot, const std::shared_ptr<Texture>& texture) = 0;
+  virtual void SetRenderTarget(const std::shared_ptr<RenderTarget>& renderTarget) = 0;
+  virtual void SetViewport(const ViewportDesc& viewport) = 0;
 
   virtual void Draw(uint32 vertexCount, uint32 vertexOffset) = 0;
   virtual void DrawIndexed(uint32 indexCount, uint32 indexOffset, uint32 vertexOffset) = 0;

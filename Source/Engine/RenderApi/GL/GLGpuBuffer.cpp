@@ -60,7 +60,7 @@ void GLGpuBuffer::CopyData(GpuBuffer* dst, uint64 srcByteOffset, uint64 dstByteO
   GLCall(glBindBuffer(GL_COPY_WRITE_BUFFER, 0));
 }
 
-GLGpuBuffer::GLGpuBuffer(const GpuBufferDesc& desc): _id(0), GpuBuffer(desc)
+GLGpuBuffer::GLGpuBuffer(const GpuBufferDesc& desc): GpuBuffer(desc), _id(0)
 {
   Initialize();
 }

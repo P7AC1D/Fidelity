@@ -4,6 +4,8 @@
 class GLShader : public Shader
 {
 public:
+  virtual ~GLShader();
+  
   uint32 GetId() const { return _id; }
   
   void Compile() override;
