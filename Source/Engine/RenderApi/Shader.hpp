@@ -29,7 +29,7 @@ struct ShaderDesc
 class Shader
 {
 public:
-  Shader(): _isCompiled(false) {}
+  Shader(const ShaderDesc& desc): _desc(desc), _isCompiled(false) {}
   
   const ShaderDesc& GetDesc() const { return _desc; }
   bool IsCompiled() const { return _isCompiled; }

@@ -7,7 +7,7 @@ enum class DepthWriteMask
   All
 };
 
-enum class ComparisonFunc
+enum class ComparisonFunction
 {
   Never,
   Less,
@@ -19,7 +19,7 @@ enum class ComparisonFunc
   Always
 };
 
-enum class StencilOp
+enum class StencilOperation
 {
   Keep,
   Zero,
@@ -31,24 +31,24 @@ enum class StencilOp
   Decr
 };
 
-struct DepthStencilOpDesc
+struct StencilOperationDesc
 {
-  StencilOp StencilFailOp = StencilOp::Keep;
-  StencilOp StencilDepthFailOp = StencilOp::Keep;
-  StencilOp StencilPassOp = StencilOp::Keep;
-  ComparisonFunc StencilFunc = ComparisonFunc::Never;
+  StencilOperation FailOp = StencilOperation::Keep;
+  StencilOperation ZFailOp = StencilOperation::Keep;
+  StencilOperation PassOp = StencilOperation::Keep;
+  ComparisonFunction ComparisonFunc = ComparisonFunction::Never;
 };
 
 struct DepthStencilStateDesc
 {
-  bool DepthEnabled = false;
-  ComparisonFunc DepthFunc = ComparisonFunc::Never;
-  DepthWriteMask DepthWriteMask = DepthWriteMask::Zero;
+  bool DepthWriteEnabled = false;
+  bool DepthReadEnabled = true;
+  ComparisonFunction DepthFunc = ComparisonFunction::Never;
   bool StencilEnabled = false;
   byte StencilReadMask = 0xFF;
   byte StencilWriteMask = 0xFF;
-  DepthStencilOpDesc FrontFace;
-  DepthStencilOpDesc BackFace;
+  StencilOperationDesc FrontFace;
+  StencilOperationDesc BackFace;
 };
 
 class DepthStencilState

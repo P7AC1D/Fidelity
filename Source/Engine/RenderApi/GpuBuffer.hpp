@@ -53,14 +53,16 @@ struct GpuBufferDesc
 class GpuBuffer
 {
 public:
-  GpuBuffer(const GpuBufferDesc& desc) : _desc(desc), _initialized(false) {}
-
   const GpuBufferDesc& GetDesc() const { return _desc; }
+  BufferType GetType() const { return _desc.BufferType; }
   bool IsInitialized() const { return _initialized; }
 
   virtual void WriteData(uint64 byteOffset, uint64 byteCount, const void* src, AccessType accessType = AccessType::WriteOnly) = 0;
   virtual void ReadData(uint64 byteOffset, uint64 byteCount, void* dst) = 0;
   virtual void CopyData(GpuBuffer* dst, uint64 srcByteOffset, uint64 dstByteOffset, uint64 byteCount) = 0;
+  
+protected:
+  GpuBuffer(const GpuBufferDesc& desc) : _desc(desc), _initialized(false) {}
   
 protected:
   GpuBufferDesc _desc;

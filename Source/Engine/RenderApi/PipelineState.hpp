@@ -6,6 +6,7 @@ class BlendState;
 class DepthStencilState;
 class RasterizerState;
 class Shader;
+class ShaderParams;
 class VertexLayout;
 enum class PixelFormat;
 
@@ -35,15 +36,16 @@ struct MultisampleDesc
 
 struct PipelineStateDesc
 {
-  std::weak_ptr<Shader> VS;
-  std::weak_ptr<Shader> PS;
-  std::weak_ptr<Shader> HS;
-  std::weak_ptr<Shader> DS;
-  std::weak_ptr<Shader> GS;
-  std::weak_ptr<BlendState> BlendState;
-  std::weak_ptr<RasterizerState> RasterizerState;
-  std::weak_ptr<DepthStencilState> DepthStencilState;
-  std::weak_ptr<VertexLayout> VertexLayout;
+  std::shared_ptr<Shader> VS;
+  std::shared_ptr<Shader> PS;
+  std::shared_ptr<Shader> HS;
+  std::shared_ptr<Shader> DS;
+  std::shared_ptr<Shader> GS;
+  std::shared_ptr<BlendState> BlendState;
+  std::shared_ptr<RasterizerState> RasterizerState;
+  std::shared_ptr<DepthStencilState> DepthStencilState;
+  std::shared_ptr<VertexLayout> VertexLayout;
+  std::shared_ptr<ShaderParams> ShaderParams;
   PrimitiveTopologyType Topology = PrimitiveTopologyType::Triangle;
   PixelFormat RTFormats[8];
   PixelFormat DSFormat;
@@ -54,8 +56,25 @@ struct PipelineStateDesc
 class PipelineState
 {
 public:
-  const PipelineStateDesc& GetDesc() const { return _desc; }
+  const std::shared_ptr<Shader>& GetVS() const { return _desc.VS; }
+  const std::shared_ptr<Shader>& GetPS() const { return _desc.PS; }
+  const std::shared_ptr<Shader>& GetHS() const { return _desc.HS; }
+  const std::shared_ptr<Shader>& GetDS() const { return _desc.DS; }
+  const std::shared_ptr<Shader>& GetGS() const { return _desc.GS; }
+  const std::shared_ptr<BlendState>& GetBlendState() const { return _desc.BlendState; }
+  const std::shared_ptr<RasterizerState>& GetRasterizerState() const { return _desc.RasterizerState; }
+  const std::shared_ptr<DepthStencilState>& GetDepthStencilState() const { return _desc.DepthStencilState; }
+  const std::shared_ptr<VertexLayout>& GetVertexLayout() const { return _desc.VertexLayout; }
+  const std::shared_ptr<ShaderParams> GetShaderParams() const { return _desc.ShaderParams; }
+  PrimitiveTopologyType GetPrimitiveTopology() const { return _desc.Topology; }
+  const PixelFormat* GetRTPixelFormats() const { return _desc.RTFormats; }
+  PixelFormat GetDSFormat() const { return _desc.DSFormat; }
+  const MultisampleDesc& GetMultisampleDesc() const { return _desc.MultisampleDesc; }
+  uint32 GetRTCount() const { return _desc.RTCount; }
 
+protected:
+  PipelineState(const PipelineStateDesc& desc): _desc(desc) {}
+  
 protected:
   PipelineStateDesc _desc;
 };

@@ -1,7 +1,7 @@
 #pragma once
 #include "../Core/Types.hpp"
 
-enum class Blend
+enum class BlendFactor
 {
   Zero,
   One,
@@ -12,14 +12,7 @@ enum class Blend
   DestAlpha,
   InvDestAlpha,
   DestColour,
-  InvDestColour,
-  SrcAlphaSat,
-  BlendFactor,
-  InvBlendFactor,
-  Src1Colour,
-  InvSrc1Colour,
-  Src1Alpha,
-  InvSrc1Alpha
+  InvDestColour
 };
 
 enum class BlendOperation
@@ -41,15 +34,20 @@ enum ColourWrite
   COLOUR_WRITE_ENABLE_ALL = (((COLOUR_WRITE_ENABLE_RED | COLOUR_WRITE_ENABLE_GREEN) | COLOUR_WRITE_ENABLE_BLUE) | COLOUR_WRITE_ENABLE_ALPHA)
 };
 
+struct BlendDesc
+{
+  BlendFactor Source;
+  BlendFactor Destination;
+  BlendOperation Operation;
+  
+  BlendDesc(BlendFactor src, BlendFactor dst, BlendOperation op): Source(src), Destination(dst), Operation(op) {}
+};
+
 struct RTBlendStateDesc
 {
   bool BlendEnabled = false;
-  Blend SrcBlend = Blend::SrcAlpha;
-  Blend DestBlend = Blend::InvSrcAlpha;
-  BlendOperation BlendOp = BlendOperation::Add;
-  Blend SrcBlendAlpha = Blend::One;
-  Blend DestBlendAlpha = Blend::One;
-  BlendOperation BlendOpAlpha = BlendOperation::Add;
+  BlendDesc Blend = BlendDesc(BlendFactor::SrcAlpha, BlendFactor::InvSrcAlpha, BlendOperation::Add);
+  BlendDesc BlendAlpha = BlendDesc(BlendFactor::One, BlendFactor::One, BlendOperation::Add);
   byte RTWriteMask = COLOUR_WRITE_ENABLE_ALL;
 };
 

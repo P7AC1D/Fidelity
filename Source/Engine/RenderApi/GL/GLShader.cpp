@@ -2,6 +2,7 @@
 
 #include <sstream>
 #include "../../Utility/Assert.hpp"
+#include "../../Utility/Hash.hpp"
 #include "GL.hpp"
 
 GLenum GetShaderType(ShaderType shaderType)
@@ -21,7 +22,8 @@ GLShader::~GLShader()
 {
   if (_id != 0)
   {
-    GLCall(glDeleteShaders(1, &_id));
+    GLCall(glDeleteProgram(_id));
+    _id = 0;
   }
 }
 
@@ -32,18 +34,12 @@ void GLShader::Compile()
     return;
   }
   
-  _id = glCreateShader(GetShaderType(_desc.ShaderType));
-  if (_id == 0)
-  {
-    throw std::runtime_error("Unable to generate shader object");
-  }
-  
   const byte* ptr = _desc.Source.c_str();
-  GLCall(glShaderSource(_id, 1, &ptr, 0));
-  GLCall(glCompileShader(_id));
+  _id = glCreateShaderProgramv(GetShaderType(_desc.ShaderType), 1, &ptr);
+  Assert::ThrowIfTrue(_id == 0, "Unable to generate shader object");
   
   int32 logLength = -1;
-  GLCall(glGetShaderiv(_id, GL_INFO_LOG_LENGTH, &logLength));
+  GLCall(glGetProgramiv(_id, GL_INFO_LOG_LENGTH, &logLength));
   
   std::stringstream message;
   message << "Shader compile log";
@@ -51,7 +47,7 @@ void GLShader::Compile()
   if (logLength > 0)
   {
     std::vector<byte> buffer(logLength);
-    GLCall(glGetShaderInfoLog(_id, logLength, 0, &buffer[0]));
+    GLCall(glGetProgramInfoLog(_id, logLength, 0, &buffer[0]));
     std::string log(buffer.begin(), buffer.end());
     message << ": " << log;
   }
@@ -60,11 +56,36 @@ void GLShader::Compile()
   _isCompiled = true;
 }
 
-GLShader::GLShader(const ShaderDesc& desc): _id(0)
+void GLShader::BindUniformBlock(const std::string& name, uint32 bindingPoint)
+{
+  auto blockIndex = GetUniformBlockIndex(name);
+  auto bindingPointIter = _uniformBindingPoints.find(blockIndex);
+  if (bindingPointIter != _uniformBindingPoints.end() && bindingPointIter->second == bindingPoint)
+  {
+    return;
+  }
+  
+  GLCall(glUniformBlockBinding(_id, blockIndex, bindingPoint));
+  _uniformBindingPoints[blockIndex] = bindingPoint;
+}
+
+GLShader::GLShader(const ShaderDesc& desc): Shader(desc), _id(0)
 {
   Assert::ThrowIfTrue(desc.ShaderLang != ShaderLang::Glsl, "Shaders must be written in GLSL when using OpenGL backend");
   Assert::ThrowIfTrue(desc.Source.empty(), "Shader source is empty");
   Assert::ThrowIfTrue(desc.EntryPoint.empty(), "Shader entry point not defined");
-  
-  _desc = desc;
+  Assert::ThrowIfFalse(desc.EntryPoint == "main", "GLSL shaders must have a 'main' entry point");
+}
+
+uint32 GLShader::GetUniformBlockIndex(const std::string& name)
+{
+  auto blockIndexIter = _uniformBlockIndices.find(name);
+  if (blockIndexIter == _uniformBlockIndices.end())
+  {
+    auto blockIndex = glGetUniformBlockIndex(_id, name.c_str());
+    Assert::ThrowIfFalse(blockIndex == 0, "Could not find a valid uniform block index with name " + name);
+    _uniformBlockIndices.insert(std::pair(name, blockIndex));
+    return blockIndex;
+  }
+  return blockIndexIter->second;
 }

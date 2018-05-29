@@ -3,9 +3,17 @@
 #include <vector>
 #include "../Core/Types.hpp"
 
+enum class SemanticType
+{
+  Position,
+  Normal,
+  Tangent,
+  Bitangent,
+  TexCoord
+};
+
 enum class SemanticFormat
 {
-  Unknown,
   Float4,
   Float3,
   Float2,
@@ -20,27 +28,20 @@ enum class SemanticFormat
   Int
 };
 
-enum class InputClassification
-{
-  PerVertexData,
-  PerInstanceData
-};
-
 struct VertexLayoutDesc
 {
-  std::string SemanticName;
-  uint32 SemanticIndex;
+  SemanticType Type;
   SemanticFormat Format;
-  uint32 InputSlot;
-  uint32 AlignedByteOffset;
-  InputClassification InputSlotClass;
-  uint32 InstanceDataStepRate;
+  uint32 Offset;
 };
 
 class VertexLayout
 {
 public:
   const std::vector<VertexLayoutDesc>& GetDesc() const { return _desc; }
+  
+protected:
+  VertexLayout(const std::vector<VertexLayoutDesc>& desc): _desc(desc) {}
 
 protected:
   std::vector<VertexLayoutDesc> _desc;

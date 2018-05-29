@@ -55,6 +55,7 @@ class Texture
 public:
   Texture(const TextureDesc& desc): _desc(desc), _isInitialized(false) {}
   
+  TextureType GetTextureType() const { return _desc.Type; }
   const TextureDesc& GetDesc() const { return _desc; }
   bool IsInitialized() const { return _isInitialized; }
   

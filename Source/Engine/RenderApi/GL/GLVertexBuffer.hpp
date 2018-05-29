@@ -1,29 +1,23 @@
 #pragma once
-#include "../GpuBuffer.hpp"
+#include <memory>
+#include "../VertexBuffer.hpp"
 
-class GLGpuBuffer : public GpuBuffer
+class GLGpuBuffer;
+
+class GLVertexBuffer : public VertexBuffer
 {
-  friend class GLIndexBuffer;
   friend class GLRenderDevice;
-  friend class GLVertexBuffer;
-
+  
 public:
-  virtual ~GLGpuBuffer();
-
-  uint32 GetId() const { return _id; }
-
+  uint32 GetId() const;
+  
   void WriteData(uint64 byteOffset, uint64 byteCount, const void* src, AccessType accessType = AccessType::WriteOnly) override;
   void ReadData(uint64 byteOffset, uint64 byteCount, void* dst) override;
   void CopyData(GpuBuffer* dst, uint64 srcByteOffset, uint64 dstByteOffset, uint64 byteCount) override;
   
 protected:
-  GLGpuBuffer(const GpuBufferDesc& desc);
+  GLVertexBuffer(const VertexBufferDesc& desc);
   
 private:
-  void Initialize();
-  void* MapRange(uint64 byteOffset, uint64 byteCount, AccessType accessType);
-  void Unmap();
-  
-private:
-  uint32 _id;
+  std::unique_ptr<GLGpuBuffer> _buffer;
 };
