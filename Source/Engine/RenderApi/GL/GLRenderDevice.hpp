@@ -3,6 +3,8 @@
 #include "../RenderDevice.hpp"
 
 class GLGpuBuffer;
+class GLRenderTarget;
+class GLSamplerState;
 class GLShaderPipeline;
 class GLShaderPipelineCollection;
 class GLTexture;
@@ -12,17 +14,19 @@ class GLVertexBuffer;
 class ShaderParams;
 
 static const uint32 MaxConstantBuffers = 32;
-static const uint32 MaxTextureSlots = 32;
+static const uint32 MaxTextureSlots = 16;
 
 class GLRenderDevice : public RenderDevice
 {
 public:
   GLRenderDevice(const RenderDeviceDesc& desc);
 
+  std::shared_ptr<Shader> CreateShader(const ShaderDesc& desc) override;
   std::shared_ptr<VertexBuffer> CreateVertexBuffer(const VertexBufferDesc& desc) override;
   std::shared_ptr<RenderTarget> CreateRenderTarget(const RenderTargetDesc& desc) override;
   std::shared_ptr<IndexBuffer> CreateIndexBuffer(const IndexBufferDesc& desc) override;
   std::shared_ptr<GpuBuffer> CreateGpuBuffer(const GpuBufferDesc& desc) override;
+  std::shared_ptr<Texture> CreateTexture(const TextureDesc& desc) override;
   std::shared_ptr<SamplerState> CreateSamplerState(const SamplerStateDesc& desc) override;
   
   void SetPrimitiveTopology(PrimitiveTopology primitiveTopology) override;
@@ -33,12 +37,14 @@ public:
   void SetIndexBuffer(const std::shared_ptr<IndexBuffer>& indexBuffer) override;
   void SetConstantBuffer(uint32 slot, const std::shared_ptr<GpuBuffer>& constantBuffer) override;
   void SetTexture(uint32 slot, const std::shared_ptr<Texture>& texture) override;
+  void SetSamplerState(uint32 slot, const std::shared_ptr<SamplerState>& samplerState) override;
   
   void Draw(uint32 vertexCount, uint32 vertexOffset) override;
   void DrawIndexed(uint32 indexCount, uint32 indexOffset, uint32 vertexOffset) override;
   
 private:
-  void SetupDraw();
+  void BeginDraw();
+  void EndDraw();
 
   void SetRasterizerState(const std::shared_ptr<RasterizerState>& rasterizerState);
   void SetDepthStencilState(const std::shared_ptr<DepthStencilState>& depthStencilState);
@@ -75,6 +81,7 @@ private:
   uint32 _stencilRefValue;
   uint32 _stencilWriteMask;
   
+  std::shared_ptr<GLRenderTarget> _boundRenderTarget;
   std::shared_ptr<GLShaderPipeline> _shaderPipeline;
   std::shared_ptr<GLVertexArrayObject> _vao;
   std::shared_ptr<RasterizerState> _rasterizerState;
@@ -86,6 +93,7 @@ private:
   std::array<std::shared_ptr<GLVertexBuffer>, 32> _boundVertexBuffers;
   std::array<std::shared_ptr<GLGpuBuffer>, MaxConstantBuffers> _boundConstantBuffers;
   std::array<std::shared_ptr<GLTexture>, MaxTextureSlots> _boundTextures;
+  std::array<std::shared_ptr<GLSamplerState>, MaxTextureSlots> _boundSamplers;
   
   std::unique_ptr<GLShaderPipelineCollection> _shaderPipelineCollection;
   std::unique_ptr<GLVertexArrayObjectCollection> _vaoCollection;

@@ -37,6 +37,8 @@ struct VertexLayoutDesc
 
 class VertexLayout
 {
+  friend class RenderDevice;
+  
 public:
   const std::vector<VertexLayoutDesc>& GetDesc() const { return _desc; }
   

@@ -6,12 +6,27 @@
 #include "GLGpuBuffer.hpp"
 #include "GLIndexBuffer.hpp"
 #include "GLRenderTarget.hpp"
+#include "GLSamplerState.hpp"
 #include "GLShader.hpp"
 #include "GLShaderPipeline.hpp"
 #include "GLShaderPipelineCollection.hpp"
 #include "GLTexture.hpp"
 #include "GLVertexBuffer.hpp"
 #include "GLVertexArrayCollection.hpp"
+
+GLenum GetTextureTarget(TextureType textureType)
+{
+  switch(textureType)
+  {
+    case TextureType::Texture1D: return GL_TEXTURE_1D;
+    case TextureType::Texture1DArray: return GL_TEXTURE_1D_ARRAY;
+    case TextureType::Texture2D: return GL_TEXTURE_2D;
+    case TextureType::Texture2DArray: return GL_TEXTURE_2D_ARRAY;
+    case TextureType::Texture3D: return GL_TEXTURE_3D;
+    case TextureType::TextureCube: return GL_TEXTURE_CUBE_MAP;
+    default: return GL_TEXTURE_2D;
+  }
+}
 
 GLenum GetPrimitiveTopology(PrimitiveTopology topology)
 {
@@ -103,6 +118,11 @@ GLRenderDevice::GLRenderDevice(const RenderDeviceDesc& desc) :
 {
 }
 
+std::shared_ptr<Shader> GLRenderDevice::CreateShader(const ShaderDesc& desc)
+{
+  return std::shared_ptr<GLShader>(new GLShader(desc));
+}
+
 std::shared_ptr<VertexBuffer> GLRenderDevice::CreateVertexBuffer(const VertexBufferDesc& desc)
 {
   return std::shared_ptr<GLVertexBuffer>(new GLVertexBuffer(desc));
@@ -123,9 +143,14 @@ std::shared_ptr<GpuBuffer> GLRenderDevice::CreateGpuBuffer(const GpuBufferDesc& 
   return std::shared_ptr<GLGpuBuffer>(new GLGpuBuffer(desc));
 }
 
+std::shared_ptr<Texture> GLRenderDevice::CreateTexture(const TextureDesc& desc)
+{
+  return std::shared_ptr<GLTexture>(new GLTexture(desc));
+}
+
 std::shared_ptr<SamplerState> GLRenderDevice::CreateSamplerState(const SamplerStateDesc& desc)
 {
-  return std::shared_ptr<SamplerState>(new SamplerState(desc));
+  return std::shared_ptr<GLSamplerState>(new GLSamplerState(desc));
 }
 
 void GLRenderDevice::SetPrimitiveTopology(PrimitiveTopology primitiveTopology)
@@ -149,7 +174,11 @@ void GLRenderDevice::SetPipelineState(const std::shared_ptr<PipelineState>& pipe
 void GLRenderDevice::SetRenderTarget(const std::shared_ptr<RenderTarget>& renderTarget)
 {
   auto glRenderTarget = std::static_pointer_cast<GLRenderTarget>(renderTarget);
-  GLCall(glBindFramebuffer(GL_FRAMEBUFFER, glRenderTarget->GetId()));
+  if (!_boundRenderTarget || _boundRenderTarget->GetId() != glRenderTarget->GetId())
+  {
+    GLCall(glBindFramebuffer(GL_FRAMEBUFFER, glRenderTarget->GetId()));
+    _boundRenderTarget = glRenderTarget;
+  }
 }
 
 void GLRenderDevice::SetVertexBuffer(uint32 slot, const std::shared_ptr<VertexBuffer> vertexBuffer)
@@ -167,63 +196,54 @@ void GLRenderDevice::SetIndexBuffer(const std::shared_ptr<IndexBuffer>& indexBuf
 void GLRenderDevice::SetConstantBuffer(uint32 slot, const std::shared_ptr<GpuBuffer>& constantBuffer)
 {
   Assert::ThrowIfFalse(constantBuffer->GetType() == BufferType::Constant, "GPU buffer is not a constant buffer");
-  Assert::ThrowIfTrue(slot > MaxConstantBuffers, "Constant buffer binding slot exceeds the maximum allowed amount");
+  Assert::ThrowIfTrue(slot > MaxConstantBuffers, "Constant buffer binding slot exceeds maximum supported");
+  
   auto glConstantBuffer = std::static_pointer_cast<GLGpuBuffer>(constantBuffer);
-  GLCall(glBindBufferBase(GL_UNIFORM_BUFFER, slot, glConstantBuffer->GetId()));
-  _boundConstantBuffers[slot] = glConstantBuffer;
+  if (!_boundConstantBuffers[slot] || _boundConstantBuffers[slot]->GetId() != glConstantBuffer->GetId())
+  {
+    GLCall(glBindBufferBase(GL_UNIFORM_BUFFER, slot, glConstantBuffer->GetId()));
+    _boundConstantBuffers[slot] = glConstantBuffer;
+  }
 }
 
 void GLRenderDevice::SetTexture(uint32 slot, const std::shared_ptr<Texture>& texture)
 {
   Assert::ThrowIfTrue(slot >= MaxTextureSlots, "Texture slot exceeds maximum supported");
   auto glTexture = std::static_pointer_cast<GLTexture>(texture);
-  
-  GLenum textureTarget;
-  switch(glTexture->GetTextureType())
-  {
-    case TextureType::Texture1D:
-      textureTarget = GL_TEXTURE_1D;
-      break;
-    case TextureType::Texture1DArray:
-      textureTarget = GL_TEXTURE_1D_ARRAY;
-      break;
-    default:
-    case TextureType::Texture2D:
-      textureTarget = GL_TEXTURE_2D;
-      break;
-    case TextureType::Texture2DArray:
-      textureTarget = GL_TEXTURE_2D_ARRAY;
-      break;
-    case TextureType::Texture3D:
-      textureTarget = GL_TEXTURE_3D;
-      break;
-    case TextureType::TextureCube:
-      textureTarget = GL_TEXTURE_CUBE_MAP;
-      break;
-  }
-  
-  auto boundTexture = _boundTextures[slot];
-  if (!boundTexture || boundTexture->GetId() != glTexture->GetId())
+  if (!_boundTextures[slot] || _boundTextures[slot]->GetId() != glTexture->GetId())
   {
     GLCall(glActiveTexture(GL_TEXTURE0 + slot));
-    GLCall(glBindTexture(textureTarget, glTexture->GetId()));
+    GLCall(glBindTexture(GetTextureTarget(_boundTextures[slot]->GetTextureType()), _boundTextures[slot]->GetId()));
     _boundTextures[slot] = glTexture;
+  }
+}
+
+void GLRenderDevice::SetSamplerState(uint32 slot, const std::shared_ptr<SamplerState>& samplerState)
+{
+  Assert::ThrowIfTrue(slot >= MaxTextureSlots, "Sampler slot exceeds maximum supported");
+  auto glSamplerState = std::static_pointer_cast<GLSamplerState>(samplerState);
+  if (!_boundSamplers[slot] || _boundSamplers[slot]->GetId() != glSamplerState->GetId())
+  {
+    GLCall(glBindSampler(slot, glSamplerState->GetId()));
+    _boundSamplers[slot] = glSamplerState;
   }
 }
 
 void GLRenderDevice::Draw(uint32 vertexCount, uint32 vertexOffset)
 {
-  SetupDraw();
+  BeginDraw();
   GLCall(glDrawArrays(GetPrimitiveTopology(_primitiveTopology), vertexOffset, vertexCount));
+  EndDraw();
 }
 
 void GLRenderDevice::DrawIndexed(uint32 indexCount, uint32 indexOffset, uint32 vertexOffset)
 {
-  SetupDraw();
+  BeginDraw();
   GLCall(glDrawElements(GetPrimitiveTopology(_primitiveTopology), indexCount, GL_UNSIGNED_INT, 0));
+  EndDraw();
 }
 
-void GLRenderDevice::SetupDraw()
+void GLRenderDevice::BeginDraw()
 {
   Assert::ThrowIfTrue(_pipelineState == nullptr, "No pipeline state has been set");
   Assert::ThrowIfTrue(_pipelineState->GetVS() == nullptr, "No vertex shader has been set");
@@ -281,6 +301,11 @@ void GLRenderDevice::SetupDraw()
       glDs->BindUniformBlock(uniformBufferName, i);
     }
   }
+}
+
+void GLRenderDevice::EndDraw()
+{
+  GLCall(glBindVertexArray(0));
 }
 
 void GLRenderDevice::SetRasterizerState(const std::shared_ptr<RasterizerState>& rasterizerState)

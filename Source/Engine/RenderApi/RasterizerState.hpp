@@ -29,6 +29,8 @@ struct RasterizerStateDesc
 
 class RasterizerState
 {
+  friend class RenderDevice;
+  
 public: 
   const RasterizerStateDesc& GetDesc() const { return _desc; }
   

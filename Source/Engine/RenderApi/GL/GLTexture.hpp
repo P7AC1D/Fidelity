@@ -4,6 +4,8 @@
 
 class GLTexture : public Texture
 {
+  friend class GLRenderDevice;
+  
 public:
   virtual ~GLTexture();
   

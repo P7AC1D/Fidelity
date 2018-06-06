@@ -28,19 +28,20 @@ struct SamplerStateDesc
   AddressingMode AddressingMode;
   TextureFilteringMode MinFiltering = TextureFilteringMode::None;
   TextureFilteringMode MaxFiltering = TextureFilteringMode::None;
+  TextureFilteringMode MipFiltering = TextureFilteringMode::None;
 };
 
 class SamplerState
 {
-  friend class GLRenderDevice;
-  
 public:
   AddressingMode GetAddressingMode() const { return _desc.AddressingMode; }
   TextureFilteringMode GetMinFilteringMode() const { return _desc.MinFiltering; }
-  TextureFilteringMode GetMaxFilteringMode() const { return _desc.MaxFiltering; }
+  TextureFilteringMode GetMagFilteringMode() const { return _desc.MaxFiltering; }
+  TextureFilteringMode GetMipFilteringMode() const { return _desc.MipFiltering; }
 
 protected:
   SamplerState(const SamplerStateDesc& desc): _desc(desc) {}
+  SamplerState(): _desc(SamplerStateDesc()) {}
   
 protected:
   SamplerStateDesc _desc;

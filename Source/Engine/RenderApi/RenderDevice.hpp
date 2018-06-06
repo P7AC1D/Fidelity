@@ -35,12 +35,7 @@ class RenderDevice
 {
 public:
   RenderDevice(const RenderDeviceDesc& desc): _desc(desc) {}
-
-  virtual std::shared_ptr<BlendState> CreateBlendState(const BlendStateDesc& desc) = 0;
-  virtual std::shared_ptr<DepthStencilState> CreateDepthStencilState(const DepthStencilStateDesc& desc) = 0;
-  virtual std::shared_ptr<PipelineState> CreatePipelineState(const PipelineStateDesc& desc) = 0;
-  virtual std::shared_ptr<RasterizerState> CreateRasterizerState(const RasterizerStateDesc& desc) = 0;
-  virtual std::shared_ptr<VertexLayout> CreateVertexLayout(const VertexLayoutDesc& desc) = 0;
+  
   virtual std::shared_ptr<Shader> CreateShader(const ShaderDesc& desc) = 0;
   virtual std::shared_ptr<IndexBuffer> CreateIndexBuffer(const IndexBufferDesc& desc) = 0;
   virtual std::shared_ptr<VertexBuffer> CreateVertexBuffer(const VertexBufferDesc& desc) = 0;
@@ -57,9 +52,31 @@ public:
   virtual void SetVertexBuffer(uint32 slot, const std::shared_ptr<VertexBuffer> vertexBuffer) = 0;
   virtual void SetIndexBuffer(const std::shared_ptr<IndexBuffer>& indexBuffer) = 0;
   virtual void SetConstantBuffer(uint32 slot, const std::shared_ptr<GpuBuffer>& constantBuffer) = 0;
+  virtual void SetSamplerState(uint32 slot, const std::shared_ptr<SamplerState>& samplerState) = 0;
 
   virtual void Draw(uint32 vertexCount, uint32 vertexOffset) = 0;
   virtual void DrawIndexed(uint32 indexCount, uint32 indexOffset, uint32 vertexOffset) = 0;
+  
+  virtual std::shared_ptr<BlendState> CreateBlendState(const BlendStateDesc& desc)
+  {
+    return std::shared_ptr<BlendState>(new BlendState(desc));
+  }
+  virtual std::shared_ptr<DepthStencilState> CreateDepthStencilState(const DepthStencilStateDesc& desc)
+  {
+    return std::shared_ptr<DepthStencilState>(new DepthStencilState(desc));
+  }
+  virtual std::shared_ptr<PipelineState> CreatePipelineState(const PipelineStateDesc& desc)
+  {
+    return std::shared_ptr<PipelineState>(new PipelineState(desc));
+  }
+  virtual std::shared_ptr<RasterizerState> CreateRasterizerState(const RasterizerStateDesc& desc)
+  {
+    return std::shared_ptr<RasterizerState>(new RasterizerState(desc));
+  }
+  virtual std::shared_ptr<VertexLayout> CreateVertexLayout(const std::vector<VertexLayoutDesc>& desc)
+  {
+    return std::shared_ptr<VertexLayout>(new VertexLayout(desc));
+  }
 
 protected:
   RenderDeviceDesc _desc;

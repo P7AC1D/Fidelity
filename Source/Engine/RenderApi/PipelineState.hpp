@@ -55,6 +55,8 @@ struct PipelineStateDesc
 
 class PipelineState
 {
+  friend class RenderDevice;
+  
 public:
   const std::shared_ptr<Shader>& GetVS() const { return _desc.VS; }
   const std::shared_ptr<Shader>& GetPS() const { return _desc.PS; }

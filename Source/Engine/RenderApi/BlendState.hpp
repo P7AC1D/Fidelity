@@ -60,8 +60,13 @@ struct BlendStateDesc
 
 class BlendState
 {
+  friend class RenderDevice;
+  
 public:
   const BlendStateDesc& GetDesc() const { return _desc; }
+  
+protected:
+  BlendState(const BlendStateDesc& desc): _desc(desc) {}
 
 protected:
   BlendStateDesc _desc;
