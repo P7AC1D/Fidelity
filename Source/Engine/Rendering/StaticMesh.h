@@ -46,7 +46,7 @@ public:
 
   std::shared_ptr<Rendering::Material> GetMaterial();
 
-  bool IsInitialized() const { return _isDirty; }
+  bool IsInitialized() const { return _verticesNeedUpdate && _indicesNeedUpdate; }
   bool IsIndexed() const { return _indexed; }
 
 private:
@@ -81,7 +81,8 @@ private:
   int32 _vertexDataFormat;
   int32 _vertexCount;
   int32 _indexCount;
-  bool _isDirty;
+  bool _verticesNeedUpdate;
+	bool _indicesNeedUpdate;
   bool _indexed;
 
   friend class Renderer;

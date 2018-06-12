@@ -1,6 +1,5 @@
 #include "GLShader.hpp"
 
-#include <sstream>
 #include "../../Utility/Assert.hpp"
 #include "../../Utility/Hash.hpp"
 #include "GL.hpp"
@@ -29,7 +28,7 @@ GLShader::~GLShader()
 
 void GLShader::Compile()
 {
-  if (!IsCompiled())
+  if (IsCompiled())
   {
     return;
   }
@@ -40,19 +39,19 @@ void GLShader::Compile()
   
   int32 logLength = -1;
   GLCall(glGetProgramiv(_id, GL_INFO_LOG_LENGTH, &logLength));
+
+	GLint linkStatus = -1;
+	GLCall(glGetProgramiv(_id, GL_LINK_STATUS, &linkStatus));
   
-  std::stringstream message;
-  message << "Shader compile log";
-  
+  std::string logMessages;
   if (logLength > 0)
   {
     std::vector<byte> buffer(logLength);
     GLCall(glGetProgramInfoLog(_id, logLength, 0, &buffer[0]));
-    std::string log(buffer.begin(), buffer.end());
-    message << ": " << log;
+		logMessages = std::string(buffer.begin(), buffer.end());
   }
   
-  _shaderLog = message.str();
+	Assert::ThrowIfFalse(linkStatus == GL_TRUE, "Unable to compile shader:\n" + logMessages);
   _isCompiled = true;
 }
 
@@ -84,7 +83,7 @@ uint32 GLShader::GetUniformBlockIndex(const std::string& name)
   {
     auto blockIndex = glGetUniformBlockIndex(_id, name.c_str());
     Assert::ThrowIfFalse(blockIndex == 0, "Could not find a valid uniform block index with name " + name);
-    _uniformBlockIndices.insert(std::pair(name, blockIndex));
+    _uniformBlockIndices.insert(std::pair<std::string, uint32>(name, blockIndex));
     return blockIndex;
   }
   return blockIndexIter->second;

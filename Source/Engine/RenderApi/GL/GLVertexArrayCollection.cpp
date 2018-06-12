@@ -104,7 +104,10 @@ std::size_t GLVertexArrayObject::Hash::operator()(const std::shared_ptr<GLVertex
   ::Hash::Combine(seed, vao->_vsId);
   for (uint32 i = 0; i < vao->_boundBuffers.size(); i++)
   {
-    ::Hash::Combine(seed, vao->_boundBuffers[i]->GetId());
+		if (vao->_boundBuffers[i])
+		{
+			::Hash::Combine(seed, vao->_boundBuffers[i]->GetId());
+		}    
   }
   return seed;
 }

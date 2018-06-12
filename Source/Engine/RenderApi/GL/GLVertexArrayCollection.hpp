@@ -1,6 +1,7 @@
 #pragma once
 #include <array>
 #include <functional>
+#include <memory>
 #include <unordered_set>
 #include <vector>
 #include "../../Core/Types.hpp"

@@ -113,7 +113,8 @@ GLRenderDevice::GLRenderDevice(const RenderDeviceDesc& desc) :
   _stencilReadMask(0),
   _stencilRefValue(0),
   _stencilWriteMask(0),
-  _shaderPipelineCollection(new GLShaderPipelineCollection)
+  _shaderPipelineCollection(new GLShaderPipelineCollection),
+	_vaoCollection(new GLVertexArrayObjectCollection)
 {
 #ifdef _WIN32
   glewExperimental = GL_TRUE;
@@ -124,7 +125,9 @@ GLRenderDevice::GLRenderDevice(const RenderDeviceDesc& desc) :
 
 std::shared_ptr<Shader> GLRenderDevice::CreateShader(const ShaderDesc& desc)
 {
-  return std::shared_ptr<GLShader>(new GLShader(desc));
+	std::shared_ptr<GLShader> glShader(new GLShader(desc));
+	glShader->Compile();
+	return glShader;
 }
 
 std::shared_ptr<VertexBuffer> GLRenderDevice::CreateVertexBuffer(const VertexBufferDesc& desc)

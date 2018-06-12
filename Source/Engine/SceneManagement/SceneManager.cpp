@@ -58,6 +58,12 @@ Light& SceneManager::CreateLight(LightType lightType, const std::string& name)
   return _lights.back();
 }
 
+void SceneManager::SetCamera(std::shared_ptr<Camera> camera)
+{
+	_camera = camera;
+	_renderer->SetCamera(camera);
+}
+
 void SceneManager::UpdateScene(uint32 dtMs)
 {
   UpdateWorldObjects(dtMs);

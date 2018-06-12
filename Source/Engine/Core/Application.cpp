@@ -1,7 +1,7 @@
 #include "Application.h"
 
+#include <iostream>
 #include <SDL.h>
-
 #include "../Input/EventDispatcher.hpp"
 #include "../Input/InputHandler.hpp"
 #include "../Rendering/Renderer.h"
@@ -110,6 +110,7 @@ int32 Application::Run()
     }   
 
     _sceneManager->UpdateScene(dtMs);
+		_renderer->DrawFrame();
 
     SDL_GL_SwapWindow(_window);
   }
@@ -183,11 +184,21 @@ bool Application::Initialize()
     return false;
   }
 
-  RendererDesc rendererDesc;
-  rendererDesc.RenderWidth = _desc.Width;
-  rendererDesc.RenderWidth = _desc.Height;
-  _renderer.reset(new Renderer(rendererDesc));
-  _sceneManager.reset(new SceneManager(_renderer));
+	try
+	{
+		RendererDesc rendererDesc;
+		rendererDesc.RenderWidth = _desc.Width;
+		rendererDesc.RenderHeight = _desc.Height;
+		_renderer.reset(new Renderer(rendererDesc));
+		_sceneManager.reset(new SceneManager(_renderer));
+	}
+	catch (const std::exception& exception)
+	{
+#ifdef _DEBUG
+		std::cout << exception.what();
+#endif
+		return false;
+	}
   return true;
 }
 

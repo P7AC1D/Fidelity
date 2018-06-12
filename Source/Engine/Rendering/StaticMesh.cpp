@@ -12,7 +12,8 @@ StaticMesh::StaticMesh(const std::string& meshName) :
   _material(new Material),
   _vertexDataFormat(0),
   _vertexCount(0),
-  _isDirty(true),
+	_verticesNeedUpdate(true),
+	_indicesNeedUpdate(true),
   _indexed(false)
 {}
 
@@ -24,14 +25,14 @@ void StaticMesh::SetPositionVertexData(const std::vector<Vector3>& positionData)
   auto vertexCount = static_cast<int32>(positionData.size());
   if (vertexCount == 0)
   {
-return;
+		return;
   }
 
   _vertexCount = _vertexCount >= vertexCount || _vertexCount == 0 ? vertexCount : _vertexCount;
 
   _positionData = positionData;
   _vertexDataFormat |= VertexDataFormat::Position;
-  _isDirty = true;
+	_verticesNeedUpdate = true;
 }
 
 void StaticMesh::SetNormalVertexData(const std::vector<Vector3>& normalData)
@@ -46,7 +47,7 @@ void StaticMesh::SetNormalVertexData(const std::vector<Vector3>& normalData)
 
   _normalData = normalData;
   _vertexDataFormat |= VertexDataFormat::Normal;
-  _isDirty = true;
+	_verticesNeedUpdate = true;
 }
   
 void StaticMesh::SetTangentVertexData(const std::vector<Vector3>& tangentData)
@@ -61,7 +62,7 @@ void StaticMesh::SetTangentVertexData(const std::vector<Vector3>& tangentData)
   
   _tangentData = tangentData;
   _vertexDataFormat |= VertexDataFormat::Tangent;
-  _isDirty = true;
+	_verticesNeedUpdate = true;
 }
   
 void StaticMesh::SetBitangentVertexData(const std::vector<Vector3>& bitangentData)
@@ -76,7 +77,7 @@ void StaticMesh::SetBitangentVertexData(const std::vector<Vector3>& bitangentDat
   
   _bitangentData = bitangentData;
   _vertexDataFormat |= VertexDataFormat::Bitanget;
-  _isDirty = true;
+	_verticesNeedUpdate = true;
 }
 
 void StaticMesh::SetTextureVertexData(const std::vector<Vector2>& textureData)
@@ -91,7 +92,7 @@ void StaticMesh::SetTextureVertexData(const std::vector<Vector2>& textureData)
 
   _textureData = textureData;
   _vertexDataFormat |= VertexDataFormat::Uv;
-  _isDirty = true;
+	_verticesNeedUpdate = true;
 }
 
 void StaticMesh::SetIndexData(const std::vector<uint32>& indexData)
@@ -104,7 +105,7 @@ void StaticMesh::SetIndexData(const std::vector<uint32>& indexData)
   }
   _indexCount = indexCount;
   _indexData = indexData;
-  _isDirty = true;
+  _indicesNeedUpdate = true;
   _indexed = true;
 }
   
@@ -202,7 +203,7 @@ void StaticMesh::CalculateTangents(const std::vector<Vector3>& positionData, con
     _bitangentData.push_back(bitangent);
     _bitangentData.push_back(bitangent);
   }
-  _isDirty = true;
+	_verticesNeedUpdate = true;
 }
 
 void StaticMesh::GenerateNormals()
@@ -255,22 +256,20 @@ std::shared_ptr<Material> StaticMesh::GetMaterial()
 
 std::shared_ptr<VertexBuffer> StaticMesh::GetVertexData(const std::shared_ptr<RenderDevice>& renderDevice)
 {
-  if (_isDirty)
+  if (_verticesNeedUpdate)
   {
     UploadVertexData(renderDevice);
-    UploadIndexData(renderDevice);
-    _isDirty = false;
+		_verticesNeedUpdate = false;
   }
   return _vertexBuffer;
 }
 
 std::shared_ptr<IndexBuffer> StaticMesh::GetIndexData(const std::shared_ptr<RenderDevice>& renderDevice)
 {
-  if (_isDirty)
+  if (_indicesNeedUpdate)
   {
-    UploadVertexData(renderDevice);
     UploadIndexData(renderDevice);
-    _isDirty = false;
+		_indicesNeedUpdate = false;
   }
   return _indexBuffer;
 }
@@ -395,7 +394,7 @@ void StaticMesh::UploadIndexData(const std::shared_ptr<RenderDevice>& renderDevi
   desc.IndexCount = static_cast<uint32>(_indexData.size());
   desc.IndexType = IndexType::UInt32;
   _indexBuffer = renderDevice->CreateIndexBuffer(desc);
-  _indexBuffer->WriteData(0, _indexData.size() * IndexBuffer::GetBytesPerIndex(desc.IndexType), _indexData.data());
+  _indexBuffer->WriteData(0, _indexData.size() * IndexBuffer::GetBytesPerIndex(desc.IndexType), _indexData.data(), AccessType::WriteOnlyDiscardRange);
   
   _indexData.clear();
   _indexData.shrink_to_fit();

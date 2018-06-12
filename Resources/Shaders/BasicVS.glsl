@@ -8,8 +8,6 @@ layout (std140) uniform Constants
   mat4 View;
 };
 
-uniform Constants;
-
 void main()
 {
   gl_Position = Projection * View * vec4(aPosition, 1.0f);

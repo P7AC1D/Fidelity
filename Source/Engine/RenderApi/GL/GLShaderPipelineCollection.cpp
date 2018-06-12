@@ -27,7 +27,14 @@ const std::shared_ptr<GLShaderPipeline>& GLShaderPipelineCollection::GetShaderPi
   auto iter = _shaderPipelines.find(key);
   if (iter == _shaderPipelines.end())
   {
-    std::shared_ptr<GLShaderPipeline> pipeline(new GLShaderPipeline({glVS->GetId(), glPS->GetId(), glGS->GetId(), glHS->GetId(), glDS->GetId()}));
+		GLShaderPipelineDesc shaderPipelineDesc;
+		shaderPipelineDesc.VertexShaderId = key.vsId;
+		shaderPipelineDesc.PixelShaderId = key.psId;
+		shaderPipelineDesc.GeometryShaderId = key.gsId;
+		shaderPipelineDesc.HullShaderId = key.hsId;
+		shaderPipelineDesc.DomainShaderId = key.dsId;
+    std::shared_ptr<GLShaderPipeline> pipeline(new GLShaderPipeline(shaderPipelineDesc));
+
     _shaderPipelines[key] = pipeline;
     return _shaderPipelines[key];
   }

@@ -26,8 +26,8 @@ Renderer::Renderer(const RendererDesc& desc) : _desc(desc)
     Assert::ThrowIfFalse(desc.RenderApi == RenderApi::GL40, "Only OpenGL 4.0 is supported");
     
     RenderDeviceDesc renderDeviceDesc;
-    renderDeviceDesc.RenderWidth = desc.RenderWidth;
-    renderDeviceDesc.RenderHeight = desc.RenderHeight;
+    renderDeviceDesc.RenderWidth = _desc.RenderWidth;
+    renderDeviceDesc.RenderHeight = _desc.RenderHeight;
     _renderDevice.reset(new GLRenderDevice(renderDeviceDesc));
     
     InitPipelineStates();
@@ -103,7 +103,7 @@ void Renderer::InitPipelineStates()
   }
   catch (const std::exception& exception)
   {
-    throw std::runtime_error("Unable to initialize pipeline states");
+    throw std::runtime_error("Unable to initialize pipeline states. " + std::string(exception.what()));
   }
 }
 

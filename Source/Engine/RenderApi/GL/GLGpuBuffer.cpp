@@ -84,7 +84,7 @@ void GLGpuBuffer::Initialize()
 
 void* GLGpuBuffer::MapRange(uint64 byteOffset, uint64 byteCount, AccessType accessType)
 {
-  Assert::ThrowIfTrue(byteCount + byteCount > _desc.ByteCount, "Mapped range cannot exceed the internal size of the buffer");
+  Assert::ThrowIfTrue(byteOffset + byteCount > _desc.ByteCount, "Mapped range cannot exceed the internal size of the buffer");
 
   GLenum target = GetBufferType(_desc.BufferType);
   GLCall(glBindBuffer(target, _id));

@@ -20,10 +20,11 @@ public:
   std::shared_ptr<WorldObject> CreateObject(const std::string& name = std::string());  
   std::shared_ptr<WorldObject> LoadObjectFromFile(const std::string& filePath);
   Light& CreateLight(LightType lightType, const std::string& name = std::string());
-
-  inline void SetCamera(std::shared_ptr<Camera> camera) { _camera = camera; }
+	
   inline void SetSkyBox(std::shared_ptr<SkyBox> skyBox) { _skyBox = skyBox; }
   inline void SetAmbientLight(const Colour& colour) { _ambientLight = colour; }
+
+	void SetCamera(std::shared_ptr<Camera> camera);
 
   inline const Colour& GetAmbientLight() const { return _ambientLight; }
 
