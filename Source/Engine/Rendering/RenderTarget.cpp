@@ -3,7 +3,7 @@
 #include <stdexcept>
 #include <vector>
 
-#include "OpenGL.h"
+#include "../RenderApi/GL/GL.hpp"
 #include "Texture.hpp"
 
 namespace Rendering {

@@ -7,16 +7,10 @@
 #include "../Maths/Radian.hpp"
 #include "../Maths/Vector3.hpp"
 
-namespace Rendering
-{
-class ConstantBuffer;
-}
-
 class Camera
 {
 public:
   Camera();
-  virtual ~Camera();
 
   void LookAt(const Vector3& position, const Vector3& target, const Vector3& up = Vector3(0.0f, 1.0f, 0.0f));
   void SetPerspective(const Degree& fovy, int32 width, int32 height, float32 nearClip, float32 farClip);
@@ -30,15 +24,11 @@ public:
   inline const Vector3& GetTarget() const { return _target; }
   inline const Quaternion& GetOrientation() const { return _orientation; }
 
-  const uint32 GetInternalBufferIndex() const;
-
 private:
   void SetPosition(const Vector3& position);
   void SetOrientation(const Quaternion& orientation);
-  void InitializeBuffer();
   void UpdateView();
   void UpdateProjection();
-  void UpdateBuffer();
 
 private:
   int32 _width;
@@ -54,5 +44,4 @@ private:
   Vector3 _right;
   Vector3 _forward;
   Quaternion _orientation;
-  std::unique_ptr<Rendering::ConstantBuffer> _buffer;
 };

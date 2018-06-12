@@ -1,6 +1,6 @@
 #include "IndexBuffer.hpp"
 
-#include "OpenGL.h"
+#include "../RenderApi/GL/GL.hpp"
 
 namespace Rendering {
   IndexBuffer::IndexBuffer()

@@ -6,7 +6,7 @@
 #include <list>
 #include <sstream>
 
-#include "OpenGL.h"
+#include "../RenderApi/GL/GL.hpp"
 
 namespace Rendering
 {

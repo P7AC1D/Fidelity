@@ -25,31 +25,12 @@ void GLShaderPipeline::Initialize(const GLShaderPipelineDesc& desc)
   
   GLCall(glGenProgramPipelines(1, &_id));
   Assert::ThrowIfTrue(_id == 0, "Unable to create GLSL shader pipeline object");
-  
-  if (desc.VertexShaderId)
-  {
-    GLCall(glUseProgramStages(_id, GL_VERTEX_SHADER_BIT, desc.VertexShaderId));
-  }
-  
-  if (desc.PixelShaderId)
-  {
-    GLCall(glUseProgramStages(_id, GL_FRAGMENT_SHADER_BIT, desc.PixelShaderId));
-  }
-  
-  if (desc.GeometryShaderId)
-  {
-    GLCall(glUseProgramStages(_id, GL_GEOMETRY_SHADER_BIT, desc.GeometryShaderId));
-  }
-  
-  if (desc.HullShaderId)
-  {
-    GLCall(glUseProgramStages(_id, GL_TESS_CONTROL_SHADER_BIT, desc.HullShaderId));
-  }
-  
-  if (desc.DomainShaderId)
-  {
-    GLCall(glUseProgramStages(_id, GL_TESS_EVALUATION_SHADER_BIT, desc.DomainShaderId));
-  }
+
+  GLCall(glUseProgramStages(_id, GL_VERTEX_SHADER_BIT, desc.VertexShaderId));
+  GLCall(glUseProgramStages(_id, GL_FRAGMENT_SHADER_BIT, desc.PixelShaderId));
+  GLCall(glUseProgramStages(_id, GL_GEOMETRY_SHADER_BIT, desc.GeometryShaderId));
+  GLCall(glUseProgramStages(_id, GL_TESS_CONTROL_SHADER_BIT, desc.HullShaderId));
+  GLCall(glUseProgramStages(_id, GL_TESS_EVALUATION_SHADER_BIT, desc.DomainShaderId));
   
   _initialized = true;
 }

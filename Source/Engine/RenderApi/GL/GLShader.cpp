@@ -34,7 +34,7 @@ void GLShader::Compile()
   }
   
   const byte* ptr = _desc.Source.c_str();
-  _id = glCreateShaderProgramv(GetShaderType(_desc.ShaderType), 1, &ptr);
+  GLCall_ReturnGLuint(glCreateShaderProgramv(GetShaderType(_desc.ShaderType), 1, &ptr), _id);
   Assert::ThrowIfTrue(_id == 0, "Unable to generate shader object");
   
   int32 logLength = -1;
@@ -81,7 +81,8 @@ uint32 GLShader::GetUniformBlockIndex(const std::string& name)
   auto blockIndexIter = _uniformBlockIndices.find(name);
   if (blockIndexIter == _uniformBlockIndices.end())
   {
-    auto blockIndex = glGetUniformBlockIndex(_id, name.c_str());
+    GLuint blockIndex = 0;
+    GLCall_ReturnGLuint(glGetUniformBlockIndex(_id, name.c_str()), blockIndex);
     Assert::ThrowIfFalse(blockIndex == 0, "Could not find a valid uniform block index with name " + name);
     _uniformBlockIndices.insert(std::pair<std::string, uint32>(name, blockIndex));
     return blockIndex;

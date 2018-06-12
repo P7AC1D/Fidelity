@@ -7,7 +7,7 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "STB/stb_image.h"
 
-#include "../Rendering/OpenGL.h"
+#include "../RenderApi/GL/GL.hpp"
 #include "../Rendering/Texture.hpp"
 #include "../Rendering/TextureCube.hpp"
 #include "../Rendering/Renderable.hpp"

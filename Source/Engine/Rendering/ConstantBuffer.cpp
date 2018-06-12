@@ -1,6 +1,6 @@
 #include "ConstantBuffer.h"
 
-#include "OpenGL.h"
+#include "../RenderApi/GL/GL.hpp"
 
 namespace Rendering
 {

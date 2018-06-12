@@ -148,7 +148,7 @@ const std::shared_ptr<GLVertexArrayObject> GLVertexArrayObjectCollection::GetVao
   auto layouts = vertexLayout->GetDesc();
   for (uint32 i = 0; i < layouts.size(); i++)
   {
-    stride += 4 * GetComponentSize(layouts[i].Format);
+    stride += sizeof(float32) * GetComponentSize(layouts[i].Format);
   }
   
   GLuint offset = 0;
@@ -156,12 +156,13 @@ const std::shared_ptr<GLVertexArrayObject> GLVertexArrayObjectCollection::GetVao
   {
     GLuint inputSlot = GetInputSlot(layouts[i].Type);
     GLint compSize = GetComponentSize(layouts[i].Format);
-    GLenum compType = GetComponentType(layouts[i].Format);
-    offset += compSize * 4;
+    GLenum compType = GetComponentType(layouts[i].Format);    
     
     GLCall(glBindBuffer(GL_ARRAY_BUFFER, boundBuffers[inputSlot]->GetId()));
     GLCall(glVertexAttribPointer(inputSlot, compSize, compType, GL_FALSE, stride, reinterpret_cast<GLvoid*>(offset)));
     GLCall(glEnableVertexAttribArray(inputSlot));
+
+    offset += compSize * 4;
   }
   GLCall(glBindVertexArray(0));
   

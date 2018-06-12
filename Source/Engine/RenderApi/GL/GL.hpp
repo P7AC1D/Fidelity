@@ -27,5 +27,29 @@
   #endif
 #endif
 
+#define GLCall_ReturnVoidPtr(x, out) void* ptr = nullptr; \
+ptr = (x); \
+ASSERT(GLLogCall(#x, __FILE__, __LINE__)) \
+ptr;\
+(out) = ptr;\
+
+#define GLCall_ReturnGLenum(x, out) GLenum data = 0; \
+data = (x); \
+ASSERT(GLLogCall(#x, __FILE__, __LINE__)) \
+data;\
+(out) = data;\
+
+#define GLCall_ReturnGLuint(x, out) GLuint data = 0; \
+data = (x); \
+ASSERT(GLLogCall(#x, __FILE__, __LINE__)) \
+data;\
+(out) = data;\
+
+#define GLCall_ReturnGLboolean(x, out) GLboolean data = GL_FALSE; \
+data = (x); \
+ASSERT(GLLogCall(#x, __FILE__, __LINE__)) \
+data;\
+(out) = data;\
+
 void GLClearError();
 bool GLLogCall(const byte* function, const byte* file, int line);

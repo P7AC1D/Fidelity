@@ -2,7 +2,7 @@
 
 #include <stdexcept>
 
-#include "OpenGL.h"
+#include "../RenderApi/GL/GL.hpp"
 
 namespace Rendering
 {

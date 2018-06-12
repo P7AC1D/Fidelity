@@ -15,11 +15,6 @@ Camera::Camera() :
   _view(Matrix4::Identity),
   _proj(Matrix4::Identity)
 {
-  InitializeBuffer();
-}
-
-Camera::~Camera()
-{
 }
 
 void Camera::LookAt(const Vector3& position, const Vector3& target, const Vector3& up)
@@ -72,11 +67,6 @@ const Matrix4& Camera::GetProjection()
   return _proj;
 }
 
-const uint32 Camera::GetInternalBufferIndex() const
-{
-  return _buffer->GetId();
-}
-
 void Camera::SetPosition(const Vector3& position)
 {
   if (position != _position)
@@ -95,11 +85,6 @@ void Camera::SetOrientation(const Quaternion& orientation)
   }
 }
 
-void Camera::InitializeBuffer()
-{
-  _buffer.reset(new ConstantBuffer(144));
-}
-
 void Camera::UpdateView()
 {
   Matrix4 rotation(_orientation);
@@ -113,18 +98,8 @@ void Camera::UpdateView()
   _right = Vector3(_view[0][0], _view[1][0], _view[2][0]);
   _up = Vector3(_view[0][1], _view[1][1], _view[2][1]);
   _forward = Vector3(_view[0][2], _view[1][2], _view[2][2]);
-
-  UpdateBuffer();
 }
 void Camera::UpdateProjection()
 {
   _proj = Matrix4::Perspective(_fov, _width / static_cast<float32>(_height), _near, _far);
-  UpdateBuffer();
-}
-
-void Camera::UpdateBuffer()
-{
-  _buffer->UploadData(0, 64, &_proj[0]);
-  _buffer->UploadData(64, 64, &_view[0]);
-  _buffer->UploadData(128, 12, &_position[0]);
 }

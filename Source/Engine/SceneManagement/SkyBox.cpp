@@ -6,7 +6,6 @@
 #include "../Rendering/Renderer.h"
 #include "../Rendering/TextureCube.hpp"
 #include "../Rendering/VertexBuffer.h"
-#include "../Rendering/OpenGL.h"
 
 using namespace Rendering;
 

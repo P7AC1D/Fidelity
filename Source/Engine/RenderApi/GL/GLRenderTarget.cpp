@@ -81,5 +81,8 @@ void GLRenderTarget::Initialize()
     AttachDepthStencilTexture(_desc.DepthStencilTarget);
   }
   GLCall(glDrawBuffers(attachments.size(), attachments.data()));
-  Assert::ThrowIfFalse(glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE, "Framebuffer is not complete");
+
+  GLenum frameBufferComplete = 0;
+  GLCall_ReturnGLenum(glCheckFramebufferStatus(GL_FRAMEBUFFER), frameBufferComplete);
+  Assert::ThrowIfFalse(frameBufferComplete == GL_FRAMEBUFFER_COMPLETE, "Framebuffer is not complete");
 }

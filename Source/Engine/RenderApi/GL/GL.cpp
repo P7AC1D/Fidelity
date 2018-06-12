@@ -26,6 +26,7 @@ void GLClearError()
 
 bool GLLogCall(const byte* function, const byte* file, int line)
 {
+  std::cout << "Calling OpenGL function: " << function << " " << file << ":" << line << std::endl;
   while (GLenum error = glGetError())
   {
     auto glError = GLErrorToStr(error);

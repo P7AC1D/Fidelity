@@ -108,7 +108,9 @@ void* GLGpuBuffer::MapRange(uint64 byteOffset, uint64 byteCount, AccessType acce
       access = GL_MAP_READ_BIT | GL_MAP_WRITE_BIT;
   }
 
-  void* buffer = glMapBufferRange(target, byteOffset, byteCount, access);
+  //void* buffer = glMapBufferRange(target, byteOffset, byteCount, access);
+  void* buffer = nullptr;
+  GLCall_ReturnVoidPtr(glMapBufferRange(target, byteOffset, byteCount, access), buffer);
   Assert::ThrowIfTrue(buffer == nullptr, "Could not map buffer");
   return buffer;
 }
@@ -117,5 +119,8 @@ void GLGpuBuffer::Unmap()
 {
   GLenum target = GetBufferType(_desc.BufferType);
   GLCall(glBindBuffer(target, _id));
-  Assert::ThrowIfFalse(glUnmapBuffer(target), "Buffer corrupt");
+
+  GLboolean success = GL_FALSE;
+  GLCall_ReturnGLboolean(glUnmapBuffer(target), success);
+  Assert::ThrowIfFalse(success, "Buffer corrupt");
 }

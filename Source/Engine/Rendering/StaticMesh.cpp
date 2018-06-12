@@ -373,7 +373,7 @@ void StaticMesh::UploadVertexData(const std::shared_ptr<RenderDevice>& renderDev
   desc.VertexCount = _vertexCount;
   desc.VertexSizeBytes = dataToUpload.size();
   _vertexBuffer = renderDevice->CreateVertexBuffer(desc);
-  _vertexBuffer->WriteData(0, dataToUpload.size(), dataToUpload.data());
+  _vertexBuffer->WriteData(0, dataToUpload.size() * sizeof(float32), dataToUpload.data(), AccessType::WriteOnlyDiscardRange);
 
   _positionData.clear();
   _positionData.shrink_to_fit();
