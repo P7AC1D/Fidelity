@@ -5,7 +5,7 @@
 #include "../SceneManagement/SceneManager.h"
 #include "../SceneManagement/WorldObject.h"
 #include "../Utility/AssetManager.h"
-#include "../Utility/StringUtil.h"
+#include "../Utility/String.hpp"
 #include "Camera.hpp"
 #include "WorldObject.h"
 
@@ -14,9 +14,9 @@ static uint32 LightCount = 0;
 
 using namespace Rendering;
 
-SceneManager::SceneManager() :
-  _ambientLight(Colour::Black),
-  _renderer(Renderer::Get())
+SceneManager::SceneManager(const std::shared_ptr<Renderer>& renderer) :
+  _renderer(renderer),
+  _ambientLight(Colour::Black)
 {
 }
 
@@ -34,11 +34,11 @@ std::shared_ptr<WorldObject> SceneManager::CreateObject(const std::string& name)
 
 std::shared_ptr<WorldObject> SceneManager::LoadObjectFromFile(const std::string& filePath)
 {
-  auto tokens = StringUtil::Split(filePath, '/');
+  auto tokens = String::Split(filePath, '/');
   auto fileName = tokens.back();
   tokens.pop_back();
 
-  auto renderable = AssetManager::GetRenderable(StringUtil::Join(tokens, '/'), fileName);
+  auto renderable = AssetManager::GetRenderable(String::Join(tokens, '/'), fileName);
   
   _worldObjects.emplace_back(std::make_shared<WorldObject>(fileName));
   auto worldObject = _worldObjects.back();
@@ -62,8 +62,8 @@ void SceneManager::UpdateScene(uint32 dtMs)
 {
   UpdateWorldObjects(dtMs);
   SubmitSceneToRender();
-  _renderer->SetAmbientLight(_ambientLight);
-  _renderer->DrawScene(_camera);
+  //_renderer->SetAmbientLight(_ambientLight);
+  //_renderer->DrawScene(_camera);
 }
 
 void SceneManager::UpdateWorldObjects(uint32 dtMs)
@@ -76,7 +76,7 @@ void SceneManager::UpdateWorldObjects(uint32 dtMs)
 
 void SceneManager::SubmitSceneToRender()
 {
-  _renderer->SetSkyBox(_skyBox);
+  //_renderer->SetSkyBox(_skyBox);
 
   for (auto worldObject : _worldObjects)
   {
@@ -94,18 +94,18 @@ void SceneManager::SubmitSceneToRender()
     }
   }
 
-  for (auto& light : _lights)
-  {
-    switch (light.GetType())
-    {
-      case LightType::Point:
-        _renderer->PushPointLight(light);
-        break;
-      case LightType::Directional:
-        _renderer->PushDirectionalLight(light);
-        break;
-      case LightType::Spot:
-        break;
-    }
-  }
+//  for (auto& light : _lights)
+//  {
+//    switch (light.GetType())
+//    {
+//      case LightType::Point:
+//        _renderer->PushPointLight(light);
+//        break;
+//      case LightType::Directional:
+//        _renderer->PushDirectionalLight(light);
+//        break;
+//      case LightType::Spot:
+//        break;
+//    }
+//  }
 }

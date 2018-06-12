@@ -7,9 +7,6 @@
 #include "../Engine/Geometry/MeshFactory.h"
 #include "../Engine/Input/InputHandler.hpp"
 #include "../Engine/Input/EventDispatcher.hpp"
-#include "../Engine/Overlay/GuiCaption.hpp"
-#include "../Engine/Overlay/GuiCheckBox.hpp"
-#include "../Engine/Overlay/GuiSystem.hpp"
 #include "../Engine/Maths/Degree.hpp"
 #include "../Engine/Maths/Math.hpp"
 #include "../Engine/Maths/Quaternion.hpp"
@@ -22,7 +19,6 @@
 #include "../Engine/Rendering/StaticMesh.h"
 #include "../Engine/Rendering/Texture.hpp"
 #include "../Engine/Utility/AssetManager.h"
-#include "../Engine/Utility/FntLoader.hpp"
 #include "../Engine/Utility/ObjLoader.hpp"
 #include "../Engine/SceneManagement/Light.h"
 #include "../Engine/SceneManagement/FpsCamera.hpp"
@@ -59,92 +55,16 @@ Test3D::Test3D(const ApplicationDesc& desc):
 
 void Test3D::OnStart()
 {
-  _sceneManager->SetAmbientLight(Vector3(0.25f, 0.25f, 0.20f));
-
   _camera.reset(new FpsCamera());
   _camera->SetPerspective(Degree(67.67f), GetWidth(), GetHeight(), 0.1f, 1000.0f);
   _camera->LookAt(Vector3(69.0f, 88.0f, 0.8f), Vector3(-28056.1523f, -16285.3330f, -2427.24756f));
   _sceneManager->SetCamera(_camera);
-    
-  std::shared_ptr<SkyBox> skyBox(new SkyBox);
-  skyBox->SetTexture(AssetManager::GetTextureCube("/Textures/SimpleSkyBox/", { "back.jpg", "bottom.jpg", "front.jpg", "left.jpg", "right.jpg", "top.jpg" }));
-  _sceneManager->SetSkyBox(skyBox);
   
-  /*Vector3 floorScale(100.0f);
-  auto& floor = _sceneManager->CreateObject("floor");
-  floor.SetScale(floorScale);
-  auto plane = MeshFactory::CreatePlane(25);
-  auto vertexData = plane->GetPositionVertexData();
-  for (auto& vertex : vertexData)
-  {
-    vertex[1] = 0.05f * GetTerrainHeight(vertex[0], vertex[2]);
-  }
-  plane->SetPositionVertexData(vertexData);
-  plane->GenerateNormals();
-
-  auto& material = plane->GetMaterial();
-  material.SetDiffuseColour(Colour(116, 244, 66));
-  material.SetTexture("DiffuseMap", _assetManager->GetTexture("/Textures/TexturesCom_Grass0130_1_seamless_S.jpg"));
-  std::shared_ptr<Renderable> planeModel(new Renderable);
-  planeModel->PushMesh(*plane);
-  floor.AttachRenderable(planeModel);
-
-  for (float32 i = -40.0f; i < 40.0f; i += 4.0f)
-  {
-    for (float32 j = -40.0f; j < 40.0f; j += 4.0f)
-    {
-      auto treeModel = _sceneManager->LoadObjectFromFile("./../../Resources/Models/LowPolyTree/lowpolytree.obj");
-      treeModel.GetTransform()->SetPosition(Vector3(i, SampleHeight(vertexData, floorScale, i, j), j));
-    }
-  }*/
-
-  //auto sphereANode = _sceneManager->CreateObject("sphereA");
-  //auto sphereA = MeshFactory::CreateIcosphere(3);
-  //auto sphereAMaterial = sphereA->GetMaterial();
-  //auto diffuseMap = AssetManager::GetTexture("/Textures/brick_floor_tileable_Base_Color.jpg"); 
-  //sphereA->GetMaterial()->SetTexture("DiffuseMap", diffuseMap);
-  //std::shared_ptr<Renderable> sphereModelA(new Renderable);
-  //sphereModelA->PushMesh(sphereA);
-  //sphereANode->AttachRenderable(sphereModelA);
-  //sphereANode->GetTransform()->Translate(Vector3(2.0f, 0.0f, 0.0f));
-
-  //auto sphereBNode = _sceneManager->CreateObject("sphereB");
-  //auto sphereB = MeshFactory::CreateIcosphere(3);
-  //auto sphereBMaterial = sphereB->GetMaterial();
-  //auto normalMap = AssetManager::GetTexture("/Textures/brick_floor_tileable_Normal.jpg");
-  //auto specularMap = AssetManager::GetTexture("/Textures/brick_floor_tileable_Glossiness.jpg");
-  //sphereBMaterial->SetTexture("DiffuseMap", diffuseMap);
-  //sphereBMaterial->SetTexture("NormalMap", normalMap);
-  //sphereBMaterial->SetTexture("SpecularMap", specularMap);
-  //std::shared_ptr<Renderable> sphereModelB(new Renderable);
-  //sphereModelB->PushMesh(sphereB);
-  //sphereBNode->AttachRenderable(sphereModelB);
-  //sphereBNode->GetTransform()->Translate(Vector3(-2.0f, 0.0f, 0.0f));
-
-  auto object = _sceneManager->LoadObjectFromFile("Models/Sponza/sponza.obj");
-  object->GetTransform()->SetScale(Vector3(0.1f));
-
-  _light = &_sceneManager->CreateLight(LightType::Directional);
-  _light->SetColour(Colour(255, 240, 170));
-  _light->SetDirection(Vector3::Normalize(Vector3(-0.8f, -1.0f, 0.2f)));
-
-  //_inputHandler->BindButtonToState("ActivateCameraLook", Button::Button_RMouse);
-  //_inputHandler->BindAxisToState("CameraZoom", Axis::MouseScrollXY);
-  //_inputHandler->BindAxisToState("CameraLook", Axis::MouseXY);
-
-  //_eventDispatcher->Register("CameraZoom", [&](const InputEvent& inputEvent, int32 dt)
-  //{
-  //  _camera->Zoom(static_cast<float32>(inputEvent.AxisPosDelta[1]), dt);
-  //});
-  //_eventDispatcher->Register("CameraLook", [&](const InputEvent& inputEvent, int32 dt)
-  //{
-  //  if (_inputHandler->IsButtonStateActive("ActivateCameraLook"))
-  //  {
-  //    Radian yaw(static_cast<float32>(-inputEvent.AxisPosDelta[1]));
-  //    Radian pitch(static_cast<float32>(-inputEvent.AxisPosDelta[0]));
-  //    _camera->RotateAboutTarget(yaw, pitch, dt);
-  //  }
-  //});
+  auto model = _sceneManager->CreateObject("cube");
+  auto cubeMesh = MeshFactory::CreateCube();
+  auto modelRenderable = std::make_shared<Renderable>();
+  modelRenderable->PushMesh(cubeMesh);
+  model->AttachRenderable(modelRenderable);
 
   _inputHandler->BindButtonToState("MoveForward", Button::Key_W);
   _inputHandler->BindButtonToState("MoveBackward", Button::Key_S);
@@ -178,46 +98,6 @@ void Test3D::OnStart()
       _camera->Rotate(yaw, pitch, dt);
     }
   });
-  
-  GuiCaptionDesc guiCaptionDesc;
-  guiCaptionDesc.FontColour = Colour::White;
-  guiCaptionDesc.Name = "Test Caption";
-  guiCaptionDesc.Text = "Test Caption";
-  guiCaptionDesc.FontSize = 20;
-  guiCaptionDesc.MaxWidth = 100;
-  guiCaptionDesc.Font = "GillSans";
-  _fpsCounter = GuiSystem::Get()->CreateCaption(guiCaptionDesc);
-  
-  GuiPanelDesc guiPanelDesc;
-  guiPanelDesc.Name = "Test panel";
-  guiPanelDesc.Colour = Colour(0, 0, 0, 200);
-  guiPanelDesc.Left = GetWidth() - 150;
-  guiPanelDesc.Right = GetWidth();
-  guiPanelDesc.Bottom = GetHeight();
-  _testPanel = GuiSystem::Get()->CreatePanel(guiPanelDesc);
-
-  GuiCheckBoxDesc guiCheckBoxDesc;
-  guiCheckBoxDesc.Name = "Test Checkbox";
-  guiCheckBoxDesc.Position.X = 10;
-  guiCheckBoxDesc.Position.Y = 10;
-  guiCheckBoxDesc.Size = 15;
-  guiCheckBoxDesc.Colour = Colour::White;
-  auto testCheckBox = GuiSystem::Get()->CreateCheckBox(guiCheckBoxDesc);
-  auto checkedTexture = AssetManager::GetTexture("/Textures/unchecked-checkbox.png");
-  testCheckBox->SetUncheckedTexture(AssetManager::GetTexture("/Textures/unchecked-checkbox.png"));
-  testCheckBox->SetCheckedTexture(AssetManager::GetTexture("/Textures/checked-checkbox.png"));
-  testCheckBox->SetParent(_testPanel);
-
-  GuiCaptionDesc checkboxLabelDesc;
-  checkboxLabelDesc.FontColour = Colour::White;
-  checkboxLabelDesc.Name = "Checkbox Label";
-  checkboxLabelDesc.Text = "Checkbox Label";
-  checkboxLabelDesc.FontSize = 13;
-  checkboxLabelDesc.MaxWidth = 100;
-  checkboxLabelDesc.Font = "GillSans";
-  auto checkboxLabel = GuiSystem::Get()->CreateCaption(checkboxLabelDesc);
-  checkboxLabel->SetParent(_testPanel);
-  checkboxLabel->SetBounds(BoundingBox(30, 100, 10, 25));
 }
 
 void Test3D::OnUpdate(uint32 dtMs)
@@ -225,5 +105,4 @@ void Test3D::OnUpdate(uint32 dtMs)
   std::stringstream ss;
   ss.precision(4);
   ss << GetAverageFps(dtMs) << " FPS " << GetAverageTickMs(dtMs) << " ms";
-  _fpsCounter->SetText(ss.str());
 }

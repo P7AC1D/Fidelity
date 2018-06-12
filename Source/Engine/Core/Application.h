@@ -6,14 +6,9 @@
 #include "../Core/Types.hpp"
 #include "../Maths/Vector2I.hpp"
 
-namespace Rendering
-{
-class Renderer;
-class RenderContext;
-}
-
 class EventDispatcher;
 class InputHandler;
+class Renderer;
 class SceneManager;
 
 typedef void* SDL_GLContext;
@@ -54,6 +49,7 @@ protected:
   std::unique_ptr<EventDispatcher> _eventDispatcher;
   std::unique_ptr<InputHandler> _inputHandler;
   std::unique_ptr<SceneManager> _sceneManager;
+  std::shared_ptr<Renderer> _renderer;
 
 private:
   bool _isRunning;

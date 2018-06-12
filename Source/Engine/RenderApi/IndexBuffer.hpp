@@ -3,32 +3,32 @@
 
 enum class IndexType
 {
-  Int16,
-  Int32
+  UInt16,
+  UInt32
 };
 
 struct IndexBufferDesc
 {
   uint32 IndexCount;
-  IndexType IndexType = IndexType::Int32;
+  IndexType IndexType = IndexType::UInt32;
   BufferUsage BufferUsage = BufferUsage::Default;
 };
-
-uint32 GetIndexTypeSize(IndexType type)
-{
-  switch (type)
-  {
-    case IndexType::Int16:
-      return 2;
-    case IndexType::Int32:
-    default:
-      return 4;
-  }
-}
 
 class IndexBuffer : public GpuBuffer
 {
 public:
+  static uint32 GetBytesPerIndex(IndexType type)
+  {
+    switch (type)
+    {
+      case IndexType::UInt16:
+        return 2;
+      case IndexType::UInt32:
+      default:
+        return 4;
+    }
+  }
+  
   uint32 GetIndexCount() const { return _desc.IndexCount; }
   IndexType GetIndexType() const { return _desc.IndexType; }
   BufferUsage GetBufferUsage() const { return _desc.BufferUsage; }
@@ -36,7 +36,7 @@ public:
 protected:
   IndexBuffer(const IndexBufferDesc& desc):
     GpuBuffer({
-      GetIndexTypeSize(desc.IndexType) * desc.IndexCount,
+      GetBytesPerIndex(desc.IndexType) * desc.IndexCount,
       BufferType::Index,
       desc.BufferUsage
     }),

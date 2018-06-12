@@ -30,6 +30,12 @@ enum class SemanticFormat
 
 struct VertexLayoutDesc
 {
+  VertexLayoutDesc(SemanticType type, SemanticFormat format, uint32 offset):
+    Type(type),
+    Format(format),
+    Offset(offset)
+  {}
+  
   SemanticType Type;
   SemanticFormat Format;
   uint32 Offset;

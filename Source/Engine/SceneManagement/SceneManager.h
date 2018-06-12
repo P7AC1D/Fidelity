@@ -9,17 +9,13 @@
 #include "SkyBox.hpp"
 
 class Camera;
-class WorldObject;
-
-namespace Rendering
-{
 class Renderer;
-}
+class WorldObject;
 
 class SceneManager
 {
 public:
-  SceneManager();
+  SceneManager(const std::shared_ptr<Renderer>& renderer);
 
   std::shared_ptr<WorldObject> CreateObject(const std::string& name = std::string());  
   std::shared_ptr<WorldObject> LoadObjectFromFile(const std::string& filePath);
@@ -40,8 +36,8 @@ private:
 private:
   std::vector<std::shared_ptr<WorldObject>> _worldObjects;
   std::vector<Light> _lights;
+  std::shared_ptr<Renderer> _renderer;
   std::shared_ptr<Camera> _camera;
   std::shared_ptr<SkyBox> _skyBox;
   Colour _ambientLight;
-  Rendering::Renderer* _renderer;
 };

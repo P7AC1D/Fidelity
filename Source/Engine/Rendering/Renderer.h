@@ -1,128 +1,66 @@
 #pragma once
 #include <memory>
 #include <string>
-#include <unordered_map>
 #include <vector>
-
-#include "../Core/System.hpp"
 #include "../Core/Types.hpp"
-#include "../Maths/Colour.hpp"
-#include "../Maths/Vector3.hpp"
-#include "../SceneManagement/Light.h"
-#include "../SceneManagement/Camera.hpp"
-#include "../SceneManagement/Transform.h"
-#include "Renderable.hpp"
 
-class SkyBox;
-class TextOverlay;
-
-namespace Rendering
-{
-  class ConstantBuffer;
-  class RenderTarget;
-  class Shader;
-  class ShaderCollection;
-  class StaticMesh;
-  class Texture;
-  class VertexBuffer;
-  enum class RenderingTechnique;
-
-enum ClearType : uint8
-{
-  CT_Colour = 1 << 0,
-  CT_Depth = 1 << 1,
-  CT_Stencil = 1 << 2
-};
-
-enum class BlendType
-{
-  SrcAlpha,
-  OneMinusSrcAlpha
-};
+class Camera;
+class GpuBuffer;
+class PipelineState;
+class RenderDevice;
+class Renderable;
+class Transform;
 
 struct RenderableItem
 {
-  RenderableItem(std::shared_ptr<Renderable> renderable, std::shared_ptr<Transform> transform):
+  RenderableItem(const std::shared_ptr<Renderable>& renderable, const std::shared_ptr<Transform>& transform):
     Renderable(renderable),
     Transform(transform)
   {}
-
+  
   std::shared_ptr<Renderable> Renderable;
   std::shared_ptr<Transform> Transform;
 };
 
-class Renderer : public System<Renderer>
+enum class RenderApi
+{
+  GL40
+};
+  
+struct RendererDesc
+{
+  uint32 RenderWidth;
+  uint32 RenderHeight;
+  RenderApi RenderApi = RenderApi::GL40;
+  bool FullscreenEnabled = false;
+  bool VsyncEnabled = false;
+};
+
+class Renderer
 {
 public:
-  ~Renderer();
-
-  inline void SetAmbientLight(const Colour& ambientLight) { _ambientLight = ambientLight; }
-  inline void SetSkyBox(std::shared_ptr<SkyBox> skyBox) { _skyBox = skyBox; }
-  inline void PushRenderable(std::shared_ptr<Renderable> renderable, std::shared_ptr<Transform> transform) { _renderables.emplace_back(renderable, transform); }
-  inline void PushPointLight(const Light& pointLight) { _pointLights.push_back(pointLight); }
-  inline void PushDirectionalLight(const Light& directionalLight) { _directionalLights.push_back(directionalLight); }
-
-  inline uint32 GetWidth() const { return _renderWidth; }
-  inline uint32 GetHeight() const { return _renderHeight; }
-
-  void SetClearColour(const Colour& colour);
-
-  void DrawScene(std::weak_ptr<Camera> camera);
-
-  static void Draw(uint32 vertexCount, uint32 vertexOffset = 0);
-  static void DrawIndexed(uint32 indexCount);
-
-  bool Initialize();
+  Renderer(const RendererDesc& desc);
   
-  void SetRenderDimensions(uint32 width, uint32 height);
-
-  void EnableBlend(BlendType source, BlendType destination);
-  void DisableBlend();
+  uint32 GetRenderWidth() const { return _desc.RenderWidth; }
+  uint32 GetRenderHeight() const { return _desc.RenderHeight; }
   
-  void EnableDepthTest();
-  void DisableDepthTest();
-  void EnableStencilTest();
-  void DisableStencilTest();
+  void SetCamera(const std::shared_ptr<Camera>& camera) { _activeCamera = camera; }
+  
+  void PushRenderable(const std::shared_ptr<Renderable>& renderable, const std::shared_ptr<Transform>& transform);
+  
+  void DrawFrame();
+  
+private:
+  void InitPipelineStates();
+  void InitConstBuffer();
+  void StartFrame();
 
 private:
-  void SetViewport(uint32 renderWidth, uint32 renderHeight);  
-  Renderer();
-
-  void UploadPointLightData(const Light& pointLight);
-  void UploadDirectionalLightData(const Light& directionalLight);
-
-  void ExecuteDirectionalLightDepthPass(const Matrix4& lightSpaceTransform, uint32 shadowResolution);
-  void ExecuteGeometryPass(std::weak_ptr<Camera> camera);
-  void ExecuteLightingPass(std::weak_ptr<Camera> camera, const Matrix4& lightSpaceTransform);
-  void DrawSkyBox(std::weak_ptr<Camera> camera);
-
-  void ClearBuffer(uint32 clearType);
-
-  Matrix4 BuildLightSpaceTransform(const Light& directionalLight);
-
-private:
+  RendererDesc _desc;
+  std::shared_ptr<RenderDevice> _renderDevice;
+  std::shared_ptr<GpuBuffer> _constBuffer;
+  std::shared_ptr<PipelineState> _basicPipeline;
+  std::shared_ptr<Camera> _activeCamera;
+  
   std::vector<RenderableItem> _renderables;
-  std::vector<Light> _pointLights;
-  std::vector<Light> _directionalLights;
-  
-  std::unique_ptr<ShaderCollection> _shaderCollection;
-
-  std::unique_ptr<ConstantBuffer> _lightBuffer;
-  std::unique_ptr<ConstantBuffer> _ambientLightBuffer;
-
-  std::unique_ptr<VertexBuffer> _quadVertexData;
-  std::unique_ptr<VertexBuffer> _skyBoxVertexData;
-  
-  std::shared_ptr<RenderTarget> _gBuffer;
-  std::shared_ptr<RenderTarget> _depthBuffer;
-
-  std::shared_ptr<SkyBox> _skyBox;
-
-  uint32 _renderWidth;
-  uint32 _renderHeight;
-  uint32 _shadowResolution = 4096;
-  Colour _ambientLight;
-
-  friend class System<Renderer>;
 };
-}

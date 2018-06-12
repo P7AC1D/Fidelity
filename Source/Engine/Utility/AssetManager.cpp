@@ -12,7 +12,7 @@
 #include "../Rendering/TextureCube.hpp"
 #include "../Rendering/Renderable.hpp"
 #include "../Utility/ObjLoader.hpp"
-#include "../Utility/StringUtil.h"
+#include "../Utility/String.hpp"
 #include "ObjLoader.hpp"
 
 using namespace Utility;
@@ -45,7 +45,7 @@ PixelFormat CalculateTextureFormat(int32 nChannels)
 
 size_t GetTextureFaceIndexFromFileName(const std::string& fileName)
 {
-  auto split = StringUtil::Split(fileName, '.');
+  auto split = String::Split(fileName, '.');
   if (split[0] == "back") return 0;
   if (split[0] == "bottom") return 1;
   if (split[0] == "front") return 2;
@@ -130,7 +130,7 @@ std::shared_ptr<Renderable> AssetManager::GetRenderable(const std::string& fileP
   return renderable;
 }
 
-std::shared_ptr<Rendering::Texture> AssetManager::GetTexture(const std::string& texturePath, 
+std::shared_ptr<Rendering::Texture> AssetManager::GetTexture(const std::string& texturePath,
                                                              const std::string& textureName)
 {
   auto fullPath = texturePath + textureName;

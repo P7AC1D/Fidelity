@@ -10,9 +10,6 @@ WorldObject::WorldObject(const std::string& name) :
   _transform(new Transform)
 {}
 
-WorldObject::~WorldObject()
-{}
-
 void WorldObject::Update()
 {
 }

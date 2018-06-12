@@ -1,7 +1,6 @@
 #include "GLRenderDevice.hpp"
 
 #include "../../Utility/Assert.hpp"
-#include "../ShaderParams.hpp"
 #include "GL.hpp"
 #include "GLGpuBuffer.hpp"
 #include "GLIndexBuffer.hpp"
@@ -14,7 +13,7 @@
 #include "GLVertexBuffer.hpp"
 #include "GLVertexArrayCollection.hpp"
 
-GLenum GetTextureTarget(TextureType textureType)
+GLenum GetTextureTargetFromType(TextureType textureType)
 {
   switch(textureType)
   {
@@ -116,6 +115,11 @@ GLRenderDevice::GLRenderDevice(const RenderDeviceDesc& desc) :
   _stencilWriteMask(0),
   _shaderPipelineCollection(new GLShaderPipelineCollection)
 {
+#ifdef _WIN32
+  glewExperimental = GL_TRUE;
+  GLenum error = glewInit();
+  Assert::ThrowIfFalse(error == GLEW_OK, "Failed to initialize GLEW");
+#endif
 }
 
 std::shared_ptr<Shader> GLRenderDevice::CreateShader(const ShaderDesc& desc)
@@ -213,7 +217,7 @@ void GLRenderDevice::SetTexture(uint32 slot, const std::shared_ptr<Texture>& tex
   if (!_boundTextures[slot] || _boundTextures[slot]->GetId() != glTexture->GetId())
   {
     GLCall(glActiveTexture(GL_TEXTURE0 + slot));
-    GLCall(glBindTexture(GetTextureTarget(_boundTextures[slot]->GetTextureType()), _boundTextures[slot]->GetId()));
+    GLCall(glBindTexture(GetTextureTargetFromType(_boundTextures[slot]->GetTextureType()), _boundTextures[slot]->GetId()));
     _boundTextures[slot] = glTexture;
   }
 }

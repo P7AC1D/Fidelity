@@ -63,7 +63,7 @@ std::shared_ptr<StaticMesh> MeshFactory::CreatePlane(uint32 density)
   return mesh;
 }
 
-std::shared_ptr<Rendering::StaticMesh> MeshFactory::CreateIcosphere(uint32 recursionCount)
+std::shared_ptr<StaticMesh> MeshFactory::CreateIcosphere(uint32 recursionCount)
 {
   Icosphere icosphere(recursionCount);
   auto mesh = std::make_shared<StaticMesh>("Icosphere");

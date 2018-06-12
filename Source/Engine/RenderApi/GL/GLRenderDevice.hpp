@@ -95,6 +95,6 @@ private:
   std::array<std::shared_ptr<GLTexture>, MaxTextureSlots> _boundTextures;
   std::array<std::shared_ptr<GLSamplerState>, MaxTextureSlots> _boundSamplers;
   
-  std::unique_ptr<GLShaderPipelineCollection> _shaderPipelineCollection;
-  std::unique_ptr<GLVertexArrayObjectCollection> _vaoCollection;
+  std::shared_ptr<GLShaderPipelineCollection> _shaderPipelineCollection;
+  std::shared_ptr<GLVertexArrayObjectCollection> _vaoCollection;
 };

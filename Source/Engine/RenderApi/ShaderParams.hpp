@@ -12,6 +12,12 @@ enum class ShaderParamType
 
 struct ShaderParam
 {
+  ShaderParam(const std::string& name, ShaderParamType type, uint32 slot):
+    Name(name),
+    Type(type),
+    Slot(slot)
+  {}
+  
   std::string Name;
   ShaderParamType Type;
   uint32 Slot;

@@ -18,7 +18,7 @@
 #include "../Rendering/StaticMesh.h"
 #include "../Rendering/Texture.hpp"
 #include "../Utility/AssetManager.h"
-#include "../Utility/StringUtil.h"
+#include "../Utility/String.hpp"
 
 using namespace Rendering;
 

@@ -4,8 +4,6 @@
 
 #include "StaticMesh.h"
 
-namespace Rendering
-{
 Renderable::Renderable():
 _castShadows(true)
 {
@@ -20,5 +18,4 @@ std::shared_ptr<StaticMesh> Renderable::GetMeshAtIndex(size_t index) const
 {
   assert(index < _subMeshes.size());
   return _subMeshes[index];
-}
 }

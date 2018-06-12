@@ -21,5 +21,5 @@ public:
 
 private:
   std::shared_ptr<Rendering::TextureCube> _textureCube;
-  std::unique_ptr<Rendering::VertexBuffer> _vertexBuffer;
+  std::shared_ptr<Rendering::VertexBuffer> _vertexBuffer;
 };

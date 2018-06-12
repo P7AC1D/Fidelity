@@ -10,10 +10,7 @@ void ShaderParams::AddParam(const ShaderParam& param)
 
 void ShaderParams::AddParam(const std::string& name, ShaderParamType type, uint32 slot)
 {
-  ShaderParam param;
-  param.Name = name;
-  param.Type = type;
-  param.Slot = slot;
+  ShaderParam param(name, type, slot);
   AddParam(param);
 }
 
@@ -28,10 +25,7 @@ void ShaderParams::RemoveParam(const ShaderParam &param)
 
 void ShaderParams::RemoveParam(const std::string& name, ShaderParamType type, uint32 slot)
 {
-  ShaderParam paramToFind;
-  paramToFind.Name = name;
-  paramToFind.Type = type;
-  paramToFind.Slot = slot;
+  ShaderParam paramToFind(name, type, slot);
   RemoveParam(paramToFind);
 }
 

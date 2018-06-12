@@ -4,7 +4,6 @@
 
 #include "../Input/EventDispatcher.hpp"
 #include "../Input/InputHandler.hpp"
-#include "../Overlay/GuiSystem.hpp"
 #include "../Rendering/Renderer.h"
 #include "../Utility/AssetManager.h"
 #include "../SceneManagement/SceneManager.h"
@@ -60,7 +59,6 @@ int32 Application::Run()
           inputEvent.Button = SDLToButton(sdlEvent.key.keysym.sym);
           inputEvent.ButtonEvent = ButtonEvent::Released;
           _inputHandler->Dispatch(inputEvent, dtMs);
-          GuiSystem::Get()->OnEvent(inputEvent);
           break;
         }
         case SDL_KEYDOWN:
@@ -69,7 +67,6 @@ int32 Application::Run()
           inputEvent.Button = SDLToButton(sdlEvent.key.keysym.sym);
           inputEvent.ButtonEvent = ButtonEvent::Pressed;
           _inputHandler->Dispatch(inputEvent, dtMs);
-          GuiSystem::Get()->OnEvent(inputEvent);
           break;
         }          
         case SDL_MOUSEBUTTONUP:
@@ -79,7 +76,6 @@ int32 Application::Run()
           inputEvent.Button = SDLToButton(sdlEvent.button.button);
           inputEvent.ButtonEvent = ButtonEvent::Released;
           _inputHandler->Dispatch(inputEvent, dtMs);
-          GuiSystem::Get()->OnEvent(inputEvent);
           break;
         }
         case SDL_MOUSEBUTTONDOWN:
@@ -89,7 +85,6 @@ int32 Application::Run()
           inputEvent.Button = SDLToButton(sdlEvent.button.button);
           inputEvent.ButtonEvent = ButtonEvent::Pressed;
           _inputHandler->Dispatch(inputEvent, dtMs);
-          GuiSystem::Get()->OnEvent(inputEvent);
           break;
         }
         case SDL_MOUSEMOTION:
@@ -99,7 +94,6 @@ int32 Application::Run()
           inputEvent.AxisPos = Vector2I(sdlEvent.motion.x, sdlEvent.motion.y);
           inputEvent.AxisPosDelta = _cursorPosition - inputEvent.AxisPos;
           _inputHandler->Dispatch(inputEvent, dtMs);
-          GuiSystem::Get()->OnEvent(inputEvent);
 
           _cursorPosition = inputEvent.AxisPos;
           break;
@@ -110,14 +104,12 @@ int32 Application::Run()
           inputEvent.Axis = Axis::MouseScrollXY;
           inputEvent.AxisPosDelta = Vector2I(sdlEvent.wheel.x, sdlEvent.wheel.y);
           _inputHandler->Dispatch(inputEvent, dtMs);
-          GuiSystem::Get()->OnEvent(inputEvent);
           break;
         }
       }
     }   
 
     _sceneManager->UpdateScene(dtMs);
-    GuiSystem::Get()->Draw();
 
     SDL_GL_SwapWindow(_window);
   }
@@ -133,7 +125,6 @@ Application::Application(const ApplicationDesc &desc) :
   _mouseFocus(true),
   _desc(desc)
 {
-  _sceneManager.reset(new SceneManager());
 }
 
 float32 Application::GetAverageTickMs(int32 dtMs)
@@ -192,12 +183,11 @@ bool Application::Initialize()
     return false;
   }
 
-  auto renderer = Renderer::Get();
-  renderer->SetRenderDimensions(_desc.Width, _desc.Height);
-  if (!renderer->Initialize())
-  {
-    return false;
-  }
+  RendererDesc rendererDesc;
+  rendererDesc.RenderWidth = _desc.Width;
+  rendererDesc.RenderWidth = _desc.Height;
+  _renderer.reset(new Renderer(rendererDesc));
+  _sceneManager.reset(new SceneManager(_renderer));
   return true;
 }
 

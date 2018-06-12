@@ -2,8 +2,6 @@
 #include <memory>
 #include <vector>
 
-namespace Rendering
-{
 class StaticMesh;
 
 class Renderable
@@ -23,4 +21,3 @@ private:
   std::vector<std::shared_ptr<StaticMesh>> _subMeshes;
   bool _castShadows;
 };
-}

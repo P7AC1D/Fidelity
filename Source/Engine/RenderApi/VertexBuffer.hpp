@@ -3,7 +3,7 @@
 
 struct VertexBufferDesc
 {
-  uint32 VertexSizeBytes;
+  uint64 VertexSizeBytes;
   uint32 VertexCount;
   BufferUsage BufferUsage = BufferUsage::Default;
 };
@@ -11,7 +11,7 @@ struct VertexBufferDesc
 class VertexBuffer : public GpuBuffer
 {
 public:
-  uint32 GetVertexSizeBytes() const { return _vertexSizeBytes; }
+  uint64 GetVertexSizeBytes() const { return _vertexSizeBytes; }
   uint32 GetVertexCount() const { return _vertexCount; }
   
 protected:
@@ -27,6 +27,6 @@ protected:
   }
   
 private:
-  uint32 _vertexSizeBytes;
+  uint64 _vertexSizeBytes;
   uint32 _vertexCount;
 };

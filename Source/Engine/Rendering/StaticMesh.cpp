@@ -1,12 +1,12 @@
 #include "StaticMesh.h"
 
-#include "IndexBuffer.hpp"
+#include "../RenderApi/IndexBuffer.hpp"
+#include "../RenderApi/RenderDevice.hpp"
+#include "../RenderApi/VertexBuffer.hpp"
 #include "Material.h"
-#include "Renderer.h"
-#include "VertexBuffer.h"
 
-namespace Rendering
-{
+using namespace Rendering;
+
 StaticMesh::StaticMesh(const std::string& meshName) :
   _name(meshName),
   _material(new Material),
@@ -253,31 +253,26 @@ std::shared_ptr<Material> StaticMesh::GetMaterial()
   return _material;
 }
 
-std::shared_ptr<VertexBuffer> StaticMesh::GetVertexData() const
-{
-  return _vertexBuffer;
-}
-
-void StaticMesh::Draw()
+std::shared_ptr<VertexBuffer> StaticMesh::GetVertexData(const std::shared_ptr<RenderDevice>& renderDevice)
 {
   if (_isDirty)
   {
-    UploadVertexData();
-    UploadIndexData();
-    SetVertexAttribs();
+    UploadVertexData(renderDevice);
+    UploadIndexData(renderDevice);
     _isDirty = false;
   }
+  return _vertexBuffer;
+}
 
-  _vertexBuffer->Apply();
-  if (_indexed)
+std::shared_ptr<IndexBuffer> StaticMesh::GetIndexData(const std::shared_ptr<RenderDevice>& renderDevice)
+{
+  if (_isDirty)
   {
-    _indexBuffer->Bind();
-    Renderer::DrawIndexed(_indexCount);
+    UploadVertexData(renderDevice);
+    UploadIndexData(renderDevice);
+    _isDirty = false;
   }
-  else
-  {
-    Renderer::Draw(_vertexCount);
-  }
+  return _indexBuffer;
 }
 
 std::vector<float32> StaticMesh::CreateRestructuredVertexDataArray(int32& stride) const
@@ -369,12 +364,17 @@ std::vector<float32> StaticMesh::CreateVertexDataArray() const
   return vertexDataArray;
 }
 
-void StaticMesh::UploadVertexData()
+void StaticMesh::UploadVertexData(const std::shared_ptr<RenderDevice>& renderDevice)
 {
   int32 stride = 0;
-  _vertexBuffer.reset(new VertexBuffer);
   auto dataToUpload = CreateRestructuredVertexDataArray(stride);
-  _vertexBuffer->UploadData(dataToUpload, BufferUsage::Static);
+  
+  VertexBufferDesc desc;
+  desc.BufferUsage = BufferUsage::Default;
+  desc.VertexCount = _vertexCount;
+  desc.VertexSizeBytes = dataToUpload.size();
+  _vertexBuffer = renderDevice->CreateVertexBuffer(desc);
+  _vertexBuffer->WriteData(0, dataToUpload.size(), dataToUpload.data());
 
   _positionData.clear();
   _positionData.shrink_to_fit();
@@ -388,36 +388,15 @@ void StaticMesh::UploadVertexData()
   _textureData.shrink_to_fit();
 }
 
-void StaticMesh::UploadIndexData()
+void StaticMesh::UploadIndexData(const std::shared_ptr<RenderDevice>& renderDevice)
 {
-  _indexBuffer.reset(new IndexBuffer);
-  _indexBuffer->UploadData(_indexData);
+  IndexBufferDesc desc;
+  desc.BufferUsage = BufferUsage::Default;
+  desc.IndexCount = static_cast<uint32>(_indexData.size());
+  desc.IndexType = IndexType::UInt32;
+  _indexBuffer = renderDevice->CreateIndexBuffer(desc);
+  _indexBuffer->WriteData(0, _indexData.size() * IndexBuffer::GetBytesPerIndex(desc.IndexType), _indexData.data());
+  
   _indexData.clear();
   _indexData.shrink_to_fit();
-}
-
-void StaticMesh::SetVertexAttribs()
-{
-  _vertexBuffer->ResetVertexAttribs();
-  if (_vertexDataFormat & VertexDataFormat::Position)
-  {
-    _vertexBuffer->PushVertexAttrib(VertexAttribType::Vec3);
-  }
-  if (_vertexDataFormat & VertexDataFormat::Normal)
-  {
-    _vertexBuffer->PushVertexAttrib(VertexAttribType::Vec3);
-  }
-  if (_vertexDataFormat & VertexDataFormat::Uv)
-  {
-    _vertexBuffer->PushVertexAttrib(VertexAttribType::Vec2);
-  }
-  if (_vertexDataFormat & VertexDataFormat::Tangent)
-  {
-    _vertexBuffer->PushVertexAttrib(VertexAttribType::Vec3);
-  }
-  if (_vertexDataFormat & VertexDataFormat::Bitanget)
-  {
-    _vertexBuffer->PushVertexAttrib(VertexAttribType::Vec3);
-  }
-}
 }

@@ -1,12 +1,13 @@
 #pragma once
 #include <memory>
 #include "../Core/Types.hpp"
+#include "../Image/ImageFormat.hpp"
+#include "ShaderParams.hpp"
 
 class BlendState;
 class DepthStencilState;
 class RasterizerState;
 class Shader;
-class ShaderParams;
 class VertexLayout;
 enum class PixelFormat;
 
@@ -28,12 +29,6 @@ enum class PrimitiveTopologyType
   Patch
 };
 
-struct MultisampleDesc
-{
-  uint32 Count = 1;
-  uint32 Quality = 0;
-};
-
 struct PipelineStateDesc
 {
   std::shared_ptr<Shader> VS;
@@ -47,10 +42,6 @@ struct PipelineStateDesc
   std::shared_ptr<VertexLayout> VertexLayout;
   std::shared_ptr<ShaderParams> ShaderParams;
   PrimitiveTopologyType Topology = PrimitiveTopologyType::Triangle;
-  PixelFormat RTFormats[8];
-  PixelFormat DSFormat;
-  MultisampleDesc MultisampleDesc;
-  uint32 RTCount = 0;
 };
 
 class PipelineState
@@ -69,10 +60,6 @@ public:
   const std::shared_ptr<VertexLayout>& GetVertexLayout() const { return _desc.VertexLayout; }
   const std::shared_ptr<ShaderParams> GetShaderParams() const { return _desc.ShaderParams; }
   PrimitiveTopologyType GetPrimitiveTopology() const { return _desc.Topology; }
-  const PixelFormat* GetRTPixelFormats() const { return _desc.RTFormats; }
-  PixelFormat GetDSFormat() const { return _desc.DSFormat; }
-  const MultisampleDesc& GetMultisampleDesc() const { return _desc.MultisampleDesc; }
-  uint32 GetRTCount() const { return _desc.RTCount; }
 
 protected:
   PipelineState(const PipelineStateDesc& desc): _desc(desc) {}

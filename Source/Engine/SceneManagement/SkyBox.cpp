@@ -23,5 +23,4 @@ SkyBox::SkyBox()
 void SkyBox::Draw()
 {
   _vertexBuffer->Apply();
-  Renderer::Draw(36);
 }
