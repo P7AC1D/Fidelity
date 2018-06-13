@@ -68,11 +68,6 @@ GLint GetComponentSize(SemanticFormat format)
 
 bool GLVertexArrayObject::operator==(const GLVertexArrayObject& vao) const
 {
-  if (_vaoId != vao._vaoId)
-  {
-    return false;
-  }
-  
   if (_vsId != vao._vsId)
   {
     return false;
@@ -85,6 +80,21 @@ bool GLVertexArrayObject::operator==(const GLVertexArrayObject& vao) const
   
   for (uint32 i = 0; i < _boundBuffers.size(); i++)
   {
+		if (_boundBuffers[i] == nullptr && vao._boundBuffers[i] == nullptr)
+		{
+			continue;
+		}
+
+		if (_boundBuffers[i] != nullptr && vao._boundBuffers[i] == nullptr)
+		{
+			return false;
+		}
+
+		if (_boundBuffers[i] == nullptr && vao._boundBuffers[i] != nullptr)
+		{
+			return false;
+		}
+
     if (_boundBuffers[i]->GetId() != vao._boundBuffers[i]->GetId())
     {
       return false;
@@ -121,7 +131,7 @@ GLVertexArrayObject::GLVertexArrayObject(): _vaoId(0), _vsId(0)
 {
 }
 
-GLVertexArrayObject::GLVertexArrayObject(uint32 vaoId, uint32 vsId, const std::array<std::shared_ptr<GLVertexBuffer>, 32>& boundBuffers):
+GLVertexArrayObject::GLVertexArrayObject(uint32 vaoId, uint32 vsId, const std::array<std::shared_ptr<GLVertexBuffer>, MaxVertexBuffers>& boundBuffers):
   _vaoId((vaoId)),
   _vsId(vsId),
   _boundBuffers(boundBuffers)
@@ -130,7 +140,7 @@ GLVertexArrayObject::GLVertexArrayObject(uint32 vaoId, uint32 vsId, const std::a
 
 const std::shared_ptr<GLVertexArrayObject> GLVertexArrayObjectCollection::GetVao(uint32 vertexShaderId,
                                                                                  const std::shared_ptr<VertexLayout>& vertexLayout,
-                                                                                 const std::array<std::shared_ptr<GLVertexBuffer>, 32>& boundBuffers)
+                                                                                 const std::array<std::shared_ptr<GLVertexBuffer>, MaxVertexBuffers>& boundBuffers)
 {
   std::shared_ptr<GLVertexArrayObject> expectedVAO(new GLVertexArrayObject(0, vertexShaderId, boundBuffers));
   auto iter = _vaoBuffers.find(expectedVAO);
@@ -165,6 +175,7 @@ const std::shared_ptr<GLVertexArrayObject> GLVertexArrayObjectCollection::GetVao
     offset += compSize * 4;
   }
   GLCall(glBindVertexArray(0));
+	GLCall(glBindBuffer(GL_ARRAY_BUFFER, 0));
   
   expectedVAO->_vaoId = vao;
   _vaoBuffers.insert(expectedVAO);

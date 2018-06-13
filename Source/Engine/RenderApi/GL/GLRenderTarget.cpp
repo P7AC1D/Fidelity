@@ -83,6 +83,6 @@ void GLRenderTarget::Initialize()
   GLCall(glDrawBuffers(attachments.size(), attachments.data()));
 
   GLenum frameBufferComplete = 0;
-  GLCall_ReturnGLenum(glCheckFramebufferStatus(GL_FRAMEBUFFER), frameBufferComplete);
+	GLCall2(glCheckFramebufferStatus(GL_FRAMEBUFFER), frameBufferComplete);
   Assert::ThrowIfFalse(frameBufferComplete == GL_FRAMEBUFFER_COMPLETE, "Framebuffer is not complete");
 }

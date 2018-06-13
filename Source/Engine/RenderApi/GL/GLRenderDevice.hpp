@@ -3,6 +3,7 @@
 #include "../RenderDevice.hpp"
 
 class GLGpuBuffer;
+class GLIndexBuffer;
 class GLRenderTarget;
 class GLSamplerState;
 class GLShaderPipeline;
@@ -15,6 +16,7 @@ class ShaderParams;
 
 static const uint32 MaxConstantBuffers = 32;
 static const uint32 MaxTextureSlots = 16;
+static const uint32 MaxVertexBuffers = 16;
 
 class GLRenderDevice : public RenderDevice
 {
@@ -81,16 +83,16 @@ private:
   uint32 _stencilRefValue;
   uint32 _stencilWriteMask;
   
+	std::shared_ptr<GLIndexBuffer> _boundIndexBuffer;
   std::shared_ptr<GLRenderTarget> _boundRenderTarget;
   std::shared_ptr<GLShaderPipeline> _shaderPipeline;
-  std::shared_ptr<GLVertexArrayObject> _vao;
   std::shared_ptr<RasterizerState> _rasterizerState;
   std::shared_ptr<DepthStencilState> _depthStencilState;
   std::shared_ptr<BlendState> _blendState;
   std::shared_ptr<PipelineState> _pipelineState;
   std::shared_ptr<ShaderParams> _shaderParams;
   
-  std::array<std::shared_ptr<GLVertexBuffer>, 32> _boundVertexBuffers;
+  std::array<std::shared_ptr<GLVertexBuffer>, MaxVertexBuffers> _boundVertexBuffers;
   std::array<std::shared_ptr<GLGpuBuffer>, MaxConstantBuffers> _boundConstantBuffers;
   std::array<std::shared_ptr<GLTexture>, MaxTextureSlots> _boundTextures;
   std::array<std::shared_ptr<GLSamplerState>, MaxTextureSlots> _boundSamplers;

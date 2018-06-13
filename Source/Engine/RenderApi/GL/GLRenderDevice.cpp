@@ -197,7 +197,7 @@ void GLRenderDevice::SetVertexBuffer(uint32 slot, const std::shared_ptr<VertexBu
 void GLRenderDevice::SetIndexBuffer(const std::shared_ptr<IndexBuffer>& indexBuffer)
 {
   auto glIndexBuffer = std::static_pointer_cast<GLIndexBuffer>(indexBuffer);
-  GLCall(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, glIndexBuffer->GetId()));
+	_boundIndexBuffer = glIndexBuffer;
 }
 
 void GLRenderDevice::SetConstantBuffer(uint32 slot, const std::shared_ptr<GpuBuffer>& constantBuffer)
@@ -246,6 +246,8 @@ void GLRenderDevice::Draw(uint32 vertexCount, uint32 vertexOffset)
 void GLRenderDevice::DrawIndexed(uint32 indexCount, uint32 indexOffset, uint32 vertexOffset)
 {
   BeginDraw();
+	Assert::ThrowIfTrue(_boundIndexBuffer == nullptr, "No index buffer has been bound");
+	GLCall(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _boundIndexBuffer->GetId()));
   GLCall(glDrawElements(GetPrimitiveTopology(_primitiveTopology), indexCount, GL_UNSIGNED_INT, 0));
   EndDraw();
 }
@@ -262,7 +264,9 @@ void GLRenderDevice::BeginDraw()
                                                                      _pipelineState->GetGS(),
                                                                      _pipelineState->GetHS(),
                                                                      _pipelineState->GetDS());
-  if (_shaderPipeline == nullptr || _shaderPipeline->GetId() != shaderPipeline->GetId())
+
+	GLCall(glUseProgram(0));
+  if (_shaderPipeline == nullptr || _shaderPipeline != shaderPipeline)
   {
     GLCall(glBindProgramPipeline(shaderPipeline->GetId()));
     _shaderPipeline = shaderPipeline;
@@ -270,11 +274,7 @@ void GLRenderDevice::BeginDraw()
   
   auto glVertexShader = std::static_pointer_cast<GLShader>(_pipelineState->GetVS());
   auto vao = _vaoCollection->GetVao(glVertexShader->GetId(), _pipelineState->GetVertexLayout(), _boundVertexBuffers);
-  if (_vao == nullptr || _vao->GetId() != vao->GetId())
-  {
-    GLCall(glBindVertexArray(vao->GetId()));
-    _vao = vao;
-  }
+	GLCall(glBindVertexArray(vao->GetId()));
   
   for (uint32 i = 0; i < _boundConstantBuffers.size(); i++)
   {
@@ -373,72 +373,73 @@ void GLRenderDevice::SetRasterizerState(const std::shared_ptr<RasterizerState>& 
 void GLRenderDevice::SetDepthStencilState(const std::shared_ptr<DepthStencilState>& depthStencilState)
 {
   auto newDepthStencilStateDesc = depthStencilState->GetDesc();
-  if (!_depthStencilState)
-  {
-    EnableStencilTest(newDepthStencilStateDesc.StencilEnabled);
-    SetStencilOperations(newDepthStencilStateDesc.FrontFace, true);
-    SetStencilOperations(newDepthStencilStateDesc.BackFace, false);
-    SetStencilFunction(newDepthStencilStateDesc.FrontFace.ComparisonFunc, newDepthStencilStateDesc.StencilReadMask, true);
-    SetStencilFunction(newDepthStencilStateDesc.BackFace.ComparisonFunc, newDepthStencilStateDesc.StencilReadMask, false);
-    SetStencilWriteMask(newDepthStencilStateDesc.StencilWriteMask);
-    
-    EnableDepthTest(newDepthStencilStateDesc.DepthReadEnabled);
-    EnableDepthWrite(newDepthStencilStateDesc.DepthWriteEnabled);
-    SetDepthFunction(newDepthStencilStateDesc.DepthFunc);
-    return;
-  }
-  
-  auto oldDepthStencilStateDesc = _depthStencilState->GetDesc();
-  if (oldDepthStencilStateDesc.StencilEnabled != newDepthStencilStateDesc.StencilEnabled)
-  {
-    EnableStencilTest(newDepthStencilStateDesc.StencilEnabled);
-  }
-  
-  if (oldDepthStencilStateDesc.FrontFace.FailOp != newDepthStencilStateDesc.FrontFace.FailOp ||
-      oldDepthStencilStateDesc.FrontFace.PassOp != newDepthStencilStateDesc.FrontFace.PassOp ||
-      oldDepthStencilStateDesc.FrontFace.ZFailOp != newDepthStencilStateDesc.FrontFace.ZFailOp)
-  {
-    SetStencilOperations(newDepthStencilStateDesc.FrontFace, true);
-  }
-  
-  if (oldDepthStencilStateDesc.BackFace.FailOp != newDepthStencilStateDesc.BackFace.FailOp ||
-      oldDepthStencilStateDesc.BackFace.PassOp != newDepthStencilStateDesc.BackFace.PassOp ||
-      oldDepthStencilStateDesc.BackFace.ZFailOp != newDepthStencilStateDesc.BackFace.ZFailOp)
-  {
-    SetStencilOperations(newDepthStencilStateDesc.BackFace, false);
-  }
-  
-  if (oldDepthStencilStateDesc.FrontFace.ComparisonFunc != newDepthStencilStateDesc.FrontFace.ComparisonFunc ||
-      oldDepthStencilStateDesc.StencilReadMask != newDepthStencilStateDesc.StencilReadMask)
-  {
-    SetStencilFunction(newDepthStencilStateDesc.FrontFace.ComparisonFunc, newDepthStencilStateDesc.StencilReadMask, true);
-  }
-  
-  if (oldDepthStencilStateDesc.BackFace.ComparisonFunc != newDepthStencilStateDesc.FrontFace.ComparisonFunc ||
-      oldDepthStencilStateDesc.StencilReadMask != newDepthStencilStateDesc.StencilReadMask)
-  {
-    SetStencilFunction(newDepthStencilStateDesc.BackFace.ComparisonFunc, newDepthStencilStateDesc.StencilReadMask, false);
-  }
-  
-  if (oldDepthStencilStateDesc.StencilWriteMask != newDepthStencilStateDesc.StencilWriteMask)
-  {
-    SetStencilWriteMask(newDepthStencilStateDesc.StencilWriteMask);
-  }
-  
-  if (oldDepthStencilStateDesc.DepthReadEnabled != newDepthStencilStateDesc.DepthReadEnabled)
-  {
-    EnableDepthTest(newDepthStencilStateDesc.DepthReadEnabled);
-  }
-  
-  if (oldDepthStencilStateDesc.DepthWriteEnabled != newDepthStencilStateDesc.DepthWriteEnabled)
-  {
-    EnableDepthWrite(newDepthStencilStateDesc.DepthWriteEnabled);
-  }
-  
-  if (oldDepthStencilStateDesc.DepthFunc != newDepthStencilStateDesc.DepthFunc)
-  {
-    SetDepthFunction(newDepthStencilStateDesc.DepthFunc);
-  }
+	if (_depthStencilState)
+	{
+		auto oldDepthStencilStateDesc = _depthStencilState->GetDesc();
+		if (oldDepthStencilStateDesc.StencilEnabled != newDepthStencilStateDesc.StencilEnabled)
+		{
+			EnableStencilTest(newDepthStencilStateDesc.StencilEnabled);
+		}
+
+		if (oldDepthStencilStateDesc.FrontFace.FailOp != newDepthStencilStateDesc.FrontFace.FailOp ||
+			oldDepthStencilStateDesc.FrontFace.PassOp != newDepthStencilStateDesc.FrontFace.PassOp ||
+			oldDepthStencilStateDesc.FrontFace.ZFailOp != newDepthStencilStateDesc.FrontFace.ZFailOp)
+		{
+			SetStencilOperations(newDepthStencilStateDesc.FrontFace, true);
+		}
+
+		if (oldDepthStencilStateDesc.BackFace.FailOp != newDepthStencilStateDesc.BackFace.FailOp ||
+			oldDepthStencilStateDesc.BackFace.PassOp != newDepthStencilStateDesc.BackFace.PassOp ||
+			oldDepthStencilStateDesc.BackFace.ZFailOp != newDepthStencilStateDesc.BackFace.ZFailOp)
+		{
+			SetStencilOperations(newDepthStencilStateDesc.BackFace, false);
+		}
+
+		if (oldDepthStencilStateDesc.FrontFace.ComparisonFunc != newDepthStencilStateDesc.FrontFace.ComparisonFunc ||
+			oldDepthStencilStateDesc.StencilReadMask != newDepthStencilStateDesc.StencilReadMask)
+		{
+			SetStencilFunction(newDepthStencilStateDesc.FrontFace.ComparisonFunc, newDepthStencilStateDesc.StencilReadMask, true);
+		}
+
+		if (oldDepthStencilStateDesc.BackFace.ComparisonFunc != newDepthStencilStateDesc.FrontFace.ComparisonFunc ||
+			oldDepthStencilStateDesc.StencilReadMask != newDepthStencilStateDesc.StencilReadMask)
+		{
+			SetStencilFunction(newDepthStencilStateDesc.BackFace.ComparisonFunc, newDepthStencilStateDesc.StencilReadMask, false);
+		}
+
+		if (oldDepthStencilStateDesc.StencilWriteMask != newDepthStencilStateDesc.StencilWriteMask)
+		{
+			SetStencilWriteMask(newDepthStencilStateDesc.StencilWriteMask);
+		}
+
+		if (oldDepthStencilStateDesc.DepthReadEnabled != newDepthStencilStateDesc.DepthReadEnabled)
+		{
+			EnableDepthTest(newDepthStencilStateDesc.DepthReadEnabled);
+		}
+
+		if (oldDepthStencilStateDesc.DepthWriteEnabled != newDepthStencilStateDesc.DepthWriteEnabled)
+		{
+			EnableDepthWrite(newDepthStencilStateDesc.DepthWriteEnabled);
+		}
+
+		if (oldDepthStencilStateDesc.DepthFunc != newDepthStencilStateDesc.DepthFunc)
+		{
+			SetDepthFunction(newDepthStencilStateDesc.DepthFunc);
+		}
+	}
+	else
+	{
+		EnableStencilTest(newDepthStencilStateDesc.StencilEnabled);
+		SetStencilOperations(newDepthStencilStateDesc.FrontFace, true);
+		SetStencilOperations(newDepthStencilStateDesc.BackFace, false);
+		SetStencilFunction(newDepthStencilStateDesc.FrontFace.ComparisonFunc, newDepthStencilStateDesc.StencilReadMask, true);
+		SetStencilFunction(newDepthStencilStateDesc.BackFace.ComparisonFunc, newDepthStencilStateDesc.StencilReadMask, false);
+		SetStencilWriteMask(newDepthStencilStateDesc.StencilWriteMask);
+
+		EnableDepthTest(newDepthStencilStateDesc.DepthReadEnabled);
+		EnableDepthWrite(newDepthStencilStateDesc.DepthWriteEnabled);
+		SetDepthFunction(newDepthStencilStateDesc.DepthFunc);
+	}
   _depthStencilState = depthStencilState;
 }
 

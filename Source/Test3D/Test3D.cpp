@@ -57,7 +57,7 @@ void Test3D::OnStart()
 {
   _camera.reset(new FpsCamera());
   _camera->SetPerspective(Degree(67.67f), GetWidth(), GetHeight(), 0.1f, 1000.0f);
-  _camera->LookAt(Vector3(69.0f, 88.0f, 0.8f), Vector3(-28056.1523f, -16285.3330f, -2427.24756f));
+  _camera->LookAt(Vector3(0.0f, 0.0f, 4.0f), Vector3(0.0f, 0.0f, 0.0f));
   _sceneManager->SetCamera(_camera);
   
   auto model = _sceneManager->CreateObject("cube");

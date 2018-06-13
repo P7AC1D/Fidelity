@@ -34,7 +34,7 @@ void GLShader::Compile()
   }
   
   const byte* ptr = _desc.Source.c_str();
-  GLCall_ReturnGLuint(glCreateShaderProgramv(GetShaderType(_desc.ShaderType), 1, &ptr), _id);
+	GLCall2(glCreateShaderProgramv(GetShaderType(_desc.ShaderType), 1, &ptr), _id);
   Assert::ThrowIfTrue(_id == 0, "Unable to generate shader object");
   
   int32 logLength = -1;
@@ -50,7 +50,8 @@ void GLShader::Compile()
     GLCall(glGetProgramInfoLog(_id, logLength, 0, &buffer[0]));
 		logMessages = std::string(buffer.begin(), buffer.end());
   }
-  
+
+	GLCall(glUseProgram(0));
 	Assert::ThrowIfFalse(linkStatus == GL_TRUE, "Unable to compile shader:\n" + logMessages);
   _isCompiled = true;
 }
@@ -81,9 +82,9 @@ uint32 GLShader::GetUniformBlockIndex(const std::string& name)
   auto blockIndexIter = _uniformBlockIndices.find(name);
   if (blockIndexIter == _uniformBlockIndices.end())
   {
-    GLuint blockIndex = 0;
-    GLCall_ReturnGLuint(glGetUniformBlockIndex(_id, name.c_str()), blockIndex);
-    Assert::ThrowIfFalse(blockIndex == 0, "Could not find a valid uniform block index with name " + name);
+    GLuint blockIndex = -1;
+		GLCall2(glGetUniformBlockIndex(_id, name.c_str()), blockIndex);
+    Assert::ThrowIfTrue(blockIndex == -1, "Could not find a valid uniform block index with name " + name);
     _uniformBlockIndices.insert(std::pair<std::string, uint32>(name, blockIndex));
     return blockIndex;
   }

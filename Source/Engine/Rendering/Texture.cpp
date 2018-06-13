@@ -1,6 +1,6 @@
 #include "Texture.hpp"
 
-#include "OpenGL.h"
+#include "../RenderApi/GL/GL.hpp"
 
 namespace Rendering 
 {

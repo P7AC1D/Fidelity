@@ -23,7 +23,7 @@ Renderer::Renderer(const RendererDesc& desc) : _desc(desc)
 {
   try
   {
-    Assert::ThrowIfFalse(desc.RenderApi == RenderApi::GL40, "Only OpenGL 4.0 is supported");
+    Assert::ThrowIfFalse(desc.RenderApi == RenderApi::GL41, "Only OpenGL 4.1 is supported");
     
     RenderDeviceDesc renderDeviceDesc;
     renderDeviceDesc.RenderWidth = _desc.RenderWidth;
@@ -64,6 +64,7 @@ void Renderer::DrawFrame()
       }
     }
   }
+	_renderables.clear();
 }
 
 void Renderer::InitPipelineStates()
@@ -116,6 +117,7 @@ void Renderer::InitConstBuffer()
     perShaderBuffDesc.BufferUsage = BufferUsage::Dynamic;
     perShaderBuffDesc.ByteCount = sizeof(ConstBufferData);
     _constBuffer = _renderDevice->CreateGpuBuffer(perShaderBuffDesc);
+		_renderDevice->SetConstantBuffer(0, _constBuffer);
   }
   catch (const std::exception& exception)
   {

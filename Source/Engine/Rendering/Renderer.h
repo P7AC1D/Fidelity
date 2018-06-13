@@ -24,14 +24,14 @@ struct RenderableItem
 
 enum class RenderApi
 {
-  GL40
+  GL41
 };
   
 struct RendererDesc
 {
   uint32 RenderWidth;
   uint32 RenderHeight;
-  RenderApi RenderApi = RenderApi::GL40;
+  RenderApi RenderApi = RenderApi::GL41;
   bool FullscreenEnabled = false;
   bool VsyncEnabled = false;
 };
