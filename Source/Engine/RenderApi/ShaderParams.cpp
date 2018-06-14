@@ -29,11 +29,11 @@ void ShaderParams::RemoveParam(const std::string& name, ShaderParamType type, ui
   RemoveParam(paramToFind);
 }
 
-const std::string& ShaderParams::GetParamName(uint32 slot) const
+const std::string& ShaderParams::GetParamName(ShaderParamType type, uint32 slot) const
 {
   auto iter = std::find_if(_params.begin(), _params.end(), [&](ShaderParam param)
                   {
-                    return param.Slot == slot;
+                    return param.Slot == slot && param.Type == type;
                   });
   if (iter != _params.end())
   {

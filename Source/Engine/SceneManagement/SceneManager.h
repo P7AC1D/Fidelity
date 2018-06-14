@@ -6,7 +6,6 @@
 #include "../Core/Types.hpp"
 #include "../Maths/Vector3.hpp"
 #include "Light.h"
-#include "SkyBox.hpp"
 
 class Camera;
 class Renderer;
@@ -18,10 +17,8 @@ public:
   SceneManager(const std::shared_ptr<Renderer>& renderer);
 
   std::shared_ptr<WorldObject> CreateObject(const std::string& name = std::string());  
-  std::shared_ptr<WorldObject> LoadObjectFromFile(const std::string& filePath);
   Light& CreateLight(LightType lightType, const std::string& name = std::string());
 	
-  inline void SetSkyBox(std::shared_ptr<SkyBox> skyBox) { _skyBox = skyBox; }
   inline void SetAmbientLight(const Colour& colour) { _ambientLight = colour; }
 
 	void SetCamera(std::shared_ptr<Camera> camera);
@@ -39,6 +36,5 @@ private:
   std::vector<Light> _lights;
   std::shared_ptr<Renderer> _renderer;
   std::shared_ptr<Camera> _camera;
-  std::shared_ptr<SkyBox> _skyBox;
   Colour _ambientLight;
 };

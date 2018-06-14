@@ -39,6 +39,8 @@ struct RendererDesc
 class Renderer
 {
 public:
+	static std::shared_ptr<RenderDevice> GetRenderDevice();
+
   Renderer(const RendererDesc& desc);
   
   uint32 GetRenderWidth() const { return _desc.RenderWidth; }
@@ -57,8 +59,8 @@ private:
 	void EndFrame();
 
 private:
+  static std::shared_ptr<RenderDevice> _renderDevice;
   RendererDesc _desc;
-  std::shared_ptr<RenderDevice> _renderDevice;
   std::shared_ptr<GpuBuffer> _constBuffer;
   std::shared_ptr<PipelineState> _basicPipeline;
   std::shared_ptr<Camera> _activeCamera;

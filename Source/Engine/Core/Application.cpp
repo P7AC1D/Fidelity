@@ -5,10 +5,7 @@
 #include "../Input/EventDispatcher.hpp"
 #include "../Input/InputHandler.hpp"
 #include "../Rendering/Renderer.h"
-#include "../Utility/AssetManager.h"
 #include "../SceneManagement/SceneManager.h"
-
-using namespace Rendering;
 
 Application::~Application()
 {

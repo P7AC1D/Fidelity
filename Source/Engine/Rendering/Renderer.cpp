@@ -8,16 +8,23 @@
 #include "../RenderApi/ShaderParams.hpp"
 #include "../SceneManagement/Camera.hpp"
 #include "../SceneManagement/Transform.h"
+#include "Material.h"
 #include "Renderable.hpp"
 #include "StaticMesh.h"
-
-using namespace Rendering;
 
 struct ConstBufferData
 {
   Matrix4 Proj;
   Matrix4 View;
 };
+
+std::shared_ptr<RenderDevice> Renderer::_renderDevice;
+
+std::shared_ptr<RenderDevice> Renderer::GetRenderDevice()
+{
+	Assert::ThrowIfTrue(_renderDevice == nullptr, "Render device has not been initialized");
+	return _renderDevice;
+}
 
 Renderer::Renderer(const RendererDesc& desc) : _desc(desc)
 {
@@ -52,10 +59,11 @@ void Renderer::DrawFrame()
     for (uint32 i = 0; i < renderable.Renderable->GetMeshCount(); i++)
     {
       auto mesh = renderable.Renderable->GetMeshAtIndex(i);
-      _renderDevice->SetVertexBuffer(0, mesh->GetVertexData(_renderDevice));
+			//_renderDevice->SetTexture(0, mesh->GetMaterial()->GetTexture("DiffuseMap"));
+      _renderDevice->SetVertexBuffer(0, mesh->GetVertexData());
       if (mesh->IsIndexed())
       {
-        _renderDevice->SetIndexBuffer(mesh->GetIndexData(_renderDevice));
+        _renderDevice->SetIndexBuffer(mesh->GetIndexData());
         _renderDevice->DrawIndexed(mesh->GetIndexCount(), 0, 0);
       }
       else
@@ -64,8 +72,8 @@ void Renderer::DrawFrame()
       }
     }
   }
-	EndFrame();
 	_renderables.clear();
+	EndFrame();
 }
 
 void Renderer::InitPipelineStates()
@@ -84,11 +92,13 @@ void Renderer::InitPipelineStates()
   
   std::vector<VertexLayoutDesc> vertexLayoutDesc
   {
-    VertexLayoutDesc(SemanticType::Position, SemanticFormat::Float3, 0)
+    VertexLayoutDesc(SemanticType::Position, SemanticFormat::Float3),
+		VertexLayoutDesc(SemanticType::TexCoord, SemanticFormat::Float2)
   };
   
   std::shared_ptr<ShaderParams> shaderParams(new ShaderParams());
   shaderParams->AddParam(ShaderParam("Constants", ShaderParamType::ConstBuffer, 0));
+	//shaderParams->AddParam(ShaderParam("DiffuseMap", ShaderParamType::Texture, 0));
   
   try
   {

@@ -8,21 +8,13 @@
 #include "../Maths/Vector3.hpp"
 
 class IndexBuffer;
-class RenderDevice;
+class Material;
 class VertexBuffer;
-
-namespace Rendering
-{
-  class Material;
-}
 
 class StaticMesh
 {
-  friend class Renderer;
-  
 public:
   StaticMesh(const std::string& meshName);
-  ~StaticMesh();
 
   void SetPositionVertexData(const std::vector<Vector3>& positionData);
   void SetNormalVertexData(const std::vector<Vector3>& normalData);
@@ -44,19 +36,18 @@ public:
   void GenerateTangents();
   void GenerateNormals();
 
-  std::shared_ptr<Rendering::Material> GetMaterial();
+  std::shared_ptr<Material> GetMaterial();
+	std::shared_ptr<VertexBuffer> GetVertexData();
+	std::shared_ptr<IndexBuffer> GetIndexData();
 
   bool IsInitialized() const { return _verticesNeedUpdate && _indicesNeedUpdate; }
   bool IsIndexed() const { return _indexed; }
 
-private:
-  std::shared_ptr<VertexBuffer> GetVertexData(const std::shared_ptr<RenderDevice>& renderDevice);
-  std::shared_ptr<IndexBuffer> GetIndexData(const std::shared_ptr<RenderDevice>& renderDevice);
+private:  
   std::vector<float32> CreateRestructuredVertexDataArray(int32& stride) const;
   std::vector<float32> CreateVertexDataArray() const;
-  void UploadVertexData(const std::shared_ptr<RenderDevice>& renderDevice);
-  void UploadIndexData(const std::shared_ptr<RenderDevice>& renderDevice);
-  void SetVertexAttribs();
+  void UploadVertexData();
+  void UploadIndexData();
 
 private:
   enum VertexDataFormat : int32
@@ -70,7 +61,7 @@ private:
 
   std::string _name;
   std::shared_ptr<IndexBuffer> _indexBuffer;
-  std::shared_ptr<Rendering::Material> _material;
+  std::shared_ptr<Material> _material;
   std::shared_ptr<VertexBuffer> _vertexBuffer;
   std::vector<Vector3> _positionData;
   std::vector<Vector3> _normalData;
@@ -84,6 +75,4 @@ private:
   bool _verticesNeedUpdate;
 	bool _indicesNeedUpdate;
   bool _indexed;
-
-  friend class Renderer;
 };

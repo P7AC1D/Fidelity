@@ -13,40 +13,17 @@
 #include "../Engine/Maths/Radian.hpp"
 #include "../Engine/Maths/Vector2.hpp"
 #include "../Engine/Maths/Vector3.hpp"
+#include "../Engine/Utility/TextureLoader.hpp"
 #include "../Engine/Rendering/Material.h"
 #include "../Engine/Rendering/Renderable.hpp"
 #include "../Engine/Rendering/Renderer.h"
 #include "../Engine/Rendering/StaticMesh.h"
-#include "../Engine/Rendering/Texture.hpp"
-#include "../Engine/Utility/AssetManager.h"
-#include "../Engine/Utility/ObjLoader.hpp"
 #include "../Engine/SceneManagement/Light.h"
 #include "../Engine/SceneManagement/FpsCamera.hpp"
 #include "../Engine/SceneManagement/OrbitalCamera.hpp"
 #include "../Engine/SceneManagement/SceneManager.h"
 #include "../Engine/SceneManagement/Transform.h"
 #include "../Engine/SceneManagement/WorldObject.h"
-
-using namespace Rendering;
-using namespace Utility;
-
-float32 GetTerrainHeight(float32 x, float32 z)
-{
-  return Math::Sin(Radian((x * 2.0f * Math::Pi))) + Math::Sin(Radian((z * 3.0f * Math::Pi)));
-}
-
-float32 SampleHeight(const std::vector<Vector3>& data, const Vector3& scale, float32 x, float32 z, float32 eps = 0.04f)
-{
-  auto iter = std::find_if(data.begin(), data.end(), [&](const Vector3& vec)
-  {
-    return std::fabs(vec[0] * scale[0] - x) <= eps && std::fabs(vec[2] * scale[2] - z) <= eps;
-  });
-  if (iter != data.end())
-  {
-    return (*iter)[1] * scale[1];
-  }
-  return 0.0f;
-}
 
 Test3D::Test3D(const ApplicationDesc& desc):
   Application(desc)
@@ -62,6 +39,8 @@ void Test3D::OnStart()
   
   auto model = _sceneManager->CreateObject("cube");
   auto cubeMesh = MeshFactory::CreateCube();
+	auto cubeTexture = TextureLoader::LoadFromFile2D("./../../Resources/Textures/crate0_diffuse.png");
+	cubeMesh->GetMaterial()->SetTexture("DiffuseMap", cubeTexture);
   auto modelRenderable = std::make_shared<Renderable>();
   modelRenderable->PushMesh(cubeMesh);
   model->AttachRenderable(modelRenderable);

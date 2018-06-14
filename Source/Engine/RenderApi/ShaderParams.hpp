@@ -32,7 +32,7 @@ public:
   void RemoveParam(const ShaderParam& param);
   void RemoveParam(const std::string& name, ShaderParamType type, uint32 slot);
   
-  const std::string& GetParamName(uint32 slot) const;
+  const std::string& GetParamName(ShaderParamType type, uint32 slot) const;
   
 private:
   class Hasher

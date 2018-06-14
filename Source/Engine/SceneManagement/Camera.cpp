@@ -2,9 +2,7 @@
 
 #include <cmath>
 #include "../Maths/Matrix3.hpp"
-#include "../Rendering/ConstantBuffer.h"
 
-using namespace Rendering;
 
 Camera::Camera() :
   _width(0),

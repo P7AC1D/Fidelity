@@ -3,11 +3,8 @@
 #include <string>
 #include <unordered_map>
 
-#include "../Core/Types.hpp"
 #include "../Maths/Colour.hpp"
 
-namespace Rendering
-{
 class Texture;
 
 class Material
@@ -40,4 +37,3 @@ private:
   Colour _specularColour;
   float32 _specularShininess;
 };
-}

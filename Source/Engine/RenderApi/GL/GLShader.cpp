@@ -69,6 +69,19 @@ void GLShader::BindUniformBlock(const std::string& name, uint32 bindingPoint)
   _uniformBindingPoints[blockIndex] = bindingPoint;
 }
 
+void GLShader::BindTextureUnit(const std::string& name, uint32 textureUnit)
+{
+	auto uniformLocation = GetUniformLocation(name);
+	auto textureUnitIter = _textureUnitsBound.find(uniformLocation);
+	if (textureUnitIter != _textureUnitsBound.end() && textureUnitIter->second == textureUnit)
+	{
+		return;
+	}
+
+	GLCall(glProgramUniform1i(_id, uniformLocation, textureUnit));
+	_textureUnitsBound.emplace(uniformLocation, textureUnit);
+}
+
 GLShader::GLShader(const ShaderDesc& desc): Shader(desc), _id(0)
 {
   Assert::ThrowIfTrue(desc.ShaderLang != ShaderLang::Glsl, "Shaders must be written in GLSL when using OpenGL backend");
@@ -85,8 +98,22 @@ uint32 GLShader::GetUniformBlockIndex(const std::string& name)
     GLuint blockIndex = -1;
 		GLCall2(glGetUniformBlockIndex(_id, name.c_str()), blockIndex);
     Assert::ThrowIfTrue(blockIndex == -1, "Could not find a valid uniform block index with name " + name);
-    _uniformBlockIndices.insert(std::pair<std::string, uint32>(name, blockIndex));
+    _uniformBlockIndices.emplace(name, blockIndex);
     return blockIndex;
   }
   return blockIndexIter->second;
+}
+
+uint32 GLShader::GetUniformLocation(const std::string& name)
+{
+	auto uniformLocationIter = _uniformLocations.find(name);
+	if (uniformLocationIter == _uniformLocations.end())
+	{
+		GLint location = -1;
+		GLCall2(glGetUniformLocation(_id, name.c_str()), location);
+		Assert::ThrowIfTrue(location == -1, "Could not find a valid uniform location with name " + name);
+		_uniformLocations.emplace(name, location);
+		return location;
+	}
+	return uniformLocationIter->second;
 }

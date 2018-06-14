@@ -220,7 +220,7 @@ void GLRenderDevice::SetTexture(uint32 slot, const std::shared_ptr<Texture>& tex
   if (!_boundTextures[slot] || _boundTextures[slot]->GetId() != glTexture->GetId())
   {
     GLCall(glActiveTexture(GL_TEXTURE0 + slot));
-    GLCall(glBindTexture(GetTextureTargetFromType(_boundTextures[slot]->GetTextureType()), _boundTextures[slot]->GetId()));
+    GLCall(glBindTexture(GetTextureTargetFromType(glTexture->GetTextureType()), glTexture->GetId()));
     _boundTextures[slot] = glTexture;
   }
 }
@@ -284,54 +284,62 @@ void GLRenderDevice::BeginDraw()
   Assert::ThrowIfTrue(_pipelineState->GetVS() == nullptr, "No vertex shader has been set");
   Assert::ThrowIfTrue(_pipelineState->GetPS() == nullptr, "No pixel shader has been set");
   Assert::ThrowIfTrue(_shaderParams == nullptr, "No shader GPU params has been set");
-  
-  auto shaderPipeline = _shaderPipelineCollection->GetShaderPipeline(_pipelineState->GetVS(),
-                                                                     _pipelineState->GetPS(),
-                                                                     _pipelineState->GetGS(),
-                                                                     _pipelineState->GetHS(),
-                                                                     _pipelineState->GetDS());
+
+	auto shaderPipeline = _shaderPipelineCollection->GetShaderPipeline(_pipelineState->GetVS(),
+		_pipelineState->GetPS(),
+		_pipelineState->GetGS(),
+		_pipelineState->GetHS(),
+		_pipelineState->GetDS());
 
 	GLCall(glUseProgram(0));
-  if (_shaderPipeline == nullptr || _shaderPipeline != shaderPipeline)
-  {
-    GLCall(glBindProgramPipeline(shaderPipeline->GetId()));
-    _shaderPipeline = shaderPipeline;
-  }
+	if (_shaderPipeline == nullptr || _shaderPipeline != shaderPipeline)
+	{
+		GLCall(glBindProgramPipeline(shaderPipeline->GetId()));
+		_shaderPipeline = shaderPipeline;
+	}
   
   auto glVertexShader = std::static_pointer_cast<GLShader>(_pipelineState->GetVS());
   auto vao = _vaoCollection->GetVao(glVertexShader->GetId(), _pipelineState->GetVertexLayout(), _boundVertexBuffers);
 	GLCall(glBindVertexArray(vao->GetId()));
+
+	for (uint32 i = 0; i < _boundTextures.size(); i++)
+	{
+		if (_boundTextures[i])
+		{
+			auto textureName = _shaderParams->GetParamName(ShaderParamType::Texture, i);
+			auto glPs = std::static_pointer_cast<GLShader>(_pipelineState->GetPS());
+			glPs->BindTextureUnit(textureName, i);
+		}
+	}
   
   for (uint32 i = 0; i < _boundConstantBuffers.size(); i++)
   {
-    if (!_boundConstantBuffers[i])
+    if (_boundConstantBuffers[i])
     {
-      continue;
-    }
-    
-    auto uniformBufferName = _shaderParams->GetParamName(i);
-    auto glVs = std::static_pointer_cast<GLShader>(_pipelineState->GetVS());
-    glVs->BindUniformBlock(uniformBufferName, i);
-    
-    auto glPs = std::static_pointer_cast<GLShader>(_pipelineState->GetPS());
-    glPs->BindUniformBlock(uniformBufferName, i);
-    
-    auto glGs = std::static_pointer_cast<GLShader>(_pipelineState->GetGS());
-    if (glGs)
-    {
-      glGs->BindUniformBlock(uniformBufferName, i);
-    }
-    
-    auto glHs = std::static_pointer_cast<GLShader>(_pipelineState->GetHS());
-    if (glHs)
-    {
-      glHs->BindUniformBlock(uniformBufferName, i);
-    }
-    
-    auto glDs = std::static_pointer_cast<GLShader>(_pipelineState->GetDS());
-    if (glDs)
-    {
-      glDs->BindUniformBlock(uniformBufferName, i);
+			auto uniformBufferName = _shaderParams->GetParamName(ShaderParamType::ConstBuffer, i);
+			auto glVs = std::static_pointer_cast<GLShader>(_pipelineState->GetVS());
+			glVs->BindUniformBlock(uniformBufferName, i);
+
+			auto glPs = std::static_pointer_cast<GLShader>(_pipelineState->GetPS());
+			glPs->BindUniformBlock(uniformBufferName, i);
+
+			auto glGs = std::static_pointer_cast<GLShader>(_pipelineState->GetGS());
+			if (glGs)
+			{
+				glGs->BindUniformBlock(uniformBufferName, i);
+			}
+
+			auto glHs = std::static_pointer_cast<GLShader>(_pipelineState->GetHS());
+			if (glHs)
+			{
+				glHs->BindUniformBlock(uniformBufferName, i);
+			}
+
+			auto glDs = std::static_pointer_cast<GLShader>(_pipelineState->GetDS());
+			if (glDs)
+			{
+				glDs->BindUniformBlock(uniformBufferName, i);
+			}
     }
   }
 }

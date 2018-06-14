@@ -7,7 +7,7 @@ ImageData::ImageData(const ImageVolume& volume, ImageFormat format): _volume(vol
   _pixels.resize(_volume.GetSize());
 }
 
-ImageData::ImageData(uint32 width, uint32 height, uint32 depth, ImageFormat format)
+ImageData::ImageData(uint32 width, uint32 height, uint32 depth, ImageFormat format) : _format(format)
 {
   ImageVolume volume;
   volume.Left = 0;
@@ -16,7 +16,8 @@ ImageData::ImageData(uint32 width, uint32 height, uint32 depth, ImageFormat form
   volume.Top = height;
   volume.Back = 0;
   volume.Front = depth;
-  ImageData(volume, format);
+	_volume = volume;
+	_pixels.resize(_volume.GetSize());
 }
 
 void ImageData::WriteData(const std::vector<Colour>& pixels)

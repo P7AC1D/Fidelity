@@ -1,7 +1,7 @@
 #include "Material.h"
 
-namespace Rendering
-{
+#include "../RenderApi/Texture.hpp"
+
 Material::Material() :
 _castShadows(true),
 _specularColour(Colour::Black),
@@ -27,5 +27,4 @@ std::shared_ptr<Texture> Material::GetTexture(const std::string& name) const
     return nullptr;
   }
   return iter->second;
-}
 }

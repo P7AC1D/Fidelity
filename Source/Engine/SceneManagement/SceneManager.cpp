@@ -4,15 +4,12 @@
 #include "../Rendering/Renderer.h"
 #include "../SceneManagement/SceneManager.h"
 #include "../SceneManagement/WorldObject.h"
-#include "../Utility/AssetManager.h"
 #include "../Utility/String.hpp"
 #include "Camera.hpp"
 #include "WorldObject.h"
 
 static uint32 WorldObjectCount = 0;
 static uint32 LightCount = 0;
-
-using namespace Rendering;
 
 SceneManager::SceneManager(const std::shared_ptr<Renderer>& renderer) :
   _renderer(renderer),
@@ -30,20 +27,6 @@ std::shared_ptr<WorldObject> SceneManager::CreateObject(const std::string& name)
   }
   _worldObjects.emplace_back(std::make_shared<WorldObject>(objectName));
   return _worldObjects.back();
-}
-
-std::shared_ptr<WorldObject> SceneManager::LoadObjectFromFile(const std::string& filePath)
-{
-  auto tokens = String::Split(filePath, '/');
-  auto fileName = tokens.back();
-  tokens.pop_back();
-
-  auto renderable = AssetManager::GetRenderable(String::Join(tokens, '/'), fileName);
-  
-  _worldObjects.emplace_back(std::make_shared<WorldObject>(fileName));
-  auto worldObject = _worldObjects.back();
-  worldObject->AttachRenderable(renderable);
-  return worldObject;
 }
 
 Light& SceneManager::CreateLight(LightType lightType, const std::string& name)

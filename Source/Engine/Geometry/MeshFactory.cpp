@@ -10,14 +10,12 @@
 #include "Cube.hpp"
 #include "Icosphere.hpp"
 
-using namespace Rendering;
-
 std::shared_ptr<StaticMesh> MeshFactory::CreateCube()
 {
   Cube cube;
   auto mesh = std::make_shared<StaticMesh>("Cube");
   mesh->SetPositionVertexData(cube.GetPositions());
-  //mesh->SetTextureVertexData(cube.GetTexCoords());
+  mesh->SetTextureVertexData(cube.GetTexCoords());
   mesh->SetIndexData(cube.GetIndices());
   //mesh->GenerateNormals();
   //mesh->GenerateTangents();
