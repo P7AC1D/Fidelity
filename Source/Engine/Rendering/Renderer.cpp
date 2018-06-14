@@ -59,7 +59,7 @@ void Renderer::DrawFrame()
     for (uint32 i = 0; i < renderable.Renderable->GetMeshCount(); i++)
     {
       auto mesh = renderable.Renderable->GetMeshAtIndex(i);
-			//_renderDevice->SetTexture(0, mesh->GetMaterial()->GetTexture("DiffuseMap"));
+			_renderDevice->SetTexture(0, mesh->GetMaterial()->GetTexture("DiffuseMap"));
       _renderDevice->SetVertexBuffer(0, mesh->GetVertexData());
       if (mesh->IsIndexed())
       {
@@ -98,7 +98,7 @@ void Renderer::InitPipelineStates()
   
   std::shared_ptr<ShaderParams> shaderParams(new ShaderParams());
   shaderParams->AddParam(ShaderParam("Constants", ShaderParamType::ConstBuffer, 0));
-	//shaderParams->AddParam(ShaderParam("DiffuseMap", ShaderParamType::Texture, 0));
+	shaderParams->AddParam(ShaderParam("DiffuseMap", ShaderParamType::Texture, 0));
   
   try
   {

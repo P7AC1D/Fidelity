@@ -1,4 +1,4 @@
-#version 410 core
+#version 410
 
 in vec2 TexCoord;
 
@@ -14,5 +14,5 @@ out vec4 FinalColour;
 
 void main()
 {
-  FinalColour = vec4(TexCoord.x, TexCoord.y, 0.0f, 1.0f);
+  FinalColour = vec4(texture(DiffuseMap, TexCoord));
 }
