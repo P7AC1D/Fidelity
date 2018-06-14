@@ -31,6 +31,13 @@ struct RenderDeviceDesc
   bool VsyncEnabled = false;
 };
 
+enum RenderTargetType
+{
+	RTT_Colour = 1,
+	RTT_Depth = 2,
+	RTT_Stencil = 4
+};
+
 class RenderDevice
 {
 public:
@@ -56,6 +63,8 @@ public:
 
   virtual void Draw(uint32 vertexCount, uint32 vertexOffset) = 0;
   virtual void DrawIndexed(uint32 indexCount, uint32 indexOffset, uint32 vertexOffset) = 0;
+
+	virtual void ClearBuffers(uint32 buffers, const Colour& colour = Colour::Black, float32 depth = 1.0f, int32 stencil = 0) = 0;
   
   virtual std::shared_ptr<BlendState> CreateBlendState(const BlendStateDesc& desc)
   {

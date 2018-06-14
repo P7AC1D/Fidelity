@@ -64,6 +64,7 @@ void Renderer::DrawFrame()
       }
     }
   }
+	EndFrame();
 	_renderables.clear();
 }
 
@@ -133,4 +134,9 @@ void Renderer::StartFrame()
   _constBuffer->WriteData(0, sizeof(ConstBufferData), &data);
   
   _renderDevice->SetPipelineState(_basicPipeline);
+	_renderDevice->ClearBuffers(RTT_Colour | RTT_Depth | RTT_Stencil);
+}
+
+void Renderer::EndFrame()
+{
 }

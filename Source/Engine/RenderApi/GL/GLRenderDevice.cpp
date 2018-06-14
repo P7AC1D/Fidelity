@@ -252,6 +252,32 @@ void GLRenderDevice::DrawIndexed(uint32 indexCount, uint32 indexOffset, uint32 v
   EndDraw();
 }
 
+void GLRenderDevice::ClearBuffers(uint32 buffers, const Colour& colour, float32 depth, int32 stencil)
+{
+	if (!_pipelineState)
+	{
+		return;
+	}
+
+	GLbitfield flags = 0;
+	if (buffers & RTT_Colour)
+	{
+		flags |= GL_COLOR_BUFFER_BIT;
+		GLCall(glClearColor(colour[0], colour[1], colour[2], colour[3]));
+	}
+	if (buffers & RTT_Depth)
+	{
+		flags |= GL_DEPTH_BUFFER_BIT;
+		GLCall(glClearDepth(depth));
+	}
+	if (buffers & RTT_Stencil)
+	{
+		flags |= GL_STENCIL_BUFFER_BIT;
+		GLCall(glClearStencil(stencil));
+	}
+	GLCall(glClear(flags));
+}
+
 void GLRenderDevice::BeginDraw()
 {
   Assert::ThrowIfTrue(_pipelineState == nullptr, "No pipeline state has been set");

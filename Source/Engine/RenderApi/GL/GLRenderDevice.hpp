@@ -43,6 +43,8 @@ public:
   
   void Draw(uint32 vertexCount, uint32 vertexOffset) override;
   void DrawIndexed(uint32 indexCount, uint32 indexOffset, uint32 vertexOffset) override;
+
+	void ClearBuffers(uint32 buffers, const Colour& colour = Colour::Black, float32 depth = 1.0f, int32 stencil = 0) override;
   
 private:
   void BeginDraw();

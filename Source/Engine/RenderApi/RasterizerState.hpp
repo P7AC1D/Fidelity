@@ -32,6 +32,7 @@ class RasterizerState
   friend class RenderDevice;
   
 public: 
+	bool IsScissorEnabled() const { return _desc.ScissorEnabled; }
   const RasterizerStateDesc& GetDesc() const { return _desc; }
   
 protected:

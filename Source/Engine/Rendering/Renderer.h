@@ -54,6 +54,7 @@ private:
   void InitPipelineStates();
   void InitConstBuffer();
   void StartFrame();
+	void EndFrame();
 
 private:
   RendererDesc _desc;
