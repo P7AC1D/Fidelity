@@ -5,7 +5,7 @@
 #include "../Engine/SceneManagement/WorldObject.h"
 
 class Light;
-class FpsCamera;
+class OrbitalCamera;
 class WorldObject;
 
 class Test3D : public Application
@@ -17,7 +17,7 @@ public:
   void OnUpdate(uint32 dtMs) override;
 
 private:
-  std::shared_ptr<FpsCamera> _camera;
+  std::shared_ptr<OrbitalCamera> _camera;
   std::shared_ptr<WorldObject> _object;
   Light* _light;
 };

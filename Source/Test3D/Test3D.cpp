@@ -32,7 +32,7 @@ Test3D::Test3D(const ApplicationDesc& desc):
 
 void Test3D::OnStart()
 {
-  _camera.reset(new FpsCamera());
+  _camera.reset(new OrbitalCamera(10.0f, 2.0f));
   _camera->SetPerspective(Degree(67.67f), GetWidth(), GetHeight(), 0.1f, 1000.0f);
   _camera->LookAt(Vector3(0.0f, 0.0f, 4.0f), Vector3(0.0f, 0.0f, 0.0f));
   _sceneManager->SetCamera(_camera);
@@ -45,36 +45,22 @@ void Test3D::OnStart()
   modelRenderable->PushMesh(cubeMesh);
   model->AttachRenderable(modelRenderable);
 
-  _inputHandler->BindButtonToState("MoveForward", Button::Key_W);
-  _inputHandler->BindButtonToState("MoveBackward", Button::Key_S);
-  _inputHandler->BindButtonToState("StrafeLeft", Button::Key_A);
-  _inputHandler->BindButtonToState("StrafeRight", Button::Key_D);
   _inputHandler->BindButtonToState("ActivateCameraLook", Button::Button_RMouse);
+	_inputHandler->BindAxisToState("CameraZoom", Axis::MouseScrollXY);
   _inputHandler->BindAxisToState("CameraLook", Axis::MouseXY);
 
-  _eventDispatcher->Register("MoveForward", [&](const InputEvent& inputEvent, int32 dt)
-  {
-    _camera->MoveForward(dt);
-  });
-  _eventDispatcher->Register("MoveBackward", [&](const InputEvent& inputEvent, int32 dt)
-  {
-    _camera->MoveBackward(dt);
-  });
-  _eventDispatcher->Register("StrafeLeft", [&](const InputEvent& inputEvent, int32 dt)
-  {
-    _camera->StrafeLeft(dt);
-  });
-  _eventDispatcher->Register("StrafeRight", [&](const InputEvent& inputEvent, int32 dt)
-  {
-    _camera->StrafeRight(dt);
-  });
+	_eventDispatcher->Register("CameraZoom", [&](const InputEvent& inputEvent, int32 dt)
+	{
+		_camera->Zoom(static_cast<float32>(inputEvent.AxisPosDelta[1]), dt);
+	});
+
   _eventDispatcher->Register("CameraLook", [&](const InputEvent& inputEvent, int32 dt)
   {
     if (_inputHandler->IsButtonStateActive("ActivateCameraLook"))
     {
       Radian yaw(static_cast<float32>(-inputEvent.AxisPosDelta[1]));
       Radian pitch(static_cast<float32>(-inputEvent.AxisPosDelta[0]));
-      _camera->Rotate(yaw, pitch, dt);
+      _camera->RotateAboutTarget(yaw, pitch, dt);
     }
   });
 }

@@ -11,10 +11,10 @@
 #include "../../Core/Types.hpp"
 
 #ifdef __clang__
-  #define ASSERT(x) if (!(x)) __asm__("int $3")
+#define ASSERT(x) if (!(x)) __asm__("int $3");
 #endif
 #ifdef _MSC_VER
-  #define ASSERT(x) if (!(x)) __debugbreak();
+#define ASSERT(x) if (!(x)) __debugbreak();
 #endif
 
 #define GLCall(x) GLClearError();\
