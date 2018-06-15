@@ -83,3 +83,8 @@ float32 Colour::operator[](int32 i) const
   return *(&_red + i);
 }
 
+float32& Colour::operator[](int32 i)
+{
+  assert(i < 4);
+  return *(&_red + i);
+}

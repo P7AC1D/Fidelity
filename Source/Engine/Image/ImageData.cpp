@@ -23,12 +23,7 @@ ImageData::ImageData(uint32 width, uint32 height, uint32 depth, ImageFormat form
 void ImageData::WriteData(const std::vector<Colour>& pixels)
 {
   Assert::ThrowIfTrue(_pixels.size() != pixels.size(), "Source pixel array insufficient");
-  
-  uint32 pixelCount = _volume.GetSize();
-  for (uint32 i = 0; i < pixelCount; i++)
-  {
-    _pixels[i] = pixels[i];
-  }
+  _pixels = pixels;
 }
 
 void ImageData::WritePixel(uint32 x, uint32 y, uint32 z, const Colour& colour)

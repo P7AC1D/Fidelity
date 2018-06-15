@@ -9,7 +9,7 @@ class GLTexture : public Texture
 public:
   virtual ~GLTexture();
   
-  void WriteData(uint32 mipLevel, uint32 face, const ImageData& data) override;
+  void WriteData(uint32 mipLevel, uint32 face, const std::shared_ptr<ImageData>& data) override;
   void GenerateMips() override;
   
   uint32 GetId() const { return _id; }

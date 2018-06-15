@@ -1,4 +1,5 @@
 #pragma once
+#include <memory>
 #include "../Image/ImageData.hpp"
 
 enum class TextureFormat
@@ -59,7 +60,7 @@ public:
   const TextureDesc& GetDesc() const { return _desc; }
   bool IsInitialized() const { return _isInitialized; }
   
-  virtual void WriteData(uint32 mipLevel, uint32 face, const ImageData& src) = 0;
+  virtual void WriteData(uint32 mipLevel, uint32 face, const std::shared_ptr<ImageData>& data) = 0;
   virtual void GenerateMips() = 0;
   
 protected:

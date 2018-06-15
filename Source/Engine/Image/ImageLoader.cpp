@@ -18,62 +18,58 @@ ImageFormat GetFormat(int channelCount)
 
 std::vector<Colour> BuildPixelDataR8(ubyte* data, int32 width, int32 height)
 {
-  std::vector<Colour> pixelData;
-  pixelData.resize(width * height);
-  for (uint32 i = 0; i < width; i++)
+  std::vector<Colour> pixelData(width * height);
+  for (uint32 i = 0; i < width * height; i++)
   {
-    for (uint32 j = 0; j < height; j++)
-    {
-      pixelData[i] = Colour(data[i + j * width]);
-    }
+    pixelData[i][0] = static_cast<float32>(data[i]);
   }
   return pixelData;
 }
 
 std::vector<Colour> BuildPixelDataRG8(ubyte* data, int32 width, int32 height)
 {
-  std::vector<Colour> pixelData;
-  pixelData.resize(width * height);
-  for (uint32 i = 0; i < width; i++)
+  std::vector<Colour> pixelData(width * height);
+  for (uint32 i = 0; i < width * height; i += 2)
   {
-    for (uint32 j = 0; j < height; j++)
-    {
-      pixelData[i] = Colour(data[i + j * width + 0],
-                            data[i + j * width + 1]);
-    }
+    pixelData[i][0] = static_cast<float32>(data[i]);
+    pixelData[i][1] = static_cast<float32>(data[i + 1]);
   }
   return pixelData;
 }
 
 std::vector<Colour> BuildPixelDataRGB8(ubyte* data, int32 width, int32 height)
 {
-  std::vector<Colour> pixelData;
-  pixelData.resize(width * height);
-  for (uint32 i = 0; i < width; i++)
+  std::vector<Colour> pixelData(width * height);
+  for (uint32 i = 0; i < width * height; i += 3)
   {
-    for (uint32 j = 0; j < height; j++)
-    {
-      pixelData[i] = Colour(data[i + j * width + 0],
-                            data[i + j * width + 1],
-                            data[i + j * width + 2]);
-    }
+    pixelData[i][0] = static_cast<float32>(data[i]);
+    pixelData[i][1] = static_cast<float32>(data[i + 1]);
+    pixelData[i][2] = static_cast<float32>(data[i + 2]);
   }
   return pixelData;
 }
 
 std::vector<Colour> BuildPixelDataRGBA8(ubyte* data, int32 width, int32 height)
 {
-  std::vector<Colour> pixelData;
-  pixelData.resize(width * height);
-  for (uint32 i = 0; i < width; i++)
+  std::vector<Colour> pixelData(width * height);
+  for (uint32 i = 0; i < width * height; i += 4)
   {
-    for (uint32 j = 0; j < height; j++)
-    {
-      pixelData[i] = Colour(data[i + j * width + 0],
-                            data[i + j * width + 1],
-                            data[i + j * width + 2],
-                            data[i + j * width + 3]);
-    }
+    pixelData[i][0] = static_cast<float32>(data[i]);
+    pixelData[i][1] = static_cast<float32>(data[i + 1]);
+    pixelData[i][2] = static_cast<float32>(data[i + 2]);
+    pixelData[i][2] = static_cast<float32>(data[i + 4]);
+  }
+  return pixelData;
+}
+
+std::vector<Colour> BuildColourArray(ubyte* data, int32 width, int32 height, uint32 channelCount)
+{
+  Assert::ThrowIfTrue(channelCount > 4, "Channel count exceeds maximum allowed");
+
+  std::vector<Colour> pixelData(width * height);
+  for (uint32 i = 0; i < width * height; i += channelCount)
+  {
+    pixelData[i] = Colour(data[i], data[i + 1], data[i + 2], data[i + 3]);
   }
   return pixelData;
 }
@@ -82,7 +78,7 @@ std::shared_ptr<ImageData> BuildImageData(ubyte* data, int32 width, int32 height
 {
   ImageFormat format = GetFormat(channelCount);
   std::shared_ptr<ImageData> imageData(new ImageData(width, height, 1, format));
-                                       
+
   switch (format)
   {
     case ImageFormat::RGBA8:

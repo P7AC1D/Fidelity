@@ -87,11 +87,11 @@ GLTexture::~GLTexture()
   }
 }
 
-void GLTexture::WriteData(uint32 mipLevel, uint32 face, const ImageData& data)
+void GLTexture::WriteData(uint32 mipLevel, uint32 face, const std::shared_ptr<ImageData>& data)
 {
-  Assert::ThrowIfFalse(_desc.Width == data.GetWidth(), "Image width must be consistent with Texture");
-  Assert::ThrowIfFalse(_desc.Height == data.GetHeight(), "Image height must be consistent with Texture");
-  Assert::ThrowIfFalse(_desc.Depth == data.GetDepth(), "Image depth must be consistent with Texture");
+  Assert::ThrowIfFalse(_desc.Width == data->GetWidth(), "Image width must be consistent with Texture");
+  Assert::ThrowIfFalse(_desc.Height == data->GetHeight(), "Image height must be consistent with Texture");
+  Assert::ThrowIfFalse(_desc.Depth == data->GetDepth(), "Image depth must be consistent with Texture");
   
   GLenum internalFormat;
   GLenum format;
@@ -99,27 +99,27 @@ void GLTexture::WriteData(uint32 mipLevel, uint32 face, const ImageData& data)
   GetInternalPixelFormat(_desc.Format, internalFormat, format, type);
   GLenum target = GetTextureTarget(_desc.Type);
   
-  auto& pixelData = data.GetPixels();
+  auto& pixelData = data->GetPixels();
   GLCall(glBindTexture(target, _id));
   switch (_desc.Type)
   {
     case TextureType::Texture1D:
-      GLCall(glTexSubImage1D(target, mipLevel, data.GetLeft(), data.GetWidth(), format, type, &pixelData[0]));
+      GLCall(glTexSubImage1D(target, mipLevel, data->GetLeft(), data->GetWidth(), format, type, &pixelData[0]));
       break;
     case TextureType::Texture1DArray:
-      GLCall(glTexSubImage2D(target, mipLevel, data.GetLeft(), 0, data.GetWidth(), face, format, type, &pixelData[0]));
+      GLCall(glTexSubImage2D(target, mipLevel, data->GetLeft(), 0, data->GetWidth(), face, format, type, &pixelData[0]));
       break;
     case TextureType::Texture2D:
-      GLCall(glTexSubImage2D(target, mipLevel, data.GetLeft(), data.GetBottom(), data.GetWidth(), data.GetHeight(), format, type, &pixelData[0]));
+      GLCall(glTexSubImage2D(target, mipLevel, data->GetLeft(), data->GetBottom(), data->GetWidth(), data->GetHeight(), format, type, &pixelData[0]));
       break;
     case TextureType::Texture2DArray:
-      GLCall(glTexSubImage3D(target, mipLevel, data.GetLeft(), data.GetBottom(), 0, data.GetWidth(), data.GetHeight(), face, format, type, &pixelData[0]));
+      GLCall(glTexSubImage3D(target, mipLevel, data->GetLeft(), data->GetBottom(), 0, data->GetWidth(), data->GetHeight(), face, format, type, &pixelData[0]));
       break;
     case TextureType::Texture3D:
-      GLCall(glTexSubImage3D(target, mipLevel, data.GetLeft(), data.GetBottom(), data.GetBack(), data.GetWidth(), data.GetHeight(), data.GetDepth(), format, type, &pixelData[0]));
+      GLCall(glTexSubImage3D(target, mipLevel, data->GetLeft(), data->GetBottom(), data->GetBack(), data->GetWidth(), data->GetHeight(), data->GetDepth(), format, type, &pixelData[0]));
       break;
     case TextureType::TextureCube:
-      GLCall(glTexSubImage2D(target, mipLevel, data.GetLeft(), 0, data.GetWidth(), face, format, type, &pixelData[0]));
+      GLCall(glTexSubImage2D(target, mipLevel, data->GetLeft(), 0, data->GetWidth(), face, format, type, &pixelData[0]));
       break;
     default:
       throw std::runtime_error("Unsupported TextureType");
