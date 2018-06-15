@@ -30,6 +30,7 @@ std::shared_ptr<Texture> TextureLoader::LoadFromFile2D(const std::string& path)
 		desc.Height = imageData->GetHeight();
 		auto texture = Renderer::GetRenderDevice()->CreateTexture(desc);
     texture->WriteData(0, 0, imageData);
+		texture->GenerateMips();
     return texture;
 	}
 	catch (const std::exception& exception)

@@ -99,7 +99,7 @@ void GLTexture::WriteData(uint32 mipLevel, uint32 face, const std::shared_ptr<Im
   GetInternalPixelFormat(_desc.Format, internalFormat, format, type);
   GLenum target = GetTextureTarget(_desc.Type);
   
-  auto& pixelData = data->GetPixels();
+  const auto& pixelData = data->GetPixelData();
   GLCall(glBindTexture(target, _id));
   switch (_desc.Type)
   {

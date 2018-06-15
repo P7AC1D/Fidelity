@@ -7,16 +7,17 @@
 
 class ImageData
 {
+	friend class ImageLoader;
+
 public:
   ImageData(const ImageVolume& volume, ImageFormat format);
   ImageData(uint32 width, uint32 height, uint32 depth, ImageFormat format);
   
-  void WriteData(const std::vector<Colour>& pixels);
   void WritePixel(uint32 x, uint32 y, uint32 z, const Colour& colour);
   Colour ReadPixel(uint32 x, uint32 y, uint32 z) const;
   uint32 GetBytesPerPixel() const;
   
-  const std::vector<Colour>& GetPixels() const { return _pixels; }
+  const std::vector<ubyte>& GetPixelData() const { return _pixelData; }
   
   uint32 GetLeft() const { return _volume.Left; }
   uint32 GetRight() const { return _volume.Right; }
@@ -30,9 +31,13 @@ public:
   uint32 GetDepth() const { return _volume.GetDepth(); }
   
   ImageFormat GetFormat() const { return _format; }
+
+private:
+	void WriteData(ubyte* data);
+	void WriteData(const std::vector<ubyte>& data);
   
 private:
   ImageVolume _volume;
   ImageFormat _format;
-  std::vector<Colour> _pixels;
+	std::vector<ubyte> _pixelData;
 };

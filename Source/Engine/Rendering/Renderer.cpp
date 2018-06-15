@@ -100,13 +100,17 @@ void Renderer::InitPipelineStates()
   shaderParams->AddParam(ShaderParam("Constants", ShaderParamType::ConstBuffer, 0));
 	shaderParams->AddParam(ShaderParam("DiffuseMap", ShaderParamType::Texture, 0));
   
+	RasterizerStateDesc rasterizerStateDesc;
+	rasterizerStateDesc.CullMode = CullMode::CounterClockwise;
+	rasterizerStateDesc.DepthClipEnabled = true;
+
   try
   {
     PipelineStateDesc pipelineDesc;
     pipelineDesc.VS = _renderDevice->CreateShader(vsDesc);
     pipelineDesc.PS = _renderDevice->CreateShader(psDesc);
     pipelineDesc.BlendState = _renderDevice->CreateBlendState(BlendStateDesc());
-    pipelineDesc.RasterizerState = _renderDevice->CreateRasterizerState(RasterizerStateDesc());
+    pipelineDesc.RasterizerState = _renderDevice->CreateRasterizerState(rasterizerStateDesc);
     pipelineDesc.DepthStencilState = _renderDevice->CreateDepthStencilState(DepthStencilStateDesc());
     pipelineDesc.VertexLayout = _renderDevice->CreateVertexLayout(vertexLayoutDesc);
     pipelineDesc.ShaderParams = shaderParams;
