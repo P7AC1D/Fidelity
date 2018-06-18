@@ -15,6 +15,7 @@ GLuint GetInputSlot(SemanticType type)
     case SemanticType::Tangent: return 2;
     case SemanticType::Bitangent: return 3;
     case SemanticType::TexCoord: return 4;
+		case SemanticType::Colour: return 5;
     default: return 0;
   }
 }

@@ -7,10 +7,6 @@
 #include "../Rendering/Renderer.h"
 #include "../SceneManagement/SceneManager.h"
 
-Application::~Application()
-{
-}
-
 int32 Application::Run()
 {
   if (!Initialize())
@@ -28,6 +24,7 @@ int32 Application::Run()
     SDL_Event sdlEvent;
     while (SDL_PollEvent(&sdlEvent))
     {
+			_debugUi->ProcessEvents(&sdlEvent);
       switch (sdlEvent.type)
       {
         case SDL_QUIT:
@@ -108,6 +105,7 @@ int32 Application::Run()
 
     _sceneManager->UpdateScene(dtMs);
 		_renderer->DrawFrame();
+		_debugUi->Update();
 
     SDL_GL_SwapWindow(_window);
   }
@@ -180,6 +178,8 @@ bool Application::Initialize()
     SDL_ClearError();
     return false;
   }
+
+	_debugUi.reset(new DebugUi(_window, _glContext));
 
 	try
 	{

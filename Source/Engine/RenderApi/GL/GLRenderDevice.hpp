@@ -40,6 +40,9 @@ public:
   void SetConstantBuffer(uint32 slot, const std::shared_ptr<GpuBuffer>& constantBuffer) override;
   void SetTexture(uint32 slot, const std::shared_ptr<Texture>& texture) override;
   void SetSamplerState(uint32 slot, const std::shared_ptr<SamplerState>& samplerState) override;
+
+	void SetScissorDimensions(const ScissorDesc& desc) override;
+	ScissorDesc GetScissorDimensions() const override;
   
   void Draw(uint32 vertexCount, uint32 vertexOffset) override;
   void DrawIndexed(uint32 indexCount, uint32 indexOffset, uint32 vertexOffset) override;

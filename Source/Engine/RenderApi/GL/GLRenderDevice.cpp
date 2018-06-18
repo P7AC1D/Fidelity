@@ -236,6 +236,29 @@ void GLRenderDevice::SetSamplerState(uint32 slot, const std::shared_ptr<SamplerS
   }
 }
 
+void GLRenderDevice::SetScissorDimensions(const ScissorDesc& desc)
+{
+	Assert::ThrowIfTrue(desc.X < 0.0f || desc.X > _desc.RenderWidth, "Scissor X-Pos exceeds render dimensions");
+	Assert::ThrowIfTrue(desc.Y < 0.0f || desc.Y > _desc.RenderHeight, "Scissor Y-Pos exceeds render dimensions");
+	Assert::ThrowIfTrue(desc.W < 0.0f || desc.W > _desc.RenderWidth, "Scissor width exceeds render dimensions");
+	Assert::ThrowIfTrue(desc.H < 0.0f || desc.H > _desc.RenderHeight, "Scissor height exceeds render dimensions");
+
+	_scissorLeft = desc.X;
+	_scissorTop = desc.Y;
+	_scissorRight = desc.X + desc.W;
+	_scissorBottom = desc.Y + desc.H;
+}
+
+ScissorDesc GLRenderDevice::GetScissorDimensions() const
+{
+	ScissorDesc scissorDesc;
+	scissorDesc.X = _scissorLeft;
+	scissorDesc.Y = _scissorTop;
+	scissorDesc.W = _scissorRight - _scissorLeft;
+	scissorDesc.H = _scissorBottom - _scissorTop;
+	return scissorDesc;
+}
+
 void GLRenderDevice::Draw(uint32 vertexCount, uint32 vertexOffset)
 {
   BeginDraw();
@@ -248,7 +271,9 @@ void GLRenderDevice::DrawIndexed(uint32 indexCount, uint32 indexOffset, uint32 v
   BeginDraw();
 	Assert::ThrowIfTrue(_boundIndexBuffer == nullptr, "No index buffer has been bound");
 	GLCall(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _boundIndexBuffer->GetId()));
-  GLCall(glDrawElements(GetPrimitiveTopology(_primitiveTopology), indexCount, GL_UNSIGNED_INT, 0));
+
+	GLenum idxType = _boundIndexBuffer->GetIndexType() == IndexType::UInt16 ? GL_UNSIGNED_SHORT : GL_UNSIGNED_INT;
+  GLCall(glDrawElements(GetPrimitiveTopology(_primitiveTopology), indexCount, idxType, reinterpret_cast<GLvoid*>(indexOffset)));
   EndDraw();
 }
 
@@ -671,6 +696,10 @@ void GLRenderDevice::EnableScissorTest(bool enableScissorTest)
   {
     GLCall(glDisable(GL_SCISSOR_TEST));
     GLCall(glScissor(0, 0, _desc.RenderWidth, _desc.RenderHeight));
+		_scissorLeft = 0;
+		_scissorTop = 0;
+		_scissorRight = _desc.RenderWidth;
+		_scissorBottom = _desc.RenderHeight;
   }
 }
 

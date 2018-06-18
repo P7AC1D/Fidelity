@@ -22,6 +22,14 @@ struct ViewportDesc
   float32 MaxDepth;
 };
 
+struct ScissorDesc
+{
+	uint32 X;
+	uint32 Y;
+	uint32 W;
+	uint32 H;
+};
+
 struct RenderDeviceDesc
 {
   uint32 FrameCount = 2;
@@ -61,6 +69,9 @@ public:
   virtual void SetConstantBuffer(uint32 slot, const std::shared_ptr<GpuBuffer>& constantBuffer) = 0;
   virtual void SetSamplerState(uint32 slot, const std::shared_ptr<SamplerState>& samplerState) = 0;
 
+	virtual void SetScissorDimensions(const ScissorDesc& desc) = 0;
+	virtual ScissorDesc GetScissorDimensions() const = 0;
+
   virtual void Draw(uint32 vertexCount, uint32 vertexOffset) = 0;
   virtual void DrawIndexed(uint32 indexCount, uint32 indexOffset, uint32 vertexOffset) = 0;
 
@@ -86,6 +97,9 @@ public:
   {
     return std::shared_ptr<VertexLayout>(new VertexLayout(desc));
   }
+
+	uint32 GetRenderWidth() const { return _desc.RenderWidth; }
+	uint32 GetRenderHeight() const { return _desc.RenderHeight; }
 
 protected:
   RenderDeviceDesc _desc;

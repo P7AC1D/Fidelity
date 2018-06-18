@@ -9,7 +9,8 @@ enum class SemanticType
   Normal,
   Tangent,
   Bitangent,
-  TexCoord
+  TexCoord,
+	Colour
 };
 
 enum class SemanticFormat

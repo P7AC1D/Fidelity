@@ -7,8 +7,6 @@
 
 class ImageData
 {
-	friend class ImageLoader;
-
 public:
   ImageData(const ImageVolume& volume, ImageFormat format);
   ImageData(uint32 width, uint32 height, uint32 depth, ImageFormat format);
@@ -32,7 +30,6 @@ public:
   
   ImageFormat GetFormat() const { return _format; }
 
-private:
 	void WriteData(ubyte* data);
 	void WriteData(const std::vector<ubyte>& data);
   
