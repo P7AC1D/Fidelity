@@ -1,5 +1,6 @@
 #pragma once
 #include <memory>
+#include "../Core/Types.hpp"
 
 class Camera;
 class GpuBuffer;
@@ -18,6 +19,7 @@ class DebugUi
 {
 public:
 	DebugUi(SDL_Window* sdlWindow, SDL_GLContext sdlGlContext);
+	~DebugUi();
 
 	void SetCamera(const std::shared_ptr<Camera>& camera);
 
@@ -32,7 +34,11 @@ private:
 private:
 	ImGuiIO* _io;
 	SDL_Window* _sdlWindow;
+	SDL_GLContext _sdlGlContext;
 	bool _initialized;
+
+	uint64 _vertBuffSize;
+	uint64 _idxBuffSize;
 
 	std::shared_ptr<Camera> _camera;
 	std::shared_ptr<PipelineState> _pipelineState;

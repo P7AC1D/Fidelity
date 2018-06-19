@@ -11,12 +11,30 @@
 #include "../Rendering/Renderer.h"
 #include "../Utility/String.hpp"
 
-DebugUi::DebugUi(SDL_Window* sdlWindow, SDL_GLContext sdlGlContext): _io(nullptr), _sdlWindow(sdlWindow), _initialized(false)
+bool show_demo_window = true;
+bool show_another_window = false;
+ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
+
+DebugUi::DebugUi(SDL_Window* sdlWindow, SDL_GLContext sdlGlContext):
+	_io(nullptr),
+	_sdlWindow(sdlWindow),
+	_sdlGlContext(sdlGlContext),
+	_vertBuffSize(0),
+	_idxBuffSize(0),
+	_initialized(false)
 {
 	IMGUI_CHECKVERSION();
 	ImGui::CreateContext();
 	_io = &ImGui::GetIO();
 	ImGui::StyleColorsDark();
+
+	ImGui_ImplSDL2_InitForOpenGL(_sdlWindow, sdlGlContext);
+}
+
+DebugUi::~DebugUi()
+{
+	ImGui_ImplSDL2_Shutdown();
+	ImGui::DestroyContext();
 }
 
 void DebugUi::SetCamera(const std::shared_ptr<Camera>& camera)
@@ -26,6 +44,7 @@ void DebugUi::SetCamera(const std::shared_ptr<Camera>& camera)
 
 void DebugUi::ProcessEvents(SDL_Event* sdlEvent)
 {
+	ImGui_ImplSDL2_ProcessEvent(sdlEvent);
 }
 
 void DebugUi::Update()
@@ -39,12 +58,15 @@ void DebugUi::Update()
 
 	ImGui_ImplSDL2_NewFrame(_sdlWindow);
 	ImGui::NewFrame();
-
 	{
-		static float32 f = 0.0f;
-		static int32 counter = 0;
+		static float f = 0.0f;
+		static int counter = 0;
 		ImGui::Text("Hello, world!");                           // Display some text (you can use a format string too)
 		ImGui::SliderFloat("float", &f, 0.0f, 1.0f);            // Edit 1 float using a slider from 0.0f to 1.0f    
+		ImGui::ColorEdit3("clear color", (float*)&clear_color); // Edit 3 floats representing a color
+
+		ImGui::Checkbox("Demo Window", &show_demo_window);      // Edit bools storing our windows open/close state
+		ImGui::Checkbox("Another Window", &show_another_window);
 
 		if (ImGui::Button("Button"))                            // Buttons return true when clicked (NB: most widgets return true when edited/activated)
 			counter++;
@@ -54,8 +76,26 @@ void DebugUi::Update()
 		ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
 	}
 
+	// 2. Show another simple window. In most cases you will use an explicit Begin/End pair to name your windows.
+	if (show_another_window)
+	{
+		ImGui::Begin("Another Window", &show_another_window);
+		ImGui::Text("Hello from another window!");
+		if (ImGui::Button("Close Me"))
+			show_another_window = false;
+		ImGui::End();
+	}
+
+	// 3. Show the ImGui demo window. Most of the sample code is in ImGui::ShowDemoWindow(). Read its code to learn more about Dear ImGui!
+	if (show_demo_window)
+	{
+		ImGui::SetNextWindowPos(ImVec2(650, 20), ImGuiCond_FirstUseEver); // Normally user code doesn't need/want to call this because positions are saved in .ini file anyway. Here we just want to make the demo initial state a bit more friendly!
+		ImGui::ShowDemoWindow(&show_demo_window);
+	}
+
 	ImGui::EndFrame();
 	ImGui::Render();
+	SDL_GL_MakeCurrent(_sdlWindow, _sdlGlContext);
 	Draw(ImGui::GetDrawData());
 }
 
@@ -93,36 +133,49 @@ void DebugUi::Draw(ImDrawData* drawData)
 	_constBuffer = renderDevice->CreateGpuBuffer(constBufferDesc);
 	_constBuffer->WriteData(0, constBufferDesc.ByteCount, &orthProj[0][0], AccessType::WriteOnlyDiscardRange);
 
+	if (!_vertBuffer || _vertBuffSize < drawData->TotalVtxCount)
+	{
+		_vertBuffSize = drawData->TotalVtxCount + 5000;
+
+		VertexBufferDesc vertBufferDesc;
+		vertBufferDesc.BufferUsage = BufferUsage::Dynamic;
+		vertBufferDesc.VertexCount = _vertBuffSize;
+		vertBufferDesc.VertexSizeBytes = sizeof(ImDrawVert);
+		_vertBuffer = renderDevice->CreateVertexBuffer(vertBufferDesc);
+	}
+
+	if (!_idxBuffer || _idxBuffSize < drawData->TotalIdxCount)
+	{
+		_idxBuffSize = drawData->TotalIdxCount + 10000;
+
+		IndexBufferDesc idxBufferDesc;
+		idxBufferDesc.BufferUsage = BufferUsage::Default;
+		idxBufferDesc.IndexCount = _idxBuffSize;
+		idxBufferDesc.IndexType = sizeof(ImDrawIdx) == 2 ? IndexType::UInt16 : IndexType::UInt32;
+		_idxBuffer = renderDevice->CreateIndexBuffer(idxBufferDesc);		
+	}
+
+	uint64 vertByteOffset = 0;
+	uint64 idxByteOffset = 0;
 	for (int32 n = 0; n < drawData->CmdListsCount; n++)
 	{
-		uint32 indxBufferOffset = 0;
 		const ImDrawList* cmdList = drawData->CmdLists[n];
+		uint64 vertByteCount = cmdList->VtxBuffer.Size * sizeof(ImDrawVert);
+		uint32 idxByteCount = cmdList->IdxBuffer.Size * sizeof(ImDrawIdx);
 
-		try
-		{
-			if (!_vertBuffer || !_idxBuffer || _vertBuffer->GetSizeBytes() < cmdList->VtxBuffer.size() * sizeof(ImDrawVert))
-			{
-				VertexBufferDesc vertBufferDesc;
-				vertBufferDesc.BufferUsage = BufferUsage::Dynamic;
-				vertBufferDesc.VertexCount = cmdList->VtxBuffer.size();
-				vertBufferDesc.VertexSizeBytes = sizeof(ImDrawVert);
-				_vertBuffer = renderDevice->CreateVertexBuffer(vertBufferDesc);
-				_vertBuffer->WriteData(0, vertBufferDesc.VertexSizeBytes * vertBufferDesc.VertexCount, cmdList->VtxBuffer.Data);
+		_vertBuffer->WriteData(vertByteOffset, vertByteCount, cmdList->VtxBuffer.Data);
+		_idxBuffer->WriteData(idxByteOffset, idxByteCount, cmdList->IdxBuffer.Data);
 
-				IndexBufferDesc idxBufferDesc;
-				idxBufferDesc.BufferUsage = BufferUsage::Default;
-				idxBufferDesc.IndexCount = cmdList->IdxBuffer.size();
-				idxBufferDesc.IndexType = sizeof(ImDrawIdx) == 2 ? IndexType::UInt16 : IndexType::UInt32;
-				_idxBuffer = renderDevice->CreateIndexBuffer(idxBufferDesc);
-				_idxBuffer->WriteData(0, idxBufferDesc.IndexCount * sizeof(ImDrawIdx), cmdList->IdxBuffer.Data);
-			}
-		}
-		catch (const std::exception& exception)
-		{
-			throw std::runtime_error("Unable to initialize UI GPU buffers. " + std::string(exception.what()));
-		}
-
-		ImVec2 pos = drawData->DisplayPos;
+		vertByteOffset += vertByteCount;
+		idxByteOffset += idxByteCount;
+	}
+	
+	uint64 vertOffset = 0;
+	uint64 idxOffset = 0;
+	ImVec2 pos = drawData->DisplayPos;
+	for (int32 n = 0; n < drawData->CmdListsCount; n++)
+	{
+		const ImDrawList* cmdList = drawData->CmdLists[n];		
 		for (int32 i = 0; i < cmdList->CmdBuffer.size(); i++)
 		{
 			const ImDrawCmd* pCmd = &cmdList->CmdBuffer[i];
@@ -142,9 +195,10 @@ void DebugUi::Draw(ImDrawData* drawData)
 			renderDevice->SetIndexBuffer(_idxBuffer);
 			renderDevice->SetConstantBuffer(0, _constBuffer);
 
-			renderDevice->DrawIndexed(pCmd->ElemCount, indxBufferOffset, 0);
-			indxBufferOffset += pCmd->ElemCount;
+			renderDevice->DrawIndexed(pCmd->ElemCount, idxOffset, vertOffset);
+			idxOffset += pCmd->ElemCount;
 		}		
+		vertOffset += cmdList->VtxBuffer.Size;
 	}
 
 	renderDevice->SetScissorDimensions(currentScissorDim);

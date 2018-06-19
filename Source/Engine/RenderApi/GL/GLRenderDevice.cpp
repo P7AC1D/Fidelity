@@ -281,7 +281,8 @@ void GLRenderDevice::DrawIndexed(uint32 indexCount, uint32 indexOffset, uint32 v
 	GLCall(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _boundIndexBuffer->GetId()));
 
 	GLenum idxType = _boundIndexBuffer->GetIndexType() == IndexType::UInt16 ? GL_UNSIGNED_SHORT : GL_UNSIGNED_INT;
-  GLCall(glDrawElements(GetPrimitiveTopology(_primitiveTopology), indexCount, idxType, reinterpret_cast<GLvoid*>(indexOffset)));
+	uint32 idxTypeByteCount = IndexBuffer::GetBytesPerIndex(_boundIndexBuffer->GetIndexType());
+  GLCall(glDrawElementsBaseVertex(GetPrimitiveTopology(_primitiveTopology), indexCount, idxType, reinterpret_cast<GLvoid*>(idxTypeByteCount * indexOffset), vertexOffset));
   EndDraw();
 }
 

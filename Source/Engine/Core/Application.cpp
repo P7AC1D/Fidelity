@@ -110,8 +110,7 @@ int32 Application::Run()
 
     _sceneManager->UpdateScene(dtMs);
 		_renderer->DrawFrame();
-		_debugUi->Update();
-
+		_debugUi->Update();		
     SDL_GL_SwapWindow(_window);
   }
 
