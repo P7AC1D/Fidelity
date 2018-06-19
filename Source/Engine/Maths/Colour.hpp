@@ -6,6 +6,7 @@
 class Colour
 {
 public:
+	static Colour Zero;
   static Colour Black;
   static Colour White;
   static Colour Red;

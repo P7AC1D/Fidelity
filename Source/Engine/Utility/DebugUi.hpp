@@ -3,8 +3,11 @@
 
 class Camera;
 class GpuBuffer;
+class IndexBuffer;
 class PipelineState;
+class SamplerState;
 class Texture;
+class VertexBuffer;
 struct ImDrawData;
 struct ImGuiIO;
 struct SDL_Window;
@@ -34,5 +37,8 @@ private:
 	std::shared_ptr<Camera> _camera;
 	std::shared_ptr<PipelineState> _pipelineState;
 	std::shared_ptr<Texture> _textureAtlas;
+	std::shared_ptr<SamplerState> _samplerState;
 	std::shared_ptr<GpuBuffer> _constBuffer;
+	std::shared_ptr<VertexBuffer> _vertBuffer;
+	std::shared_ptr<IndexBuffer> _idxBuffer;
 };

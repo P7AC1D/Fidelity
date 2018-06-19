@@ -1,6 +1,7 @@
 #include "GL.hpp"
 
 #include <string>
+#include "../../Core/Application.h"
 
 #define GL_INVALID_ENUM 0x0500
 #define GL_INVALID_VALUE 0x0501

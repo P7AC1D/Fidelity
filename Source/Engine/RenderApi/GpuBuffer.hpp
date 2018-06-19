@@ -55,6 +55,7 @@ class GpuBuffer
 public:
   const GpuBufferDesc& GetDesc() const { return _desc; }
   BufferType GetType() const { return _desc.BufferType; }
+	uint64 GetSizeBytes() const { return _desc.ByteCount; }
   bool IsInitialized() const { return _initialized; }
 
   virtual void WriteData(uint64 byteOffset, uint64 byteCount, const void* src, AccessType accessType = AccessType::WriteOnly) = 0;

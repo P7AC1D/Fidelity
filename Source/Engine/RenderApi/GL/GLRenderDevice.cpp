@@ -106,10 +106,6 @@ GLenum GetBlendOp(BlendOperation op)
 GLRenderDevice::GLRenderDevice(const RenderDeviceDesc& desc) :
   RenderDevice(desc),
   _primitiveTopology(PrimitiveTopology::TriangleList),
-  _scissorLeft(0),
-  _scissorRight(desc.RenderWidth),
-  _scissorTop(desc.RenderHeight),
-  _scissorBottom(0),
   _stencilReadMask(0),
   _stencilRefValue(0),
   _stencilWriteMask(0),
@@ -121,6 +117,9 @@ GLRenderDevice::GLRenderDevice(const RenderDeviceDesc& desc) :
   GLenum error = glewInit();
   Assert::ThrowIfFalse(error == GLEW_OK, "Failed to initialize GLEW");
 #endif
+
+	SetViewport(ViewportDesc{ 0.0f, 0.0f, static_cast<float32>(desc.RenderWidth), static_cast<float32>(desc.RenderHeight), 0.0f, 0.0f });
+	SetScissorDimensions(ScissorDesc{ 0, 0, desc.RenderWidth, desc.RenderHeight });
 }
 
 std::shared_ptr<Shader> GLRenderDevice::CreateShader(const ShaderDesc& desc)
@@ -167,13 +166,21 @@ void GLRenderDevice::SetPrimitiveTopology(PrimitiveTopology primitiveTopology)
 
 void GLRenderDevice::SetViewport(const ViewportDesc& viewport)
 {
-  GLCall(glViewport(viewport.TopLeftX, viewport.TopLeftY, viewport.Width, viewport.Height));
+	if (_viewportDesc.TopLeftX != viewport.TopLeftX ||
+			_viewportDesc.TopLeftY != viewport.TopLeftY ||
+			_viewportDesc.Width != viewport.Width ||
+			_viewportDesc.Height != viewport.Height)
+	{
+		GLCall(glViewport(viewport.TopLeftX, viewport.TopLeftY, viewport.Width, viewport.Height));
+		_viewportDesc = viewport;
+	}
 }
 
 void GLRenderDevice::SetPipelineState(const std::shared_ptr<PipelineState>& pipelineState)
 {
   SetRasterizerState(pipelineState->GetRasterizerState());
   SetDepthStencilState(pipelineState->GetDepthStencilState());
+	SetBlendState(pipelineState->GetBlendState());
   _pipelineState = pipelineState;
   _shaderParams = pipelineState->GetShaderParams();
 }
@@ -243,20 +250,21 @@ void GLRenderDevice::SetScissorDimensions(const ScissorDesc& desc)
 	Assert::ThrowIfTrue(desc.W < 0.0f || desc.W > _desc.RenderWidth, "Scissor width exceeds render dimensions");
 	Assert::ThrowIfTrue(desc.H < 0.0f || desc.H > _desc.RenderHeight, "Scissor height exceeds render dimensions");
 
-	_scissorLeft = desc.X;
-	_scissorTop = desc.Y;
-	_scissorRight = desc.X + desc.W;
-	_scissorBottom = desc.Y + desc.H;
+	if (desc.X != _scissorDesc.X || desc.Y != _scissorDesc.Y || desc.W != _scissorDesc.W || desc.H != _scissorDesc.H)
+	{
+		GLCall(glScissor(desc.X, desc.Y, desc.W, desc.H));
+		_scissorDesc = desc;
+	}
+}
+
+const ViewportDesc& GLRenderDevice::GetViewport() const
+{
+	return _viewportDesc;
 }
 
 ScissorDesc GLRenderDevice::GetScissorDimensions() const
 {
-	ScissorDesc scissorDesc;
-	scissorDesc.X = _scissorLeft;
-	scissorDesc.Y = _scissorTop;
-	scissorDesc.W = _scissorRight - _scissorLeft;
-	scissorDesc.H = _scissorBottom - _scissorTop;
-	return scissorDesc;
+	return _scissorDesc;
 }
 
 void GLRenderDevice::Draw(uint32 vertexCount, uint32 vertexOffset)
@@ -284,6 +292,17 @@ void GLRenderDevice::ClearBuffers(uint32 buffers, const Colour& colour, float32 
 		return;
 	}
 
+	auto currentScissorDimensions = GetScissorDimensions();
+	if (_pipelineState->GetRasterizerState()->IsScissorEnabled())
+	{
+		ScissorDesc scissorDesc;
+		scissorDesc.X = 0;
+		scissorDesc.Y = 0;
+		scissorDesc.H = GetRenderHeight();
+		scissorDesc.W = GetRenderWidth();
+		SetScissorDimensions(scissorDesc);
+	}
+
 	GLbitfield flags = 0;
 	if (buffers & RTT_Colour)
 	{
@@ -301,6 +320,11 @@ void GLRenderDevice::ClearBuffers(uint32 buffers, const Colour& colour, float32 
 		GLCall(glClearStencil(stencil));
 	}
 	GLCall(glClear(flags));
+
+	if (_pipelineState->GetRasterizerState()->IsScissorEnabled())
+	{
+		SetScissorDimensions(currentScissorDimensions);
+	}
 }
 
 void GLRenderDevice::BeginDraw()
@@ -685,21 +709,10 @@ void GLRenderDevice::EnableScissorTest(bool enableScissorTest)
   if (enableScissorTest)
   {
     GLCall(glEnable(GL_SCISSOR_TEST));
-    
-    GLsizei x = _scissorLeft;
-    GLsizei y = _scissorTop;
-    GLsizei w = _scissorRight - _scissorLeft;
-    GLsizei h = _scissorBottom - _scissorTop;
-    GLCall(glScissor(x, y, w, h));
   }
   else
   {
     GLCall(glDisable(GL_SCISSOR_TEST));
-    GLCall(glScissor(0, 0, _desc.RenderWidth, _desc.RenderHeight));
-		_scissorLeft = 0;
-		_scissorTop = 0;
-		_scissorRight = _desc.RenderWidth;
-		_scissorBottom = _desc.RenderHeight;
   }
 }
 

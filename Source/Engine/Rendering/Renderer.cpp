@@ -131,8 +131,7 @@ void Renderer::InitConstBuffer()
     perShaderBuffDesc.BufferType = BufferType::Constant;
     perShaderBuffDesc.BufferUsage = BufferUsage::Dynamic;
     perShaderBuffDesc.ByteCount = sizeof(ConstBufferData);
-    _constBuffer = _renderDevice->CreateGpuBuffer(perShaderBuffDesc);
-		_renderDevice->SetConstantBuffer(0, _constBuffer);
+    _constBuffer = _renderDevice->CreateGpuBuffer(perShaderBuffDesc);		
   }
   catch (const std::exception& exception)
   {
@@ -148,6 +147,7 @@ void Renderer::StartFrame()
   _constBuffer->WriteData(0, sizeof(ConstBufferData), &data);
   
   _renderDevice->SetPipelineState(_basicPipeline);
+	_renderDevice->SetConstantBuffer(0, _constBuffer);
 	_renderDevice->ClearBuffers(RTT_Colour | RTT_Depth | RTT_Stencil);
 }
 

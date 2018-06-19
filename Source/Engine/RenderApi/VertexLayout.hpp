@@ -26,18 +26,28 @@ enum class SemanticFormat
   Int4,
   Int3,
   Int2,
-  Int
+  Int,
+	Byte4,
+	Byte3,
+	Byte2,
+	Byte,
+	Ubyte4,
+	Ubyte3,
+	Ubyte2,
+	Ubyte
 };
 
 struct VertexLayoutDesc
 {
-  VertexLayoutDesc(SemanticType type, SemanticFormat format):
+  VertexLayoutDesc(SemanticType type, SemanticFormat format, bool normalized = false):
     Type(type),
-    Format(format)
+    Format(format),
+		Normalised(normalized)
   {}
   
   SemanticType Type;
   SemanticFormat Format;
+	bool Normalised;
 };
 
 class VertexLayout

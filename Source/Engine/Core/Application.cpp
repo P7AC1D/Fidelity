@@ -7,6 +7,11 @@
 #include "../Rendering/Renderer.h"
 #include "../SceneManagement/SceneManager.h"
 
+Application::~Application() 
+{
+	SDL_DestroyWindow(_window);
+}
+
 int32 Application::Run()
 {
   if (!Initialize())
@@ -110,14 +115,12 @@ int32 Application::Run()
     SDL_GL_SwapWindow(_window);
   }
 
-  SDL_DestroyWindow(_window);
   return 0;
 }
 
 Application::Application(const ApplicationDesc &desc) :
   _eventDispatcher(new EventDispatcher),
   _inputHandler(new InputHandler(*_eventDispatcher.get())),
-  _isRunning(false),
   _mouseFocus(true),
   _desc(desc)
 {

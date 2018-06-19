@@ -25,6 +25,7 @@ struct ApplicationDesc
 class Application
 {
 public:
+	virtual ~Application();
   virtual void OnStart() {}
   virtual void OnUpdate(uint32 dtMs) {}
 

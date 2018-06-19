@@ -68,8 +68,9 @@ public:
   virtual void SetIndexBuffer(const std::shared_ptr<IndexBuffer>& indexBuffer) = 0;
   virtual void SetConstantBuffer(uint32 slot, const std::shared_ptr<GpuBuffer>& constantBuffer) = 0;
   virtual void SetSamplerState(uint32 slot, const std::shared_ptr<SamplerState>& samplerState) = 0;
-
 	virtual void SetScissorDimensions(const ScissorDesc& desc) = 0;
+
+	virtual const ViewportDesc& GetViewport() const = 0;
 	virtual ScissorDesc GetScissorDimensions() const = 0;
 
   virtual void Draw(uint32 vertexCount, uint32 vertexOffset) = 0;

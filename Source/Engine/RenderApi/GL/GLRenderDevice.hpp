@@ -40,14 +40,15 @@ public:
   void SetConstantBuffer(uint32 slot, const std::shared_ptr<GpuBuffer>& constantBuffer) override;
   void SetTexture(uint32 slot, const std::shared_ptr<Texture>& texture) override;
   void SetSamplerState(uint32 slot, const std::shared_ptr<SamplerState>& samplerState) override;
-
 	void SetScissorDimensions(const ScissorDesc& desc) override;
+
+	const ViewportDesc& GetViewport() const override;
 	ScissorDesc GetScissorDimensions() const override;
   
   void Draw(uint32 vertexCount, uint32 vertexOffset) override;
   void DrawIndexed(uint32 indexCount, uint32 indexOffset, uint32 vertexOffset) override;
 
-	void ClearBuffers(uint32 buffers, const Colour& colour = Colour::Black, float32 depth = 1.0f, int32 stencil = 0) override;
+	void ClearBuffers(uint32 buffers, const Colour& colour = Colour(115, 140, 153, 255), float32 depth = 1.0f, int32 stencil = 0) override;
   
 private:
   void BeginDraw();
@@ -79,14 +80,13 @@ private:
   
 private:
   PrimitiveTopology _primitiveTopology;
-  uint32 _scissorLeft;
-  uint32 _scissorRight;
-  uint32 _scissorTop;
-  uint32 _scissorBottom;
   
   uint32 _stencilReadMask;
   uint32 _stencilRefValue;
   uint32 _stencilWriteMask;
+
+	ScissorDesc _scissorDesc;
+	ViewportDesc _viewportDesc;
   
 	std::shared_ptr<GLIndexBuffer> _boundIndexBuffer;
   std::shared_ptr<GLRenderTarget> _boundRenderTarget;

@@ -17,7 +17,6 @@ DebugUi::DebugUi(SDL_Window* sdlWindow, SDL_GLContext sdlGlContext): _io(nullptr
 	ImGui::CreateContext();
 	_io = &ImGui::GetIO();
 	ImGui::StyleColorsDark();
-
 }
 
 void DebugUi::SetCamera(const std::shared_ptr<Camera>& camera)
@@ -64,44 +63,64 @@ void DebugUi::Draw(ImDrawData* drawData)
 {
 	auto renderDevice = Renderer::GetRenderDevice();
 	auto currentScissorDim = renderDevice->GetScissorDimensions();
+	auto currentViewport = renderDevice->GetViewport();
+
+	int32 fbWidth = (int32)(drawData->DisplaySize.x * _io->DisplayFramebufferScale.x);
+	int32 fbHeight = (int32)(drawData->DisplaySize.y * _io->DisplayFramebufferScale.y);
+	if (fbWidth <= 0 || fbHeight <= 0)
+	{
+		return;
+	}
+	drawData->ScaleClipRects(_io->DisplayFramebufferScale);
 
 	float32 L = drawData->DisplayPos.x;
 	float32 R = drawData->DisplayPos.x + drawData->DisplaySize.x;
 	float32 T = drawData->DisplayPos.y;
 	float32 B = drawData->DisplayPos.y + drawData->DisplaySize.y;
-	const float32 ortho_projection[4][4] =
-	{
-		{ 2.0f / (R - L),    0.0f,              0.0f,   0.0f },
-		{ 0.0f,						   2.0f / (T - B),    0.0f,   0.0f },
-		{ 0.0f,              0.0f,             -1.0f,   0.0f },
-		{ (R + L) / (L - R), (T + B) / (B - T), 0.0f,   1.0f },
-	};
+	auto orthProj = Matrix4::Orthographic(L, R, B, T, -1.0f, 1.0f);
+		
+	ViewportDesc newViewport;
+	newViewport.TopLeftX = 0;
+	newViewport.TopLeftY = 0;
+	newViewport.Width = fbWidth;
+	newViewport.Height = fbHeight;
+	renderDevice->SetViewport(newViewport);
 
 	GpuBufferDesc constBufferDesc;
 	constBufferDesc.BufferType = BufferType::Constant;
 	constBufferDesc.BufferUsage = BufferUsage::Dynamic;
-	constBufferDesc.ByteCount = 16 * sizeof(float32);
+	constBufferDesc.ByteCount = sizeof(Matrix4);
 	_constBuffer = renderDevice->CreateGpuBuffer(constBufferDesc);
-	_constBuffer->WriteData(0, constBufferDesc.ByteCount, ortho_projection, AccessType::WriteOnlyDiscardRange);
+	_constBuffer->WriteData(0, constBufferDesc.ByteCount, &orthProj[0][0], AccessType::WriteOnlyDiscardRange);
 
 	for (int32 n = 0; n < drawData->CmdListsCount; n++)
 	{
 		uint32 indxBufferOffset = 0;
 		const ImDrawList* cmdList = drawData->CmdLists[n];
 
-		VertexBufferDesc vertBufferDesc;
-		vertBufferDesc.BufferUsage = BufferUsage::Dynamic;
-		vertBufferDesc.VertexCount = cmdList->VtxBuffer.size();
-		vertBufferDesc.VertexSizeBytes = sizeof(ImDrawVert);
-		auto vertBuffer = renderDevice->CreateVertexBuffer(vertBufferDesc);
-		vertBuffer->WriteData(0, vertBufferDesc.VertexSizeBytes * vertBufferDesc.VertexCount, cmdList->VtxBuffer.Data);
+		try
+		{
+			if (!_vertBuffer || !_idxBuffer || _vertBuffer->GetSizeBytes() < cmdList->VtxBuffer.size() * sizeof(ImDrawVert))
+			{
+				VertexBufferDesc vertBufferDesc;
+				vertBufferDesc.BufferUsage = BufferUsage::Dynamic;
+				vertBufferDesc.VertexCount = cmdList->VtxBuffer.size();
+				vertBufferDesc.VertexSizeBytes = sizeof(ImDrawVert);
+				_vertBuffer = renderDevice->CreateVertexBuffer(vertBufferDesc);
+				_vertBuffer->WriteData(0, vertBufferDesc.VertexSizeBytes * vertBufferDesc.VertexCount, cmdList->VtxBuffer.Data);
 
-		IndexBufferDesc idxBufferDesc;
-		idxBufferDesc.BufferUsage = BufferUsage::Default;
-		idxBufferDesc.IndexCount = cmdList->IdxBuffer.size();
-		idxBufferDesc.IndexType = IndexType::UInt16;
-		auto idxBuffer = renderDevice->CreateIndexBuffer(idxBufferDesc);
-		idxBuffer->WriteData(0, idxBufferDesc.IndexCount * sizeof(uint16), cmdList->IdxBuffer.Data);
+				IndexBufferDesc idxBufferDesc;
+				idxBufferDesc.BufferUsage = BufferUsage::Default;
+				idxBufferDesc.IndexCount = cmdList->IdxBuffer.size();
+				idxBufferDesc.IndexType = sizeof(ImDrawIdx) == 2 ? IndexType::UInt16 : IndexType::UInt32;
+				_idxBuffer = renderDevice->CreateIndexBuffer(idxBufferDesc);
+				_idxBuffer->WriteData(0, idxBufferDesc.IndexCount * sizeof(ImDrawIdx), cmdList->IdxBuffer.Data);
+			}
+		}
+		catch (const std::exception& exception)
+		{
+			throw std::runtime_error("Unable to initialize UI GPU buffers. " + std::string(exception.what()));
+		}
 
 		ImVec2 pos = drawData->DisplayPos;
 		for (int32 i = 0; i < cmdList->CmdBuffer.size(); i++)
@@ -118,8 +137,9 @@ void DebugUi::Draw(ImDrawData* drawData)
 
 			renderDevice->SetPipelineState(_pipelineState);
 			renderDevice->SetTexture(0, _textureAtlas);
-			renderDevice->SetVertexBuffer(0, vertBuffer);
-			renderDevice->SetIndexBuffer(idxBuffer);
+			renderDevice->SetSamplerState(0, _samplerState);
+			renderDevice->SetVertexBuffer(0, _vertBuffer);
+			renderDevice->SetIndexBuffer(_idxBuffer);
 			renderDevice->SetConstantBuffer(0, _constBuffer);
 
 			renderDevice->DrawIndexed(pCmd->ElemCount, indxBufferOffset, 0);
@@ -128,6 +148,7 @@ void DebugUi::Draw(ImDrawData* drawData)
 	}
 
 	renderDevice->SetScissorDimensions(currentScissorDim);
+	renderDevice->SetViewport(currentViewport);
 }
 
 void DebugUi::SetupRenderer()
@@ -158,18 +179,18 @@ void DebugUi::SetupRenderer()
 
 	std::vector<VertexLayoutDesc> vertexLayoutDesc
 	{
-		VertexLayoutDesc(SemanticType::Position, SemanticFormat::Float3),
+		VertexLayoutDesc(SemanticType::Position, SemanticFormat::Float2),
 		VertexLayoutDesc(SemanticType::TexCoord, SemanticFormat::Float2),
-		VertexLayoutDesc(SemanticType::Colour, SemanticFormat::Float4)
+		VertexLayoutDesc(SemanticType::Colour, SemanticFormat::Ubyte4, true)
 	};
 
 	std::shared_ptr<ShaderParams> shaderParams(new ShaderParams());
 	shaderParams->AddParam(ShaderParam("Constants", ShaderParamType::ConstBuffer, 0));
 	shaderParams->AddParam(ShaderParam("DiffuseMap", ShaderParamType::Texture, 0));
 
+	auto renderDevice = Renderer::GetRenderDevice();
 	try
-	{
-		auto renderDevice = Renderer::GetRenderDevice();
+	{		
 		PipelineStateDesc pStateDesc;
 		pStateDesc.BlendState = renderDevice->CreateBlendState(blendStateDesc);
 		pStateDesc.DepthStencilState = renderDevice->CreateDepthStencilState(depthStencilStateDesc);
@@ -184,6 +205,19 @@ void DebugUi::SetupRenderer()
 	catch (const std::exception& exception)
 	{
 		throw std::runtime_error("Unable to initialize debug UI pipeline state. " + std::string(exception.what()));
+	}
+
+	try
+	{
+		SamplerStateDesc samplerStateDesc;
+		samplerStateDesc.MinFiltering = TextureFilteringMode::Linear;
+		samplerStateDesc.MaxFiltering = TextureFilteringMode::Linear;
+		samplerStateDesc.MipFiltering = TextureFilteringMode::Linear;
+		_samplerState = renderDevice->CreateSamplerState(samplerStateDesc);
+	}
+	catch (const std::exception& exception)
+	{
+		throw std::runtime_error("Unable to initialize UI sampler state. " + std::string(exception.what()));
 	}
 }
 
@@ -206,6 +240,7 @@ void DebugUi::SetupFontAtlas()
 	std::shared_ptr<ImageData> imageData(new ImageData(desc.Width, desc.Height, 1, ImageFormat::RGBA8));
 	imageData->WriteData(pixels);
 	_textureAtlas->WriteData(0, 0, imageData);
+	_textureAtlas->GenerateMips();
 
 	auto glTexture = std::static_pointer_cast<GLTexture>(_textureAtlas);
 	_io->Fonts->TexID = (void *)(intptr_t)glTexture->GetId();
