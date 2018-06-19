@@ -48,8 +48,8 @@ private:
 protected:
   std::unique_ptr<EventDispatcher> _eventDispatcher;
   std::unique_ptr<InputHandler> _inputHandler;
-  std::unique_ptr<SceneManager> _sceneManager;
 	std::unique_ptr<DebugUi> _debugUi;
+  std::shared_ptr<SceneManager> _sceneManager;
   std::shared_ptr<Renderer> _renderer;
 
 private:

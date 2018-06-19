@@ -7,8 +7,8 @@ int main()
 {
   ApplicationDesc applicationDesc;
   applicationDesc.Name = "SDL Application";
-  applicationDesc.Width = 1024;
-  applicationDesc.Height = 640;
+  applicationDesc.Width = 1376;
+  applicationDesc.Height = 768;
   Application* sdlApp = new Test3D(applicationDesc);
   return sdlApp->Run();
 

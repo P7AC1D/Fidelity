@@ -24,6 +24,7 @@ public:
 	void SetCamera(std::shared_ptr<Camera> camera);
 
   inline const Colour& GetAmbientLight() const { return _ambientLight; }
+  std::shared_ptr<Camera> GetCamera() const;
 
   void UpdateScene(uint32 dtMs);
 

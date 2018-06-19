@@ -181,8 +181,6 @@ bool Application::Initialize()
     return false;
   }
 
-	_debugUi.reset(new DebugUi(_window, _glContext));
-
 	try
 	{
 		RendererDesc rendererDesc;
@@ -198,6 +196,9 @@ bool Application::Initialize()
 #endif
 		return false;
 	}
+
+  _debugUi.reset(new DebugUi(_window, _glContext));
+  _debugUi->SetSceneManager(_sceneManager);
   return true;
 }
 

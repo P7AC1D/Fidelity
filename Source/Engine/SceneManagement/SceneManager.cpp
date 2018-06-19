@@ -47,6 +47,11 @@ void SceneManager::SetCamera(std::shared_ptr<Camera> camera)
 	_renderer->SetCamera(camera);
 }
 
+std::shared_ptr<Camera> SceneManager::GetCamera() const
+{
+  return _camera;
+}
+
 void SceneManager::UpdateScene(uint32 dtMs)
 {
   UpdateWorldObjects(dtMs);

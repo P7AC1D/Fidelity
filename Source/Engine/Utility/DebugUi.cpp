@@ -9,9 +9,11 @@
 #include "../RenderApi/GL/GLTexture.hpp"
 #include "../RenderApi/RenderDevice.hpp"
 #include "../Rendering/Renderer.h"
+#include "../SceneManagement/Camera.hpp"
+#include "../SceneManagement/SceneManager.h"
 #include "../Utility/String.hpp"
 
-bool show_demo_window = true;
+bool show_demo_window = false;
 bool show_another_window = false;
 ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
 
@@ -37,9 +39,9 @@ DebugUi::~DebugUi()
 	ImGui::DestroyContext();
 }
 
-void DebugUi::SetCamera(const std::shared_ptr<Camera>& camera)
+void DebugUi::SetSceneManager(const std::shared_ptr<SceneManager>& sceneManager)
 {
-	_camera = camera;
+  _sceneManager = sceneManager;
 }
 
 void DebugUi::ProcessEvents(SDL_Event* sdlEvent)
@@ -59,31 +61,19 @@ void DebugUi::Update()
 	ImGui_ImplSDL2_NewFrame(_sdlWindow);
 	ImGui::NewFrame();
 	{
-		static float f = 0.0f;
-		static int counter = 0;
-		ImGui::Text("Hello, world!");                           // Display some text (you can use a format string too)
-		ImGui::SliderFloat("float", &f, 0.0f, 1.0f);            // Edit 1 float using a slider from 0.0f to 1.0f    
-		ImGui::ColorEdit3("clear color", (float*)&clear_color); // Edit 3 floats representing a color
+    float32 camPos[3];
+    if (_sceneManager)
+    {
+      auto camPosVec = _sceneManager->GetCamera()->GetPosition();
+      camPos[0] = camPosVec.X;
+      camPos[1] = camPosVec.Y;
+      camPos[2] = camPosVec.Z;
+      ImGui::InputFloat3("Camera Position", camPos, 3, ImGuiInputTextFlags_ReadOnly);
+    }
 
-		ImGui::Checkbox("Demo Window", &show_demo_window);      // Edit bools storing our windows open/close state
-		ImGui::Checkbox("Another Window", &show_another_window);
+		ImGui::Checkbox("Demo Window", &show_demo_window);
 
-		if (ImGui::Button("Button"))                            // Buttons return true when clicked (NB: most widgets return true when edited/activated)
-			counter++;
-		ImGui::SameLine();
-		ImGui::Text("counter = %d", counter);
-
-		ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
-	}
-
-	// 2. Show another simple window. In most cases you will use an explicit Begin/End pair to name your windows.
-	if (show_another_window)
-	{
-		ImGui::Begin("Another Window", &show_another_window);
-		ImGui::Text("Hello from another window!");
-		if (ImGui::Button("Close Me"))
-			show_another_window = false;
-		ImGui::End();
+		ImGui::Text("Render Pass %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
 	}
 
 	// 3. Show the ImGui demo window. Most of the sample code is in ImGui::ShowDemoWindow(). Read its code to learn more about Dear ImGui!
