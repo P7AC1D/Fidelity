@@ -358,7 +358,10 @@ void GLRenderDevice::BeginDraw()
 		{
 			auto textureName = _shaderParams->GetParamName(ShaderParamType::Texture, i);
 			auto glPs = std::static_pointer_cast<GLShader>(_pipelineState->GetPS());
-			glPs->BindTextureUnit(textureName, i);
+			if (glPs->HasUniform(textureName))
+			{
+				glPs->BindTextureUnit(textureName, i);
+			}
 		}
 	}
   
@@ -368,25 +371,31 @@ void GLRenderDevice::BeginDraw()
     {
 			auto uniformBufferName = _shaderParams->GetParamName(ShaderParamType::ConstBuffer, i);
 			auto glVs = std::static_pointer_cast<GLShader>(_pipelineState->GetVS());
-			glVs->BindUniformBlock(uniformBufferName, i);
+			if (glVs->HasUniform(uniformBufferName))
+			{
+				glVs->BindUniformBlock(uniformBufferName, i);
+			}
 
 			auto glPs = std::static_pointer_cast<GLShader>(_pipelineState->GetPS());
-			glPs->BindUniformBlock(uniformBufferName, i);
+			if (glPs->HasUniform(uniformBufferName))
+			{
+				glPs->BindUniformBlock(uniformBufferName, i);
+			}
 
 			auto glGs = std::static_pointer_cast<GLShader>(_pipelineState->GetGS());
-			if (glGs)
+			if (glGs && glGs->HasUniform(uniformBufferName))
 			{
 				glGs->BindUniformBlock(uniformBufferName, i);
 			}
 
 			auto glHs = std::static_pointer_cast<GLShader>(_pipelineState->GetHS());
-			if (glHs)
+			if (glHs && glHs->HasUniform(uniformBufferName))
 			{
 				glHs->BindUniformBlock(uniformBufferName, i);
 			}
 
 			auto glDs = std::static_pointer_cast<GLShader>(_pipelineState->GetDS());
-			if (glDs)
+			if (glDs && glDs->HasUniform(uniformBufferName))
 			{
 				glDs->BindUniformBlock(uniformBufferName, i);
 			}

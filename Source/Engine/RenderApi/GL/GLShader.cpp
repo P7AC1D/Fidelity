@@ -54,32 +54,26 @@ void GLShader::Compile()
 	GLCall(glUseProgram(0));
 	Assert::ThrowIfFalse(linkStatus == GL_TRUE, "Unable to compile shader:\n" + logMessages);
   _isCompiled = true;
+
+	BuildUniformDefinitions();
+	BuildUniformBlockDefinitions();
+}
+
+bool GLShader::HasUniform(const std::string& name) const
+{
+	Uniform expected;
+	expected.Name = name;
+	return _uniforms.find(expected) != _uniforms.end();
 }
 
 void GLShader::BindUniformBlock(const std::string& name, uint32 bindingPoint)
 {
-  auto blockIndex = GetUniformBlockIndex(name);
-  auto bindingPointIter = _uniformBindingPoints.find(blockIndex);
-  if (bindingPointIter != _uniformBindingPoints.end() && bindingPointIter->second == bindingPoint)
-  {
-    return;
-  }
-  
-  GLCall(glUniformBlockBinding(_id, blockIndex, bindingPoint));
-  _uniformBindingPoints[blockIndex] = bindingPoint;
+	GLCall(glUniformBlockBinding(_id, GetUniformLocation(name), bindingPoint));
 }
 
 void GLShader::BindTextureUnit(const std::string& name, uint32 textureUnit)
 {
-	auto uniformLocation = GetUniformLocation(name);
-	auto textureUnitIter = _textureUnitsBound.find(uniformLocation);
-	if (textureUnitIter != _textureUnitsBound.end() && textureUnitIter->second == textureUnit)
-	{
-		return;
-	}
-
-	GLCall(glProgramUniform1i(_id, uniformLocation, textureUnit));
-	_textureUnitsBound.emplace(uniformLocation, textureUnit);
+	GLCall(glProgramUniform1i(_id, GetUniformLocation(name), textureUnit));
 }
 
 GLShader::GLShader(const ShaderDesc& desc): Shader(desc), _id(0)
@@ -90,30 +84,66 @@ GLShader::GLShader(const ShaderDesc& desc): Shader(desc), _id(0)
   Assert::ThrowIfFalse(desc.EntryPoint == "main", "GLSL shaders must have a 'main' entry point");
 }
 
-uint32 GLShader::GetUniformBlockIndex(const std::string& name)
-{
-  auto blockIndexIter = _uniformBlockIndices.find(name);
-  if (blockIndexIter == _uniformBlockIndices.end())
-  {
-    GLuint blockIndex = -1;
-		GLCall2(glGetUniformBlockIndex(_id, name.c_str()), blockIndex);
-    Assert::ThrowIfTrue(blockIndex == -1, "Could not find a valid uniform block index with name " + name);
-    _uniformBlockIndices.emplace(name, blockIndex);
-    return blockIndex;
-  }
-  return blockIndexIter->second;
-}
-
 uint32 GLShader::GetUniformLocation(const std::string& name)
 {
-	auto uniformLocationIter = _uniformLocations.find(name);
-	if (uniformLocationIter == _uniformLocations.end())
+	Uniform expected;
+	expected.Name = name;
+	auto uniformIter = _uniforms.find(expected);
+	if (uniformIter == _uniforms.end())
 	{
-		GLint location = -1;
-		GLCall2(glGetUniformLocation(_id, name.c_str()), location);
-		Assert::ThrowIfTrue(location == -1, "Could not find a valid uniform location with name " + name);
-		_uniformLocations.emplace(name, location);
-		return location;
+		return -1;
 	}
-	return uniformLocationIter->second;
+	return uniformIter->Location;
+}
+
+void GLShader::BuildUniformDefinitions()
+{
+	GLint activeUniformCount = -1;
+	GLCall(glGetProgramiv(_id, GL_ACTIVE_UNIFORMS, &activeUniformCount));
+	for (GLint i = 0; i < activeUniformCount; i++)
+	{
+		GLint size;
+		GLenum type;
+		GLchar name[255];
+		GLCall(glGetActiveUniform(_id, i, 255, NULL, &size, &type, name));
+
+		GLint location = -1;
+		GLCall2(glGetUniformLocation(_id, name), location);
+
+		if (type == GL_SAMPLER_2D)
+		{
+			_uniforms.insert(Uniform{ static_cast<uint32>(location), name, UniformType::Sampler2D });
+		}
+		else if (type == GL_SAMPLER_CUBE)
+		{
+			_uniforms.insert(Uniform{ static_cast<uint32>(location), name, UniformType::SamplerCube });
+		}
+	}
+}
+
+void GLShader::BuildUniformBlockDefinitions()
+{
+	GLint activeUniformBlockCount = -1;
+	GLCall(glGetProgramiv(_id, GL_ACTIVE_UNIFORM_BLOCKS, &activeUniformBlockCount));
+	for (GLint i = 0; i < activeUniformBlockCount; i++)
+	{
+		GLchar uniformBlockName[255];
+		GLCall(glGetActiveUniformBlockName(_id, i, 255, NULL, uniformBlockName));
+
+		GLuint blockIndex = -1;
+		GLCall2(glGetUniformBlockIndex(_id, uniformBlockName), blockIndex);
+		_uniforms.insert(Uniform{ blockIndex, uniformBlockName, UniformType::UniformBlock });
+	}
+}
+
+std::size_t GLShader::Hash::operator()(const Uniform& uniform) const
+{
+	std::size_t seed = 0;
+	::Hash::Combine(seed, uniform.Name);
+	return seed;
+}
+
+bool GLShader::Equal::operator()(const Uniform& a, const Uniform& b) const
+{
+	return a.Location == b.Location && a.Name == b.Name && a.Type == b.Type;
 }
