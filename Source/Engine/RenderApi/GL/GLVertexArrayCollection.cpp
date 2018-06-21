@@ -6,20 +6,6 @@
 #include "GLVertexBuffer.hpp"
 #include "GL.hpp"
 
-GLuint GetInputSlot(SemanticType type)
-{
-  switch (type)
-  {
-    case SemanticType::Position: return 0;
-    case SemanticType::Normal: return 1;
-    case SemanticType::Tangent: return 2;
-    case SemanticType::Bitangent: return 3;
-    case SemanticType::TexCoord: return 4;
-		case SemanticType::Colour: return 5;
-    default: return 0;
-  }
-}
-
 GLenum GetComponentType(SemanticFormat format)
 {
   switch (format)
@@ -221,7 +207,7 @@ const std::shared_ptr<GLVertexArrayObject> GLVertexArrayObjectCollection::GetVao
   GLuint offset = 0;
   for (uint32 i = 0; i < layouts.size(); i++)
   {
-    GLuint inputSlot = GetInputSlot(layouts[i].Type);
+    GLuint inputSlot = static_cast<GLuint>(layouts[i].Type);
     GLint compSize = GetComponentCount(layouts[i].Format);
     GLenum compType = GetComponentType(layouts[i].Format);
 		GLboolean normalized = layouts[i].Normalised ? GL_TRUE : GL_FALSE;

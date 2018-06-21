@@ -17,8 +17,8 @@ std::shared_ptr<StaticMesh> MeshFactory::CreateCube()
   mesh->SetPositionVertexData(cube.GetPositions());
   mesh->SetTextureVertexData(cube.GetTexCoords());
   mesh->SetIndexData(cube.GetIndices());
-  //mesh->GenerateNormals();
-  //mesh->GenerateTangents();
+  mesh->GenerateNormals();
+  mesh->GenerateTangents();
   return mesh;
 }
 

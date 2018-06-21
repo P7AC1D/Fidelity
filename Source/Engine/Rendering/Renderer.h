@@ -7,6 +7,7 @@
 class Camera;
 class GpuBuffer;
 class PipelineState;
+class SamplerState;
 class RenderDevice;
 class Renderable;
 class Transform;
@@ -61,9 +62,10 @@ private:
 private:
   static std::shared_ptr<RenderDevice> _renderDevice;
   RendererDesc _desc;
-  std::shared_ptr<GpuBuffer> _constBuffer;
+  std::shared_ptr<GpuBuffer> _cameraBuffer;
   std::shared_ptr<PipelineState> _basicPipeline;
   std::shared_ptr<Camera> _activeCamera;
+	std::shared_ptr<SamplerState> _basicSamplerState;
   
   std::vector<RenderableItem> _renderables;
 };

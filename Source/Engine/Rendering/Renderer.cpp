@@ -5,6 +5,7 @@
 #include "../Utility/String.hpp"
 #include "../RenderApi/GL/GLRenderDevice.hpp"
 #include "../RenderApi/PipelineState.hpp"
+#include "../RenderApi/SamplerState.hpp"
 #include "../RenderApi/ShaderParams.hpp"
 #include "../SceneManagement/Camera.hpp"
 #include "../SceneManagement/Transform.h"
@@ -93,11 +94,14 @@ void Renderer::InitPipelineStates()
   std::vector<VertexLayoutDesc> vertexLayoutDesc
   {
     VertexLayoutDesc(SemanticType::Position, SemanticFormat::Float3),
-		VertexLayoutDesc(SemanticType::TexCoord, SemanticFormat::Float2)
+		VertexLayoutDesc(SemanticType::Normal, SemanticFormat::Float3),
+		VertexLayoutDesc(SemanticType::TexCoord, SemanticFormat::Float2),
+		VertexLayoutDesc(SemanticType::Tangent, SemanticFormat::Float3),
+		VertexLayoutDesc(SemanticType::Bitangent, SemanticFormat::Float3)
   };
   
   std::shared_ptr<ShaderParams> shaderParams(new ShaderParams());
-  shaderParams->AddParam(ShaderParam("Constants", ShaderParamType::ConstBuffer, 0));
+  shaderParams->AddParam(ShaderParam("CameraBuffer", ShaderParamType::ConstBuffer, 0));
 	shaderParams->AddParam(ShaderParam("DiffuseMap", ShaderParamType::Texture, 0));
   
 	RasterizerStateDesc rasterizerStateDesc;
@@ -121,6 +125,20 @@ void Renderer::InitPipelineStates()
   {
     throw std::runtime_error("Unable to initialize pipeline states. " + std::string(exception.what()));
   }
+
+	try
+	{
+		SamplerStateDesc desc;
+		desc.AddressingMode = AddressingMode{ TextureAddressMode::Wrap, TextureAddressMode::Wrap, TextureAddressMode::Wrap };
+		desc.MinFiltering = TextureFilteringMode::Linear;
+		desc.MinFiltering = TextureFilteringMode::Linear;
+		desc.MipFiltering = TextureFilteringMode::Linear;
+		_basicSamplerState = _renderDevice->CreateSamplerState(desc);
+	}
+	catch (const std::exception& ex)
+	{
+		throw std::runtime_error("Unable to initalize sampler state. " + std::string(ex.what()));
+	}
 }
 
 void Renderer::InitConstBuffer()
@@ -131,7 +149,7 @@ void Renderer::InitConstBuffer()
     perShaderBuffDesc.BufferType = BufferType::Constant;
     perShaderBuffDesc.BufferUsage = BufferUsage::Dynamic;
     perShaderBuffDesc.ByteCount = sizeof(ConstBufferData);
-    _constBuffer = _renderDevice->CreateGpuBuffer(perShaderBuffDesc);		
+    _cameraBuffer = _renderDevice->CreateGpuBuffer(perShaderBuffDesc);		
   }
   catch (const std::exception& exception)
   {
@@ -144,10 +162,11 @@ void Renderer::StartFrame()
   ConstBufferData data;
   data.Proj = _activeCamera->GetProjection();
   data.View = _activeCamera->GetView();
-  _constBuffer->WriteData(0, sizeof(ConstBufferData), &data);
+  _cameraBuffer->WriteData(0, sizeof(ConstBufferData), &data);
   
   _renderDevice->SetPipelineState(_basicPipeline);
-	_renderDevice->SetConstantBuffer(0, _constBuffer);
+	_renderDevice->SetConstantBuffer(0, _cameraBuffer);
+	_renderDevice->SetSamplerState(0, _basicSamplerState);
 	_renderDevice->ClearBuffers(RTT_Colour | RTT_Depth | RTT_Stencil);
 }
 

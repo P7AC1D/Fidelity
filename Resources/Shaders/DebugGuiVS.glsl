@@ -1,7 +1,7 @@
 #version 410 core
 
 layout (location = 0) in vec2 aPosition;
-layout (location = 4) in vec2 aTexCoord;
+layout (location = 2) in vec2 aTexCoord;
 layout (location = 5) in vec4 aColour;
 
 layout (std140) uniform Constants

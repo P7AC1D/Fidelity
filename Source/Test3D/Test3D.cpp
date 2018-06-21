@@ -37,12 +37,12 @@ void Test3D::OnStart()
   _camera->LookAt(Vector3(0.0f, 0.0f, 4.0f), Vector3(0.0f, 0.0f, 0.0f));
   _sceneManager->SetCamera(_camera);
   
-  auto model = _sceneManager->CreateObject("cube");
-  auto cubeMesh = MeshFactory::CreateCube();
-	auto cubeTexture = TextureLoader::LoadFromFile2D("./../../Resources/Textures/crate0_diffuse.png");
-	cubeMesh->GetMaterial()->SetTexture("DiffuseMap", cubeTexture);
+  auto model = _sceneManager->CreateObject("sphere");
+  auto mesh = MeshFactory::CreateIcosphere();
+	auto diffuseTexture = TextureLoader::LoadFromFile2D("./../../Resources/Textures/brickwall.jpg");
+	mesh->GetMaterial()->SetTexture("DiffuseMap", diffuseTexture);
   auto modelRenderable = std::make_shared<Renderable>();
-  modelRenderable->PushMesh(cubeMesh);
+  modelRenderable->PushMesh(mesh);
   model->AttachRenderable(modelRenderable);
 
   _inputHandler->BindButtonToState("ActivateCameraLook", Button::Button_RMouse);

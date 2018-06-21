@@ -5,12 +5,12 @@
 
 enum class SemanticType
 {
-  Position,
-  Normal,
-  Tangent,
-  Bitangent,
-  TexCoord,
-	Colour
+  Position = 0,
+  Normal = 1,
+  TexCoord = 2,
+  Tangent = 3,
+  Bitangent = 4,
+	Colour = 5
 };
 
 enum class SemanticFormat
