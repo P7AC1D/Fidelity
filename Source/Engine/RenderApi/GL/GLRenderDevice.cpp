@@ -188,11 +188,8 @@ void GLRenderDevice::SetPipelineState(const std::shared_ptr<PipelineState>& pipe
 void GLRenderDevice::SetRenderTarget(const std::shared_ptr<RenderTarget>& renderTarget)
 {
   auto glRenderTarget = std::static_pointer_cast<GLRenderTarget>(renderTarget);
-  if (!_boundRenderTarget || _boundRenderTarget->GetId() != glRenderTarget->GetId())
-  {
-    GLCall(glBindFramebuffer(GL_FRAMEBUFFER, glRenderTarget->GetId()));
-    _boundRenderTarget = glRenderTarget;
-  }
+	GLCall(glBindFramebuffer(GL_FRAMEBUFFER, glRenderTarget->GetId()));
+	_boundRenderTarget = glRenderTarget;
 }
 
 void GLRenderDevice::SetVertexBuffer(uint32 slot, const std::shared_ptr<VertexBuffer> vertexBuffer)

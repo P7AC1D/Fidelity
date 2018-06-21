@@ -15,12 +15,12 @@ layout (std140) uniform CameraBuffer
 {
   mat4 Projection;
   mat4 View;
-  vec3 ViewDir;
+  vec3 ViewPos;
 };
 
 out VsOut
 {
-  mat4 TbnMtx;
+  mat3 TbnMtx;
   vec4 Position;
   vec4 Normal;
   vec2 TexCoord;
@@ -34,8 +34,22 @@ out gl_PerVertex {
   float gl_ClipDistance[];
 };
 
+mat3 CalcTbnMatrix(vec3 normal, vec3 tangent, vec3 bitangent, mat4 model)
+{
+  vec3 t = normalize(vec3(model * vec4(tangent, 0.0f)));
+  vec3 b = normalize(vec3(model * vec4(bitangent, 0.0f)));
+  vec3 n = normalize(vec3(model * vec4(normal, 0.0f)));
+  return mat3(t, b, n);
+}
+
 void main()
 {
+  vsOut.TbnMtx = CalcTbnMatrix(aNormal, aTangent, aBitangent, Model);
+  vsOut.Position = Model * vec4(aPosition, 1.0f);
+  vsOut.Normal = Model * vec4(aNormal, 0.0f);
   vsOut.TexCoord = aTexCoord;
+  vsOut.PositionTS = vsOut.TbnMtx * vsOut.Position.xyz;
+  vsOut.ViewDirTS = vsOut.TbnMtx * normalize(vsOut.Position.xyz - ViewPos);
+  
   gl_Position = Projection * View * vec4(aPosition, 1.0f);
 }
