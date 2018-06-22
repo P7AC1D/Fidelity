@@ -14,6 +14,28 @@
 #include "Renderable.hpp"
 #include "StaticMesh.h"
 
+std::vector<Vector2> FullscreenQuadVertices
+{
+	Vector2(-1.0f, -1.0f),
+	Vector2(0.0f, 0.0f),
+
+	Vector2(1.0f, -1.0f),
+	Vector2(1.0f, 0.0f),
+
+	Vector2(-1.0f, 1.0f),
+	Vector2(0.0f, 1.0f),
+
+	Vector2(1.0f, -1.0f),
+	Vector2(1.0f, 0.0f),
+
+	Vector2(1.0f, 1.0f),
+	Vector2(1.0f, 1.0f),
+
+	Vector2(-1.0f, 1.0f),
+	Vector2(0.0f, 1.0f)
+
+};
+
 struct ConstBufferData
 {
   Matrix4 Proj;
@@ -57,6 +79,7 @@ void Renderer::DrawFrame()
 {
   StartFrame();
 	GeometryPass();
+	LightingPass();
 	EndFrame();
 }
 
@@ -171,6 +194,52 @@ void Renderer::InitConstBuffer()
   }
 }
 
+void Renderer::InitLightingPassPso()
+{
+	ShaderDesc vsDesc;
+	vsDesc.EntryPoint = "main";
+	vsDesc.ShaderLang = ShaderLang::Glsl;
+	vsDesc.ShaderType = ShaderType::Vertex;
+	vsDesc.Source = String::LoadFromFile("./../../Resources/Shaders/FSPassThroughVS.glsl");
+
+	ShaderDesc psDesc;
+	psDesc.EntryPoint = "main";
+	psDesc.ShaderLang = ShaderLang::Glsl;
+	psDesc.ShaderType = ShaderType::Pixel;
+	psDesc.Source = String::LoadFromFile("./../../Resources/Shaders/DeferredLightingPassPS.glsl");
+
+	std::vector<VertexLayoutDesc> vertexLayoutDesc
+	{
+		VertexLayoutDesc(SemanticType::Position, SemanticFormat::Float2),
+		VertexLayoutDesc(SemanticType::TexCoord, SemanticFormat::Float2),
+	};
+
+	std::shared_ptr<ShaderParams> shaderParams(new ShaderParams());
+	shaderParams->AddParam(ShaderParam("CameraBuffer", ShaderParamType::ConstBuffer, 0));
+	shaderParams->AddParam(ShaderParam("DiffuseMap", ShaderParamType::Texture, 0));
+
+	RasterizerStateDesc rasterizerStateDesc;
+	rasterizerStateDesc.CullMode = CullMode::CounterClockwise;
+
+	try
+	{
+		PipelineStateDesc pipelineDesc;
+		pipelineDesc.VS = _renderDevice->CreateShader(vsDesc);
+		pipelineDesc.PS = _renderDevice->CreateShader(psDesc);
+		pipelineDesc.BlendState = _renderDevice->CreateBlendState(BlendStateDesc());
+		pipelineDesc.RasterizerState = _renderDevice->CreateRasterizerState(rasterizerStateDesc);
+		pipelineDesc.DepthStencilState = _renderDevice->CreateDepthStencilState(DepthStencilStateDesc());
+		pipelineDesc.VertexLayout = _renderDevice->CreateVertexLayout(vertexLayoutDesc);
+		pipelineDesc.ShaderParams = shaderParams;
+
+		_lightPassPso = _renderDevice->CreatePipelineState(pipelineDesc);
+	}
+	catch (const std::exception& exception)
+	{
+		throw std::runtime_error("Unable to initialize pipeline states. " + std::string(exception.what()));
+	}
+}
+
 void Renderer::StartFrame()
 {
   ConstBufferData data;
@@ -212,4 +281,15 @@ void Renderer::GeometryPass()
 		}
 	}
 	_renderables.clear();
+}
+
+void Renderer::LightingPass()
+{
+	if (!_lightPassPso)
+	{
+		InitLightingPassPso();
+	}
+
+	_renderDevice->SetPipelineState(nullptr);
+	_renderDevice->SetPipelineState(_geomPassPso);
 }

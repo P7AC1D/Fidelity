@@ -57,16 +57,19 @@ public:
 private:
   void InitPipelineStates();
   void InitConstBuffer();
+	void InitLightingPassPso();
   void StartFrame();
 	void EndFrame();
 
 	void GeometryPass();
+	void LightingPass();
 
 private:
   static std::shared_ptr<RenderDevice> _renderDevice;
   RendererDesc _desc;
   std::shared_ptr<GpuBuffer> _cameraBuffer;
   std::shared_ptr<PipelineState> _geomPassPso;
+	std::shared_ptr<PipelineState> _lightPassPso;;
   std::shared_ptr<Camera> _activeCamera;
 	std::shared_ptr<SamplerState> _basicSamplerState;
 	std::shared_ptr<RenderTarget> _gBuffer;
