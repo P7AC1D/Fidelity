@@ -187,6 +187,13 @@ void GLRenderDevice::SetPipelineState(const std::shared_ptr<PipelineState>& pipe
 
 void GLRenderDevice::SetRenderTarget(const std::shared_ptr<RenderTarget>& renderTarget)
 {
+	if (!renderTarget)
+	{
+		GLCall(glBindFramebuffer(GL_FRAMEBUFFER, 0));
+		_boundRenderTarget = nullptr;
+		return;
+	}
+
   auto glRenderTarget = std::static_pointer_cast<GLRenderTarget>(renderTarget);
 	GLCall(glBindFramebuffer(GL_FRAMEBUFFER, glRenderTarget->GetId()));
 	_boundRenderTarget = glRenderTarget;

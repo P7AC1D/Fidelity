@@ -5,6 +5,7 @@
 #include "../Utility/String.hpp"
 #include "../RenderApi/GL/GLRenderDevice.hpp"
 #include "../RenderApi/PipelineState.hpp"
+#include "../RenderApi/RenderTarget.hpp"
 #include "../RenderApi/SamplerState.hpp"
 #include "../RenderApi/ShaderParams.hpp"
 #include "../SceneManagement/Camera.hpp"
@@ -55,25 +56,7 @@ void Renderer::PushRenderable(const std::shared_ptr<Renderable>& renderable, con
 void Renderer::DrawFrame()
 {
   StartFrame();
-  for (auto& renderable : _renderables)
-  {
-    for (uint32 i = 0; i < renderable.Renderable->GetMeshCount(); i++)
-    {
-      auto mesh = renderable.Renderable->GetMeshAtIndex(i);
-			_renderDevice->SetTexture(0, mesh->GetMaterial()->GetTexture("DiffuseMap"));
-      _renderDevice->SetVertexBuffer(0, mesh->GetVertexData());
-      if (mesh->IsIndexed())
-      {
-        _renderDevice->SetIndexBuffer(mesh->GetIndexData());
-        _renderDevice->DrawIndexed(mesh->GetIndexCount(), 0, 0);
-      }
-      else
-      {
-        _renderDevice->Draw(mesh->GetVertexCount(), 0);
-      }
-    }
-  }
-	_renderables.clear();
+	GeometryPass();
 	EndFrame();
 }
 
@@ -83,13 +66,13 @@ void Renderer::InitPipelineStates()
   vsDesc.EntryPoint = "main";
   vsDesc.ShaderLang = ShaderLang::Glsl;
   vsDesc.ShaderType = ShaderType::Vertex;
-  vsDesc.Source = String::LoadFromFile("./../../Resources/Shaders/BasicVS.glsl");
+  vsDesc.Source = String::LoadFromFile("./../../Resources/Shaders/GeometryPassVS.glsl");
   
   ShaderDesc psDesc;
   psDesc.EntryPoint = "main";
   psDesc.ShaderLang = ShaderLang::Glsl;
   psDesc.ShaderType = ShaderType::Pixel;
-  psDesc.Source = String::LoadFromFile("./../../Resources/Shaders/BasicPS.glsl");
+  psDesc.Source = String::LoadFromFile("./../../Resources/Shaders/GeometryPassPS.glsl");
   
   std::vector<VertexLayoutDesc> vertexLayoutDesc
   {
@@ -119,7 +102,7 @@ void Renderer::InitPipelineStates()
     pipelineDesc.VertexLayout = _renderDevice->CreateVertexLayout(vertexLayoutDesc);
     pipelineDesc.ShaderParams = shaderParams;
     
-    _basicPipeline = _renderDevice->CreatePipelineState(pipelineDesc);
+    _geomPassPso = _renderDevice->CreatePipelineState(pipelineDesc);
   }
   catch (const std::exception& exception)
   {
@@ -139,6 +122,37 @@ void Renderer::InitPipelineStates()
 	{
 		throw std::runtime_error("Unable to initalize sampler state. " + std::string(ex.what()));
 	}
+
+	try
+	{
+		TextureDesc colourTexDesc;
+		colourTexDesc.Width = GetRenderWidth();
+		colourTexDesc.Height = GetRenderHeight();
+		colourTexDesc.Usage = TextureUsage::RenderTarget;
+		colourTexDesc.Type = TextureType::Texture2D;
+		colourTexDesc.Format = TextureFormat::RGB16F;
+
+		TextureDesc depthStencilDesc;
+		depthStencilDesc.Width = GetRenderWidth();
+		depthStencilDesc.Height = GetRenderHeight();
+		depthStencilDesc.Usage = TextureUsage::DepthStencil;
+		depthStencilDesc.Type = TextureType::Texture2D;
+		depthStencilDesc.Format = TextureFormat::D24S8;
+
+		RenderTargetDesc rtDesc;
+		rtDesc.ColourTargets[0] = _renderDevice->CreateTexture(colourTexDesc);
+		rtDesc.ColourTargets[1] = _renderDevice->CreateTexture(colourTexDesc);
+		rtDesc.ColourTargets[2] = _renderDevice->CreateTexture(colourTexDesc);
+		rtDesc.DepthStencilTarget = _renderDevice->CreateTexture(depthStencilDesc);
+		rtDesc.Height = GetRenderHeight();
+		rtDesc.Width = GetRenderWidth();
+
+		_gBuffer = _renderDevice->CreateRenderTarget(rtDesc);
+	}
+	catch (const std::exception& ex)
+	{
+		throw std::runtime_error("Unable to initalize render targets. " + std::string(ex.what()));
+	}
 }
 
 void Renderer::InitConstBuffer()
@@ -149,7 +163,7 @@ void Renderer::InitConstBuffer()
     perShaderBuffDesc.BufferType = BufferType::Constant;
     perShaderBuffDesc.BufferUsage = BufferUsage::Dynamic;
     perShaderBuffDesc.ByteCount = sizeof(ConstBufferData);
-    _cameraBuffer = _renderDevice->CreateGpuBuffer(perShaderBuffDesc);		
+    _cameraBuffer = _renderDevice->CreateGpuBuffer(perShaderBuffDesc);
   }
   catch (const std::exception& exception)
   {
@@ -164,7 +178,6 @@ void Renderer::StartFrame()
   data.View = _activeCamera->GetView();
   _cameraBuffer->WriteData(0, sizeof(ConstBufferData), &data);
   
-  _renderDevice->SetPipelineState(_basicPipeline);
 	_renderDevice->SetConstantBuffer(0, _cameraBuffer);
 	_renderDevice->SetSamplerState(0, _basicSamplerState);
 	_renderDevice->ClearBuffers(RTT_Colour | RTT_Depth | RTT_Stencil);
@@ -172,4 +185,31 @@ void Renderer::StartFrame()
 
 void Renderer::EndFrame()
 {
+	_renderDevice->SetRenderTarget(nullptr);
+}
+
+void Renderer::GeometryPass()
+{
+	_renderDevice->SetPipelineState(_geomPassPso);
+	_renderDevice->SetRenderTarget(_gBuffer);
+
+	for (auto& renderable : _renderables)
+	{
+		for (uint32 i = 0; i < renderable.Renderable->GetMeshCount(); i++)
+		{
+			auto mesh = renderable.Renderable->GetMeshAtIndex(i);
+			_renderDevice->SetTexture(0, mesh->GetMaterial()->GetTexture("DiffuseMap"));
+			_renderDevice->SetVertexBuffer(0, mesh->GetVertexData());
+			if (mesh->IsIndexed())
+			{
+				_renderDevice->SetIndexBuffer(mesh->GetIndexData());
+				_renderDevice->DrawIndexed(mesh->GetIndexCount(), 0, 0);
+			}
+			else
+			{
+				_renderDevice->Draw(mesh->GetVertexCount(), 0);
+			}
+		}
+	}
+	_renderables.clear();
 }

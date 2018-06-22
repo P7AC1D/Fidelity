@@ -9,6 +9,7 @@ class GpuBuffer;
 class PipelineState;
 class SamplerState;
 class RenderDevice;
+class RenderTarget;
 class Renderable;
 class Transform;
 
@@ -59,13 +60,16 @@ private:
   void StartFrame();
 	void EndFrame();
 
+	void GeometryPass();
+
 private:
   static std::shared_ptr<RenderDevice> _renderDevice;
   RendererDesc _desc;
   std::shared_ptr<GpuBuffer> _cameraBuffer;
-  std::shared_ptr<PipelineState> _basicPipeline;
+  std::shared_ptr<PipelineState> _geomPassPso;
   std::shared_ptr<Camera> _activeCamera;
 	std::shared_ptr<SamplerState> _basicSamplerState;
+	std::shared_ptr<RenderTarget> _gBuffer;
   
   std::vector<RenderableItem> _renderables;
 };

@@ -148,11 +148,11 @@ void GLTexture::Initialize()
   GLCall(glGenTextures(1, &_id));
   Assert::ThrowIfTrue(_id == 0, "Could not generate texture object");
   
-  GLCall(glBindTexture(GetTextureTarget(_desc.Type), _id));
+  GLCall(glBindTexture(GetTextureTarget(GetTextureType()), _id));
   Allocate();
   
   _isInitialized = true;
-}
+} 
 
 void GLTexture::Allocate()
 {

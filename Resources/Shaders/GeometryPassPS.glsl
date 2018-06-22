@@ -12,11 +12,9 @@ in VsOut
 
 uniform sampler2D DiffuseMap;
 
-//layout(location = 0) out vec4 Position;
-//layout(location = 1) out vec4 Normal;
-//layout(location = 2) out vec4 Albedo;
-
-out vec4 PixelColour;
+layout(location = 0) out vec4 Position;
+layout(location = 1) out vec4 Normal;
+layout(location = 2) out vec4 Albedo;
 
 vec4 CorrectGamma(vec4 inputSample)
 {
@@ -26,5 +24,7 @@ vec4 CorrectGamma(vec4 inputSample)
 
 void main()
 {
-  PixelColour = CorrectGamma(vec4(texture(DiffuseMap, fsIn.TexCoord)));
+  Position = fsIn.Position;
+  Normal = fsIn.Normal;
+  Albedo = CorrectGamma(vec4(texture(DiffuseMap, fsIn.TexCoord)));
 }
