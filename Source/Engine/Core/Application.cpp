@@ -199,6 +199,7 @@ bool Application::Initialize()
 
   _debugUi.reset(new DebugUi(_window, _glContext));
   _debugUi->SetSceneManager(_sceneManager);
+	_debugUi->SetRenderer(_renderer);
   return true;
 }
 

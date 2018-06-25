@@ -44,6 +44,11 @@ void DebugUi::SetSceneManager(const std::shared_ptr<SceneManager>& sceneManager)
   _sceneManager = sceneManager;
 }
 
+void DebugUi::SetRenderer(const std::shared_ptr<Renderer>& renderer)
+{
+	_renderer = renderer;
+}
+
 void DebugUi::ProcessEvents(SDL_Event* sdlEvent)
 {
 	ImGui_ImplSDL2_ProcessEvent(sdlEvent);
@@ -72,6 +77,11 @@ void DebugUi::Update()
     }
 
 		ImGui::Checkbox("Demo Window", &show_demo_window);
+
+		const char* gBufferDebugItems[] = { "All", "Positions", "Normals", "Albedo" };
+		static int gBufferDebugCurrentItem = 0;
+		ImGui::Combo("G-Buffer Debug", &gBufferDebugCurrentItem, gBufferDebugItems, 4);
+		_renderer->EnableGBufferDebugPass(static_cast<GBufferDisplayType>(gBufferDebugCurrentItem));
 
 		ImGui::Text("Render Pass %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
 	}

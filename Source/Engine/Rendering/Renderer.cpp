@@ -62,6 +62,9 @@ Renderer::Renderer(const RendererDesc& desc) : _desc(desc)
     
     InitPipelineStates();
     InitConstBuffer();
+		InitFullscreenQuad();
+		InitLightingPass();
+		InitGBufferDebugPass();
   }
   catch (const std::exception& exception)
   {
@@ -78,7 +81,22 @@ void Renderer::DrawFrame()
 {
   StartFrame();
 	GeometryPass();
-	LightingPass();
+	switch (_gBufferDisplay)
+	{
+		default:
+		case GBufferDisplayType::Disabled:
+			LightingPass();
+			break;
+		case GBufferDisplayType::Position:
+			GBufferDebugPass(0);
+			break;
+		case GBufferDisplayType::Normal:
+			GBufferDebugPass(1);
+			break;
+		case GBufferDisplayType::Albedo:
+			GBufferDebugPass(2);
+			break;
+	}		
 	EndFrame();
 }
 
@@ -193,7 +211,7 @@ void Renderer::InitConstBuffer()
   }
 }
 
-void Renderer::InitLightingPassPso()
+void Renderer::InitLightingPass()
 {
 	ShaderDesc vsDesc;
 	vsDesc.EntryPoint = "main";
@@ -238,7 +256,10 @@ void Renderer::InitLightingPassPso()
 	{
 		throw std::runtime_error("Unable to initialize pipeline states. " + std::string(exception.what()));
 	}
+}
 
+void Renderer::InitFullscreenQuad()
+{
 	if (!_fsQuadBuffer)
 	{
 		VertexBufferDesc vtxBuffDesc;
@@ -271,6 +292,51 @@ void Renderer::InitLightingPassPso()
 		{
 			throw std::runtime_error("Unable to initialize fullscreen Quad sampler state. " + std::string(exception.what()));
 		}
+	}
+}
+
+void Renderer::InitGBufferDebugPass()
+{
+	ShaderDesc vsDesc;
+	vsDesc.EntryPoint = "main";
+	vsDesc.ShaderLang = ShaderLang::Glsl;
+	vsDesc.ShaderType = ShaderType::Vertex;
+	vsDesc.Source = String::LoadFromFile("./../../Resources/Shaders/FSPassThroughVS.glsl");
+
+	ShaderDesc psDesc;
+	psDesc.EntryPoint = "main";
+	psDesc.ShaderLang = ShaderLang::Glsl;
+	psDesc.ShaderType = ShaderType::Pixel;
+	psDesc.Source = String::LoadFromFile("./../../Resources/Shaders/FullscreenQuad.glsl");
+
+	std::vector<VertexLayoutDesc> vertexLayoutDesc
+	{
+		VertexLayoutDesc(SemanticType::Position, SemanticFormat::Float2),
+		VertexLayoutDesc(SemanticType::TexCoord, SemanticFormat::Float2),
+	};
+
+	std::shared_ptr<ShaderParams> shaderParams(new ShaderParams());
+	shaderParams->AddParam(ShaderParam("QuadTexture", ShaderParamType::Texture, 0));
+
+	RasterizerStateDesc rasterizerStateDesc;
+	rasterizerStateDesc.CullMode = CullMode::CounterClockwise;
+
+	try
+	{
+		PipelineStateDesc pipelineDesc;
+		pipelineDesc.VS = _renderDevice->CreateShader(vsDesc);
+		pipelineDesc.PS = _renderDevice->CreateShader(psDesc);
+		pipelineDesc.BlendState = _renderDevice->CreateBlendState(BlendStateDesc());
+		pipelineDesc.RasterizerState = _renderDevice->CreateRasterizerState(rasterizerStateDesc);
+		pipelineDesc.DepthStencilState = _renderDevice->CreateDepthStencilState(DepthStencilStateDesc());
+		pipelineDesc.VertexLayout = _renderDevice->CreateVertexLayout(vertexLayoutDesc);
+		pipelineDesc.ShaderParams = shaderParams;
+
+		_gBufferDebugPso = _renderDevice->CreatePipelineState(pipelineDesc);
+	}
+	catch (const std::exception& exception)
+	{
+		throw std::runtime_error("Unable to initialize pipeline states. " + std::string(exception.what()));
 	}
 }
 
@@ -318,11 +384,6 @@ void Renderer::GeometryPass()
 
 void Renderer::LightingPass()
 {
-	if (!_lightPassPso)
-	{
-		InitLightingPassPso();
-	}
-
 	_renderDevice->SetRenderTarget(nullptr);
 	_renderDevice->SetPipelineState(_lightPassPso);
 	_renderDevice->SetTexture(0, _gBuffer->GetColourTarget(0));
@@ -331,6 +392,16 @@ void Renderer::LightingPass()
 	_renderDevice->SetSamplerState(0, _noMipSamplerState);
 	_renderDevice->SetSamplerState(1, _noMipSamplerState);
 	_renderDevice->SetSamplerState(2, _noMipSamplerState);
+	_renderDevice->SetVertexBuffer(0, _fsQuadBuffer);
+	_renderDevice->Draw(6, 0);
+}
+
+void Renderer::GBufferDebugPass(uint32 i)
+{
+	_renderDevice->SetRenderTarget(nullptr);
+	_renderDevice->SetPipelineState(_gBufferDebugPso);
+	_renderDevice->SetTexture(0, _gBuffer->GetColourTarget(i));
+	_renderDevice->SetSamplerState(0, _noMipSamplerState);
 	_renderDevice->SetVertexBuffer(0, _fsQuadBuffer);
 	_renderDevice->Draw(6, 0);
 }

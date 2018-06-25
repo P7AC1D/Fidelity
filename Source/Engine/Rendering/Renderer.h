@@ -29,6 +29,14 @@ enum class RenderApi
 {
   GL41
 };
+
+enum class GBufferDisplayType
+{
+	Disabled,
+	Position,
+	Normal,
+	Albedo
+};
   
 struct RendererDesc
 {
@@ -50,6 +58,7 @@ public:
   uint32 GetRenderHeight() const { return _desc.RenderHeight; }
   
   void SetCamera(const std::shared_ptr<Camera>& camera) { _activeCamera = camera; }
+	void EnableGBufferDebugPass(GBufferDisplayType gBufferDisplay) { _gBufferDisplay = gBufferDisplay; }
   
   void PushRenderable(const std::shared_ptr<Renderable>& renderable, const std::shared_ptr<Transform>& transform);
   
@@ -58,19 +67,26 @@ public:
 private:
   void InitPipelineStates();
   void InitConstBuffer();
-	void InitLightingPassPso();
+	void InitLightingPass();
+	void InitFullscreenQuad();
+	void InitGBufferDebugPass();
+
   void StartFrame();
 	void EndFrame();
 
 	void GeometryPass();
 	void LightingPass();
+	void GBufferDebugPass(uint32 i);
 
 private:
   static std::shared_ptr<RenderDevice> _renderDevice;
   RendererDesc _desc;
+	GBufferDisplayType _gBufferDisplay;
+
   std::shared_ptr<GpuBuffer> _cameraBuffer;
   std::shared_ptr<PipelineState> _geomPassPso;
-	std::shared_ptr<PipelineState> _lightPassPso;;
+	std::shared_ptr<PipelineState> _lightPassPso;
+	std::shared_ptr<PipelineState> _gBufferDebugPso;
   std::shared_ptr<Camera> _activeCamera;
 	std::shared_ptr<SamplerState> _basicSamplerState;
 	std::shared_ptr<SamplerState> _noMipSamplerState;

@@ -6,6 +6,7 @@ class Camera;
 class GpuBuffer;
 class IndexBuffer;
 class PipelineState;
+class Renderer;
 class SamplerState;
 class SceneManager;
 class Texture;
@@ -23,6 +24,7 @@ public:
 	~DebugUi();
 
   void SetSceneManager(const std::shared_ptr<SceneManager>& sceneManager);
+	void SetRenderer(const std::shared_ptr<Renderer>& renderer);
 
 	void ProcessEvents(SDL_Event* sdlEvent);
 	void Update();
@@ -41,6 +43,7 @@ private:
 	uint64 _vertBuffSize;
 	uint64 _idxBuffSize;
 
+	std::shared_ptr<Renderer> _renderer;
 	std::shared_ptr<PipelineState> _pipelineState;
 	std::shared_ptr<Texture> _textureAtlas;
 	std::shared_ptr<SamplerState> _samplerState;
