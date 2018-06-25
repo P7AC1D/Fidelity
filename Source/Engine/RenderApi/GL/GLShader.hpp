@@ -22,7 +22,6 @@ public:
 private:
   GLShader(const ShaderDesc& desc);
   
-  uint32 GetUniformBlockIndex(const std::string& name);
 	uint32 GetUniformLocation(const std::string& name);
 
 	void BuildUniformDefinitions();
@@ -43,22 +42,6 @@ private:
 		UniformType Type;
 	};
 
-	class Hash
-	{
-	public:
-		std::size_t operator()(const Uniform& uniform) const;
-	};
-
-	class Equal
-	{
-	public:
-		bool operator()(const Uniform& a, const Uniform& b) const;
-	};
-
   uint32 _id;
-  std::unordered_map<std::string, uint32> _uniformBlockIndices;
-  std::unordered_map<uint32, uint32> _uniformBindingPoints;
-	std::unordered_map<uint32, uint32> _textureUnitsBound;
-	std::unordered_map<std::string, uint32> _samplerLocations;
-	std::unordered_set<Uniform, Hash, Equal> _uniforms;
+	std::unordered_map<std::string, Uniform> _uniforms;
 };

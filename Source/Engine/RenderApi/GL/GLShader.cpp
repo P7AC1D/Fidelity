@@ -61,9 +61,7 @@ void GLShader::Compile()
 
 bool GLShader::HasUniform(const std::string& name) const
 {
-	Uniform expected;
-	expected.Name = name;
-	return _uniforms.find(expected) != _uniforms.end();
+	return _uniforms.find(name) != _uniforms.end();
 }
 
 void GLShader::BindUniformBlock(const std::string& name, uint32 bindingPoint)
@@ -86,14 +84,12 @@ GLShader::GLShader(const ShaderDesc& desc): Shader(desc), _id(0)
 
 uint32 GLShader::GetUniformLocation(const std::string& name)
 {
-	Uniform expected;
-	expected.Name = name;
-	auto uniformIter = _uniforms.find(expected);
+	auto uniformIter = _uniforms.find(name);
 	if (uniformIter == _uniforms.end())
 	{
 		return -1;
 	}
-	return uniformIter->Location;
+	return uniformIter->second.Location;
 }
 
 void GLShader::BuildUniformDefinitions()
@@ -112,11 +108,11 @@ void GLShader::BuildUniformDefinitions()
 
 		if (type == GL_SAMPLER_2D)
 		{
-			_uniforms.insert(Uniform{ static_cast<uint32>(location), name, UniformType::Sampler2D });
+			_uniforms.emplace(name, Uniform{ static_cast<uint32>(location), name, UniformType::Sampler2D });
 		}
 		else if (type == GL_SAMPLER_CUBE)
 		{
-			_uniforms.insert(Uniform{ static_cast<uint32>(location), name, UniformType::SamplerCube });
+			_uniforms.emplace(name, Uniform{ static_cast<uint32>(location), name, UniformType::SamplerCube });
 		}
 	}
 }
@@ -132,18 +128,6 @@ void GLShader::BuildUniformBlockDefinitions()
 
 		GLuint blockIndex = -1;
 		GLCall2(glGetUniformBlockIndex(_id, uniformBlockName), blockIndex);
-		_uniforms.insert(Uniform{ blockIndex, uniformBlockName, UniformType::UniformBlock });
+		_uniforms.emplace(uniformBlockName, Uniform{ blockIndex, uniformBlockName, UniformType::UniformBlock });
 	}
-}
-
-std::size_t GLShader::Hash::operator()(const Uniform& uniform) const
-{
-	std::size_t seed = 0;
-	::Hash::Combine(seed, uniform.Name);
-	return seed;
-}
-
-bool GLShader::Equal::operator()(const Uniform& a, const Uniform& b) const
-{
-	return a.Name == b.Name;
 }

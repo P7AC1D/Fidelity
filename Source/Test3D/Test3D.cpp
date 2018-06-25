@@ -36,6 +36,9 @@ void Test3D::OnStart()
   _camera->SetPerspective(Degree(67.67f), GetWidth(), GetHeight(), 0.1f, 1000.0f);
   _camera->LookAt(Vector3(0.0f, 0.0f, 4.0f), Vector3(0.0f, 0.0f, 0.0f));
   _sceneManager->SetCamera(_camera);
+
+	auto directionalLight = _sceneManager->CreateLight(LightType::Directional, "DirectionLight");
+	_sceneManager->SetDirectionLight(directionalLight);
   
   auto model = _sceneManager->CreateObject("sphere");
   auto mesh = MeshFactory::CreateIcosphere();

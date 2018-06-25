@@ -78,7 +78,7 @@ void DebugUi::Update()
 
 		ImGui::Checkbox("Demo Window", &show_demo_window);
 
-		const char* gBufferDebugItems[] = { "All", "Positions", "Normals", "Albedo" };
+		const char* gBufferDebugItems[] = { "Disabled", "Position", "Normal", "Albedo" };
 		static int gBufferDebugCurrentItem = 0;
 		ImGui::Combo("G-Buffer Debug", &gBufferDebugCurrentItem, gBufferDebugItems, 4);
 		_renderer->EnableGBufferDebugPass(static_cast<GBufferDisplayType>(gBufferDebugCurrentItem));

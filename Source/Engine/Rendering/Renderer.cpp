@@ -35,10 +35,16 @@ std::vector<FullscreenQuadVertex> FullscreenQuadVertices
 	FullscreenQuadVertex(Vector2(-1.0f, 1.0f), Vector2(0.0f, 1.0f))
 };
 
-struct ConstBufferData
+struct FrameBufferData
 {
   Matrix4 Proj;
   Matrix4 View;
+	DirectionalLightData DirectionalLight;
+};
+
+struct ObjectBufferData
+{
+	Matrix4 Model;	
 };
 
 std::shared_ptr<RenderDevice> Renderer::_renderDevice;
@@ -61,7 +67,8 @@ Renderer::Renderer(const RendererDesc& desc) : _desc(desc)
     _renderDevice.reset(new GLRenderDevice(renderDeviceDesc));
     
     InitPipelineStates();
-    InitConstBuffer();
+    InitCameraBuffer();
+		InitObjectBuffer();
 		InitFullscreenQuad();
 		InitLightingPass();
 		InitGBufferDebugPass();
@@ -124,7 +131,8 @@ void Renderer::InitPipelineStates()
   };
   
   std::shared_ptr<ShaderParams> shaderParams(new ShaderParams());
-  shaderParams->AddParam(ShaderParam("CameraBuffer", ShaderParamType::ConstBuffer, 0));
+	shaderParams->AddParam(ShaderParam("ObjectBuffer", ShaderParamType::ConstBuffer, 0));
+  shaderParams->AddParam(ShaderParam("FrameBuffer", ShaderParamType::ConstBuffer, 1));
 	shaderParams->AddParam(ShaderParam("DiffuseMap", ShaderParamType::Texture, 0));
   
 	RasterizerStateDesc rasterizerStateDesc;
@@ -195,20 +203,36 @@ void Renderer::InitPipelineStates()
 	}
 }
 
-void Renderer::InitConstBuffer()
+void Renderer::InitCameraBuffer()
 {
   try
   {
     GpuBufferDesc perShaderBuffDesc;
     perShaderBuffDesc.BufferType = BufferType::Constant;
     perShaderBuffDesc.BufferUsage = BufferUsage::Dynamic;
-    perShaderBuffDesc.ByteCount = sizeof(ConstBufferData);
-    _cameraBuffer = _renderDevice->CreateGpuBuffer(perShaderBuffDesc);
+    perShaderBuffDesc.ByteCount = sizeof(FrameBufferData);
+    _frameBuffer = _renderDevice->CreateGpuBuffer(perShaderBuffDesc);
   }
   catch (const std::exception& exception)
   {
-    throw std::runtime_error(std::string("Could not initialize constant buffer\n") + exception.what());
+    throw std::runtime_error(std::string("Could not initialize camera constant buffer\n") + exception.what());
   }
+}
+
+void Renderer::InitObjectBuffer()
+{
+	try
+	{
+		GpuBufferDesc perShaderBuffDesc;
+		perShaderBuffDesc.BufferType = BufferType::Constant;
+		perShaderBuffDesc.BufferUsage = BufferUsage::Dynamic;
+		perShaderBuffDesc.ByteCount = sizeof(ObjectBufferData);
+		_objectBuffer = _renderDevice->CreateGpuBuffer(perShaderBuffDesc);
+	}
+	catch (const std::exception& exception)
+	{
+		throw std::runtime_error(std::string("Could not initialize object constant buffer\n") + exception.what());
+	}
 }
 
 void Renderer::InitLightingPass()
@@ -235,6 +259,8 @@ void Renderer::InitLightingPass()
 	shaderParams->AddParam(ShaderParam("PositionMap", ShaderParamType::Texture, 0));
 	shaderParams->AddParam(ShaderParam("NormalMap", ShaderParamType::Texture, 1));
 	shaderParams->AddParam(ShaderParam("AlbedoSpecMap", ShaderParamType::Texture, 2));
+	shaderParams->AddParam(ShaderParam("ObjectBuffer", ShaderParamType::ConstBuffer, 0));
+	shaderParams->AddParam(ShaderParam("FrameBuffer", ShaderParamType::ConstBuffer, 1));
 
 	RasterizerStateDesc rasterizerStateDesc;
 	rasterizerStateDesc.CullMode = CullMode::CounterClockwise;
@@ -342,12 +368,13 @@ void Renderer::InitGBufferDebugPass()
 
 void Renderer::StartFrame()
 {
-  ConstBufferData data;
-  data.Proj = _activeCamera->GetProjection();
-  data.View = _activeCamera->GetView();
-  _cameraBuffer->WriteData(0, sizeof(ConstBufferData), &data);
-  
-	_renderDevice->SetConstantBuffer(0, _cameraBuffer);
+  FrameBufferData framData;
+  framData.Proj = _activeCamera->GetProjection();
+	framData.DirectionalLight = _directionalLight;
+  framData.View = _activeCamera->GetView();
+  _frameBuffer->WriteData(0, sizeof(FrameBufferData), &framData);
+	  
+	_renderDevice->SetConstantBuffer(0, _frameBuffer);
 	_renderDevice->SetSamplerState(0, _basicSamplerState);
 	_renderDevice->ClearBuffers(RTT_Colour | RTT_Depth | RTT_Stencil);
 }

@@ -6,15 +6,23 @@ layout(location = 2) in vec2 aTexCoord;
 layout(location = 3) in vec3 aTangent;
 layout(location = 4) in vec3 aBitangent;
 
+struct DirectionalLightData
+{
+  vec4 Colour;
+  vec3 Direction;
+  float Intensity;
+};
+
 layout (std140) uniform ObjectBuffer
 {
   mat4 Model;
 };
 
-layout (std140) uniform CameraBuffer
+layout (std140) uniform FrameBuffer
 {
   mat4 Projection;
-  mat4 View;
+  mat4 View;  
+  DirectionalLightData DirectionalLight;
   vec3 ViewPos;
 };
 

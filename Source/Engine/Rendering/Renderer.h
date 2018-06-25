@@ -3,6 +3,7 @@
 #include <string>
 #include <vector>
 #include "../Core/Types.hpp"
+#include "../Maths/Colour.hpp"
 
 class Camera;
 class GpuBuffer;
@@ -13,6 +14,25 @@ class RenderTarget;
 class Renderable;
 class Transform;
 class VertexBuffer;
+
+struct DirectionalLightData
+{
+	DirectionalLightData():
+		Colour(Colour::White),
+		Direction(-Vector3::Identity),
+		Intensity(1.0f)
+	{}
+
+	DirectionalLightData(const Colour& colour, const Vector3& direction, float32 intensity):
+		Colour(colour),
+		Direction(direction),
+		Intensity(intensity)
+	{}
+
+	Colour Colour;
+	Vector3 Direction;
+	float32 Intensity;
+};
 
 struct RenderableItem
 {
@@ -58,6 +78,8 @@ public:
   uint32 GetRenderHeight() const { return _desc.RenderHeight; }
   
   void SetCamera(const std::shared_ptr<Camera>& camera) { _activeCamera = camera; }
+	void SetDirectionalLight(const DirectionalLightData& lightData) { _directionalLight = lightData; }
+
 	void EnableGBufferDebugPass(GBufferDisplayType gBufferDisplay) { _gBufferDisplay = gBufferDisplay; }
   
   void PushRenderable(const std::shared_ptr<Renderable>& renderable, const std::shared_ptr<Transform>& transform);
@@ -66,7 +88,8 @@ public:
   
 private:
   void InitPipelineStates();
-  void InitConstBuffer();
+  void InitCameraBuffer();
+	void InitObjectBuffer();
 	void InitLightingPass();
 	void InitFullscreenQuad();
 	void InitGBufferDebugPass();
@@ -82,8 +105,10 @@ private:
   static std::shared_ptr<RenderDevice> _renderDevice;
   RendererDesc _desc;
 	GBufferDisplayType _gBufferDisplay;
+	DirectionalLightData _directionalLight;
 
-  std::shared_ptr<GpuBuffer> _cameraBuffer;
+  std::shared_ptr<GpuBuffer> _frameBuffer;
+	std::shared_ptr<GpuBuffer> _objectBuffer;
   std::shared_ptr<PipelineState> _geomPassPso;
 	std::shared_ptr<PipelineState> _lightPassPso;
 	std::shared_ptr<PipelineState> _gBufferDebugPso;

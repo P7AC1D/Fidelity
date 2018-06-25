@@ -2,7 +2,6 @@
 #include <memory>
 #include <string>
 #include <vector>
-
 #include "../Core/Types.hpp"
 #include "../Maths/Vector3.hpp"
 #include "Light.h"
@@ -17,13 +16,11 @@ public:
   SceneManager(const std::shared_ptr<Renderer>& renderer);
 
   std::shared_ptr<WorldObject> CreateObject(const std::string& name = std::string());  
-  Light& CreateLight(LightType lightType, const std::string& name = std::string());
-	
-  inline void SetAmbientLight(const Colour& colour) { _ambientLight = colour; }
+  std::shared_ptr<Light> CreateLight(LightType lightType, const std::string& name = std::string());
 
-	void SetCamera(std::shared_ptr<Camera> camera);
+	void SetCamera(const std::shared_ptr<Camera>& camera);
+	void SetDirectionLight(const std::shared_ptr<Light>& light);
 
-  inline const Colour& GetAmbientLight() const { return _ambientLight; }
   std::shared_ptr<Camera> GetCamera() const;
 
   void UpdateScene(uint32 dtMs);
@@ -34,8 +31,8 @@ private:
 
 private:
   std::vector<std::shared_ptr<WorldObject>> _worldObjects;
-  std::vector<Light> _lights;
+  std::vector<std::shared_ptr<Light>> _lights;
+	std::shared_ptr<Light> _directionalLight;
   std::shared_ptr<Renderer> _renderer;
   std::shared_ptr<Camera> _camera;
-  Colour _ambientLight;
 };
