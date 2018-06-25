@@ -360,11 +360,14 @@ void GLRenderDevice::BeginDraw()
 	{
 		if (_boundTextures[i])
 		{
-			auto textureName = _shaderParams->GetParamName(ShaderParamType::Texture, i);
-			auto glPs = std::static_pointer_cast<GLShader>(_pipelineState->GetPS());
-			if (glPs->HasUniform(textureName))
+			std::string textureName = _shaderParams->GetParamName(ShaderParamType::Texture, i);
+			if (!textureName.empty())
 			{
-				glPs->BindTextureUnit(textureName, i);
+				auto glPs = std::static_pointer_cast<GLShader>(_pipelineState->GetPS());
+				if (glPs->HasUniform(textureName))
+				{
+					glPs->BindTextureUnit(textureName, i);
+				}
 			}
 		}
 	}

@@ -21,6 +21,6 @@ out gl_PerVertex {
 
 void main()
 {
-  TexCoord = aTexCoord;
-  gl_Position = vec4(aPosition, 1.0f);
+  vsOut.TexCoord = aTexCoord;
+  gl_Position = vec4(aPosition, 0.0f, 1.0f);
 }

@@ -79,6 +79,21 @@ GLenum GetTextureTarget(TextureType textureType)
   }
 }
 
+GLenum GetTextureBindingTarget(TextureType textureType)
+{
+	switch (textureType)
+	{
+	case TextureType::Texture1D: return GL_TEXTURE_BINDING_1D;
+	case TextureType::Texture1DArray: return GL_TEXTURE_BINDING_1D_ARRAY;
+	case TextureType::Texture2D: return GL_TEXTURE_BINDING_2D;
+	case TextureType::Texture2DArray: return GL_TEXTURE_BINDING_2D_ARRAY;
+	case TextureType::Texture3D: return GL_TEXTURE_BINDING_3D;
+	case TextureType::TextureCube: return GL_TEXTURE_BINDING_CUBE_MAP;
+	default:
+		throw std::runtime_error("Unsupported TextureType");
+	}
+}
+
 GLTexture::~GLTexture()
 {
   if (_id != 0)
@@ -98,8 +113,11 @@ void GLTexture::WriteData(uint32 mipLevel, uint32 face, const std::shared_ptr<Im
   GLenum type;
   GetInternalPixelFormat(_desc.Format, internalFormat, format, type);
   GLenum target = GetTextureTarget(_desc.Type);
-  
   const auto& pixelData = data->GetPixelData();
+
+	GLint previouslyBoundTexture = 0;
+	GLCall(glGetIntegerv(GetTextureBindingTarget(_desc.Type), &previouslyBoundTexture));
+
   GLCall(glBindTexture(target, _id));
   switch (_desc.Type)
   {
@@ -124,13 +142,19 @@ void GLTexture::WriteData(uint32 mipLevel, uint32 face, const std::shared_ptr<Im
     default:
       throw std::runtime_error("Unsupported TextureType");
   }
+	GLCall(glBindTexture(target, previouslyBoundTexture));
 }
 
 void GLTexture::GenerateMips()
 {
+	GLint previouslyBoundTexture = 0;
+	GLCall(glGetIntegerv(GetTextureBindingTarget(_desc.Type), &previouslyBoundTexture));
+
   GLenum target = GetTextureTarget(_desc.Type);
   GLCall(glBindTexture(target, _id));
   GLCall(glGenerateMipmap(target));
+
+	GLCall(glBindTexture(target, previouslyBoundTexture));
 }
 
 GLTexture::GLTexture(const TextureDesc& desc): Texture(desc), _id(0)
@@ -144,14 +168,19 @@ void GLTexture::Initialize()
   {
     return;
   }
+
+	GLint previouslyBoundTexture = 0;
+	GLCall(glGetIntegerv(GetTextureBindingTarget(_desc.Type), &previouslyBoundTexture));
   
   GLCall(glGenTextures(1, &_id));
   Assert::ThrowIfTrue(_id == 0, "Could not generate texture object");
   
-  GLCall(glBindTexture(GetTextureTarget(GetTextureType()), _id));
+	auto target = GetTextureTarget(GetTextureType());
+  GLCall(glBindTexture(target, _id));
   Allocate();
   
   _isInitialized = true;
+	GLCall(glBindTexture(target, previouslyBoundTexture));
 } 
 
 void GLTexture::Allocate()

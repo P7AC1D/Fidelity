@@ -48,5 +48,6 @@ private:
   };
   
 private:
+	static std::string NoParameter;
   std::unordered_set<ShaderParam, Hasher, Equality> _params;
 };

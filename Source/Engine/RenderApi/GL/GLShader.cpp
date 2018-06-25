@@ -145,5 +145,5 @@ std::size_t GLShader::Hash::operator()(const Uniform& uniform) const
 
 bool GLShader::Equal::operator()(const Uniform& a, const Uniform& b) const
 {
-	return a.Location == b.Location && a.Name == b.Name && a.Type == b.Type;
+	return a.Name == b.Name;
 }

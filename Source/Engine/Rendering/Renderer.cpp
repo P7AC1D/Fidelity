@@ -8,32 +8,31 @@
 #include "../RenderApi/RenderTarget.hpp"
 #include "../RenderApi/SamplerState.hpp"
 #include "../RenderApi/ShaderParams.hpp"
+#include "../RenderApi/VertexBuffer.hpp"
 #include "../SceneManagement/Camera.hpp"
 #include "../SceneManagement/Transform.h"
 #include "Material.h"
 #include "Renderable.hpp"
 #include "StaticMesh.h"
 
-std::vector<Vector2> FullscreenQuadVertices
+struct FullscreenQuadVertex
 {
-	Vector2(-1.0f, -1.0f),
-	Vector2(0.0f, 0.0f),
+	Vector2 Position;
+	Vector2 TexCoord;
 
-	Vector2(1.0f, -1.0f),
-	Vector2(1.0f, 0.0f),
+	FullscreenQuadVertex(const Vector2& position, const Vector2& texCoord) :
+		Position(position), TexCoord(texCoord)
+	{}
+};
 
-	Vector2(-1.0f, 1.0f),
-	Vector2(0.0f, 1.0f),
-
-	Vector2(1.0f, -1.0f),
-	Vector2(1.0f, 0.0f),
-
-	Vector2(1.0f, 1.0f),
-	Vector2(1.0f, 1.0f),
-
-	Vector2(-1.0f, 1.0f),
-	Vector2(0.0f, 1.0f)
-
+std::vector<FullscreenQuadVertex> FullscreenQuadVertices
+{
+	FullscreenQuadVertex(Vector2(-1.0f, -1.0f), Vector2(0.0f, 0.0f)),
+	FullscreenQuadVertex(Vector2(1.0f, -1.0f), Vector2(1.0f, 0.0f)),
+	FullscreenQuadVertex(Vector2(-1.0f, 1.0f), Vector2(0.0f, 1.0f)),
+	FullscreenQuadVertex(Vector2(1.0f, -1.0f), Vector2(1.0f, 0.0f)),
+	FullscreenQuadVertex(Vector2(1.0f, 1.0f), Vector2(1.0f, 1.0f)),
+	FullscreenQuadVertex(Vector2(-1.0f, 1.0f), Vector2(0.0f, 1.0f))
 };
 
 struct ConstBufferData
@@ -215,8 +214,9 @@ void Renderer::InitLightingPassPso()
 	};
 
 	std::shared_ptr<ShaderParams> shaderParams(new ShaderParams());
-	shaderParams->AddParam(ShaderParam("CameraBuffer", ShaderParamType::ConstBuffer, 0));
-	shaderParams->AddParam(ShaderParam("DiffuseMap", ShaderParamType::Texture, 0));
+	shaderParams->AddParam(ShaderParam("PositionMap", ShaderParamType::Texture, 0));
+	shaderParams->AddParam(ShaderParam("NormalMap", ShaderParamType::Texture, 1));
+	shaderParams->AddParam(ShaderParam("AlbedoSpecMap", ShaderParamType::Texture, 2));
 
 	RasterizerStateDesc rasterizerStateDesc;
 	rasterizerStateDesc.CullMode = CullMode::CounterClockwise;
@@ -238,6 +238,40 @@ void Renderer::InitLightingPassPso()
 	{
 		throw std::runtime_error("Unable to initialize pipeline states. " + std::string(exception.what()));
 	}
+
+	if (!_fsQuadBuffer)
+	{
+		VertexBufferDesc vtxBuffDesc;
+		vtxBuffDesc.BufferUsage = BufferUsage::Default;
+		vtxBuffDesc.VertexCount = FullscreenQuadVertices.size();
+		vtxBuffDesc.VertexSizeBytes = sizeof(FullscreenQuadVertex);
+		try
+		{
+			_fsQuadBuffer = _renderDevice->CreateVertexBuffer(vtxBuffDesc);
+			_fsQuadBuffer->WriteData(0, sizeof(FullscreenQuadVertex) * FullscreenQuadVertices.size(), FullscreenQuadVertices.data(), AccessType::WriteOnlyDiscardRange);
+		}
+		catch (const std::exception& exception)
+		{
+			throw std::runtime_error("Unable to initialize fullscreen Quad vertex buffer. " + std::string(exception.what()));
+		}
+	}
+
+	if (!_noMipSamplerState)
+	{
+		SamplerStateDesc desc;
+		desc.AddressingMode = AddressingMode{ TextureAddressMode::Wrap, TextureAddressMode::Wrap, TextureAddressMode::Wrap };
+		desc.MinFiltering = TextureFilteringMode::None;
+		desc.MinFiltering = TextureFilteringMode::None;
+		desc.MipFiltering = TextureFilteringMode::None;
+		try
+		{
+			_noMipSamplerState = _renderDevice->CreateSamplerState(desc);
+		}
+		catch (const std::exception& exception)
+		{
+			throw std::runtime_error("Unable to initialize fullscreen Quad sampler state. " + std::string(exception.what()));
+		}
+	}
 }
 
 void Renderer::StartFrame()
@@ -254,7 +288,6 @@ void Renderer::StartFrame()
 
 void Renderer::EndFrame()
 {
-	_renderDevice->SetRenderTarget(nullptr);
 }
 
 void Renderer::GeometryPass()
@@ -290,6 +323,14 @@ void Renderer::LightingPass()
 		InitLightingPassPso();
 	}
 
-	_renderDevice->SetPipelineState(nullptr);
-	_renderDevice->SetPipelineState(_geomPassPso);
+	_renderDevice->SetRenderTarget(nullptr);
+	_renderDevice->SetPipelineState(_lightPassPso);
+	_renderDevice->SetTexture(0, _gBuffer->GetColourTarget(0));
+	_renderDevice->SetTexture(1, _gBuffer->GetColourTarget(1));
+	_renderDevice->SetTexture(2, _gBuffer->GetColourTarget(2));
+	_renderDevice->SetSamplerState(0, _noMipSamplerState);
+	_renderDevice->SetSamplerState(1, _noMipSamplerState);
+	_renderDevice->SetSamplerState(2, _noMipSamplerState);
+	_renderDevice->SetVertexBuffer(0, _fsQuadBuffer);
+	_renderDevice->Draw(6, 0);
 }

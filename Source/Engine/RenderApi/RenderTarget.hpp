@@ -17,6 +17,8 @@ class RenderTarget
 public:
   const RenderTargetDesc& GetDesc() const { return _desc; }
   bool IsInitialized() const { return _isInitialized; }
+	std::shared_ptr<Texture> GetColourTarget(uint32 i) const { return i < MaxColourTargets ? _desc.ColourTargets[i] : nullptr; }
+	std::shared_ptr<Texture> GetDepthStencilTarget() const { return _desc.DepthStencilTarget; }
   
 protected:
   RenderTarget(const RenderTargetDesc& desc) : _desc(desc), _isInitialized(false) {}

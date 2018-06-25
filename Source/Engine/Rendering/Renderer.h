@@ -12,6 +12,7 @@ class RenderDevice;
 class RenderTarget;
 class Renderable;
 class Transform;
+class VertexBuffer;
 
 struct RenderableItem
 {
@@ -72,7 +73,9 @@ private:
 	std::shared_ptr<PipelineState> _lightPassPso;;
   std::shared_ptr<Camera> _activeCamera;
 	std::shared_ptr<SamplerState> _basicSamplerState;
+	std::shared_ptr<SamplerState> _noMipSamplerState;
 	std::shared_ptr<RenderTarget> _gBuffer;
+	std::shared_ptr<VertexBuffer> _fsQuadBuffer;
   
   std::vector<RenderableItem> _renderables;
 };

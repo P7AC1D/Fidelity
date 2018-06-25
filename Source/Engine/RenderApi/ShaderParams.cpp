@@ -3,6 +3,8 @@
 #include <algorithm>
 #include "../Utility/Hash.hpp"
 
+std::string ShaderParams::NoParameter = std::string();
+
 void ShaderParams::AddParam(const ShaderParam& param)
 {
   _params.insert(param);
@@ -39,7 +41,8 @@ const std::string& ShaderParams::GetParamName(ShaderParamType type, uint32 slot)
   {
     return iter->Name;
   }
-  throw std::runtime_error("Could not find a valid param with slot" + std::to_string(slot));
+  // TODO: No parameter specified for slot - Maybe log this info somewhere?
+	return NoParameter;
 }
 
 std::size_t ShaderParams::Hasher::operator()(const ShaderParam& key) const
