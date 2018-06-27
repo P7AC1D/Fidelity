@@ -41,7 +41,7 @@ void Test3D::OnStart()
 	_sceneManager->SetDirectionLight(directionalLight);
   
   auto model = _sceneManager->CreateObject("sphere");
-  auto mesh = MeshFactory::CreateIcosphere();
+  auto mesh = MeshFactory::CreateCube();
 	auto diffuseTexture = TextureLoader::LoadFromFile2D("./../../Resources/Textures/brickwall.jpg");
 	mesh->GetMaterial()->SetTexture("DiffuseMap", diffuseTexture);
   auto modelRenderable = std::make_shared<Renderable>();

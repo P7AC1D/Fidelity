@@ -387,6 +387,7 @@ void Renderer::GeometryPass()
 {
 	_renderDevice->SetPipelineState(_geomPassPso);
 	_renderDevice->SetRenderTarget(_gBuffer);
+	_renderDevice->ClearBuffers(RTT_Colour | RTT_Depth | RTT_Stencil);
 
 	for (auto& renderable : _renderables)
 	{
