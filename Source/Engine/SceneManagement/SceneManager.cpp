@@ -61,6 +61,11 @@ std::shared_ptr<Camera> SceneManager::GetCamera() const
   return _camera;
 }
 
+std::shared_ptr<Light> SceneManager::GetDirectionalLight() const
+{
+	return _directionalLight;
+}
+
 void SceneManager::UpdateScene(uint32 dtMs)
 {
   UpdateWorldObjects(dtMs);
@@ -77,6 +82,7 @@ void SceneManager::UpdateWorldObjects(uint32 dtMs)
 
 void SceneManager::SubmitSceneToRender()
 {
+	_renderer->SetDirectionalLight(DirectionalLightData(_directionalLight->GetColour(), _directionalLight->GetDirection(), _directionalLight->GetIntensity()));
   for (auto worldObject : _worldObjects)
   {
     auto renderable = worldObject->GetRenderable();

@@ -222,6 +222,12 @@ Quaternion Quaternion::Slerp(const Quaternion& a, const Quaternion& b, float32 t
   return wa * a + wb * b;
 }
 
+Radian* Quaternion::ToEuler() const
+{
+	Radian eulerAngles[3] = { Pitch(), Yaw(), Roll() };
+	return eulerAngles;
+}
+
 Quaternion operator+(float32 lhs, const Quaternion& rhs)
 {
   return Quaternion(lhs + rhs.W, lhs + rhs.X, lhs + rhs.Y, lhs + rhs.Z);
@@ -315,4 +321,26 @@ void Quaternion::FromRotationMatrix(const Matrix3 & m)
     default: 
       *this = Quaternion(1, 0, 0, 0);
   }
+}
+
+Radian Quaternion::Pitch() const
+{
+	const float32 y = 2.0f * (Y * Z + W * X);
+	const float32 x = W * W - X * X - Y * Y + Z * Z;
+
+	if (y == 0.0f && x == 0.0f)
+	{
+		return 2.0f * Math::ATan(X / W);
+	}
+	return Math::ATan(y / x);
+}
+
+Radian Quaternion::Roll() const
+{
+	return Math::ATan(2.0f * (X * Y + W * Z) / W * W + X * X - Y * Y - Z * Z);
+}
+
+Radian Quaternion::Yaw() const
+{
+	return Math::ASin(Math::Clamp(-2.0f * (X * Z - W * Y), -1.0f, 1.0f));
 }

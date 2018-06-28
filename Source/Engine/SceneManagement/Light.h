@@ -27,7 +27,7 @@ public:
 
   inline void SetColour(const Colour& colour) { _colour = colour; }
   inline void SetPosition(const Vector3& position) { _position = position; }
-  inline void SetDirection(const Vector3& direction) { _direction = direction; }
+	inline void SetDirection(const Vector3& direction) { _direction = Vector3::Normalize(direction); }
   inline void SetRadius(float32 radius) { _radius = radius; }
 	inline void SetIntensity(float32 intensity) { _intensity = intensity; }
 

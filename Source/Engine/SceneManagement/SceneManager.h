@@ -22,6 +22,7 @@ public:
 	void SetDirectionLight(const std::shared_ptr<Light>& light);
 
   std::shared_ptr<Camera> GetCamera() const;
+	std::shared_ptr<Light> GetDirectionalLight() const;
 
   void UpdateScene(uint32 dtMs);
 

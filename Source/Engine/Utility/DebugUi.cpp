@@ -6,6 +6,7 @@
 #include "../Core/Types.hpp"
 #include "../Image/ImageData.hpp"
 #include "../Maths/Matrix4.hpp"
+#include "../Maths/Radian.hpp"
 #include "../RenderApi/GL/GLTexture.hpp"
 #include "../RenderApi/RenderDevice.hpp"
 #include "../Rendering/Renderer.h"
@@ -66,16 +67,64 @@ void DebugUi::Update()
 	ImGui_ImplSDL2_NewFrame(_sdlWindow);
 	ImGui::NewFrame();
 	{
-    float32 camPos[3];
-    if (_sceneManager)
-    {
-      auto camPosVec = _sceneManager->GetCamera()->GetPosition();
-      camPos[0] = camPosVec.X;
-      camPos[1] = camPosVec.Y;
-      camPos[2] = camPosVec.Z;
-      ImGui::InputFloat3("Camera Position", camPos, 3, ImGuiInputTextFlags_ReadOnly);
-    }
+		if (!_sceneManager)
+		{
+			return;
+		}
 
+		bool displayDebugWindow = true;
+		ImGui::SetNextWindowPos(ImVec2(0, 0));
+		if (!ImGui::Begin("Debug", &displayDebugWindow, ImGuiWindowFlags_AlwaysAutoResize | 
+																										ImGuiWindowFlags_NoResize |
+																										ImGuiWindowFlags_NoSavedSettings |
+																										ImGuiWindowFlags_NoMove |
+																										ImGuiWindowFlags_NoCollapse))
+		{
+			ImGui::End();
+			return;
+		}		
+
+		if (ImGui::TreeNode("Camera"))
+		{
+			auto camera = _sceneManager->GetCamera();
+
+			auto position = camera->GetPosition();
+			float32 camPos[3] = { position.X, position.Y, position.Z };
+			ImGui::InputFloat3("Position", camPos, 3, ImGuiInputTextFlags_ReadOnly);
+
+			auto target = camera->GetTarget();
+			float32 camTar[3] = { target.X, target.Y, target.Z };
+			ImGui::InputFloat3("Target", camPos, 3, ImGuiInputTextFlags_ReadOnly);
+
+			auto euler = camera->GetOrientation().ToEuler();
+			float32 angles[3] = { (euler)->InDegrees(), (euler + 1)->InDegrees(), (euler + 2)->InDegrees() };
+			ImGui::InputFloat3("Orientation", angles, 1, ImGuiInputTextFlags_ReadOnly);
+
+			ImGui::TreePop();
+		}
+
+		if (ImGui::TreeNode("Directional Light"))
+		{
+			auto dirLight = _sceneManager->GetDirectionalLight();
+
+			auto colour = dirLight->GetColour();
+			float32 col[3] = { colour[0], colour[1], colour[2] };
+			ImGui::ColorEdit3("Colour", col);
+			dirLight->SetColour(Colour(col[0] * 255, col[1] * 255, col[2] * 255));
+
+			auto direction = dirLight->GetDirection();
+			float32 dir[3] = { direction[0], direction[1], direction[2] };
+			ImGui::SliderFloat3("Direction", dir, -1.0f, 1.0f);
+			dirLight->SetDirection(Vector3(dir[0], dir[1], dir[2]));
+
+			auto intensity = dirLight->GetIntensity();
+			ImGui::SliderFloat("Intensity", &intensity, 0.0f, 1.0f);
+			dirLight->SetIntensity(intensity);
+
+			ImGui::TreePop();
+		}
+
+		ImGui::Separator();
 		ImGui::Checkbox("Demo Window", &show_demo_window);
 
 		const char* gBufferDebugItems[] = { "Disabled", "Position", "Normal", "Albedo" };
@@ -83,7 +132,10 @@ void DebugUi::Update()
 		ImGui::Combo("G-Buffer Debug", &gBufferDebugCurrentItem, gBufferDebugItems, 4);
 		_renderer->EnableGBufferDebugPass(static_cast<GBufferDisplayType>(gBufferDebugCurrentItem));
 
+		ImGui::Separator();
 		ImGui::Text("Render Pass %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
+
+		ImGui::End();
 	}
 
 	if (show_demo_window)

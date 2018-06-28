@@ -56,8 +56,8 @@ void main()
   vec3 albedo = texture(AlbedoSpecMap, TexCoord).rgb;
   
   vec3 viewDir = normalize(ViewPos - position);
-  float directionLightFactor = CalcDirectionLightFactor(viewDir, DirectionalLight.Direction, normal);
+  float directionLightFactor = CalcDirectionLightFactor(viewDir, DirectionalLight.Direction, normal) * DirectionalLight.Intensity;
 
-  FinalColour.rgb = albedo * directionLightFactor;
-  FinalColour.a = 1.0f;
+  FinalColour.rgb = albedo * directionLightFactor * DirectionalLight.Colour.rgb;
+  FinalColour.a = 1.0f * DirectionalLight.Colour.a;
 }
