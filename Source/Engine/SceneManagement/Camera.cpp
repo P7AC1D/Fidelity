@@ -1,5 +1,6 @@
 #include "Camera.hpp"
 
+#include <cmath>
 #include "../Maths/Matrix3.hpp"
 #include "../Rendering/ConstantBuffer.h"
 
@@ -24,7 +25,7 @@ Camera::~Camera()
 void Camera::LookAt(const Vector3& position, const Vector3& target, const Vector3& up)
 {
   Vector3 camDir = Vector3::Normalize(target - position);
-  if (abs(Vector3::Dot(camDir, up)))
+  if (std::abs(Vector3::Dot(camDir, up)))
   {
     camDir += 0.00001f;
   }

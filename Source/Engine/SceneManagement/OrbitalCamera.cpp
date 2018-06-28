@@ -13,8 +13,8 @@ OrbitalCamera::~OrbitalCamera()
 void OrbitalCamera::RotateAboutTarget(const Degree& deltaX, const Degree& deltaY, int32 dtMs)
 {
   float32 velocity(_rotationAcceleration * static_cast<float32>(dtMs) * 0.001f);
-  Quaternion pitch(GetCameraRight(), velocity * deltaX);
-  Quaternion yaw(GetCameraUp(), velocity * deltaY);
+  Quaternion pitch(GetCameraRight(), velocity * deltaX.InRadians());
+  Quaternion yaw(GetCameraUp(), velocity * deltaY.InRadians());
   Quaternion rotation(Quaternion::Normalize(pitch * yaw));
   Vector3 newPosition(rotation.Rotate(GetPosition()));
   LookAt(newPosition, GetTarget());

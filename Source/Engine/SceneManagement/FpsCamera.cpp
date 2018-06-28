@@ -41,8 +41,8 @@ void FpsCamera::MoveBackward(int32 dtMs)
 void FpsCamera::Rotate(const Degree& deltaX, const Degree& deltaY, int32 dtMs)
 {
   float32 velocity(_lookAccel * dtMs * 0.001f);
-  Quaternion pitch(GetCameraRight(), velocity * deltaX);
-  Quaternion yaw(GetCameraUp(), velocity * deltaY);
+  Quaternion pitch(GetCameraRight(), velocity * deltaX.InRadians());
+  Quaternion yaw(GetCameraUp(), velocity * deltaY.InRadians());
   Quaternion rotation(pitch * yaw);
   Vector3 forward(GetTarget() - GetPosition());
   Vector3 newForward(rotation.Rotate(forward));
