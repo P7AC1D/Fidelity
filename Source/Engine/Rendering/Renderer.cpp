@@ -376,7 +376,8 @@ void Renderer::StartFrame()
   framData.ViewPosition = _activeCamera->GetPosition();
   _frameBuffer->WriteData(0, sizeof(FrameBufferData), &framData);
 	  
-	_renderDevice->SetConstantBuffer(0, _frameBuffer);
+	_renderDevice->SetConstantBuffer(0, _objectBuffer);
+	_renderDevice->SetConstantBuffer(1, _frameBuffer);
 	_renderDevice->SetSamplerState(0, _basicSamplerState);
 	_renderDevice->ClearBuffers(RTT_Colour | RTT_Depth | RTT_Stencil);
 }
@@ -399,6 +400,11 @@ void Renderer::GeometryPass()
 			auto mesh = renderable.Renderable->GetMeshAtIndex(i);
 			_renderDevice->SetTexture(0, mesh->GetMaterial()->GetTexture("DiffuseMap"));
 			_renderDevice->SetVertexBuffer(0, mesh->GetVertexData());
+
+			ObjectBufferData objData;
+			objData.Model = renderable.Transform->Get();
+			_objectBuffer->WriteData(0, sizeof(ObjectBufferData), &objData);
+
 			if (mesh->IsIndexed())
 			{
 				_renderDevice->SetIndexBuffer(mesh->GetIndexData());
