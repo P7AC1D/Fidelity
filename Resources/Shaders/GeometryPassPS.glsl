@@ -1,14 +1,16 @@
 #version 410
 
-in VsOut
+struct ShaderInterface
 {
-  mat3 TbnMtx;
   vec4 Position;
-  vec4 Normal;
   vec2 TexCoord;
+  vec4 Normal;
+  mat3 TbnMtx;
   vec3 PositionTS;
   vec3 ViewDirTS;
-} fsIn;
+};
+
+layout(location = 0) in ShaderInterface fsIn;
 
 uniform sampler2D DiffuseMap;
 

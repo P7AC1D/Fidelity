@@ -26,21 +26,23 @@ layout(std140) uniform FrameBuffer
   vec3 ViewPos;
 };
 
-out VsOut
+struct ShaderInterface
 {
-  mat3 TbnMtx;
   vec4 Position;
-  vec4 Normal;
   vec2 TexCoord;
+  vec4 Normal;
+  mat3 TbnMtx;
   vec3 PositionTS;
   vec3 ViewDirTS;
-} vsOut;
+};
 
 out gl_PerVertex {
   vec4 gl_Position;
   float gl_PointSize;
   float gl_ClipDistance[];
 };
+
+layout(location=0) out ShaderInterface vsOut;
 
 mat3 CalcTbnMatrix(vec3 normal, vec3 tangent, vec3 bitangent, mat4 model)
 {
@@ -52,10 +54,10 @@ mat3 CalcTbnMatrix(vec3 normal, vec3 tangent, vec3 bitangent, mat4 model)
 
 void main()
 {
-  vsOut.TbnMtx = CalcTbnMatrix(aNormal, aTangent, aBitangent, Model);
   vsOut.Position = Model * vec4(aPosition, 1.0f);
-  vsOut.Normal = Model * vec4(aNormal, 0.0f);
   vsOut.TexCoord = aTexCoord;
+  vsOut.Normal = Model * vec4(aNormal, 0.0f);
+  vsOut.TbnMtx = CalcTbnMatrix(aNormal, aTangent, aBitangent, Model);
   vsOut.PositionTS = vsOut.TbnMtx * vsOut.Position.xyz;
   vsOut.ViewDirTS = vsOut.TbnMtx * normalize(vsOut.Position.xyz - ViewPos);
   

@@ -20,19 +20,11 @@ layout(std140) uniform FrameBuffer
   vec3 ViewPos;
 };
 
-in VsOut
-{
-  mat3 TbnMtx;
-  vec4 Position;
-  vec4 Normal;
-  vec2 TexCoord;
-  vec3 PositionTS;
-  vec3 ViewDirTS;
-} fsIn;
-
 uniform sampler2D PositionMap;
 uniform sampler2D NormalMap;
 uniform sampler2D AlbedoSpecMap;
+
+layout(location = 0) in vec2 TexCoord;
 
 out vec4 FinalColour;
 
@@ -59,9 +51,9 @@ float CalcDirectionLightFactor(vec3 viewDir, vec3 lightDir, vec3 normal)
 
 void main()
 {
-  vec3 position = texture(PositionMap, fsIn.TexCoord).rgb;
-  vec3 normal = texture(NormalMap, fsIn.TexCoord).rgb;
-  vec3 albedo = texture(AlbedoSpecMap, fsIn.TexCoord).rgb;
+  vec3 position = texture(PositionMap, TexCoord).rgb;
+  vec3 normal = texture(NormalMap, TexCoord).rgb;
+  vec3 albedo = texture(AlbedoSpecMap, TexCoord).rgb;
   
   vec3 viewDir = normalize(ViewPos - position);
   float directionLightFactor = CalcDirectionLightFactor(viewDir, DirectionalLight.Direction, normal);

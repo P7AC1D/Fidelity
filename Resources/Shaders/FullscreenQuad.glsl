@@ -1,22 +1,14 @@
 #version 410
 
-in VsOut
-{
-  mat3 TbnMtx;
-  vec4 Position;
-  vec4 Normal;
-  vec2 TexCoord;
-  vec3 PositionTS;
-  vec3 ViewDirTS;
-} fsIn;
-
 uniform sampler2D QuadTexture;
+
+layout(location = 0) in vec2 TexCoord;
 
 out vec4 FinalColour;
 
 void main()
 {
-  vec3 diffuse = texture(QuadTexture, fsIn.TexCoord).rgb;
+  vec3 diffuse = texture(QuadTexture, TexCoord).rgb;
   FinalColour.rgb = diffuse;
   FinalColour.a = 1.0f;
 }
