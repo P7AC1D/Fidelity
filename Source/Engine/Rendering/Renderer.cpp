@@ -40,6 +40,7 @@ struct FrameBufferData
   Matrix4 Proj;
   Matrix4 View;
 	DirectionalLightData DirectionalLight;
+  Vector3 ViewPosition;
 };
 
 struct ObjectBufferData
@@ -67,7 +68,7 @@ Renderer::Renderer(const RendererDesc& desc) : _desc(desc)
     _renderDevice.reset(new GLRenderDevice(renderDeviceDesc));
     
     InitPipelineStates();
-    InitCameraBuffer();
+    InitFrameBuffer();
 		InitObjectBuffer();
 		InitFullscreenQuad();
 		InitLightingPass();
@@ -160,7 +161,7 @@ void Renderer::InitPipelineStates()
 	try
 	{
 		SamplerStateDesc desc;
-		desc.AddressingMode = AddressingMode{ TextureAddressMode::Wrap, TextureAddressMode::Wrap, TextureAddressMode::Wrap };
+    desc.AddressingMode = AddressingMode{ TextureAddressMode::Wrap, TextureAddressMode::Wrap, TextureAddressMode::Wrap };
 		desc.MinFiltering = TextureFilteringMode::Linear;
 		desc.MinFiltering = TextureFilteringMode::Linear;
 		desc.MipFiltering = TextureFilteringMode::Linear;
@@ -203,7 +204,7 @@ void Renderer::InitPipelineStates()
 	}
 }
 
-void Renderer::InitCameraBuffer()
+void Renderer::InitFrameBuffer()
 {
   try
   {
@@ -263,7 +264,7 @@ void Renderer::InitLightingPass()
 	shaderParams->AddParam(ShaderParam("FrameBuffer", ShaderParamType::ConstBuffer, 1));
 
 	RasterizerStateDesc rasterizerStateDesc;
-	rasterizerStateDesc.CullMode = CullMode::CounterClockwise;
+	rasterizerStateDesc.CullMode = CullMode::None;
 
 	try
 	{
@@ -345,7 +346,7 @@ void Renderer::InitGBufferDebugPass()
 	shaderParams->AddParam(ShaderParam("QuadTexture", ShaderParamType::Texture, 0));
 
 	RasterizerStateDesc rasterizerStateDesc;
-	rasterizerStateDesc.CullMode = CullMode::CounterClockwise;
+	rasterizerStateDesc.CullMode = CullMode::None;
 
 	try
 	{
@@ -372,6 +373,7 @@ void Renderer::StartFrame()
   framData.Proj = _activeCamera->GetProjection();
 	framData.DirectionalLight = _directionalLight;
   framData.View = _activeCamera->GetView();
+  framData.ViewPosition = _activeCamera->GetPosition();
   _frameBuffer->WriteData(0, sizeof(FrameBufferData), &framData);
 	  
 	_renderDevice->SetConstantBuffer(0, _frameBuffer);
@@ -388,7 +390,8 @@ void Renderer::GeometryPass()
 	_renderDevice->SetPipelineState(_geomPassPso);
 	_renderDevice->SetRenderTarget(_gBuffer);
 	_renderDevice->ClearBuffers(RTT_Colour | RTT_Depth | RTT_Stencil);
-
+  
+  _renderDevice->SetSamplerState(0, _basicSamplerState);
 	for (auto& renderable : _renderables)
 	{
 		for (uint32 i = 0; i < renderable.Renderable->GetMeshCount(); i++)

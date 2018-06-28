@@ -88,7 +88,7 @@ public:
   
 private:
   void InitPipelineStates();
-  void InitCameraBuffer();
+  void InitFrameBuffer();
 	void InitObjectBuffer();
 	void InitLightingPass();
 	void InitFullscreenQuad();

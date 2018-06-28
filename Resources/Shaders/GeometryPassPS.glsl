@@ -1,4 +1,4 @@
-#version 410 core
+#version 410
 
 in VsOut
 {
@@ -26,5 +26,5 @@ void main()
 {
   Position = fsIn.Position;
   Normal = fsIn.Normal;
-  Albedo = CorrectGamma(vec4(texture(DiffuseMap, fsIn.TexCoord)));
+  Albedo = CorrectGamma(texture(DiffuseMap, fsIn.TexCoord));
 }

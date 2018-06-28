@@ -1,7 +1,7 @@
 #version 410
 
-layout (location = 0) in vec2 TexCoord;
-layout (location = 1) in vec4 FragColour;
+layout(location = 0) in vec2 TexCoord;
+layout(location = 1) in vec4 FragColour;
 
 uniform sampler2D DiffuseMap;
 

@@ -1,4 +1,4 @@
-#version 410 core
+#version 410
 
 layout(location = 0) in vec3 aPosition;
 layout(location = 1) in vec3 aNormal;
@@ -13,12 +13,12 @@ struct DirectionalLightData
   float Intensity;
 };
 
-layout (std140) uniform ObjectBuffer
+layout(std140) uniform ObjectBuffer
 {
   mat4 Model;
 };
 
-layout (std140) uniform FrameBuffer
+layout(std140) uniform FrameBuffer
 {
   mat4 Projection;
   mat4 View;  
