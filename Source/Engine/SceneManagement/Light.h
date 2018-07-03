@@ -18,10 +18,10 @@ public:
   Light(LightType lightType, const std::string& name) :
     _name(name),
     _radius(1.0f),
+    _intensity(1.0f),
     _colour(Colour::White),
     _position(Vector3::Zero),
-    _direction(-Vector3::Identity),
-		_intensity(1.0f),
+    _direction(-Vector3::Normalize(Vector3::Identity)),
     _lightType(lightType)
   { }
 

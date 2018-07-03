@@ -430,6 +430,8 @@ void Renderer::LightingPass()
 	_renderDevice->SetSamplerState(1, _noMipSamplerState);
 	_renderDevice->SetSamplerState(2, _noMipSamplerState);
 	_renderDevice->SetVertexBuffer(0, _fsQuadBuffer);
+  _renderDevice->SetConstantBuffer(0, _objectBuffer);
+  _renderDevice->SetConstantBuffer(1, _frameBuffer);
 	_renderDevice->Draw(6, 0);
 }
 
