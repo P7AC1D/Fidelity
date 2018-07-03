@@ -7,6 +7,14 @@ struct DirectionalLightData
   float Intensity;
 };
 
+struct TextureMapFlags
+{
+  bool Diffuse;
+  bool Normal;
+  bool Specular;
+  bool Depth;
+};
+
 layout(std140) uniform ObjectBuffer
 {
   mat4 Model;
@@ -19,6 +27,15 @@ layout(std140) uniform FrameBuffer
   DirectionalLightData DirectionalLight;
   vec3 ViewPos;
 };
+
+layout(std140) uniform MaterialBuffer
+{  
+  TextureMapFlags Enabled;
+  vec4 AmbientColour;
+  vec4 DiffuseColour;
+  vec4 SpecularColour;  
+  float SpecularExponent;  
+} Material;
 
 uniform sampler2D PositionMap;
 uniform sampler2D NormalMap;
@@ -40,7 +57,6 @@ float CalcSpecularContribution(vec3 lightDir, vec3 viewDir, vec3 normal, float s
   return pow(max(dot(normal, halfwayDir), 0.0f), specularExponent);
 }
 
-
 float CalcDirectionLightFactor(vec3 viewDir, vec3 lightDir, vec3 normal)
 {
   float diffuseFactor = CalcDiffuseContribution(lightDir, normal);
@@ -48,6 +64,11 @@ float CalcDirectionLightFactor(vec3 viewDir, vec3 lightDir, vec3 normal)
   return diffuseFactor * specularFactor;
 }
 
+vec3 CorrectGamma(vec3 inputSample)
+{
+  const float GAMMA_INV = 1.0f / 2.2f;
+  return pow(inputSample, vec3(GAMMA_INV));
+}
 
 void main()
 {
@@ -58,6 +79,6 @@ void main()
   vec3 viewDir = normalize(ViewPos - position);
   float directionLightFactor = CalcDirectionLightFactor(viewDir, DirectionalLight.Direction, normal) * DirectionalLight.Intensity;
 
-  FinalColour.rgb = albedo * directionLightFactor * DirectionalLight.Colour.rgb;
-  FinalColour.a = 1.0f * DirectionalLight.Colour.a;
+  FinalColour.rgb = CorrectGamma(albedo) * directionLightFactor * DirectionalLight.Colour.rgb;
+  FinalColour.a = 1.0f;
 }

@@ -42,7 +42,7 @@ void Test3D::OnStart()
 	_sceneManager->SetDirectionLight(directionalLight);
   
   auto model = _sceneManager->CreateObject("sphere");
-  auto mesh = MeshFactory::CreateIcosphere();
+  auto mesh = MeshFactory::CreateCube();
 	auto diffuseTexture = TextureLoader::LoadFromFile2D("./../../Resources/Textures/brick_floor_tileable_Base_Color.jpg");
 	diffuseTexture->GenerateMips();
 	auto normalTexture = TextureLoader::LoadFromFile2D("./../../Resources/Textures/brick_floor_tileable_Normal.jpg");
