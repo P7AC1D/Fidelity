@@ -48,6 +48,21 @@ struct ObjectBufferData
 	Matrix4 Model;	
 };
 
+struct MaterialBufferData
+{
+	struct TextureMapFlagData
+	{
+		int32 Diffuse = 0;
+		int32 Normal = 0;
+		int32 Specular = 0;
+		int32 Depth = 0;
+	} EnabledTextureMaps;
+	Colour Ambient = Colour::White;
+	Colour Diffuse = Colour::White;
+	Colour Specular = Colour::White;
+	float32 SpecularExponent = 1.0f;
+};
+
 std::shared_ptr<RenderDevice> Renderer::_renderDevice;
 
 std::shared_ptr<RenderDevice> Renderer::GetRenderDevice()
@@ -70,6 +85,7 @@ Renderer::Renderer(const RendererDesc& desc) : _desc(desc)
     InitPipelineStates();
     InitFrameBuffer();
 		InitObjectBuffer();
+		InitMaterialBuffer();
 		InitFullscreenQuad();
 		InitLightingPass();
 		InitGBufferDebugPass();
@@ -134,7 +150,11 @@ void Renderer::InitPipelineStates()
   std::shared_ptr<ShaderParams> shaderParams(new ShaderParams());
 	shaderParams->AddParam(ShaderParam("ObjectBuffer", ShaderParamType::ConstBuffer, 0));
   shaderParams->AddParam(ShaderParam("FrameBuffer", ShaderParamType::ConstBuffer, 1));
+	shaderParams->AddParam(ShaderParam("MaterialBuffer", ShaderParamType::ConstBuffer, 2));
 	shaderParams->AddParam(ShaderParam("DiffuseMap", ShaderParamType::Texture, 0));
+	shaderParams->AddParam(ShaderParam("NormalMap", ShaderParamType::Texture, 1));
+	shaderParams->AddParam(ShaderParam("SpecularMap", ShaderParamType::Texture, 2));
+	shaderParams->AddParam(ShaderParam("DepthMap", ShaderParamType::Texture, 3));
   
 	RasterizerStateDesc rasterizerStateDesc;
 	rasterizerStateDesc.CullMode = CullMode::CounterClockwise;
@@ -233,6 +253,22 @@ void Renderer::InitObjectBuffer()
 	catch (const std::exception& exception)
 	{
 		throw std::runtime_error(std::string("Could not initialize object constant buffer\n") + exception.what());
+	}
+}
+
+void Renderer::InitMaterialBuffer()
+{
+	try
+	{
+		GpuBufferDesc perShaderBuffDesc;
+		perShaderBuffDesc.BufferType = BufferType::Constant;
+		perShaderBuffDesc.BufferUsage = BufferUsage::Dynamic;
+		perShaderBuffDesc.ByteCount = sizeof(MaterialBufferData);
+		_materialBuffer = _renderDevice->CreateGpuBuffer(perShaderBuffDesc);
+	}
+	catch (const std::exception& exception)
+	{
+		throw std::runtime_error(std::string("Could not initialize material constant buffer\n") + exception.what());
 	}
 }
 
@@ -375,10 +411,7 @@ void Renderer::StartFrame()
   framData.View = _activeCamera->GetView();
   framData.ViewPosition = _activeCamera->GetPosition();
   _frameBuffer->WriteData(0, sizeof(FrameBufferData), &framData);
-	  
-	_renderDevice->SetConstantBuffer(0, _objectBuffer);
-	_renderDevice->SetConstantBuffer(1, _frameBuffer);
-	_renderDevice->SetSamplerState(0, _basicSamplerState);
+
 	_renderDevice->ClearBuffers(RTT_Colour | RTT_Depth | RTT_Stencil);
 }
 
@@ -392,13 +425,18 @@ void Renderer::GeometryPass()
 	_renderDevice->SetRenderTarget(_gBuffer);
 	_renderDevice->ClearBuffers(RTT_Colour | RTT_Depth | RTT_Stencil);
   
+	_renderDevice->SetConstantBuffer(0, _objectBuffer);
+	_renderDevice->SetConstantBuffer(1, _frameBuffer);
+	_renderDevice->SetConstantBuffer(2, _materialBuffer);
   _renderDevice->SetSamplerState(0, _basicSamplerState);
 	for (auto& renderable : _renderables)
 	{
 		for (uint32 i = 0; i < renderable.Renderable->GetMeshCount(); i++)
 		{
 			auto mesh = renderable.Renderable->GetMeshAtIndex(i);
-			_renderDevice->SetTexture(0, mesh->GetMaterial()->GetTexture("DiffuseMap"));
+			auto material = mesh->GetMaterial();
+			SetMaterialData(material);
+
 			_renderDevice->SetVertexBuffer(0, mesh->GetVertexData());
 
 			ObjectBufferData objData;
@@ -443,4 +481,31 @@ void Renderer::GBufferDebugPass(uint32 i)
 	_renderDevice->SetSamplerState(0, _noMipSamplerState);
 	_renderDevice->SetVertexBuffer(0, _fsQuadBuffer);
 	_renderDevice->Draw(6, 0);
+}
+
+void Renderer::SetMaterialData(const std::shared_ptr<Material>& material)
+{
+	MaterialBufferData matData;
+	matData.Ambient = material->GetAmbientColour();
+	matData.Diffuse = material->GetDiffuseColour();
+	matData.Specular = material->GetSpecularColour();
+	matData.SpecularExponent = material->GetSpecularExponent();
+
+	auto diffuseTexture = material->GetTexture("DiffuseMap");
+	if (diffuseTexture)
+	{
+		matData.EnabledTextureMaps.Diffuse = 1;
+		_renderDevice->SetTexture(0, diffuseTexture);
+		_renderDevice->SetSamplerState(0, _basicSamplerState);
+	}
+
+	auto normalTexture = material->GetTexture("NormalMap");
+	if (normalTexture)
+	{
+		matData.EnabledTextureMaps.Normal = 1;
+		_renderDevice->SetTexture(1, normalTexture);
+		_renderDevice->SetSamplerState(1, _noMipSamplerState);
+	}
+
+	_materialBuffer->WriteData(0, sizeof(MaterialBufferData), &matData);
 }

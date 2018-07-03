@@ -10,9 +10,29 @@ struct ShaderInterface
   vec3 ViewDirTS;
 };
 
+struct TextureMapFlags
+{
+  bool Diffuse;
+  bool Normal;
+  bool Specular;
+  bool Depth;
+};
+
+layout(std140) uniform MaterialBuffer
+{  
+  TextureMapFlags Enabled;
+  vec4 AmbientColour;
+  vec4 DiffuseColour;
+  vec4 SpecularColour;  
+  float SpecularExponent;  
+} Material;
+
 layout(location = 0) in ShaderInterface fsIn;
 
 uniform sampler2D DiffuseMap;
+uniform sampler2D NormalMap;
+uniform sampler2D SpecularMap;
+uniform sampler2D DepthMap;
 
 layout(location = 0) out vec4 Position;
 layout(location = 1) out vec4 Normal;
@@ -26,7 +46,11 @@ vec4 CorrectGamma(vec4 inputSample)
 
 void main()
 {
+  vec4 diffuse = texture(DiffuseMap, fsIn.TexCoord) * vec4(Material.Enabled.Diffuse);
+  vec4 normal = texture(NormalMap, fsIn.TexCoord) * vec4(Material.Enabled.Normal)
+              + fsIn.Normal * (1.0f - vec4(Material.Enabled.Normal));
+
   Position = fsIn.Position;
-  Normal = fsIn.Normal;
-  Albedo = CorrectGamma(texture(DiffuseMap, fsIn.TexCoord));
+  Normal = normal;
+  Albedo = CorrectGamma(diffuse);
 }

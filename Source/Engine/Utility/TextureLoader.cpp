@@ -29,8 +29,7 @@ std::shared_ptr<Texture> TextureLoader::LoadFromFile2D(const std::string& path)
 		desc.Width = imageData->GetWidth();
 		desc.Height = imageData->GetHeight();
 		auto texture = Renderer::GetRenderDevice()->CreateTexture(desc);
-    texture->WriteData(0, 0, imageData);
-		texture->GenerateMips();
+    texture->WriteData(0, 0, imageData);		
     return texture;
 	}
 	catch (const std::exception& exception)

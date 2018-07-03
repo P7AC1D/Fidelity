@@ -18,6 +18,7 @@
 #include "../Engine/Rendering/Renderable.hpp"
 #include "../Engine/Rendering/Renderer.h"
 #include "../Engine/Rendering/StaticMesh.h"
+#include "../Engine/RenderApi/Texture.hpp"
 #include "../Engine/SceneManagement/Light.h"
 #include "../Engine/SceneManagement/FpsCamera.hpp"
 #include "../Engine/SceneManagement/OrbitalCamera.hpp"
@@ -32,7 +33,7 @@ Test3D::Test3D(const ApplicationDesc& desc):
 
 void Test3D::OnStart()
 {
-  _camera.reset(new OrbitalCamera(10.0f, 2.0f));
+  _camera.reset(new OrbitalCamera(5.0f, 10.0f));
   _camera->SetPerspective(Degree(67.67f), GetWidth(), GetHeight(), 0.1f, 1000.0f);
   _camera->LookAt(Vector3(4.0f, 4.0f, -4.0f), Vector3(0.0f, 0.0f, 0.0f));
   _sceneManager->SetCamera(_camera);
@@ -41,9 +42,12 @@ void Test3D::OnStart()
 	_sceneManager->SetDirectionLight(directionalLight);
   
   auto model = _sceneManager->CreateObject("sphere");
-  auto mesh = MeshFactory::CreateCube();
-	auto diffuseTexture = TextureLoader::LoadFromFile2D("./../../Resources/Textures/brickwall.jpg");
+  auto mesh = MeshFactory::CreateIcosphere();
+	auto diffuseTexture = TextureLoader::LoadFromFile2D("./../../Resources/Textures/brick_floor_tileable_Base_Color.jpg");
+	diffuseTexture->GenerateMips();
+	auto normalTexture = TextureLoader::LoadFromFile2D("./../../Resources/Textures/brick_floor_tileable_Normal.jpg");
 	mesh->GetMaterial()->SetTexture("DiffuseMap", diffuseTexture);
+	mesh->GetMaterial()->SetTexture("NormalMap", normalTexture);
   auto modelRenderable = std::make_shared<Renderable>();
   modelRenderable->PushMesh(mesh);
   model->AttachRenderable(modelRenderable);

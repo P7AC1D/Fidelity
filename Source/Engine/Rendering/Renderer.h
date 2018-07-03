@@ -7,6 +7,7 @@
 
 class Camera;
 class GpuBuffer;
+class Material;
 class PipelineState;
 class SamplerState;
 class RenderDevice;
@@ -90,6 +91,7 @@ private:
   void InitPipelineStates();
   void InitFrameBuffer();
 	void InitObjectBuffer();
+	void InitMaterialBuffer();
 	void InitLightingPass();
 	void InitFullscreenQuad();
 	void InitGBufferDebugPass();
@@ -101,6 +103,8 @@ private:
 	void LightingPass();
 	void GBufferDebugPass(uint32 i);
 
+	void SetMaterialData(const std::shared_ptr<Material>& material);
+
 private:
   static std::shared_ptr<RenderDevice> _renderDevice;
   RendererDesc _desc;
@@ -109,6 +113,7 @@ private:
 
   std::shared_ptr<GpuBuffer> _frameBuffer;
 	std::shared_ptr<GpuBuffer> _objectBuffer;
+	std::shared_ptr<GpuBuffer> _materialBuffer;
   std::shared_ptr<PipelineState> _geomPassPso;
 	std::shared_ptr<PipelineState> _lightPassPso;
 	std::shared_ptr<PipelineState> _gBufferDebugPso;
