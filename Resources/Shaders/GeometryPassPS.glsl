@@ -46,7 +46,7 @@ vec3 CorrectGamma(vec3 inputSample)
 
 vec4 CalculateDiffuse(vec4 diffuseSample, bool isDiffuseMapEnabled)
 {
-  return vec4(CorrectGamma(diffuseSample.rgb), 1.0f) * vec3(Material.Enabled.Diffuse);
+  return vec4(CorrectGamma(diffuseSample.rgb), 1.0f) * vec4(Material.Enabled.Diffuse);
 }
 
 vec4 CalculateNormal(vec4 normalSample, vec4 normal, bool isNormalMapEnabled)

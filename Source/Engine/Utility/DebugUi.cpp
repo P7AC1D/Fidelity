@@ -94,7 +94,7 @@ void DebugUi::Update()
 
 			auto target = camera->GetTarget();
 			float32 camTar[3] = { target.X, target.Y, target.Z };
-			ImGui::InputFloat3("Target", camPos, 3, ImGuiInputTextFlags_ReadOnly);
+			ImGui::InputFloat3("Target", camTar, 3, ImGuiInputTextFlags_ReadOnly);
 
 			auto euler = camera->GetOrientation().ToEuler();
 			float32 angles[3] = { (euler)->InDegrees(), (euler + 1)->InDegrees(), (euler + 2)->InDegrees() };
