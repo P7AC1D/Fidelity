@@ -13,7 +13,9 @@ static uint32 WorldObjectCount = 0;
 static uint32 LightCount = 0;
 
 SceneManager::SceneManager(const std::shared_ptr<Renderer>& renderer) :
-  _renderer(renderer)
+  _renderer(renderer),
+  _ambientLightColour(Colour::White),
+  _ambientLightIntensity(0.1f)
 {
 }
 
@@ -56,6 +58,27 @@ void SceneManager::SetDirectionLight(const std::shared_ptr<Light>& light)
 	_directionalLight = light;
 }
 
+void SceneManager::SetAmbientLightColour(const Colour& colour)
+{
+  _renderer->SetAmbientLight({ colour, _ambientLightIntensity });
+  _ambientLightColour = colour;
+}
+
+void SceneManager::SetAmbientLightIntensity(float32 intensity)
+{  
+  _ambientLightIntensity  = intensity;
+}
+
+Colour SceneManager::GetAmbientLightColour() const
+{
+  return _ambientLightColour;
+}
+
+float32 SceneManager::GetAmbientLightIntensity() const
+{
+  return _ambientLightIntensity;
+}
+
 std::shared_ptr<Camera> SceneManager::GetCamera() const
 {
   return _camera;
@@ -82,6 +105,7 @@ void SceneManager::UpdateWorldObjects(uint32 dtMs)
 
 void SceneManager::SubmitSceneToRender()
 {
+  _renderer->SetAmbientLight(AmbientLightData(_ambientLightColour, _ambientLightIntensity));
 	_renderer->SetDirectionalLight(DirectionalLightData(_directionalLight->GetColour(), _directionalLight->GetDirection(), _directionalLight->GetIntensity()));
   for (auto worldObject : _worldObjects)
   {

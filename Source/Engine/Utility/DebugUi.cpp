@@ -103,6 +103,20 @@ void DebugUi::Update()
 			ImGui::TreePop();
 		}
 
+    if (ImGui::TreeNode("Ambient Light"))
+    {
+      auto colour = _sceneManager->GetAmbientLightColour();
+      float32 col[3] = { colour[0], colour[1], colour[2] };
+      ImGui::ColorEdit3("Colour", col);
+      _sceneManager->SetAmbientLightColour(Colour(col[0] * 255, col[1] * 255, col[2] * 255));
+
+      auto intensity = _sceneManager->GetAmbientLightIntensity();
+      ImGui::SliderFloat("Intensity", &intensity, 0.0f, 1.0f);
+      _sceneManager->SetAmbientLightIntensity(intensity);
+
+      ImGui::TreePop();
+    }
+
 		if (ImGui::TreeNode("Directional Light"))
 		{
 			auto dirLight = _sceneManager->GetDirectionalLight();
@@ -122,7 +136,7 @@ void DebugUi::Update()
 			dirLight->SetIntensity(intensity);
 
 			ImGui::TreePop();
-		}
+		} 
 
 		ImGui::Separator();
 		ImGui::Checkbox("Demo Window", &show_demo_window);

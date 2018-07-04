@@ -35,6 +35,15 @@ struct DirectionalLightData
 	float32 Intensity;
 };
 
+struct AmbientLightData
+{
+  AmbientLightData() : Colour(Colour::White), Intensity(0.2f) {}
+  AmbientLightData(const Colour& colour, float32 intensity) : Colour(colour), Intensity(intensity) {}
+
+  Colour Colour;
+  float32 Intensity;
+};
+
 struct RenderableItem
 {
   RenderableItem(const std::shared_ptr<Renderable>& renderable, const std::shared_ptr<Transform>& transform):
@@ -79,7 +88,8 @@ public:
   uint32 GetRenderHeight() const { return _desc.RenderHeight; }
   
   void SetCamera(const std::shared_ptr<Camera>& camera) { _activeCamera = camera; }
-	void SetDirectionalLight(const DirectionalLightData& lightData) { _directionalLight = lightData; }
+	void SetDirectionalLight(const DirectionalLightData& directionalLightData) { _directionalLightData = directionalLightData; }
+  void SetAmbientLight(const AmbientLightData& ambientLightData) { _ambientLightData = ambientLightData; }
 
 	void EnableGBufferDebugPass(GBufferDisplayType gBufferDisplay) { _gBufferDisplay = gBufferDisplay; }
   
@@ -109,7 +119,8 @@ private:
   static std::shared_ptr<RenderDevice> _renderDevice;
   RendererDesc _desc;
 	GBufferDisplayType _gBufferDisplay;
-	DirectionalLightData _directionalLight;
+	DirectionalLightData _directionalLightData;
+  AmbientLightData _ambientLightData;
 
   std::shared_ptr<GpuBuffer> _frameBuffer;
 	std::shared_ptr<GpuBuffer> _objectBuffer;

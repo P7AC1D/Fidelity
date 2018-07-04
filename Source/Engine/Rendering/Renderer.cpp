@@ -40,7 +40,8 @@ struct FrameBufferData
   Matrix4 Proj;
   Matrix4 View;
 	DirectionalLightData DirectionalLight;
-  Vector3 ViewPosition;
+  Vector4 ViewPosition;
+  AmbientLightData AmbientLight;
 };
 
 struct ObjectBufferData
@@ -50,16 +51,16 @@ struct ObjectBufferData
 
 struct MaterialBufferData
 {
-	struct TextureMapFlagData
-	{
-		int32 Diffuse = 0;
-		int32 Normal = 0;
-		int32 Specular = 0;
-		int32 Depth = 0;
-	} EnabledTextureMaps;
 	Colour Ambient = Colour::White;
 	Colour Diffuse = Colour::White;
 	Colour Specular = Colour::White;
+  struct TextureMapFlagData
+  {
+    int32 Diffuse = 0;
+    int32 Normal = 0;
+    int32 Specular = 0;
+    int32 Depth = 0;
+  } EnabledTextureMaps;
 	float32 SpecularExponent = 1.0f;
 };
 
@@ -71,7 +72,8 @@ std::shared_ptr<RenderDevice> Renderer::GetRenderDevice()
 	return _renderDevice;
 }
 
-Renderer::Renderer(const RendererDesc& desc) : _desc(desc)
+Renderer::Renderer(const RendererDesc& desc) : 
+  _desc(desc)
 {
   try
   {
@@ -298,6 +300,7 @@ void Renderer::InitLightingPass()
 	shaderParams->AddParam(ShaderParam("AlbedoSpecMap", ShaderParamType::Texture, 2));
 	shaderParams->AddParam(ShaderParam("ObjectBuffer", ShaderParamType::ConstBuffer, 0));
 	shaderParams->AddParam(ShaderParam("FrameBuffer", ShaderParamType::ConstBuffer, 1));
+  shaderParams->AddParam(ShaderParam("MaterialBuffer", ShaderParamType::ConstBuffer, 2));
 
 	RasterizerStateDesc rasterizerStateDesc;
 	rasterizerStateDesc.CullMode = CullMode::None;
@@ -407,9 +410,10 @@ void Renderer::StartFrame()
 {
   FrameBufferData framData;
   framData.Proj = _activeCamera->GetProjection();
-	framData.DirectionalLight = _directionalLight;
+	framData.DirectionalLight = _directionalLightData;
+  framData.AmbientLight = _ambientLightData;
   framData.View = _activeCamera->GetView();
-  framData.ViewPosition = _activeCamera->GetPosition();
+  framData.ViewPosition = Vector4(_activeCamera->GetPosition(), 1.0f);
   _frameBuffer->WriteData(0, sizeof(FrameBufferData), &framData);
 
 	_renderDevice->ClearBuffers(RTT_Colour | RTT_Depth | RTT_Stencil);

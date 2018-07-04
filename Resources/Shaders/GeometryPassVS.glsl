@@ -13,6 +13,12 @@ struct DirectionalLightData
   float Intensity;
 };
 
+struct AmbientLightData
+{
+  vec4 Colour;
+  float Intensity;
+};
+
 layout(std140) uniform ObjectBuffer
 {
   mat4 Model;
@@ -23,7 +29,8 @@ layout(std140) uniform FrameBuffer
   mat4 Projection;
   mat4 View;  
   DirectionalLightData DirectionalLight;
-  vec3 ViewPos;
+  vec4 ViewPos;
+  AmbientLightData AmbientLight;
 };
 
 struct ShaderInterface
@@ -59,7 +66,7 @@ void main()
   vsOut.Normal = Model * vec4(aNormal, 0.0f);
   vsOut.TbnMtx = CalcTbnMatrix(aNormal, aTangent, aBitangent, Model);
   vsOut.PositionTS = vsOut.TbnMtx * vsOut.Position.xyz;
-  vsOut.ViewDirTS = vsOut.TbnMtx * normalize(vsOut.Position.xyz - ViewPos);
+  vsOut.ViewDirTS = vsOut.TbnMtx * normalize(vsOut.Position.xyz - ViewPos.xyz);
   
   gl_Position = Projection * View * vec4(aPosition, 1.0f);
 }
