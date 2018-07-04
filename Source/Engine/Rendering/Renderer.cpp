@@ -1,5 +1,6 @@
 #include "Renderer.h"
 
+#include <chrono>
 #include "../Maths/Matrix4.hpp"
 #include "../Utility/Assert.hpp"
 #include "../Utility/String.hpp"
@@ -105,6 +106,8 @@ void Renderer::PushRenderable(const std::shared_ptr<Renderable>& renderable, con
 
 void Renderer::DrawFrame()
 {
+  auto frameStart = std::chrono::high_resolution_clock::now();
+
   StartFrame();
 	GeometryPass();
 	switch (_gBufferDisplay)
@@ -124,6 +127,9 @@ void Renderer::DrawFrame()
 			break;
 	}		
 	EndFrame();
+
+  auto frameEnd = std::chrono::high_resolution_clock::now();
+  _renderTimings.Frame = std::chrono::duration_cast<std::chrono::nanoseconds>(frameEnd - frameStart).count();
 }
 
 void Renderer::InitPipelineStates()
@@ -425,6 +431,8 @@ void Renderer::EndFrame()
 
 void Renderer::GeometryPass()
 {
+  auto start = std::chrono::high_resolution_clock::now();
+
 	_renderDevice->SetPipelineState(_geomPassPso);
 	_renderDevice->SetRenderTarget(_gBuffer);
 	_renderDevice->ClearBuffers(RTT_Colour | RTT_Depth | RTT_Stencil);
@@ -459,10 +467,15 @@ void Renderer::GeometryPass()
 		}
 	}
 	_renderables.clear();
+
+  auto end = std::chrono::high_resolution_clock::now();
+  _renderTimings.GBuffer = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
 }
 
 void Renderer::LightingPass()
 {
+  auto start = std::chrono::high_resolution_clock::now();
+
 	_renderDevice->SetRenderTarget(nullptr);
 	_renderDevice->SetPipelineState(_lightPassPso);
 	_renderDevice->SetTexture(0, _gBuffer->GetColourTarget(0));
@@ -475,6 +488,9 @@ void Renderer::LightingPass()
   _renderDevice->SetConstantBuffer(0, _objectBuffer);
   _renderDevice->SetConstantBuffer(1, _frameBuffer);
 	_renderDevice->Draw(6, 0);
+
+  auto end = std::chrono::high_resolution_clock::now();
+  _renderTimings.Lighting = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
 }
 
 void Renderer::GBufferDebugPass(uint32 i)

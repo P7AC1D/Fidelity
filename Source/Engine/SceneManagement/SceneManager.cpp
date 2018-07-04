@@ -1,5 +1,6 @@
 #include "SceneManager.h"
 
+#include <chrono>
 #include "../Components/Component.h"
 #include "../Rendering/Renderer.h"
 #include "../SceneManagement/SceneManager.h"

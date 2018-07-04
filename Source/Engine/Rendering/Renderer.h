@@ -67,6 +67,14 @@ enum class GBufferDisplayType
 	Normal,
 	Albedo
 };
+
+// In nano-seconds
+struct RenderTimings
+{
+  uint64 Frame = 0;
+  uint64 GBuffer = 0;
+  uint64 Lighting = 0;
+};
   
 struct RendererDesc
 {
@@ -86,6 +94,7 @@ public:
   
   uint32 GetRenderWidth() const { return _desc.RenderWidth; }
   uint32 GetRenderHeight() const { return _desc.RenderHeight; }
+  RenderTimings GetFrameRenderTimings() const { return _renderTimings; }
   
   void SetCamera(const std::shared_ptr<Camera>& camera) { _activeCamera = camera; }
 	void SetDirectionalLight(const DirectionalLightData& directionalLightData) { _directionalLightData = directionalLightData; }
@@ -135,4 +144,6 @@ private:
 	std::shared_ptr<VertexBuffer> _fsQuadBuffer;
   
   std::vector<RenderableItem> _renderables;
+
+  RenderTimings _renderTimings;
 };

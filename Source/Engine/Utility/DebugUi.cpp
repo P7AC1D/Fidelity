@@ -145,9 +145,14 @@ void DebugUi::Update()
 		static int gBufferDebugCurrentItem = 0;
 		ImGui::Combo("G-Buffer Debug", &gBufferDebugCurrentItem, gBufferDebugItems, 4);
 		_renderer->EnableGBufferDebugPass(static_cast<GBufferDisplayType>(gBufferDebugCurrentItem));
+    ImGui::Separator();
 
-		ImGui::Separator();
-		ImGui::Text("Render Pass %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
+    {
+      auto frameTimings = _renderer->GetFrameRenderTimings();
+      ImGui::BulletText("Full Frame %.3f ms", static_cast<float32>(frameTimings.Frame * 1e-6f));
+      ImGui::BulletText("G-Buffer Pass %.3f ms", static_cast<float32>(frameTimings.GBuffer * 1e-6f));
+      ImGui::BulletText("Lighting Pass %.3f ms", static_cast<float32>(frameTimings.Lighting * 1e-6f));
+    }		
 
 		ImGui::End();
 	}
