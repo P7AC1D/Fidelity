@@ -511,5 +511,21 @@ void Renderer::SetMaterialData(const std::shared_ptr<Material>& material)
 		_renderDevice->SetSamplerState(1, _noMipSamplerState);
 	}
 
+  auto specularTexture = material->GetTexture("SpecularMap");
+  if (specularTexture)
+  {
+    matData.EnabledTextureMaps.Specular = 1;
+    _renderDevice->SetTexture(2, specularTexture);
+    _renderDevice->SetSamplerState(2, _noMipSamplerState);
+  }
+
+  auto depthTexture = material->GetTexture("DepthMap");
+  if (depthTexture)
+  {
+    matData.EnabledTextureMaps.Depth = 1;
+    _renderDevice->SetTexture(3, depthTexture);
+    _renderDevice->SetSamplerState(3, _noMipSamplerState);
+  }
+
 	_materialBuffer->WriteData(0, sizeof(MaterialBufferData), &matData);
 }

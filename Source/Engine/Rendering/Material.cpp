@@ -3,9 +3,11 @@
 #include "../RenderApi/Texture.hpp"
 
 Material::Material() :
-_castShadows(true),
-_specularColour(Colour::Black),
-_specularShininess(0.0)
+  _castShadows(true),
+  _ambientColour(Colour::White),
+  _diffuseColour(Colour::White),
+  _specularColour(Colour::White),
+  _specularShininess(1.0f)
 {}
 
 void Material::SetTexture(const std::string& name, std::shared_ptr<Texture> texture)

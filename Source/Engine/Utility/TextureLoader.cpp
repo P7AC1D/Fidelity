@@ -17,7 +17,7 @@ TextureFormat ToTextureFormat(ImageFormat imageFormat)
 	}
 }
 
-std::shared_ptr<Texture> TextureLoader::LoadFromFile2D(const std::string& path)
+std::shared_ptr<Texture> TextureLoader::LoadFromFile2D(const std::string& path, bool generateMips)
 {
 	try
 	{
@@ -29,7 +29,11 @@ std::shared_ptr<Texture> TextureLoader::LoadFromFile2D(const std::string& path)
 		desc.Width = imageData->GetWidth();
 		desc.Height = imageData->GetHeight();
 		auto texture = Renderer::GetRenderDevice()->CreateTexture(desc);
-    texture->WriteData(0, 0, imageData);		
+    texture->WriteData(0, 0, imageData);
+    if (generateMips)
+    {
+      texture->GenerateMips();
+    }
     return texture;
 	}
 	catch (const std::exception& exception)

@@ -43,11 +43,16 @@ void Test3D::OnStart()
   
   auto model = _sceneManager->CreateObject("sphere");
   auto mesh = MeshFactory::CreateCube();
-	auto diffuseTexture = TextureLoader::LoadFromFile2D("./../../Resources/Textures/brick_floor_tileable_Base_Color.jpg");
-	diffuseTexture->GenerateMips();
-	auto normalTexture = TextureLoader::LoadFromFile2D("./../../Resources/Textures/brick_floor_tileable_Normal.jpg");
-	mesh->GetMaterial()->SetTexture("DiffuseMap", diffuseTexture);
-	mesh->GetMaterial()->SetTexture("NormalMap", normalTexture);
+  auto material = mesh->GetMaterial();
+  material->SetSpecularShininess(4.0f);
+  auto diffuseTexture = TextureLoader::LoadFromFile2D("./../../Resources/Textures/brick_floor_tileable_Base_Color.jpg", true);
+  auto normalTexture = TextureLoader::LoadFromFile2D("./../../Resources/Textures/brick_floor_tileable_Normal.jpg");
+  auto specularTexture = TextureLoader::LoadFromFile2D("./../../Resources/Textures/brick_floor_tileable_Glossiness.jpg");
+  auto depthTexture = TextureLoader::LoadFromFile2D("./../../Resources/Textures/brick_floor_tileable_Displacement.jpg");
+  material->SetTexture("DiffuseMap", diffuseTexture);
+  material->SetTexture("NormalMap", normalTexture);
+  material->SetTexture("SpecularMap", specularTexture);
+  //material->SetTexture("DepthMap", depthTexture);
   auto modelRenderable = std::make_shared<Renderable>();
   modelRenderable->PushMesh(mesh);
   model->AttachRenderable(modelRenderable);

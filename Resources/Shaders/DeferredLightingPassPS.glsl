@@ -59,7 +59,6 @@ float CalcDiffuseContribution(vec3 lightDir, vec3 normal)
 
 float CalcSpecularContribution(vec3 lightDir, vec3 viewDir, vec3 normal, float specularExponent)
 {
-  vec3 reflectDir = reflect(lightDir, normal);
   vec3 halfwayDir = normalize(lightDir + viewDir);
   return pow(max(dot(normal, halfwayDir), 0.0f), specularExponent);
 }
@@ -75,6 +74,7 @@ void main()
   vec3 position = texture(PositionMap, TexCoord).rgb;
   vec3 normal = texture(NormalMap, TexCoord).rgb;
   vec3 albedo = texture(AlbedoSpecMap, TexCoord).rgb;
+  float specularSample = texture(AlbedoSpecMap, TexCoord).a;
   
   vec3 viewDir = normalize(ViewPos.xyz - position);
   
@@ -83,10 +83,8 @@ void main()
   
   vec3 ambient = Material.AmbientColour.rgb * AmbientLight.Colour.rgb * AmbientLight.Intensity;
   vec3 diffuse = DirectionalLight.Colour.rgb * Material.DiffuseColour.rgb * DirectionalLight.Intensity * diffuseFactor;
-  vec3 specular = DirectionalLight.Colour.rgb * Material.SpecularColour.rgb * DirectionalLight.Intensity * specularFactor;
-
-  vec3 lightSummation = ambient + diffuse + specular;
+  vec3 specular = DirectionalLight.Colour.rgb * Material.SpecularColour.rgb * DirectionalLight.Intensity * specularFactor * specularSample;  
   
-  FinalColour.rgb = CorrectGamma(albedo) * lightSummation;
+  FinalColour.rgb = CorrectGamma(albedo) * (ambient + diffuse + specular);
   FinalColour.a = 1.0f;
 }
