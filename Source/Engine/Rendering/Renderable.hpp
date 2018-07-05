@@ -1,23 +1,19 @@
 #pragma once
 #include <memory>
 #include <vector>
+#include "../SceneManagement/Component.hpp"
 
 class StaticMesh;
 
-class Renderable
+class Renderable : public Component
 {
 public:
-  Renderable();
+	void Update() override;
 
-  inline void CastShadows(bool castShadows) { _castShadows = castShadows; }
-  inline bool CastShadows() const { return _castShadows; }
+	void SetMesh(const std::shared_ptr<StaticMesh>& mesh);
 
-  void PushMesh(std::shared_ptr<StaticMesh> mesh);
-  std::shared_ptr<StaticMesh> GetMeshAtIndex(size_t index) const;
-
-  inline size_t GetMeshCount() const { return _subMeshes.size(); }
+	std::shared_ptr<StaticMesh> GetMesh() const;
 
 private:
-  std::vector<std::shared_ptr<StaticMesh>> _subMeshes;
-  bool _castShadows;
+  std::shared_ptr<StaticMesh> _mesh;  
 };

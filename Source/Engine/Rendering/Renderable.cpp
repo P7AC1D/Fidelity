@@ -1,21 +1,17 @@
 #include "Renderable.hpp"
 
-#include <cassert>
-
 #include "StaticMesh.h"
 
-Renderable::Renderable():
-_castShadows(true)
+void Renderable::Update()
 {
 }
 
-void Renderable::PushMesh(std::shared_ptr<StaticMesh> mesh)
+void Renderable::SetMesh(const std::shared_ptr<StaticMesh>& mesh)
 {
-  _subMeshes.push_back(mesh);
+	_mesh = mesh;
 }
 
-std::shared_ptr<StaticMesh> Renderable::GetMeshAtIndex(size_t index) const
+std::shared_ptr<StaticMesh> Renderable::GetMesh() const
 {
-  assert(index < _subMeshes.size());
-  return _subMeshes[index];
+	return _mesh;
 }

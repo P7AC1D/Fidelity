@@ -3,7 +3,6 @@
 #include <iomanip>
 #include <sstream>
 
-#include "../Engine/Components/Component.h"
 #include "../Engine/Geometry/MeshFactory.h"
 #include "../Engine/Input/InputHandler.hpp"
 #include "../Engine/Input/EventDispatcher.hpp"
@@ -19,10 +18,13 @@
 #include "../Engine/Rendering/Renderer.h"
 #include "../Engine/Rendering/StaticMesh.h"
 #include "../Engine/RenderApi/Texture.hpp"
+#include "../Engine/SceneManagement/Component.hpp"
 #include "../Engine/SceneManagement/Light.h"
+#include "../Engine/SceneManagement/Actor.hpp"
 #include "../Engine/SceneManagement/FpsCamera.hpp"
 #include "../Engine/SceneManagement/OrbitalCamera.hpp"
 #include "../Engine/SceneManagement/SceneManager.h"
+#include "../Engine/SceneManagement/SceneNode.hpp"
 #include "../Engine/SceneManagement/Transform.h"
 #include "../Engine/SceneManagement/WorldObject.h"
 
@@ -41,8 +43,11 @@ void Test3D::OnStart()
 	auto directionalLight = _sceneManager->CreateLight(LightType::Directional, "DirectionLight");
 	_sceneManager->SetDirectionLight(directionalLight);
   
-  auto model = _sceneManager->CreateObject("sphere");
+	auto rootSceneNode = _sceneManager->GetRootSceneNode();
+	auto actor = rootSceneNode->CreateActor("test_model");
+	auto renderable = actor->CreateComponent<Renderable>();
   auto mesh = MeshFactory::CreateCube();
+	renderable->SetMesh(mesh);
   auto material = mesh->GetMaterial();
   material->SetSpecularShininess(4.0f);
   auto diffuseTexture = TextureLoader::LoadFromFile2D("./../../Resources/Textures/brick_floor_tileable_Base_Color.jpg", true);
@@ -53,10 +58,7 @@ void Test3D::OnStart()
   material->SetTexture("NormalMap", normalTexture);
   material->SetTexture("SpecularMap", specularTexture);
   //material->SetTexture("DepthMap", depthTexture);
-  auto modelRenderable = std::make_shared<Renderable>();
-  modelRenderable->PushMesh(mesh);
-  model->AttachRenderable(modelRenderable);
-
+	
   _inputHandler->BindButtonToState("ActivateCameraLook", Button::Button_RMouse);
 	_inputHandler->BindAxisToState("CameraZoom", Axis::MouseScrollXY);
   _inputHandler->BindAxisToState("CameraLook", Axis::MouseXY);

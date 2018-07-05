@@ -1,35 +1,23 @@
 #include "SceneManager.h"
 
 #include <chrono>
-#include "../Components/Component.h"
+#include "../Rendering/Renderable.hpp"
 #include "../Rendering/Renderer.h"
-#include "../SceneManagement/SceneManager.h"
-#include "../SceneManagement/WorldObject.h"
 #include "../Utility/Assert.hpp"
 #include "../Utility/String.hpp"
+#include "Actor.hpp"
 #include "Camera.hpp"
-#include "WorldObject.h"
+#include "SceneNode.hpp"
 
 static uint32 WorldObjectCount = 0;
 static uint32 LightCount = 0;
 
 SceneManager::SceneManager(const std::shared_ptr<Renderer>& renderer) :
-  _renderer(renderer),
+	_renderer(renderer),
+	_sceneGraph(new SceneNode("root")),
   _ambientLightColour(Colour::White),
   _ambientLightIntensity(0.1f)
 {
-}
-
-std::shared_ptr<WorldObject> SceneManager::CreateObject(const std::string& name)
-{
-  std::string objectName(name); 
-  if (name == std::string())
-  {
-    objectName = "WorldObject" + std::to_string(WorldObjectCount);
-    WorldObjectCount++;
-  }
-  _worldObjects.emplace_back(std::make_shared<WorldObject>(objectName));
-  return _worldObjects.back();
 }
 
 std::shared_ptr<Light> SceneManager::CreateLight(LightType lightType, const std::string& name)
@@ -70,6 +58,11 @@ void SceneManager::SetAmbientLightIntensity(float32 intensity)
   _ambientLightIntensity  = intensity;
 }
 
+std::shared_ptr<SceneNode> SceneManager::GetRootSceneNode() const
+{
+	return _sceneGraph;
+}
+
 Colour SceneManager::GetAmbientLightColour() const
 {
   return _ambientLightColour;
@@ -92,35 +85,16 @@ std::shared_ptr<Light> SceneManager::GetDirectionalLight() const
 
 void SceneManager::UpdateScene(uint32 dtMs)
 {
-  UpdateWorldObjects(dtMs);
   SubmitSceneToRender();
-}
-
-void SceneManager::UpdateWorldObjects(uint32 dtMs)
-{
-  for (auto worldObject : _worldObjects)
-  {
-    worldObject->Update();
-  }
 }
 
 void SceneManager::SubmitSceneToRender()
 {
   _renderer->SetAmbientLight(AmbientLightData(_ambientLightColour, _ambientLightIntensity));
 	_renderer->SetDirectionalLight(DirectionalLightData(_directionalLight->GetColour(), _directionalLight->GetDirection(), _directionalLight->GetIntensity()));
-  for (auto worldObject : _worldObjects)
-  {
-    auto renderable = worldObject->GetRenderable();
-    if (renderable != nullptr)
-    {
-      auto transform = worldObject->GetTransform();
-      _renderer->PushRenderable(renderable, transform);
-    }
-
-    auto lightComponent = worldObject->GetComponent("Light");
-    if (lightComponent != nullptr)
-    {
-      auto light = std::dynamic_pointer_cast<Light>(lightComponent);
-    }
-  }
+  
+	for (auto actor : _sceneGraph->GetAllActors())
+	{
+		_renderer->PushRenderable(actor->GetComponent<Renderable>(), actor->GetTransform());
+	}
 }

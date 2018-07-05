@@ -1,9 +1,3 @@
-file(GLOB ComponentsSrc 
-	${CMAKE_CURRENT_SOURCE_DIR}/Components/*.h 
-	${CMAKE_CURRENT_SOURCE_DIR}/Components/*.hpp
-	${CMAKE_CURRENT_SOURCE_DIR}/Components/*.cpp
-	)
-	
 file(GLOB CoreSrc 
 	${CMAKE_CURRENT_SOURCE_DIR}/Core/*.h 
 	${CMAKE_CURRENT_SOURCE_DIR}/Core/*.hpp
@@ -82,7 +76,6 @@ file(GLOB ShaderSrc
 	${CMAKE_CURRENT_SOURCE_DIR}/Shaders/*.shader
 	)
 
-source_group(Components FILES ${ComponentsSrc})
 source_group(Core FILES ${CoreSrc})
 source_group(Images FILES ${ImageSrc})
 source_group(Maths FILES ${MathsSrc})
@@ -105,4 +98,4 @@ IF (APPLE)
 include_directories(${OPENGL_INCLUDE_DIRS})
 ENDIF()
 
-add_library(Engine STATIC ${ComponentsSrc} ${CoreSrc} ${GeometrySrc} ${ImageSrc} ${MathsSrc} ${OverlaySrc} ${RenderApiSrc} ${RenderApiGLSrc} ${RenderingSrc} ${SceneManagementSrc} ${UtilitySrc} ${UtilityImGuiSrc} ${ShaderSrc} ${InputSrc})
+add_library(Engine STATIC ${CoreSrc} ${GeometrySrc} ${ImageSrc} ${MathsSrc} ${OverlaySrc} ${RenderApiSrc} ${RenderApiGLSrc} ${RenderingSrc} ${SceneManagementSrc} ${UtilitySrc} ${UtilityImGuiSrc} ${ShaderSrc} ${InputSrc})

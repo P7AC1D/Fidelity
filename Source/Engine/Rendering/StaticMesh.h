@@ -2,7 +2,6 @@
 #include <memory>
 #include <vector>
 
-#include "../Components/Component.h"
 #include "../Core/Types.hpp"
 #include "../Maths/Vector2.hpp"
 #include "../Maths/Vector3.hpp"

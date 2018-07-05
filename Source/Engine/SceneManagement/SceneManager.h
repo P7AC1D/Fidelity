@@ -8,14 +8,13 @@
 
 class Camera;
 class Renderer;
-class WorldObject;
+class SceneNode;
 
 class SceneManager
 {
 public:
   SceneManager(const std::shared_ptr<Renderer>& renderer);
 
-  std::shared_ptr<WorldObject> CreateObject(const std::string& name = std::string());  
   std::shared_ptr<Light> CreateLight(LightType lightType, const std::string& name = std::string());
 
 	void SetCamera(const std::shared_ptr<Camera>& camera);
@@ -23,6 +22,7 @@ public:
   void SetAmbientLightColour(const Colour& colour);
   void SetAmbientLightIntensity(float32 intensity);
 
+	std::shared_ptr<SceneNode> GetRootSceneNode() const;
   std::shared_ptr<Camera> GetCamera() const;
 	std::shared_ptr<Light> GetDirectionalLight() const;
   Colour GetAmbientLightColour() const;
@@ -35,7 +35,7 @@ private:
   void SubmitSceneToRender();
 
 private:
-  std::vector<std::shared_ptr<WorldObject>> _worldObjects;
+	std::shared_ptr<SceneNode> _sceneGraph;
   std::vector<std::shared_ptr<Light>> _lights;
 	std::shared_ptr<Light> _directionalLight;
   std::shared_ptr<Renderer> _renderer;

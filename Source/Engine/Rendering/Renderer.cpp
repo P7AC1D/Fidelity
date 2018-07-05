@@ -101,7 +101,7 @@ Renderer::Renderer(const RendererDesc& desc) :
 
 void Renderer::PushRenderable(const std::shared_ptr<Renderable>& renderable, const std::shared_ptr<Transform>& transform)
 {
-  _renderables.emplace_back(renderable, transform);
+  _renderables.push_back(RenderableItem(renderable, transform));
 }
 
 void Renderer::DrawFrame()
@@ -443,27 +443,24 @@ void Renderer::GeometryPass()
   _renderDevice->SetSamplerState(0, _basicSamplerState);
 	for (auto& renderable : _renderables)
 	{
-		for (uint32 i = 0; i < renderable.Renderable->GetMeshCount(); i++)
+		auto mesh = renderable.Renderable->GetMesh();
+		auto material = mesh->GetMaterial();
+		SetMaterialData(material);
+
+		_renderDevice->SetVertexBuffer(0, mesh->GetVertexData());
+
+		ObjectBufferData objData;
+		objData.Model = renderable.Transform->Get();
+		_objectBuffer->WriteData(0, sizeof(ObjectBufferData), &objData);
+
+		if (mesh->IsIndexed())
 		{
-			auto mesh = renderable.Renderable->GetMeshAtIndex(i);
-			auto material = mesh->GetMaterial();
-			SetMaterialData(material);
-
-			_renderDevice->SetVertexBuffer(0, mesh->GetVertexData());
-
-			ObjectBufferData objData;
-			objData.Model = renderable.Transform->Get();
-			_objectBuffer->WriteData(0, sizeof(ObjectBufferData), &objData);
-
-			if (mesh->IsIndexed())
-			{
-				_renderDevice->SetIndexBuffer(mesh->GetIndexData());
-				_renderDevice->DrawIndexed(mesh->GetIndexCount(), 0, 0);
-			}
-			else
-			{
-				_renderDevice->Draw(mesh->GetVertexCount(), 0);
-			}
+			_renderDevice->SetIndexBuffer(mesh->GetIndexData());
+			_renderDevice->DrawIndexed(mesh->GetIndexCount(), 0, 0);
+		}
+		else
+		{
+			_renderDevice->Draw(mesh->GetVertexCount(), 0);
 		}
 	}
 	_renderables.clear();
