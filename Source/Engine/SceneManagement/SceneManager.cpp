@@ -4,17 +4,17 @@
 #include "../Rendering/Renderable.hpp"
 #include "../Rendering/Renderer.h"
 #include "../Utility/Assert.hpp"
+#include "../Utility/ModelLoader.hpp"
 #include "../Utility/String.hpp"
 #include "Actor.hpp"
 #include "Camera.hpp"
 #include "SceneNode.hpp"
 
-static uint32 WorldObjectCount = 0;
 static uint32 LightCount = 0;
 
 SceneManager::SceneManager(const std::shared_ptr<Renderer>& renderer) :
-	_renderer(renderer),
-	_sceneGraph(new SceneNode("root")),
+  _sceneGraph(new SceneNode("root")),
+  _renderer(renderer),
   _ambientLightColour(Colour::White),
   _ambientLightIntensity(0.1f)
 {
@@ -32,6 +32,13 @@ std::shared_ptr<Light> SceneManager::CreateLight(LightType lightType, const std:
 	std::shared_ptr<Light> light(new Light(lightType, name));
 	_lights.push_back(light);
 	return light;
+}
+
+std::shared_ptr<SceneNode> SceneManager::LoadModelFromFile(const std::string& filePath)
+{
+  std::shared_ptr<SceneNode> modelNode = ModelLoader::LoadFromFile(filePath);
+  _sceneGraph->AddChildNode(modelNode);
+  return modelNode;
 }
 
 void SceneManager::SetCamera(const std::shared_ptr<Camera>& camera)

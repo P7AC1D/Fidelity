@@ -26,7 +26,6 @@
 #include "../Engine/SceneManagement/SceneManager.h"
 #include "../Engine/SceneManagement/SceneNode.hpp"
 #include "../Engine/SceneManagement/Transform.h"
-#include "../Engine/SceneManagement/WorldObject.h"
 
 Test3D::Test3D(const ApplicationDesc& desc):
   Application(desc)
@@ -43,21 +42,21 @@ void Test3D::OnStart()
 	auto directionalLight = _sceneManager->CreateLight(LightType::Directional, "DirectionLight");
 	_sceneManager->SetDirectionLight(directionalLight);
   
-	auto rootSceneNode = _sceneManager->GetRootSceneNode();
-	auto actor = rootSceneNode->CreateActor("test_model");
-	auto renderable = actor->CreateComponent<Renderable>();
-  auto mesh = MeshFactory::CreateCube();
-	renderable->SetMesh(mesh);
-  auto material = mesh->GetMaterial();
-  material->SetSpecularShininess(4.0f);
-  auto diffuseTexture = TextureLoader::LoadFromFile2D("./../../Resources/Textures/brick_floor_tileable_Base_Color.jpg", true);
-  auto normalTexture = TextureLoader::LoadFromFile2D("./../../Resources/Textures/brick_floor_tileable_Normal.jpg");
-  auto specularTexture = TextureLoader::LoadFromFile2D("./../../Resources/Textures/brick_floor_tileable_Glossiness.jpg");
-  auto depthTexture = TextureLoader::LoadFromFile2D("./../../Resources/Textures/brick_floor_tileable_Displacement.jpg");
-  material->SetTexture("DiffuseMap", diffuseTexture);
-  material->SetTexture("NormalMap", normalTexture);
-  material->SetTexture("SpecularMap", specularTexture);
-  //material->SetTexture("DepthMap", depthTexture);
+  _sceneManager->LoadModelFromFile("./../../Resources/Models/LowPolyStuff/Oak_Tree.3ds");
+  
+//  auto rootSceneNode = _sceneManager->GetRootSceneNode();
+//  auto actor = rootSceneNode->CreateActor("test_model");
+//  auto renderable = actor->CreateComponent<Renderable>();
+//  auto mesh = MeshFactory::CreateCube();
+//  renderable->SetMesh(mesh);
+//  auto material = mesh->GetMaterial();
+//  material->SetSpecularShininess(4.0f);
+//  auto diffuseTexture = TextureLoader::LoadFromFile2D("./../../Resources/Textures/brick_floor_tileable_Base_Color.jpg", true);
+//  auto normalTexture = TextureLoader::LoadFromFile2D("./../../Resources/Textures/brick_floor_tileable_Normal.jpg");
+//  auto specularTexture = TextureLoader::LoadFromFile2D("./../../Resources/Textures/brick_floor_tileable_Glossiness.jpg");
+//  material->SetTexture("DiffuseMap", diffuseTexture);
+//  material->SetTexture("NormalMap", normalTexture);
+//  material->SetTexture("SpecularMap", specularTexture);
 	
   _inputHandler->BindButtonToState("ActivateCameraLook", Button::Button_RMouse);
 	_inputHandler->BindAxisToState("CameraZoom", Axis::MouseScrollXY);

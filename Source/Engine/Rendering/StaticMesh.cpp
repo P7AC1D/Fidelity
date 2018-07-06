@@ -6,8 +6,7 @@
 #include "Material.h"
 #include "Renderer.h"
 
-StaticMesh::StaticMesh(const std::string& meshName) :
-  _name(meshName),
+StaticMesh::StaticMesh() :
   _material(new Material),
   _vertexDataFormat(0),
   _vertexCount(0),

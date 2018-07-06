@@ -52,9 +52,6 @@ struct ObjectBufferData
 
 struct MaterialBufferData
 {
-	Colour Ambient = Colour::White;
-	Colour Diffuse = Colour::White;
-	Colour Specular = Colour::White;
   struct TextureMapFlagData
   {
     int32 Diffuse = 0;
@@ -62,6 +59,9 @@ struct MaterialBufferData
     int32 Specular = 0;
     int32 Depth = 0;
   } EnabledTextureMaps;
+  Colour Ambient = Colour::White;
+  Colour Diffuse = Colour::White;
+  Colour Specular = Colour::White;
 	float32 SpecularExponent = 1.0f;
 };
 

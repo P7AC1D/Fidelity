@@ -37,10 +37,10 @@ layout(std140) uniform FrameBuffer
 
 layout(std140) uniform MaterialBuffer
 {   
+  TextureMapFlags Enabled;
   vec4 AmbientColour;
   vec4 DiffuseColour;
-  vec4 SpecularColour;  
-  TextureMapFlags Enabled;
+  vec4 SpecularColour;
   float SpecularExponent;  
 } Material;
 
@@ -82,8 +82,8 @@ void main()
   float specularFactor = CalcSpecularContribution(DirectionalLight.Direction, viewDir, normal, Material.SpecularExponent);
   
   vec3 ambient = Material.AmbientColour.rgb * AmbientLight.Colour.rgb * AmbientLight.Intensity;
-  vec3 diffuse = DirectionalLight.Colour.rgb * Material.DiffuseColour.rgb * DirectionalLight.Intensity * diffuseFactor;
-  vec3 specular = DirectionalLight.Colour.rgb * Material.SpecularColour.rgb * DirectionalLight.Intensity * specularFactor * specularSample;  
+  vec3 diffuse = DirectionalLight.Colour.rgb * DirectionalLight.Intensity * diffuseFactor;
+  vec3 specular = DirectionalLight.Colour.rgb * DirectionalLight.Intensity * specularFactor * specularSample;
   
   FinalColour.rgb = CorrectGamma(albedo) * (ambient + diffuse + specular);
   FinalColour.a = 1.0f;

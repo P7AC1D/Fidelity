@@ -19,11 +19,11 @@ struct TextureMapFlags
 };
 
 layout(std140) uniform MaterialBuffer
-{  
+{
   TextureMapFlags Enabled;
   vec4 AmbientColour;
   vec4 DiffuseColour;
-  vec4 SpecularColour;  
+  vec4 SpecularColour;
   float SpecularExponent;  
 } Material;
 
@@ -75,28 +75,38 @@ vec3 CorrectGamma(vec3 inputSample)
   return pow(inputSample, vec3(GAMMA));
 }
 
-vec4 CalculateSpecular(vec4 specularSample, bool isSpecularMapEnabled)
+vec4 CalculateSpecular(vec4 specularSample, vec4 materialColour, bool isSpecularMapEnabled)
 {
-  return specularSample * vec4(isSpecularMapEnabled);
+  if (isSpecularMapEnabled)
+  {
+    return specularSample * materialColour;
+  }
+  return materialColour;
 }
 
-vec4 CalculateDiffuse(vec4 diffuseSample, bool isDiffuseMapEnabled)
+vec4 CalculateDiffuse(vec4 diffuseSample, vec4 materialColour, bool isDiffuseMapEnabled)
 {
-  return vec4(CorrectGamma(diffuseSample.rgb), 1.0f) * vec4(Material.Enabled.Diffuse);
+  if (isDiffuseMapEnabled)
+  {
+    return vec4(CorrectGamma(diffuseSample.rgb), 1.0f) * materialColour;
+  }
+  return materialColour;
 }
 
 vec4 CalculateNormal(vec4 normalSample, vec4 normal, bool isNormalMapEnabled)
 {
-  vec4 correctedNormalSample = normalize(normalSample * 2.0f - 1.0f);
-  vec4 correctedNormalSampleTbn = vec4(fsIn.TbnMtx * correctedNormalSample.xyz, 0.0f);
-  
-  return correctedNormalSampleTbn * vec4(isNormalMapEnabled) + normal * (1.0f - vec4(isNormalMapEnabled));
+  if (isNormalMapEnabled)
+  {
+    vec4 correctedNormalSample = normalize(normalSample * 2.0f - 1.0f);
+    return vec4(fsIn.TbnMtx * correctedNormalSample.xyz, 0.0f);
+  }
+  return normal;
 }
 
 void main()
 {
   vec3 viewDir = normalize(fsIn.ViewDirTS - fsIn.PositionTS); 
-  vec2 parallaxTexCoord = CalcParallaxTexCoords(fsIn.TexCoord, viewDir, Material.Enabled.Depth); 
+  //vec2 parallaxTexCoord = CalcParallaxTexCoords(fsIn.TexCoord, viewDir, Material.Enabled.Depth);
 
   vec4 diffuseSample = texture(DiffuseMap, fsIn.TexCoord);  
   vec4 normalSample = texture(NormalMap, fsIn.TexCoord);
@@ -104,6 +114,6 @@ void main()
 
   Position = fsIn.Position;
   Normal = CalculateNormal(normalSample, fsIn.Normal, Material.Enabled.Normal);
-  Albedo.rgb = CalculateDiffuse(diffuseSample, Material.Enabled.Diffuse).rgb;
-  Albedo.a = CalculateSpecular(specularSample, Material.Enabled.Specular).r;
+  Albedo.rgb = CalculateDiffuse(diffuseSample, Material.DiffuseColour, Material.Enabled.Diffuse).rgb;
+  Albedo.a = CalculateSpecular(specularSample, Material.SpecularColour, Material.Enabled.Specular).r;
 }

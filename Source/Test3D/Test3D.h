@@ -2,7 +2,6 @@
 #include <memory>
 
 #include "../Engine/Core/Application.h"
-#include "../Engine/SceneManagement/WorldObject.h"
 
 class Light;
 class OrbitalCamera;

@@ -13,7 +13,7 @@
 std::shared_ptr<StaticMesh> MeshFactory::CreateCube()
 {
   Cube cube;
-  auto mesh = std::make_shared<StaticMesh>("Cube");
+  auto mesh = std::make_shared<StaticMesh>();
   mesh->SetPositionVertexData(cube.GetPositions());
   mesh->SetTextureVertexData(cube.GetTexCoords());
   mesh->SetIndexData(cube.GetIndices());
@@ -54,7 +54,7 @@ std::shared_ptr<StaticMesh> MeshFactory::CreatePlane(uint32 density)
       texCoords.emplace_back(1.0f, 0.0f);
     }
   }
-  auto mesh = std::make_shared<StaticMesh>("Plane");
+  auto mesh = std::make_shared<StaticMesh>();
   mesh->SetPositionVertexData(positions);
   mesh->SetNormalVertexData(normals);
   mesh->SetTextureVertexData(texCoords);
@@ -64,7 +64,7 @@ std::shared_ptr<StaticMesh> MeshFactory::CreatePlane(uint32 density)
 std::shared_ptr<StaticMesh> MeshFactory::CreateIcosphere(uint32 recursionCount)
 {
   Icosphere icosphere(recursionCount);
-  auto mesh = std::make_shared<StaticMesh>("Icosphere");
+  auto mesh = std::make_shared<StaticMesh>();
   mesh->SetPositionVertexData(icosphere.GetPositions());  
   mesh->SetTextureVertexData(icosphere.GetTexCoords());
   mesh->SetIndexData(icosphere.GetIndices());

@@ -13,7 +13,7 @@ class VertexBuffer;
 class StaticMesh
 {
 public:
-  StaticMesh(const std::string& meshName);
+  StaticMesh();
 
   void SetPositionVertexData(const std::vector<Vector3>& positionData);
   void SetNormalVertexData(const std::vector<Vector3>& normalData);
@@ -58,7 +58,6 @@ private:
     Bitanget = 1 << 4
   };
 
-  std::string _name;
   std::shared_ptr<IndexBuffer> _indexBuffer;
   std::shared_ptr<Material> _material;
   std::shared_ptr<VertexBuffer> _vertexBuffer;
