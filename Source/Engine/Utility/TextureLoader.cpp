@@ -5,6 +5,8 @@
 #include "../RenderApi/Texture.hpp"
 #include "../Rendering/Renderer.h"
 
+std::unordered_map<std::string, std::shared_ptr<Texture>> TextureLoader::_cachedTextures;
+
 TextureFormat ToTextureFormat(ImageFormat imageFormat)
 {
 	switch (imageFormat)
@@ -19,6 +21,12 @@ TextureFormat ToTextureFormat(ImageFormat imageFormat)
 
 std::shared_ptr<Texture> TextureLoader::LoadFromFile2D(const std::string& path, bool generateMips)
 {
+	auto iter = _cachedTextures.find(path);
+	if (iter != _cachedTextures.end())
+	{
+		return iter->second;
+	}
+
 	try
 	{
 		auto imageData = ImageLoader::LoadFromFile(path);
@@ -34,6 +42,7 @@ std::shared_ptr<Texture> TextureLoader::LoadFromFile2D(const std::string& path, 
     {
       texture->GenerateMips();
     }
+		_cachedTextures[path] = texture;
     return texture;
 	}
 	catch (const std::exception& exception)

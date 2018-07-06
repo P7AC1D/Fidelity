@@ -21,10 +21,12 @@ std::shared_ptr<ImageData> ImageLoader::LoadFromFile(const std::string& filePath
   int32 width;
   int32 height;
   int32 channelCount;
-  ubyte* imageData = stbi_load(filePath.c_str(), &width, &height, &channelCount, 0);
-  Assert::ThrowIfFalse(imageData, "Could not load image file " + filePath);
+  ubyte* rawData = stbi_load(filePath.c_str(), &width, &height, &channelCount, 0);
+  Assert::ThrowIfFalse(rawData, "Could not load image file " + filePath);
   
-  return BuildImageData(imageData, width, height, channelCount);
+  auto imageData = BuildImageData(rawData, width, height, channelCount);
+	delete[] rawData;
+	return imageData;
 }
 
 std::shared_ptr<ImageData> ImageLoader::BuildImageData(ubyte* data, int32 width, int32 height, int32 channelCount)

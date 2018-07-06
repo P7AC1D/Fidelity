@@ -142,6 +142,7 @@ private:
 	std::shared_ptr<SamplerState> _noMipSamplerState;
 	std::shared_ptr<RenderTarget> _gBuffer;
 	std::shared_ptr<VertexBuffer> _fsQuadBuffer;
+	std::shared_ptr<Material> _activeMaterial;
   
   std::vector<RenderableItem> _renderables;
 

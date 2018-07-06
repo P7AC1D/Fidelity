@@ -73,8 +73,9 @@ std::shared_ptr<RenderDevice> Renderer::GetRenderDevice()
 	return _renderDevice;
 }
 
-Renderer::Renderer(const RendererDesc& desc) : 
-  _desc(desc)
+Renderer::Renderer(const RendererDesc& desc) :
+	_desc(desc),
+	_activeMaterial(new Material)
 {
   try
   {
@@ -501,6 +502,17 @@ void Renderer::GBufferDebugPass(uint32 i)
 
 void Renderer::SetMaterialData(const std::shared_ptr<Material>& material)
 {
+	if (material->GetAmbientColour() == _activeMaterial->GetAmbientColour() && 
+		  material->GetDiffuseColour() == _activeMaterial->GetDiffuseColour() &&
+		  material->GetSpecularColour() == _activeMaterial->GetSpecularColour() &&
+			material->GetTexture("DiffuseMap") == _activeMaterial->GetTexture("DiffuseMap") &&
+			material->GetTexture("NormalMap") == _activeMaterial->GetTexture("NormalMap") &&
+			material->GetTexture("SpecularMap") == _activeMaterial->GetTexture("SpecularMap") &&
+			material->GetTexture("DepthMap") == _activeMaterial->GetTexture("DepthMap"))
+	{
+		return;
+	}
+
 	MaterialBufferData matData;
 	matData.Ambient = material->GetAmbientColour();
 	matData.Diffuse = material->GetDiffuseColour();
@@ -540,4 +552,5 @@ void Renderer::SetMaterialData(const std::shared_ptr<Material>& material)
   }
 
 	_materialBuffer->WriteData(0, sizeof(MaterialBufferData), &matData);
+	_activeMaterial = material;
 }
