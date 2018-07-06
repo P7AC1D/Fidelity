@@ -166,7 +166,6 @@ void Renderer::InitPipelineStates()
   
 	RasterizerStateDesc rasterizerStateDesc;
 	rasterizerStateDesc.CullMode = CullMode::CounterClockwise;
-	rasterizerStateDesc.DepthClipEnabled = true;
 
   try
   {

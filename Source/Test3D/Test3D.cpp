@@ -42,7 +42,7 @@ void Test3D::OnStart()
 	auto directionalLight = _sceneManager->CreateLight(LightType::Directional, "DirectionLight");
 	_sceneManager->SetDirectionLight(directionalLight);
   
-  _sceneManager->LoadModelFromFile("./../../Resources/Models/LowPolyStuff/Oak_Tree.3ds");
+  _sceneManager->LoadModelFromFile("./../../Resources/Models/LowPolyStuff/Oak_Tree.obj");
   
 //  auto rootSceneNode = _sceneManager->GetRootSceneNode();
 //  auto actor = rootSceneNode->CreateActor("test_model");

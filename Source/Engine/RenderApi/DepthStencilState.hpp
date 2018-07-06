@@ -41,9 +41,9 @@ struct StencilOperationDesc
 
 struct DepthStencilStateDesc
 {
-  bool DepthWriteEnabled = false;
+  bool DepthWriteEnabled = true;
   bool DepthReadEnabled = true;
-  ComparisonFunction DepthFunc = ComparisonFunction::Always;
+  ComparisonFunction DepthFunc = ComparisonFunction::Less;
   bool StencilEnabled = false;
   byte StencilReadMask = 0xFF;
   byte StencilWriteMask = 0xFF;
