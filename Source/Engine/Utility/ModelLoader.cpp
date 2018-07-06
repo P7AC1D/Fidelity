@@ -169,7 +169,7 @@ std::shared_ptr<SceneNode> ModelLoader::LoadFromFile(const std::string& filePath
   Assert::ThrowIfFalse(scene, "failed to load mode from " + filePath);
   
   auto splitPath = String::Split(filePath, '/');
-  auto fileFolder = splitPath.size() < 2 ? "./" : splitPath[splitPath.size() - 2];
-  
+	splitPath.pop_back();
+	auto fileFolder = String::Join(splitPath, '/');
   return BuildModel(fileFolder, scene);
 }
