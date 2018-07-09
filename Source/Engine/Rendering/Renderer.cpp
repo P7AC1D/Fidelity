@@ -74,8 +74,7 @@ std::shared_ptr<RenderDevice> Renderer::GetRenderDevice()
 }
 
 Renderer::Renderer(const RendererDesc& desc) :
-	_desc(desc),
-	_activeMaterial(new Material)
+	_desc(desc)
 {
   try
   {
@@ -451,7 +450,7 @@ void Renderer::GeometryPass()
 
 		ObjectBufferData objData;
 		objData.Model = renderable.Transform->Get();
-		_objectBuffer->WriteData(0, sizeof(ObjectBufferData), &objData);
+		_objectBuffer->WriteData(0, sizeof(ObjectBufferData), &objData, AccessType::WriteOnlyDiscardRange);
 
 		if (mesh->IsIndexed())
 		{
@@ -502,7 +501,8 @@ void Renderer::GBufferDebugPass(uint32 i)
 
 void Renderer::SetMaterialData(const std::shared_ptr<Material>& material)
 {
-	if (material->GetAmbientColour() == _activeMaterial->GetAmbientColour() && 
+	if (_activeMaterial != nullptr &&
+      material->GetAmbientColour() == _activeMaterial->GetAmbientColour() &&
 		  material->GetDiffuseColour() == _activeMaterial->GetDiffuseColour() &&
 		  material->GetSpecularColour() == _activeMaterial->GetSpecularColour() &&
 			material->GetDiffuseTexture() == _activeMaterial->GetDiffuseTexture() &&

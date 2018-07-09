@@ -68,5 +68,5 @@ void main()
   vsOut.PositionTS = vsOut.TbnMtx * vsOut.Position.xyz;
   vsOut.ViewDirTS = vsOut.TbnMtx * normalize(vsOut.Position.xyz - ViewPos.xyz);
   
-  gl_Position = Projection * View * vec4(aPosition, 1.0f);
+  gl_Position = Projection * View * Model * vec4(aPosition, 1.0f);
 }
