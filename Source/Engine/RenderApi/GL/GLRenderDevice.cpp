@@ -217,6 +217,7 @@ void GLRenderDevice::SetConstantBuffer(uint32 slot, const std::shared_ptr<GpuBuf
   Assert::ThrowIfTrue(slot > MaxConstantBuffers, "Constant buffer binding slot exceeds maximum supported");
   
   auto glConstantBuffer = std::static_pointer_cast<GLGpuBuffer>(constantBuffer);
+	GLCall(glBindBufferBase(GL_UNIFORM_BUFFER, slot, glConstantBuffer->GetId()));
   _boundConstantBuffers[slot] = glConstantBuffer;
 }
 
@@ -341,7 +342,6 @@ void GLRenderDevice::BeginDraw()
 		_pipelineState->GetHS(),
 		_pipelineState->GetDS());
 
-	GLCall(glUseProgram(0));
 	if (_shaderPipeline == nullptr || _shaderPipeline != shaderPipeline)
 	{
 		GLCall(glBindProgramPipeline(shaderPipeline->GetId()));
@@ -372,48 +372,36 @@ void GLRenderDevice::BeginDraw()
   {
     if (_boundConstantBuffers[i])
     {
-      bool uniformBlockExists = false;
 			auto uniformBufferName = _shaderParams->GetParamName(ShaderParamType::ConstBuffer, i);
 			auto glVs = std::static_pointer_cast<GLShader>(_pipelineState->GetVS());
 			if (glVs->HasUniform(uniformBufferName))
 			{
 				glVs->BindUniformBlock(uniformBufferName, i);
-        uniformBlockExists = true;
 			}
 
 			auto glPs = std::static_pointer_cast<GLShader>(_pipelineState->GetPS());
 			if (glPs->HasUniform(uniformBufferName))
 			{
 				glPs->BindUniformBlock(uniformBufferName, i);
-         uniformBlockExists = true;
 			}
 
 			auto glGs = std::static_pointer_cast<GLShader>(_pipelineState->GetGS());
 			if (glGs && glGs->HasUniform(uniformBufferName))
 			{
 				glGs->BindUniformBlock(uniformBufferName, i);
-        uniformBlockExists = true;
 			}
 
 			auto glHs = std::static_pointer_cast<GLShader>(_pipelineState->GetHS());
 			if (glHs && glHs->HasUniform(uniformBufferName))
 			{
 				glHs->BindUniformBlock(uniformBufferName, i);
-        uniformBlockExists = true;
 			}
 
 			auto glDs = std::static_pointer_cast<GLShader>(_pipelineState->GetDS());
 			if (glDs && glDs->HasUniform(uniformBufferName))
 			{
 				glDs->BindUniformBlock(uniformBufferName, i);
-        uniformBlockExists = true;
 			}
-      
-      if (uniformBlockExists)
-      {
-        auto glConstantBuffer = std::static_pointer_cast<GLGpuBuffer>(_boundConstantBuffers[i]);
-        GLCall(glBindBufferBase(GL_UNIFORM_BUFFER, i, glConstantBuffer->GetId()));
-      }
     }
   }
 }

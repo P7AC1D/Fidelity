@@ -44,4 +44,6 @@ private:
 
   uint32 _id;
 	std::unordered_map<std::string, Uniform> _uniforms;
+	std::unordered_map<uint32, uint32> _assignedBindingPoints;
+	std::unordered_map<uint32, uint32> _assignedTextureSlots;
 };

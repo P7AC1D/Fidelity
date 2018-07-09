@@ -66,12 +66,24 @@ bool GLShader::HasUniform(const std::string& name) const
 
 void GLShader::BindUniformBlock(const std::string& name, uint32 bindingPoint)
 {
-	GLCall(glUniformBlockBinding(_id, GetUniformLocation(name), bindingPoint));
+	auto iter = _assignedBindingPoints.find(bindingPoint);
+	auto uniformLocation = GetUniformLocation(name);
+	if (iter == _assignedBindingPoints.end() || iter->second != uniformLocation)
+	{		
+		GLCall(glUniformBlockBinding(_id, uniformLocation, bindingPoint));
+		_assignedBindingPoints[bindingPoint] = uniformLocation;
+	}	
 }
 
 void GLShader::BindTextureUnit(const std::string& name, uint32 textureUnit)
 {
-	GLCall(glProgramUniform1i(_id, GetUniformLocation(name), textureUnit));
+	auto iter = _assignedTextureSlots.find(textureUnit);
+	auto uniformLocation = GetUniformLocation(name);
+	if (iter == _assignedTextureSlots.end() || iter->second != uniformLocation)
+	{		
+		GLCall(glProgramUniform1i(_id, uniformLocation, textureUnit));
+		_assignedTextureSlots[textureUnit] = uniformLocation;
+	}
 }
 
 GLShader::GLShader(const ShaderDesc& desc): Shader(desc), _id(0)
