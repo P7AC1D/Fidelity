@@ -5,7 +5,7 @@
 
 #include "../Maths/Vector2.hpp"
 #include "../Maths/Vector3.hpp"
-#include "../Rendering/Material.h"
+#include "../Rendering/Material.hpp"
 #include "../Rendering/StaticMesh.h"
 #include "Cube.hpp"
 #include "Icosphere.hpp"

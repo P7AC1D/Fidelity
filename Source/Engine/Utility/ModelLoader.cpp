@@ -3,7 +3,7 @@
 #include <assimp/Importer.hpp>
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
-#include "../Rendering/Material.h"
+#include "../Rendering/Material.hpp"
 #include "../Rendering/Renderable.hpp"
 #include "../Rendering/StaticMesh.h"
 #include "../SceneManagement/Actor.hpp"
@@ -62,14 +62,14 @@ void BuildMaterial(const std::string& filePath, const aiMaterial* aiMaterial, st
   
   float32 specularShininess;
   aiMaterial->Get(AI_MATKEY_SHININESS, specularShininess);
-  material->SetSpecularShininess(specularShininess);
+  material->SetSpecularExponent(specularShininess);
   
   aiString diffuseTexturePath;
   aiMaterial->Get(AI_MATKEY_TEXTURE(aiTextureType_DIFFUSE, 0), diffuseTexturePath);
   if (diffuseTexturePath.length != 0)
   {
     auto diffuseTexture = TextureLoader::LoadFromFile2D(filePath + diffuseTexturePath.C_Str(), true);
-    material->SetTexture("DiffuseMap", diffuseTexture);
+    material->SetDiffuseTexture(diffuseTexture);
   }
   
   // Assimp for some reason loads normal maps as aiTextureType_HEIGHT - this is probably a bug.
@@ -78,7 +78,7 @@ void BuildMaterial(const std::string& filePath, const aiMaterial* aiMaterial, st
   if (normalTexturePath.length != 0)
   {
     auto normalTexture = TextureLoader::LoadFromFile2D(filePath + normalTexturePath.C_Str());
-    material->SetTexture("NormalMap", normalTexture);
+    material->SetNormalTexture(normalTexture);
   }
   
   aiString specularTexturePath;
@@ -86,7 +86,7 @@ void BuildMaterial(const std::string& filePath, const aiMaterial* aiMaterial, st
   if (specularTexturePath.length != 0)
   {
     auto specularTexture = TextureLoader::LoadFromFile2D(filePath + specularTexturePath.C_Str());
-    material->SetTexture("SpecularMap", specularTexture);
+    material->SetSpecularTexture(specularTexture);
   }
 }
 

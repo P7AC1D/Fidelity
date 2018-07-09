@@ -12,7 +12,7 @@
 #include "../RenderApi/VertexBuffer.hpp"
 #include "../SceneManagement/Camera.hpp"
 #include "../SceneManagement/Transform.h"
-#include "Material.h"
+#include "Material.hpp"
 #include "Renderable.hpp"
 #include "StaticMesh.h"
 
@@ -505,10 +505,10 @@ void Renderer::SetMaterialData(const std::shared_ptr<Material>& material)
 	if (material->GetAmbientColour() == _activeMaterial->GetAmbientColour() && 
 		  material->GetDiffuseColour() == _activeMaterial->GetDiffuseColour() &&
 		  material->GetSpecularColour() == _activeMaterial->GetSpecularColour() &&
-			material->GetTexture("DiffuseMap") == _activeMaterial->GetTexture("DiffuseMap") &&
-			material->GetTexture("NormalMap") == _activeMaterial->GetTexture("NormalMap") &&
-			material->GetTexture("SpecularMap") == _activeMaterial->GetTexture("SpecularMap") &&
-			material->GetTexture("DepthMap") == _activeMaterial->GetTexture("DepthMap"))
+			material->GetDiffuseTexture() == _activeMaterial->GetDiffuseTexture() &&
+			material->GetNormalTexture() == _activeMaterial->GetNormalTexture() &&
+			material->GetSpecularTexture() == _activeMaterial->GetSpecularTexture() &&
+			material->GetDepthTexture() == _activeMaterial->GetDepthTexture())
 	{
 		return;
 	}
@@ -519,7 +519,7 @@ void Renderer::SetMaterialData(const std::shared_ptr<Material>& material)
 	matData.Specular = material->GetSpecularColour();
 	matData.SpecularExponent = material->GetSpecularExponent();
 
-	auto diffuseTexture = material->GetTexture("DiffuseMap");
+	auto diffuseTexture = material->GetDiffuseTexture();
 	if (diffuseTexture)
 	{
 		matData.EnabledTextureMaps.Diffuse = 1;
@@ -527,7 +527,7 @@ void Renderer::SetMaterialData(const std::shared_ptr<Material>& material)
 		_renderDevice->SetSamplerState(0, _basicSamplerState);
 	}
 
-	auto normalTexture = material->GetTexture("NormalMap");
+	auto normalTexture = material->GetNormalTexture();
 	if (normalTexture)
 	{
 		matData.EnabledTextureMaps.Normal = 1;
@@ -535,7 +535,7 @@ void Renderer::SetMaterialData(const std::shared_ptr<Material>& material)
 		_renderDevice->SetSamplerState(1, _noMipSamplerState);
 	}
 
-  auto specularTexture = material->GetTexture("SpecularMap");
+  auto specularTexture = material->GetSpecularTexture();
   if (specularTexture)
   {
     matData.EnabledTextureMaps.Specular = 1;
@@ -543,7 +543,7 @@ void Renderer::SetMaterialData(const std::shared_ptr<Material>& material)
     _renderDevice->SetSamplerState(2, _noMipSamplerState);
   }
 
-  auto depthTexture = material->GetTexture("DepthMap");
+  auto depthTexture = material->GetDepthTexture();
   if (depthTexture)
   {
     matData.EnabledTextureMaps.Depth = 1;

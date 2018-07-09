@@ -13,7 +13,7 @@
 #include "../Engine/Maths/Vector2.hpp"
 #include "../Engine/Maths/Vector3.hpp"
 #include "../Engine/Utility/TextureLoader.hpp"
-#include "../Engine/Rendering/Material.h"
+#include "../Engine/Rendering/Material.hpp"
 #include "../Engine/Rendering/Renderable.hpp"
 #include "../Engine/Rendering/Renderer.h"
 #include "../Engine/Rendering/StaticMesh.h"
