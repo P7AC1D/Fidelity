@@ -105,6 +105,9 @@ GLenum GetBlendOp(BlendOperation op)
 
 GLRenderDevice::GLRenderDevice(const RenderDeviceDesc& desc) :
   RenderDevice(desc),
+	_textureStateChanged(true),
+	_constBufferStateChanged(true),
+	_shaderStateChanged(true),
   _primitiveTopology(PrimitiveTopology::TriangleList),
   _stencilReadMask(0),
   _stencilRefValue(0),
@@ -183,6 +186,7 @@ void GLRenderDevice::SetPipelineState(const std::shared_ptr<PipelineState>& pipe
 	SetBlendState(pipelineState->GetBlendState());
   _pipelineState = pipelineState;
   _shaderParams = pipelineState->GetShaderParams();
+	_shaderStateChanged = true;
 }
 
 void GLRenderDevice::SetRenderTarget(const std::shared_ptr<RenderTarget>& renderTarget)
@@ -219,6 +223,7 @@ void GLRenderDevice::SetConstantBuffer(uint32 slot, const std::shared_ptr<GpuBuf
   auto glConstantBuffer = std::static_pointer_cast<GLGpuBuffer>(constantBuffer);
 	GLCall(glBindBufferBase(GL_UNIFORM_BUFFER, slot, glConstantBuffer->GetId()));
   _boundConstantBuffers[slot] = glConstantBuffer;
+	_constBufferStateChanged = true;
 }
 
 void GLRenderDevice::SetTexture(uint32 slot, const std::shared_ptr<Texture>& texture)
@@ -230,6 +235,7 @@ void GLRenderDevice::SetTexture(uint32 slot, const std::shared_ptr<Texture>& tex
     GLCall(glActiveTexture(GL_TEXTURE0 + slot));
     GLCall(glBindTexture(GetTextureTargetFromType(glTexture->GetTextureType()), glTexture->GetId()));
     _boundTextures[slot] = glTexture;
+		_textureStateChanged = true;
   }
 }
 
@@ -336,74 +342,86 @@ void GLRenderDevice::BeginDraw()
   Assert::ThrowIfTrue(_pipelineState->GetPS() == nullptr, "No pixel shader has been set");
   Assert::ThrowIfTrue(_shaderParams == nullptr, "No shader GPU params has been set");
 
-	auto shaderPipeline = _shaderPipelineCollection->GetShaderPipeline(_pipelineState->GetVS(),
-		_pipelineState->GetPS(),
-		_pipelineState->GetGS(),
-		_pipelineState->GetHS(),
-		_pipelineState->GetDS());
-
-	if (_shaderPipeline == nullptr || _shaderPipeline != shaderPipeline)
+	if (_shaderStateChanged)
 	{
-		GLCall(glBindProgramPipeline(shaderPipeline->GetId()));
-		_shaderPipeline = shaderPipeline;
+		auto shaderPipeline = _shaderPipelineCollection->GetShaderPipeline(_pipelineState->GetVS(),
+			_pipelineState->GetPS(),
+			_pipelineState->GetGS(),
+			_pipelineState->GetHS(),
+			_pipelineState->GetDS());
+
+		if (_shaderPipeline == nullptr || _shaderPipeline != shaderPipeline)
+		{
+			GLCall(glBindProgramPipeline(shaderPipeline->GetId()));
+			_shaderPipeline = shaderPipeline;
+		}
+		_shaderStateChanged = false;
 	}
   
   auto glVertexShader = std::static_pointer_cast<GLShader>(_pipelineState->GetVS());
   auto vao = _vaoCollection->GetVao(glVertexShader->GetId(), _pipelineState->GetVertexLayout(), _boundVertexBuffers);
 	GLCall(glBindVertexArray(vao->GetId()));
 
-	for (uint32 i = 0; i < _boundTextures.size(); i++)
+	if (_textureStateChanged || _shaderStateChanged)
 	{
-		if (_boundTextures[i])
+		for (uint32 i = 0; i < _boundTextures.size(); i++)
 		{
-			std::string textureName = _shaderParams->GetParamName(ShaderParamType::Texture, i);
-			if (!textureName.empty())
+			if (_boundTextures[i])
 			{
-				auto glPs = std::static_pointer_cast<GLShader>(_pipelineState->GetPS());
-				if (glPs->HasUniform(textureName))
+				std::string textureName = _shaderParams->GetParamName(ShaderParamType::Texture, i);
+				if (!textureName.empty())
 				{
-					glPs->BindTextureUnit(textureName, i);
+					auto glPs = std::static_pointer_cast<GLShader>(_pipelineState->GetPS());
+					if (glPs->HasUniform(textureName))
+					{
+						glPs->BindTextureUnit(textureName, i);
+					}
 				}
 			}
 		}
+		_textureStateChanged = false;
 	}
   
-  for (uint32 i = 0; i < _boundConstantBuffers.size(); i++)
-  {
-    if (_boundConstantBuffers[i])
-    {
-			auto uniformBufferName = _shaderParams->GetParamName(ShaderParamType::ConstBuffer, i);
-			auto glVs = std::static_pointer_cast<GLShader>(_pipelineState->GetVS());
-			if (glVs->HasUniform(uniformBufferName))
+	if (_constBufferStateChanged || _shaderStateChanged)
+	{
+		for (uint32 i = 0; i < _boundConstantBuffers.size(); i++)
+		{
+			if (_boundConstantBuffers[i])
 			{
-				glVs->BindUniformBlock(uniformBufferName, i);
-			}
+				auto uniformBufferName = _shaderParams->GetParamName(ShaderParamType::ConstBuffer, i);
+				auto glVs = std::static_pointer_cast<GLShader>(_pipelineState->GetVS());
+				if (glVs->HasUniform(uniformBufferName))
+				{
+					glVs->BindUniformBlock(uniformBufferName, i);
+				}
 
-			auto glPs = std::static_pointer_cast<GLShader>(_pipelineState->GetPS());
-			if (glPs->HasUniform(uniformBufferName))
-			{
-				glPs->BindUniformBlock(uniformBufferName, i);
-			}
+				auto glPs = std::static_pointer_cast<GLShader>(_pipelineState->GetPS());
+				if (glPs->HasUniform(uniformBufferName))
+				{
+					glPs->BindUniformBlock(uniformBufferName, i);
+				}
 
-			auto glGs = std::static_pointer_cast<GLShader>(_pipelineState->GetGS());
-			if (glGs && glGs->HasUniform(uniformBufferName))
-			{
-				glGs->BindUniformBlock(uniformBufferName, i);
-			}
+				auto glGs = std::static_pointer_cast<GLShader>(_pipelineState->GetGS());
+				if (glGs && glGs->HasUniform(uniformBufferName))
+				{
+					glGs->BindUniformBlock(uniformBufferName, i);
+				}
 
-			auto glHs = std::static_pointer_cast<GLShader>(_pipelineState->GetHS());
-			if (glHs && glHs->HasUniform(uniformBufferName))
-			{
-				glHs->BindUniformBlock(uniformBufferName, i);
-			}
+				auto glHs = std::static_pointer_cast<GLShader>(_pipelineState->GetHS());
+				if (glHs && glHs->HasUniform(uniformBufferName))
+				{
+					glHs->BindUniformBlock(uniformBufferName, i);
+				}
 
-			auto glDs = std::static_pointer_cast<GLShader>(_pipelineState->GetDS());
-			if (glDs && glDs->HasUniform(uniformBufferName))
-			{
-				glDs->BindUniformBlock(uniformBufferName, i);
+				auto glDs = std::static_pointer_cast<GLShader>(_pipelineState->GetDS());
+				if (glDs && glDs->HasUniform(uniformBufferName))
+				{
+					glDs->BindUniformBlock(uniformBufferName, i);
+				}
 			}
-    }
-  }
+		}
+		_constBufferStateChanged = false;
+	}
 }
 
 void GLRenderDevice::EndDraw()

@@ -79,6 +79,10 @@ private:
   void EnableBlend(bool enableBlend);
   
 private:
+	bool _textureStateChanged;
+	bool _constBufferStateChanged;
+	bool _shaderStateChanged;
+
   PrimitiveTopology _primitiveTopology;
   
   uint32 _stencilReadMask;
