@@ -118,7 +118,7 @@ GLRenderDevice::GLRenderDevice(const RenderDeviceDesc& desc) :
 #ifdef _WIN32
   glewExperimental = GL_TRUE;
   GLenum error = glewInit();
-  Assert::ThrowIfFalse(error == GLEW_OK, "Failed to initialize GLEW");
+  ASSERT_FALSE(error == GLEW_OK, "Failed to initialize GLEW");
 #endif
 
 	SetViewport(ViewportDesc{ 0.0f, 0.0f, static_cast<float32>(desc.RenderWidth), static_cast<float32>(desc.RenderHeight), 0.0f, 0.0f });
@@ -217,8 +217,8 @@ void GLRenderDevice::SetIndexBuffer(const std::shared_ptr<IndexBuffer>& indexBuf
 
 void GLRenderDevice::SetConstantBuffer(uint32 slot, const std::shared_ptr<GpuBuffer>& constantBuffer)
 {
-  Assert::ThrowIfFalse(constantBuffer->GetType() == BufferType::Constant, "GPU buffer is not a constant buffer");
-  Assert::ThrowIfTrue(slot > MaxConstantBuffers, "Constant buffer binding slot exceeds maximum supported");
+  ASSERT_FALSE(constantBuffer->GetType() == BufferType::Constant, "GPU buffer is not a constant buffer");
+  ASSERT_TRUE(slot > MaxConstantBuffers, "Constant buffer binding slot exceeds maximum supported");
   
   auto glConstantBuffer = std::static_pointer_cast<GLGpuBuffer>(constantBuffer);
 	GLCall(glBindBufferBase(GL_UNIFORM_BUFFER, slot, glConstantBuffer->GetId()));
@@ -228,7 +228,7 @@ void GLRenderDevice::SetConstantBuffer(uint32 slot, const std::shared_ptr<GpuBuf
 
 void GLRenderDevice::SetTexture(uint32 slot, const std::shared_ptr<Texture>& texture)
 {
-  Assert::ThrowIfTrue(slot >= MaxTextureSlots, "Texture slot exceeds maximum supported");
+  ASSERT_TRUE(slot >= MaxTextureSlots, "Texture slot exceeds maximum supported");
   auto glTexture = std::static_pointer_cast<GLTexture>(texture);
   if (!_boundTextures[slot] || _boundTextures[slot]->GetId() != glTexture->GetId())
   {
@@ -241,7 +241,7 @@ void GLRenderDevice::SetTexture(uint32 slot, const std::shared_ptr<Texture>& tex
 
 void GLRenderDevice::SetSamplerState(uint32 slot, const std::shared_ptr<SamplerState>& samplerState)
 {
-  Assert::ThrowIfTrue(slot >= MaxTextureSlots, "Sampler slot exceeds maximum supported");
+  ASSERT_TRUE(slot >= MaxTextureSlots, "Sampler slot exceeds maximum supported");
   auto glSamplerState = std::static_pointer_cast<GLSamplerState>(samplerState);
   if (!_boundSamplers[slot] || _boundSamplers[slot]->GetId() != glSamplerState->GetId())
   {
@@ -252,10 +252,10 @@ void GLRenderDevice::SetSamplerState(uint32 slot, const std::shared_ptr<SamplerS
 
 void GLRenderDevice::SetScissorDimensions(const ScissorDesc& desc)
 {
-	Assert::ThrowIfTrue(desc.X < 0.0f || desc.X > _desc.RenderWidth, "Scissor X-Pos exceeds render dimensions");
-	Assert::ThrowIfTrue(desc.Y < 0.0f || desc.Y > _desc.RenderHeight, "Scissor Y-Pos exceeds render dimensions");
-	Assert::ThrowIfTrue(desc.W < 0.0f || desc.W > _desc.RenderWidth, "Scissor width exceeds render dimensions");
-	Assert::ThrowIfTrue(desc.H < 0.0f || desc.H > _desc.RenderHeight, "Scissor height exceeds render dimensions");
+	ASSERT_TRUE(desc.X < 0.0f || desc.X > _desc.RenderWidth, "Scissor X-Pos exceeds render dimensions");
+	ASSERT_TRUE(desc.Y < 0.0f || desc.Y > _desc.RenderHeight, "Scissor Y-Pos exceeds render dimensions");
+	ASSERT_TRUE(desc.W < 0.0f || desc.W > _desc.RenderWidth, "Scissor width exceeds render dimensions");
+	ASSERT_TRUE(desc.H < 0.0f || desc.H > _desc.RenderHeight, "Scissor height exceeds render dimensions");
 
 	if (desc.X != _scissorDesc.X || desc.Y != _scissorDesc.Y || desc.W != _scissorDesc.W || desc.H != _scissorDesc.H)
 	{
@@ -284,7 +284,7 @@ void GLRenderDevice::Draw(uint32 vertexCount, uint32 vertexOffset)
 void GLRenderDevice::DrawIndexed(uint32 indexCount, uint32 indexOffset, uint32 vertexOffset)
 {
   BeginDraw();
-	Assert::ThrowIfTrue(_boundIndexBuffer == nullptr, "No index buffer has been bound");
+	ASSERT_TRUE(_boundIndexBuffer == nullptr, "No index buffer has been bound");
 	GLCall(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _boundIndexBuffer->GetId()));
 
 	GLenum idxType = _boundIndexBuffer->GetIndexType() == IndexType::UInt16 ? GL_UNSIGNED_SHORT : GL_UNSIGNED_INT;
@@ -337,10 +337,10 @@ void GLRenderDevice::ClearBuffers(uint32 buffers, const Colour& colour, float32 
 
 void GLRenderDevice::BeginDraw()
 {
-  Assert::ThrowIfTrue(_pipelineState == nullptr, "No pipeline state has been set");
-  Assert::ThrowIfTrue(_pipelineState->GetVS() == nullptr, "No vertex shader has been set");
-  Assert::ThrowIfTrue(_pipelineState->GetPS() == nullptr, "No pixel shader has been set");
-  Assert::ThrowIfTrue(_shaderParams == nullptr, "No shader GPU params has been set");
+  ASSERT_TRUE(_pipelineState == nullptr, "No pipeline state has been set");
+  ASSERT_TRUE(_pipelineState->GetVS() == nullptr, "No vertex shader has been set");
+  ASSERT_TRUE(_pipelineState->GetPS() == nullptr, "No pixel shader has been set");
+  ASSERT_TRUE(_shaderParams == nullptr, "No shader GPU params has been set");
 
 	if (_shaderStateChanged)
 	{

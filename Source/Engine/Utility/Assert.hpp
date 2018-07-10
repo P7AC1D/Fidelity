@@ -7,3 +7,11 @@ public:
   static void ThrowIfTrue(bool condition, const std::string& errorMessage);
   static void ThrowIfFalse(bool condition, const std::string& errorMessage);
 };
+
+#ifdef _DEBUG
+#define ASSERT_TRUE(x, msg) Assert::ThrowIfTrue(x, msg);
+#define ASSERT_FALSE(x, msg) Assert::ThrowIfFalse(x, msg);
+#else
+#define ASSERT_TRUE(x, msg)
+#define ASSERT_FALSE(x, msg)
+#endif

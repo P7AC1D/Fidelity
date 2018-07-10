@@ -36,7 +36,7 @@ void GLSamplerState::Initialize()
   }
   
   GLCall(glGenSamplers(1, &_id));
-  Assert::ThrowIfTrue(_id == 0, "Could not generate GL sampler object");
+  ASSERT_TRUE(_id == 0, "Could not generate GL sampler object");
   
   SetTextureAddressingMode(GetAddressingMode());
   SetTextureMinMipFiltering(GetMinFilteringMode(), GetMipFilteringMode());

@@ -63,7 +63,7 @@ void GLRenderTarget::Initialize()
   }
   
   GLCall(glGenFramebuffers(1, &_id));
-  Assert::ThrowIfTrue(_id == 0, "Could not generate frame buffer object");
+  ASSERT_TRUE(_id == 0, "Could not generate frame buffer object");
   
   std::vector<GLenum> attachments;
   GLCall(glBindFramebuffer(GL_FRAMEBUFFER, _id));
@@ -84,5 +84,5 @@ void GLRenderTarget::Initialize()
 
   GLenum frameBufferComplete = 0;
 	GLCall2(glCheckFramebufferStatus(GL_FRAMEBUFFER), frameBufferComplete);
-  Assert::ThrowIfFalse(frameBufferComplete == GL_FRAMEBUFFER_COMPLETE, "Framebuffer is not complete");
+  ASSERT_FALSE(frameBufferComplete == GL_FRAMEBUFFER_COMPLETE, "Framebuffer is not complete");
 }

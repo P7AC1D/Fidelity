@@ -104,9 +104,9 @@ GLTexture::~GLTexture()
 
 void GLTexture::WriteData(uint32 mipLevel, uint32 face, const std::shared_ptr<ImageData>& data)
 {
-  Assert::ThrowIfFalse(_desc.Width == data->GetWidth(), "Image width must be consistent with Texture");
-  Assert::ThrowIfFalse(_desc.Height == data->GetHeight(), "Image height must be consistent with Texture");
-  Assert::ThrowIfFalse(_desc.Depth == data->GetDepth(), "Image depth must be consistent with Texture");
+  ASSERT_FALSE(_desc.Width == data->GetWidth(), "Image width must be consistent with Texture");
+  ASSERT_FALSE(_desc.Height == data->GetHeight(), "Image height must be consistent with Texture");
+  ASSERT_FALSE(_desc.Depth == data->GetDepth(), "Image depth must be consistent with Texture");
   
   GLenum internalFormat;
   GLenum format;
@@ -173,7 +173,7 @@ void GLTexture::Initialize()
 	GLCall(glGetIntegerv(GetTextureBindingTarget(_desc.Type), &previouslyBoundTexture));
   
   GLCall(glGenTextures(1, &_id));
-  Assert::ThrowIfTrue(_id == 0, "Could not generate texture object");
+  ASSERT_TRUE(_id == 0, "Could not generate texture object");
   
 	auto target = GetTextureTarget(GetTextureType());
   GLCall(glBindTexture(target, _id));

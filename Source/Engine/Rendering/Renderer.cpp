@@ -69,7 +69,7 @@ std::shared_ptr<RenderDevice> Renderer::_renderDevice;
 
 std::shared_ptr<RenderDevice> Renderer::GetRenderDevice()
 {
-	Assert::ThrowIfTrue(_renderDevice == nullptr, "Render device has not been initialized");
+	ASSERT_TRUE(_renderDevice == nullptr, "Render device has not been initialized");
 	return _renderDevice;
 }
 
@@ -78,7 +78,7 @@ Renderer::Renderer(const RendererDesc& desc) :
 {
   try
   {
-    Assert::ThrowIfFalse(desc.RenderApi == RenderApi::GL41, "Only OpenGL 4.1 is supported");
+    ASSERT_FALSE(desc.RenderApi == RenderApi::GL41, "Only OpenGL 4.1 is supported");
     
     RenderDeviceDesc renderDeviceDesc;
     renderDeviceDesc.RenderWidth = _desc.RenderWidth;

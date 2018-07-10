@@ -8,7 +8,7 @@ std::string String::LoadFromFile(const std::string& path)
 {
   std::fstream fstream;
   fstream.open(path, std::fstream::in);
-  Assert::ThrowIfFalse(fstream.is_open(), "Failed to open file " + path);
+  ASSERT_FALSE(fstream.is_open(), "Failed to open file " + path);
   
   fstream.seekg(0, fstream.end);
   std::streampos fileLength = fstream.tellg();

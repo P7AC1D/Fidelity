@@ -73,7 +73,7 @@ void GLGpuBuffer::Initialize()
   }
   
   GLCall(glGenBuffers(1, &_id));
-  Assert::ThrowIfTrue(_id == 0, "Could not generate buffer object");
+  ASSERT_TRUE(_id == 0, "Could not generate buffer object");
   
   GLenum target = GetBufferType(_desc.BufferType);
   GLCall(glBindBuffer(target, _id));
@@ -84,7 +84,7 @@ void GLGpuBuffer::Initialize()
 
 void* GLGpuBuffer::MapRange(uint64 byteOffset, uint64 byteCount, AccessType accessType)
 {
-  Assert::ThrowIfTrue(byteOffset + byteCount > _desc.ByteCount, "Mapped range cannot exceed the internal size of the buffer");
+  ASSERT_TRUE(byteOffset + byteCount > _desc.ByteCount, "Mapped range cannot exceed the internal size of the buffer");
 
   GLenum target = GetBufferType(_desc.BufferType);
   GLCall(glBindBuffer(target, _id));
@@ -98,6 +98,9 @@ void* GLGpuBuffer::MapRange(uint64 byteOffset, uint64 byteCount, AccessType acce
     case AccessType::WriteOnly:
       access = GL_MAP_WRITE_BIT;
       break;
+		case AccessType::WriteOnlyDiscardRange:
+			access = GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT;
+			break;
     case AccessType::WriteOnlyDiscard:
       access = GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT;
       break;
@@ -110,7 +113,7 @@ void* GLGpuBuffer::MapRange(uint64 byteOffset, uint64 byteCount, AccessType acce
 
   void* buffer = nullptr;
 	GLCall2(glMapBufferRange(target, byteOffset, byteCount, access), buffer);
-  Assert::ThrowIfTrue(buffer == nullptr, "Could not map buffer");
+  ASSERT_TRUE(buffer == nullptr, "Could not map buffer");
   return buffer;
 }
 
@@ -119,5 +122,5 @@ void GLGpuBuffer::Unmap()
   GLenum target = GetBufferType(_desc.BufferType);
   GLboolean success = GL_FALSE;
 	GLCall2(glUnmapBuffer(target), success);
-  Assert::ThrowIfFalse(success, "Buffer corrupt");
+  ASSERT_FALSE(success, "Buffer corrupt");
 }
