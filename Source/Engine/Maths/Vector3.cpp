@@ -8,6 +8,11 @@
 Vector3 Vector3::Zero = Vector3(0.0f);
 Vector3 Vector3::Identity = Vector3(1.0f);
 
+float32 Vector3::Length(const Vector3& a)
+{
+	return a.Length();
+}
+
 float32 Vector3::Dot(const Vector3& a, const Vector3& b)
 {
   return a[0] * b[0] + a[1] * b[1] + a[2] * b[2];

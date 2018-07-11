@@ -9,6 +9,7 @@
 #include "Actor.hpp"
 #include "Camera.hpp"
 #include "SceneNode.hpp"
+#include "Transform.h"
 
 static uint32 LightCount = 0;
 
@@ -100,7 +101,35 @@ void SceneManager::SubmitSceneToRender()
   _renderer->SetAmbientLight(AmbientLightData(_ambientLightColour, _ambientLightIntensity));
 	_renderer->SetDirectionalLight(DirectionalLightData(_directionalLight->GetColour(), _directionalLight->GetDirection(), _directionalLight->GetIntensity()));
   
-	for (auto actor : _sceneGraph->GetAllActors())
+	auto actors = _sceneGraph->GetAllActors();
+
+	std::vector<std::shared_ptr<Actor>> zSortedActors;
+	zSortedActors.reserve(actors.size());
+
+	for (auto actor : actors)
+	{
+		auto renderable = actor->GetComponent<Renderable>();		
+		if (renderable)
+		{
+			auto transform = actor->GetTransform();
+			zSortedActors.push_back(actor);
+		}
+	}
+
+	std::sort(zSortedActors.begin(), zSortedActors.end(), [&](const std::shared_ptr<Actor>& a, const std::shared_ptr<Actor>& b)
+	{
+		auto camPos = _camera->GetPosition();
+		
+		auto posA = a->GetTransform()->GetPosition() + a->GetBounds().GetMidPoint();
+		auto posB = b->GetTransform()->GetPosition() + b->GetBounds().GetMidPoint();
+
+		auto zDistanceA = Vector3::Length(camPos - posA);
+		auto zDistanceB = Vector3::Length(camPos - posB);
+
+		return zDistanceA < zDistanceB;
+	});
+
+	for (auto actor : zSortedActors)
 	{
 		_renderer->PushRenderable(actor->GetComponent<Renderable>(), actor->GetTransform());
 	}

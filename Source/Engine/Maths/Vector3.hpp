@@ -9,6 +9,7 @@ public:
   static Vector3 Zero;
   static Vector3 Identity;
   
+	static float32 Length(const Vector3& a);
   static float32 Dot(const Vector3& a, const Vector3& b);
   static Vector3 Cross(const Vector3& a, const Vector3& b);
   static Vector3 Normalize(const Vector3& vec);

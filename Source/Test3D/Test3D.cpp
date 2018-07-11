@@ -44,7 +44,7 @@ void Test3D::OnStart()
 	auto directionalLight = _sceneManager->CreateLight(LightType::Directional, "DirectionLight");
 	_sceneManager->SetDirectionLight(directionalLight);
   
-//  _sceneManager->LoadModelFromFile("./../../Resources/Models/Sponza/sponza.obj");
+  //_sceneManager->LoadModelFromFile("./../../Resources/Models/Sponza/sponza.obj");
   
   auto rootSceneNode = _sceneManager->GetRootSceneNode();
   for (int32 i = -30; i < 30; i += 3)

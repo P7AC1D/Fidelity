@@ -369,17 +369,6 @@ void StaticMesh::UploadVertexData()
   desc.VertexSizeBytes = stride;
   _vertexBuffer = Renderer::GetRenderDevice()->CreateVertexBuffer(desc);
   _vertexBuffer->WriteData(0, dataToUpload.size() * sizeof(float32), dataToUpload.data(), AccessType::WriteOnlyDiscard);
-
-  _positionData.clear();
-  _positionData.shrink_to_fit();
-  _normalData.clear();
-  _normalData.shrink_to_fit();
-  _tangentData.clear();
-  _tangentData.shrink_to_fit();
-  _bitangentData.clear();
-  _bitangentData.shrink_to_fit();
-  _textureData.clear();
-  _textureData.shrink_to_fit();
 }
 
 void StaticMesh::UploadIndexData()
@@ -390,7 +379,4 @@ void StaticMesh::UploadIndexData()
   desc.IndexType = IndexType::UInt32;
   _indexBuffer = Renderer::GetRenderDevice()->CreateIndexBuffer(desc);
   _indexBuffer->WriteData(0, _indexData.size() * IndexBuffer::GetBytesPerIndex(desc.IndexType), _indexData.data(), AccessType::WriteOnlyDiscard);
-  
-  _indexData.clear();
-  _indexData.shrink_to_fit();
 }
