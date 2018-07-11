@@ -254,10 +254,10 @@ void GLRenderDevice::SetRenderTarget(const std::shared_ptr<RenderTarget>& render
 	_boundRenderTarget = glRenderTarget;
 }
 
-void GLRenderDevice::SetVertexBuffer(uint32 slot, const std::shared_ptr<VertexBuffer> vertexBuffer)
+void GLRenderDevice::SetVertexBuffer(const std::shared_ptr<VertexBuffer> vertexBuffer)
 {
   auto glVertexBuffer = std::static_pointer_cast<GLVertexBuffer>(vertexBuffer);
-  _boundVertexBuffers[slot] = glVertexBuffer;
+  _boundVertexBuffer = glVertexBuffer;
 }
 
 void GLRenderDevice::SetIndexBuffer(const std::shared_ptr<IndexBuffer>& indexBuffer)
@@ -390,6 +390,7 @@ void GLRenderDevice::BeginDraw()
   ASSERT_FALSE(_pipelineState->GetVS() == nullptr, "No vertex shader has been set");
   ASSERT_FALSE(_pipelineState->GetPS() == nullptr, "No pixel shader has been set");
   ASSERT_FALSE(_shaderParams == nullptr, "No shader GPU params has been set");
+	ASSERT_FALSE(_boundVertexBuffer == nullptr, "No vertex buffer has been set");
 
 	if (_shaderStateChanged)
 	{
@@ -408,7 +409,7 @@ void GLRenderDevice::BeginDraw()
 	}
   
   auto glVertexShader = std::static_pointer_cast<GLShader>(_pipelineState->GetVS());
-  auto vao = _vaoCollection->GetVao(glVertexShader->GetId(), _pipelineState->GetVertexLayout(), _boundVertexBuffers);
+  auto vao = _vaoCollection->GetVao(glVertexShader->GetId(), _pipelineState->GetVertexLayout(), _boundVertexBuffer);
 	GLCall(glBindVertexArray(vao->GetId()));
 }
 

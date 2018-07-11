@@ -16,7 +16,6 @@ class ShaderParams;
 
 static const uint32 MaxConstantBuffers = 32;
 static const uint32 MaxTextureSlots = 16;
-static const uint32 MaxVertexBuffers = 16;
 
 class GLRenderDevice : public RenderDevice
 {
@@ -35,7 +34,7 @@ public:
   void SetViewport(const ViewportDesc& viewport) override;
   void SetPipelineState(const std::shared_ptr<PipelineState>& pipelineState) override;
   void SetRenderTarget(const std::shared_ptr<RenderTarget>& renderTarget) override;
-  void SetVertexBuffer(uint32 slot, const std::shared_ptr<VertexBuffer> vertexBuffer) override;
+  void SetVertexBuffer(const std::shared_ptr<VertexBuffer> vertexBuffer) override;
   void SetIndexBuffer(const std::shared_ptr<IndexBuffer>& indexBuffer) override;
   void SetConstantBuffer(uint32 slot, const std::shared_ptr<GpuBuffer>& constantBuffer) override;
   void SetTexture(uint32 slot, const std::shared_ptr<Texture>& texture) override;
@@ -93,13 +92,13 @@ private:
 	std::shared_ptr<GLIndexBuffer> _boundIndexBuffer;
   std::shared_ptr<GLRenderTarget> _boundRenderTarget;
   std::shared_ptr<GLShaderPipeline> _shaderPipeline;
+  std::shared_ptr<GLVertexBuffer> _boundVertexBuffer;
   std::shared_ptr<RasterizerState> _rasterizerState;
   std::shared_ptr<DepthStencilState> _depthStencilState;
   std::shared_ptr<BlendState> _blendState;
   std::shared_ptr<PipelineState> _pipelineState;
   std::shared_ptr<ShaderParams> _shaderParams;
   
-  std::array<std::shared_ptr<GLVertexBuffer>, MaxVertexBuffers> _boundVertexBuffers;
   std::array<std::shared_ptr<GLGpuBuffer>, MaxConstantBuffers> _boundConstantBuffers;
   std::array<std::shared_ptr<GLTexture>, MaxTextureSlots> _boundTextures;
   std::array<std::shared_ptr<GLSamplerState>, MaxTextureSlots> _boundSamplers;

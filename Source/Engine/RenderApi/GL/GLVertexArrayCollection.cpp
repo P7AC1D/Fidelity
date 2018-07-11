@@ -107,34 +107,11 @@ bool GLVertexArrayObject::operator==(const GLVertexArrayObject& vao) const
   {
     return false;
   }
-  
-  if (_boundBuffers.size() != vao._boundBuffers.size())
-  {
-    return false;
-  }
-  
-  for (uint32 i = 0; i < _boundBuffers.size(); i++)
-  {
-		if (_boundBuffers[i] == nullptr && vao._boundBuffers[i] == nullptr)
-		{
-			continue;
-		}
 
-		if (_boundBuffers[i] != nullptr && vao._boundBuffers[i] == nullptr)
-		{
-			return false;
-		}
-
-		if (_boundBuffers[i] == nullptr && vao._boundBuffers[i] != nullptr)
-		{
-			return false;
-		}
-
-    if (_boundBuffers[i]->GetId() != vao._boundBuffers[i]->GetId())
-    {
-      return false;
-    }
-  }
+	if (_boundBuffer != vao._boundBuffer)
+	{
+		return false;
+	}
   return true;
 }
 
@@ -147,13 +124,7 @@ std::size_t GLVertexArrayObject::Hash::operator()(const std::shared_ptr<GLVertex
 {
   std::size_t seed = 0;
   ::Hash::Combine(seed, vao->_vsId);
-  for (uint32 i = 0; i < vao->_boundBuffers.size(); i++)
-  {
-		if (vao->_boundBuffers[i])
-		{
-			::Hash::Combine(seed, vao->_boundBuffers[i]->GetId());
-		}    
-  }
+	::Hash::Combine(seed, vao->_boundBuffer);
   return seed;
 }
 
@@ -166,18 +137,16 @@ GLVertexArrayObject::GLVertexArrayObject(): _vaoId(0), _vsId(0)
 {
 }
 
-GLVertexArrayObject::GLVertexArrayObject(uint32 vaoId, uint32 vsId, const std::array<std::shared_ptr<GLVertexBuffer>, MaxVertexBuffers>& boundBuffers):
+GLVertexArrayObject::GLVertexArrayObject(uint32 vaoId, uint32 vsId, std::shared_ptr<GLVertexBuffer>& boundBuffer):
   _vaoId((vaoId)),
   _vsId(vsId),
-  _boundBuffers(boundBuffers)
+  _boundBuffer(boundBuffer)
 {
 }
 
-const std::shared_ptr<GLVertexArrayObject> GLVertexArrayObjectCollection::GetVao(uint32 vertexShaderId,
-                                                                                 const std::shared_ptr<VertexLayout>& vertexLayout,
-                                                                                 const std::array<std::shared_ptr<GLVertexBuffer>, MaxVertexBuffers>& boundBuffers)
+const std::shared_ptr<GLVertexArrayObject> GLVertexArrayObjectCollection::GetVao(uint32 vsId, const std::shared_ptr<VertexLayout>& vertexLayout, std::shared_ptr<GLVertexBuffer>& boundBuffer)
 {
-  std::shared_ptr<GLVertexArrayObject> expectedVAO(new GLVertexArrayObject(0, vertexShaderId, boundBuffers));
+  std::shared_ptr<GLVertexArrayObject> expectedVAO(new GLVertexArrayObject(0, vsId, boundBuffer));
   auto iter = _vaoBuffers.find(expectedVAO);
   if (iter != _vaoBuffers.end())
   {
@@ -195,14 +164,8 @@ const std::shared_ptr<GLVertexArrayObject> GLVertexArrayObjectCollection::GetVao
   {
     stride += GetComponentByteCount(layouts[i].Format) * GetComponentCount(layouts[i].Format);
   }
-
-	for (uint32 i = 0; i < boundBuffers.size(); i++)
-	{
-		if (boundBuffers[i])
-		{
-			GLCall(glBindBuffer(GL_ARRAY_BUFFER, boundBuffers[i]->GetId()));
-		}		
-	}
+	
+	GLCall(glBindBuffer(GL_ARRAY_BUFFER, boundBuffer->GetId()));
   
   GLuint offset = 0;
   for (uint32 i = 0; i < layouts.size(); i++)

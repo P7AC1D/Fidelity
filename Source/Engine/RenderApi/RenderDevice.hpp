@@ -64,7 +64,7 @@ public:
   virtual void SetTexture(uint32 slot, const std::shared_ptr<Texture>& texture) = 0;
   virtual void SetRenderTarget(const std::shared_ptr<RenderTarget>& renderTarget) = 0;
   virtual void SetViewport(const ViewportDesc& viewport) = 0;
-  virtual void SetVertexBuffer(uint32 slot, const std::shared_ptr<VertexBuffer> vertexBuffer) = 0;
+  virtual void SetVertexBuffer(const std::shared_ptr<VertexBuffer> vertexBuffer) = 0;
   virtual void SetIndexBuffer(const std::shared_ptr<IndexBuffer>& indexBuffer) = 0;
   virtual void SetConstantBuffer(uint32 slot, const std::shared_ptr<GpuBuffer>& constantBuffer) = 0;
   virtual void SetSamplerState(uint32 slot, const std::shared_ptr<SamplerState>& samplerState) = 0;

@@ -149,10 +149,16 @@ void DebugUi::Update()
 
     {
       auto frameTimings = _renderer->GetFrameRenderTimings();
-      ImGui::BulletText("Full Frame %.3f ms", static_cast<float32>(frameTimings.Frame * 1e-6f));
-      ImGui::BulletText("G-Buffer Pass %.3f ms", static_cast<float32>(frameTimings.GBuffer * 1e-6f));
-      ImGui::BulletText("Lighting Pass %.3f ms", static_cast<float32>(frameTimings.Lighting * 1e-6f));
-    }		
+			ImGui::Text("Render Pass"),
+      ImGui::BulletText("All %.3f ms", static_cast<float32>(frameTimings.Frame * 1e-6f));
+      ImGui::BulletText("G-Buffer %.3f ms", static_cast<float32>(frameTimings.GBuffer * 1e-6f));
+      ImGui::BulletText("Lighting %.3f ms", static_cast<float32>(frameTimings.Lighting * 1e-6f));
+    }
+
+		ImGui::Separator();
+		{
+			ImGui::Text("%.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
+		}
 
 		ImGui::End();
 	}
@@ -261,7 +267,7 @@ void DebugUi::Draw(ImDrawData* drawData)
 			renderDevice->SetPipelineState(_pipelineState);
 			renderDevice->SetTexture(0, _textureAtlas);
 			renderDevice->SetSamplerState(0, _samplerState);
-			renderDevice->SetVertexBuffer(0, _vertBuffer);
+			renderDevice->SetVertexBuffer(_vertBuffer);
 			renderDevice->SetIndexBuffer(_idxBuffer);
 			renderDevice->SetConstantBuffer(0, _constBuffer);
 

@@ -434,7 +434,7 @@ void Renderer::GeometryPass()
 		SetMaterialData(material);
 
 		_renderDevice->SetConstantBuffer(0, renderable.Renderable->GetPerObjectBuffer());
-		_renderDevice->SetVertexBuffer(0, mesh->GetVertexData());
+		_renderDevice->SetVertexBuffer(mesh->GetVertexData());
 
 		if (mesh->IsIndexed())
 		{
@@ -464,7 +464,7 @@ void Renderer::LightingPass()
 	_renderDevice->SetSamplerState(0, _noMipSamplerState);
 	_renderDevice->SetSamplerState(1, _noMipSamplerState);
 	_renderDevice->SetSamplerState(2, _noMipSamplerState);
-	_renderDevice->SetVertexBuffer(0, _fsQuadBuffer);
+	_renderDevice->SetVertexBuffer(_fsQuadBuffer);
   _renderDevice->SetConstantBuffer(1, _frameBuffer);
 	_renderDevice->Draw(6, 0);
 
@@ -478,7 +478,7 @@ void Renderer::GBufferDebugPass(uint32 i)
 	_renderDevice->SetPipelineState(_gBufferDebugPso);
 	_renderDevice->SetTexture(0, _gBuffer->GetColourTarget(i));
 	_renderDevice->SetSamplerState(0, _noMipSamplerState);
-	_renderDevice->SetVertexBuffer(0, _fsQuadBuffer);
+	_renderDevice->SetVertexBuffer(_fsQuadBuffer);
 	_renderDevice->Draw(6, 0);
 }
 
