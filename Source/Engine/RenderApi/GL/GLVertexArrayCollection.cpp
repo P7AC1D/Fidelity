@@ -186,7 +186,7 @@ const std::shared_ptr<GLVertexArrayObject> GLVertexArrayObjectCollection::GetVao
   
   GLuint vao = 0;
   GLCall(glGenVertexArrays(1, &vao));
-  ASSERT_FALSE(vao != 0, "Unabled to create OpenGL vertex array object");
+  ASSERT_TRUE(vao != 0, "Unabled to create OpenGL vertex array object");
   GLCall(glBindVertexArray(vao));
   
   GLsizei stride = 0;

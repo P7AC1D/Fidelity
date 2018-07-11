@@ -27,6 +27,8 @@
 #include "../Engine/SceneManagement/SceneNode.hpp"
 #include "../Engine/SceneManagement/Transform.h"
 
+//#define ASSERT_ON
+
 Test3D::Test3D(const ApplicationDesc& desc):
   Application(desc)
 {

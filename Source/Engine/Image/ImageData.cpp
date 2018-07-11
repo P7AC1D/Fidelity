@@ -19,9 +19,9 @@ void ImageData::WritePixel(uint32 x, uint32 y, uint32 z, const Colour& colour)
   uint32 height = _volume.GetHeight();
   uint32 depth = _volume.GetDepth();
   
-  ASSERT_FALSE(x <= width, "X out of bounds");
-  ASSERT_FALSE(x <= height, "Y out of bounds");
-  ASSERT_FALSE(x <= depth, "Z out of bounds");
+  ASSERT_TRUE(x <= width, "X out of bounds");
+  ASSERT_TRUE(x <= height, "Y out of bounds");
+  ASSERT_TRUE(x <= depth, "Z out of bounds");
   
 	auto bytesPerPixel = GetBytesPerPixel();
 	switch (_format)
@@ -54,9 +54,9 @@ Colour ImageData::ReadPixel(uint32 x, uint32 y, uint32 z) const
   uint32 height = _volume.GetHeight();
   uint32 depth = _volume.GetDepth();
   
-  ASSERT_FALSE(x <= width, "X out of bounds");
-  ASSERT_FALSE(x <= height, "Y out of bounds");
-  ASSERT_FALSE(x <= depth, "Z out of bounds");
+  ASSERT_TRUE(x <= width, "X out of bounds");
+  ASSERT_TRUE(x <= height, "Y out of bounds");
+  ASSERT_TRUE(x <= depth, "Z out of bounds");
   
 	auto bytesPerPixel = GetBytesPerPixel();
 	switch (_format)
@@ -99,6 +99,6 @@ void ImageData::WriteData(ubyte* data)
 
 void ImageData::WriteData(const std::vector<ubyte>& data)
 {
-	ASSERT_FALSE(data.size() == _pixelData.size(), "Pixel data size mismatch");
+	ASSERT_TRUE(data.size() == _pixelData.size(), "Pixel data size mismatch");
 	_pixelData = data;
 }

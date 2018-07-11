@@ -166,7 +166,7 @@ std::shared_ptr<SceneNode> ModelLoader::LoadFromFile(const std::string& filePath
 {
   Assimp::Importer importer;
   auto scene = importer.ReadFile(filePath, aiProcess_Triangulate | aiProcess_GenNormals | aiProcess_GenUVCoords);
-  ASSERT_FALSE(scene, "failed to load mode from " + filePath);
+  ASSERT_TRUE(scene, "failed to load mode from " + filePath);
   
   auto splitPath = String::Split(filePath, '/');
 	splitPath.pop_back();

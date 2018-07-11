@@ -105,8 +105,6 @@ GLenum GetBlendOp(BlendOperation op)
 
 GLRenderDevice::GLRenderDevice(const RenderDeviceDesc& desc) :
   RenderDevice(desc),
-	_textureStateChanged(true),
-	_constBufferStateChanged(true),
 	_shaderStateChanged(true),
   _primitiveTopology(PrimitiveTopology::TriangleList),
   _stencilReadMask(0),
@@ -118,7 +116,7 @@ GLRenderDevice::GLRenderDevice(const RenderDeviceDesc& desc) :
 #ifdef _WIN32
   glewExperimental = GL_TRUE;
   GLenum error = glewInit();
-  ASSERT_FALSE(error == GLEW_OK, "Failed to initialize GLEW");
+  ASSERT_TRUE(error == GLEW_OK, "Failed to initialize GLEW");
 #endif
 
 	SetViewport(ViewportDesc{ 0.0f, 0.0f, static_cast<float32>(desc.RenderWidth), static_cast<float32>(desc.RenderHeight), 0.0f, 0.0f });
@@ -186,6 +184,59 @@ void GLRenderDevice::SetPipelineState(const std::shared_ptr<PipelineState>& pipe
 	SetBlendState(pipelineState->GetBlendState());
   _pipelineState = pipelineState;
   _shaderParams = pipelineState->GetShaderParams();
+
+	for (uint32 i = 0; i < _boundTextures.size(); i++)
+	{
+		if (_boundTextures[i])
+		{
+			std::string textureName = _shaderParams->GetParamName(ShaderParamType::Texture, i);
+			if (!textureName.empty())
+			{
+				auto glPs = std::static_pointer_cast<GLShader>(_pipelineState->GetPS());
+				if (glPs->HasUniform(textureName))
+				{
+					glPs->BindTextureUnit(textureName, i);
+				}
+			}
+		}
+	}
+
+	for (uint32 i = 0; i < _boundConstantBuffers.size(); i++)
+	{
+		if (_boundConstantBuffers[i])
+		{
+			auto uniformBufferName = _shaderParams->GetParamName(ShaderParamType::ConstBuffer, i);
+			auto glVs = std::static_pointer_cast<GLShader>(_pipelineState->GetVS());
+			if (glVs->HasUniform(uniformBufferName))
+			{
+				glVs->BindUniformBlock(uniformBufferName, i);
+			}
+
+			auto glPs = std::static_pointer_cast<GLShader>(_pipelineState->GetPS());
+			if (glPs->HasUniform(uniformBufferName))
+			{
+				glPs->BindUniformBlock(uniformBufferName, i);
+			}
+
+			auto glGs = std::static_pointer_cast<GLShader>(_pipelineState->GetGS());
+			if (glGs && glGs->HasUniform(uniformBufferName))
+			{
+				glGs->BindUniformBlock(uniformBufferName, i);
+			}
+
+			auto glHs = std::static_pointer_cast<GLShader>(_pipelineState->GetHS());
+			if (glHs && glHs->HasUniform(uniformBufferName))
+			{
+				glHs->BindUniformBlock(uniformBufferName, i);
+			}
+
+			auto glDs = std::static_pointer_cast<GLShader>(_pipelineState->GetDS());
+			if (glDs && glDs->HasUniform(uniformBufferName))
+			{
+				glDs->BindUniformBlock(uniformBufferName, i);
+			}
+		}
+	}
 	_shaderStateChanged = true;
 }
 
@@ -217,31 +268,29 @@ void GLRenderDevice::SetIndexBuffer(const std::shared_ptr<IndexBuffer>& indexBuf
 
 void GLRenderDevice::SetConstantBuffer(uint32 slot, const std::shared_ptr<GpuBuffer>& constantBuffer)
 {
-  ASSERT_FALSE(constantBuffer->GetType() == BufferType::Constant, "GPU buffer is not a constant buffer");
-  ASSERT_TRUE(slot > MaxConstantBuffers, "Constant buffer binding slot exceeds maximum supported");
+  ASSERT_TRUE(constantBuffer->GetType() == BufferType::Constant, "GPU buffer is not a constant buffer");
+  ASSERT_FALSE(slot > MaxConstantBuffers, "Constant buffer binding slot exceeds maximum supported");
   
   auto glConstantBuffer = std::static_pointer_cast<GLGpuBuffer>(constantBuffer);
 	GLCall(glBindBufferBase(GL_UNIFORM_BUFFER, slot, glConstantBuffer->GetId()));
   _boundConstantBuffers[slot] = glConstantBuffer;
-	_constBufferStateChanged = true;
 }
 
 void GLRenderDevice::SetTexture(uint32 slot, const std::shared_ptr<Texture>& texture)
 {
-  ASSERT_TRUE(slot >= MaxTextureSlots, "Texture slot exceeds maximum supported");
+  ASSERT_FALSE(slot >= MaxTextureSlots, "Texture slot exceeds maximum supported");
   auto glTexture = std::static_pointer_cast<GLTexture>(texture);
   if (!_boundTextures[slot] || _boundTextures[slot]->GetId() != glTexture->GetId())
   {
     GLCall(glActiveTexture(GL_TEXTURE0 + slot));
     GLCall(glBindTexture(GetTextureTargetFromType(glTexture->GetTextureType()), glTexture->GetId()));
     _boundTextures[slot] = glTexture;
-		_textureStateChanged = true;
   }
 }
 
 void GLRenderDevice::SetSamplerState(uint32 slot, const std::shared_ptr<SamplerState>& samplerState)
 {
-  ASSERT_TRUE(slot >= MaxTextureSlots, "Sampler slot exceeds maximum supported");
+  ASSERT_FALSE(slot >= MaxTextureSlots, "Sampler slot exceeds maximum supported");
   auto glSamplerState = std::static_pointer_cast<GLSamplerState>(samplerState);
   if (!_boundSamplers[slot] || _boundSamplers[slot]->GetId() != glSamplerState->GetId())
   {
@@ -252,10 +301,10 @@ void GLRenderDevice::SetSamplerState(uint32 slot, const std::shared_ptr<SamplerS
 
 void GLRenderDevice::SetScissorDimensions(const ScissorDesc& desc)
 {
-	ASSERT_TRUE(desc.X < 0.0f || desc.X > _desc.RenderWidth, "Scissor X-Pos exceeds render dimensions");
-	ASSERT_TRUE(desc.Y < 0.0f || desc.Y > _desc.RenderHeight, "Scissor Y-Pos exceeds render dimensions");
-	ASSERT_TRUE(desc.W < 0.0f || desc.W > _desc.RenderWidth, "Scissor width exceeds render dimensions");
-	ASSERT_TRUE(desc.H < 0.0f || desc.H > _desc.RenderHeight, "Scissor height exceeds render dimensions");
+	ASSERT_FALSE(desc.X < 0.0f || desc.X > _desc.RenderWidth, "Scissor X-Pos exceeds render dimensions");
+	ASSERT_FALSE(desc.Y < 0.0f || desc.Y > _desc.RenderHeight, "Scissor Y-Pos exceeds render dimensions");
+	ASSERT_FALSE(desc.W < 0.0f || desc.W > _desc.RenderWidth, "Scissor width exceeds render dimensions");
+	ASSERT_FALSE(desc.H < 0.0f || desc.H > _desc.RenderHeight, "Scissor height exceeds render dimensions");
 
 	if (desc.X != _scissorDesc.X || desc.Y != _scissorDesc.Y || desc.W != _scissorDesc.W || desc.H != _scissorDesc.H)
 	{
@@ -284,7 +333,7 @@ void GLRenderDevice::Draw(uint32 vertexCount, uint32 vertexOffset)
 void GLRenderDevice::DrawIndexed(uint32 indexCount, uint32 indexOffset, uint32 vertexOffset)
 {
   BeginDraw();
-	ASSERT_TRUE(_boundIndexBuffer == nullptr, "No index buffer has been bound");
+	ASSERT_FALSE(_boundIndexBuffer == nullptr, "No index buffer has been bound");
 	GLCall(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _boundIndexBuffer->GetId()));
 
 	GLenum idxType = _boundIndexBuffer->GetIndexType() == IndexType::UInt16 ? GL_UNSIGNED_SHORT : GL_UNSIGNED_INT;
@@ -337,10 +386,10 @@ void GLRenderDevice::ClearBuffers(uint32 buffers, const Colour& colour, float32 
 
 void GLRenderDevice::BeginDraw()
 {
-  ASSERT_TRUE(_pipelineState == nullptr, "No pipeline state has been set");
-  ASSERT_TRUE(_pipelineState->GetVS() == nullptr, "No vertex shader has been set");
-  ASSERT_TRUE(_pipelineState->GetPS() == nullptr, "No pixel shader has been set");
-  ASSERT_TRUE(_shaderParams == nullptr, "No shader GPU params has been set");
+  ASSERT_FALSE(_pipelineState == nullptr, "No pipeline state has been set");
+  ASSERT_FALSE(_pipelineState->GetVS() == nullptr, "No vertex shader has been set");
+  ASSERT_FALSE(_pipelineState->GetPS() == nullptr, "No pixel shader has been set");
+  ASSERT_FALSE(_shaderParams == nullptr, "No shader GPU params has been set");
 
 	if (_shaderStateChanged)
 	{
@@ -361,67 +410,6 @@ void GLRenderDevice::BeginDraw()
   auto glVertexShader = std::static_pointer_cast<GLShader>(_pipelineState->GetVS());
   auto vao = _vaoCollection->GetVao(glVertexShader->GetId(), _pipelineState->GetVertexLayout(), _boundVertexBuffers);
 	GLCall(glBindVertexArray(vao->GetId()));
-
-	if (_textureStateChanged || _shaderStateChanged)
-	{
-		for (uint32 i = 0; i < _boundTextures.size(); i++)
-		{
-			if (_boundTextures[i])
-			{
-				std::string textureName = _shaderParams->GetParamName(ShaderParamType::Texture, i);
-				if (!textureName.empty())
-				{
-					auto glPs = std::static_pointer_cast<GLShader>(_pipelineState->GetPS());
-					if (glPs->HasUniform(textureName))
-					{
-						glPs->BindTextureUnit(textureName, i);
-					}
-				}
-			}
-		}
-		_textureStateChanged = false;
-	}
-  
-	if (_constBufferStateChanged || _shaderStateChanged)
-	{
-		for (uint32 i = 0; i < _boundConstantBuffers.size(); i++)
-		{
-			if (_boundConstantBuffers[i])
-			{
-				auto uniformBufferName = _shaderParams->GetParamName(ShaderParamType::ConstBuffer, i);
-				auto glVs = std::static_pointer_cast<GLShader>(_pipelineState->GetVS());
-				if (glVs->HasUniform(uniformBufferName))
-				{
-					glVs->BindUniformBlock(uniformBufferName, i);
-				}
-
-				auto glPs = std::static_pointer_cast<GLShader>(_pipelineState->GetPS());
-				if (glPs->HasUniform(uniformBufferName))
-				{
-					glPs->BindUniformBlock(uniformBufferName, i);
-				}
-
-				auto glGs = std::static_pointer_cast<GLShader>(_pipelineState->GetGS());
-				if (glGs && glGs->HasUniform(uniformBufferName))
-				{
-					glGs->BindUniformBlock(uniformBufferName, i);
-				}
-
-				auto glHs = std::static_pointer_cast<GLShader>(_pipelineState->GetHS());
-				if (glHs && glHs->HasUniform(uniformBufferName))
-				{
-					glHs->BindUniformBlock(uniformBufferName, i);
-				}
-
-				auto glDs = std::static_pointer_cast<GLShader>(_pipelineState->GetDS());
-				if (glDs && glDs->HasUniform(uniformBufferName))
-				{
-					glDs->BindUniformBlock(uniformBufferName, i);
-				}
-			}
-		}
-		_constBufferStateChanged = false;
-	}
 }
 
 void GLRenderDevice::EndDraw()

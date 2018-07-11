@@ -35,7 +35,7 @@ void GLShader::Compile()
   
   const byte* ptr = _desc.Source.c_str();
 	GLCall2(glCreateShaderProgramv(GetShaderType(_desc.ShaderType), 1, &ptr), _id);
-  ASSERT_TRUE(_id == 0, "Unable to generate shader object");
+  ASSERT_FALSE(_id == 0, "Unable to generate shader object");
   
   int32 logLength = -1;
   GLCall(glGetProgramiv(_id, GL_INFO_LOG_LENGTH, &logLength));
@@ -52,7 +52,7 @@ void GLShader::Compile()
   }
 
 	GLCall(glUseProgram(0));
-	ASSERT_FALSE(linkStatus == GL_TRUE, "Unable to compile shader:\n" + logMessages);
+	ASSERT_TRUE(linkStatus == GL_TRUE, "Unable to compile shader:\n" + logMessages);
   _isCompiled = true;
 
 	BuildUniformDefinitions();
@@ -88,10 +88,10 @@ void GLShader::BindTextureUnit(const std::string& name, uint32 textureUnit)
 
 GLShader::GLShader(const ShaderDesc& desc): Shader(desc), _id(0)
 {
-  ASSERT_TRUE(desc.ShaderLang != ShaderLang::Glsl, "Shaders must be written in GLSL when using OpenGL backend");
-  ASSERT_TRUE(desc.Source.empty(), "Shader source is empty");
-  ASSERT_TRUE(desc.EntryPoint.empty(), "Shader entry point not defined");
-  ASSERT_FALSE(desc.EntryPoint == "main", "GLSL shaders must have a 'main' entry point");
+  ASSERT_FALSE(desc.ShaderLang != ShaderLang::Glsl, "Shaders must be written in GLSL when using OpenGL backend");
+  ASSERT_FALSE(desc.Source.empty(), "Shader source is empty");
+  ASSERT_FALSE(desc.EntryPoint.empty(), "Shader entry point not defined");
+  ASSERT_TRUE(desc.EntryPoint == "main", "GLSL shaders must have a 'main' entry point");
 }
 
 uint32 GLShader::GetUniformLocation(const std::string& name)

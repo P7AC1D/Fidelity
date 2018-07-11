@@ -49,7 +49,7 @@ void SceneManager::SetCamera(const std::shared_ptr<Camera>& camera)
 
 void SceneManager::SetDirectionLight(const std::shared_ptr<Light>& light)
 {
-	ASSERT_FALSE(light->GetType() == LightType::Directional, "Light must be directional");
+	ASSERT_TRUE(light->GetType() == LightType::Directional, "Light must be directional");
 	_renderer->SetDirectionalLight(DirectionalLightData(light->GetColour(), light->GetDirection(), light->GetIntensity()));
 	_directionalLight = light;
 }
