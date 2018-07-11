@@ -49,13 +49,13 @@ void Test3D::OnStart()
   {
     for (int32 j = -30; j < 30; j += 3)
     {
-//      for (int32 k = -30; k < 30; k += 3)
+      for (int32 k = -30; k < 30; k += 3)
       {
         auto actor = rootSceneNode->CreateActor("test_model");
         auto renderable = actor->CreateComponent<Renderable>();
         auto mesh = MeshFactory::CreateCube();
         renderable->SetMesh(mesh);
-        actor->GetTransform()->Translate(Vector3(i, j, 0));
+        actor->GetTransform()->Translate(Vector3(i, j, k));
       }
     }
   }

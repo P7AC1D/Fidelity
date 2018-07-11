@@ -109,7 +109,6 @@ public:
 private:
   void InitPipelineStates();
   void InitFrameBuffer();
-	void InitObjectBuffer();
 	void InitMaterialBuffer();
 	void InitLightingPass();
 	void InitFullscreenQuad();
@@ -132,7 +131,6 @@ private:
   AmbientLightData _ambientLightData;
 
   std::shared_ptr<GpuBuffer> _frameBuffer;
-	std::shared_ptr<GpuBuffer> _objectBuffer;
 	std::shared_ptr<GpuBuffer> _materialBuffer;
   std::shared_ptr<PipelineState> _geomPassPso;
 	std::shared_ptr<PipelineState> _lightPassPso;

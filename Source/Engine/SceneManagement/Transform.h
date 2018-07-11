@@ -22,6 +22,8 @@ public:
   Vector3 GetScale() const;
   Matrix4 Get();
 
+	bool Modified() const { return _transformNeedsUpdate; }
+
 private:
   void UpdateTransform();
 

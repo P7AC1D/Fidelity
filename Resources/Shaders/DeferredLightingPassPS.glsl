@@ -21,10 +21,14 @@ struct TextureMapFlags
   bool Depth;
 };
 
-layout(std140) uniform ObjectBuffer
+layout(std140) uniform MaterialBuffer
 {
-  mat4 Model;
-};
+  TextureMapFlags Enabled;
+  vec4 AmbientColour;
+  vec4 DiffuseColour;
+  vec4 SpecularColour;
+  float SpecularExponent;  
+} Material;
 
 layout(std140) uniform FrameBuffer
 {
@@ -34,15 +38,6 @@ layout(std140) uniform FrameBuffer
   vec4 ViewPos;
   AmbientLightData AmbientLight;
 };
-
-layout(std140) uniform MaterialBuffer
-{   
-  TextureMapFlags Enabled;
-  vec4 AmbientColour;
-  vec4 DiffuseColour;
-  vec4 SpecularColour;
-  float SpecularExponent;  
-} Material;
 
 uniform sampler2D PositionMap;
 uniform sampler2D NormalMap;

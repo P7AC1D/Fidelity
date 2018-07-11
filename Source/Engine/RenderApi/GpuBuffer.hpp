@@ -22,6 +22,7 @@ enum class BufferUsage
 {
   Default,
   Dynamic,
+	Stream
 };
 
 enum class BufferType

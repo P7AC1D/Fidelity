@@ -45,11 +45,6 @@ struct FrameBufferData
   AmbientLightData AmbientLight;
 };
 
-struct ObjectBufferData
-{
-	Matrix4 Model;	
-};
-
 struct MaterialBufferData
 {
   struct TextureMapFlagData
@@ -87,7 +82,6 @@ Renderer::Renderer(const RendererDesc& desc) :
     
     InitPipelineStates();
     InitFrameBuffer();
-		InitObjectBuffer();
 		InitMaterialBuffer();
 		InitFullscreenQuad();
 		InitLightingPass();
@@ -245,22 +239,6 @@ void Renderer::InitFrameBuffer()
   {
     throw std::runtime_error(std::string("Could not initialize camera constant buffer\n") + exception.what());
   }
-}
-
-void Renderer::InitObjectBuffer()
-{
-	try
-	{
-		GpuBufferDesc perShaderBuffDesc;
-		perShaderBuffDesc.BufferType = BufferType::Constant;
-		perShaderBuffDesc.BufferUsage = BufferUsage::Dynamic;
-		perShaderBuffDesc.ByteCount = sizeof(ObjectBufferData);
-		_objectBuffer = _renderDevice->CreateGpuBuffer(perShaderBuffDesc);
-	}
-	catch (const std::exception& exception)
-	{
-		throw std::runtime_error(std::string("Could not initialize object constant buffer\n") + exception.what());
-	}
 }
 
 void Renderer::InitMaterialBuffer()
@@ -422,6 +400,16 @@ void Renderer::StartFrame()
   _frameBuffer->WriteData(0, sizeof(FrameBufferData), &framData);
 
 	_renderDevice->ClearBuffers(RTT_Colour | RTT_Depth | RTT_Stencil);
+
+	for (auto& renderable : _renderables)
+	{
+		if (renderable.Transform->Modified())
+		{
+			PerObjectBufferData perObjectData;
+			perObjectData.Model = renderable.Transform->Get();
+			renderable.Renderable->UpdatePerObjectBuffer(perObjectData);
+		}
+	}
 }
 
 void Renderer::EndFrame()
@@ -434,9 +422,8 @@ void Renderer::GeometryPass()
 
 	_renderDevice->SetPipelineState(_geomPassPso);
 	_renderDevice->SetRenderTarget(_gBuffer);
-	_renderDevice->ClearBuffers(RTT_Colour | RTT_Depth | RTT_Stencil);
-  
-	_renderDevice->SetConstantBuffer(0, _objectBuffer);
+	_renderDevice->ClearBuffers(RTT_Colour | RTT_Depth | RTT_Stencil);  
+	
 	_renderDevice->SetConstantBuffer(1, _frameBuffer);
 	_renderDevice->SetConstantBuffer(2, _materialBuffer);
   _renderDevice->SetSamplerState(0, _basicSamplerState);
@@ -446,11 +433,8 @@ void Renderer::GeometryPass()
 		auto material = mesh->GetMaterial();
 		SetMaterialData(material);
 
+		_renderDevice->SetConstantBuffer(0, renderable.Renderable->GetPerObjectBuffer());
 		_renderDevice->SetVertexBuffer(0, mesh->GetVertexData());
-
-		ObjectBufferData objData;
-		objData.Model = renderable.Transform->Get();
-		_objectBuffer->WriteData(0, sizeof(ObjectBufferData), &objData, AccessType::WriteOnlyDiscardRange);
 
 		if (mesh->IsIndexed())
 		{
@@ -481,7 +465,6 @@ void Renderer::LightingPass()
 	_renderDevice->SetSamplerState(1, _noMipSamplerState);
 	_renderDevice->SetSamplerState(2, _noMipSamplerState);
 	_renderDevice->SetVertexBuffer(0, _fsQuadBuffer);
-  _renderDevice->SetConstantBuffer(0, _objectBuffer);
   _renderDevice->SetConstantBuffer(1, _frameBuffer);
 	_renderDevice->Draw(6, 0);
 

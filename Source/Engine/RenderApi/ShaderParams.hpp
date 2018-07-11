@@ -7,7 +7,7 @@ enum class ShaderParamType
 {
   ConstBuffer,
   Texture,
-  Sampler
+  Sampler,
 };
 
 struct ShaderParam

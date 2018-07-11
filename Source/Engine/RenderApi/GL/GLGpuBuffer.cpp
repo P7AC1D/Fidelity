@@ -20,6 +20,7 @@ GLenum GetBufferUsage(BufferUsage bufferUsage)
   {
     case BufferUsage::Default: return GL_STATIC_DRAW;
     case BufferUsage::Dynamic: return GL_DYNAMIC_DRAW;
+		case BufferUsage::Stream: return GL_STREAM_DRAW;
     default: return GL_STATIC_DRAW;
   }
 }
