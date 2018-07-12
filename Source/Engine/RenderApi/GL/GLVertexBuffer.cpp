@@ -1,6 +1,7 @@
 #include "GLVertexBuffer.hpp"
 
 #include "GLGpuBuffer.hpp"
+#include "GLVertexArrayCollection.hpp"
 
 uint32 GLVertexBuffer::GetId() const
 {

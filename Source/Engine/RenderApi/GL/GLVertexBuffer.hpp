@@ -3,10 +3,12 @@
 #include "../VertexBuffer.hpp"
 
 class GLGpuBuffer;
+class GLVertexArrayObject;
 
 class GLVertexBuffer : public VertexBuffer
 {
   friend class GLRenderDevice;
+  friend class GLVertexArrayObjectCollection;
   
 public:
   uint32 GetId() const;
@@ -20,4 +22,5 @@ protected:
   
 private:
   std::unique_ptr<GLGpuBuffer> _buffer;
+  std::shared_ptr<GLVertexArrayObject> _vao;
 };

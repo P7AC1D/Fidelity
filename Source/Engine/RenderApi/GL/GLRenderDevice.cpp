@@ -110,8 +110,7 @@ GLRenderDevice::GLRenderDevice(const RenderDeviceDesc& desc) :
   _stencilReadMask(0),
   _stencilRefValue(0),
   _stencilWriteMask(0),
-  _shaderPipelineCollection(new GLShaderPipelineCollection),
-	_vaoCollection(new GLVertexArrayObjectCollection)
+  _shaderPipelineCollection(new GLShaderPipelineCollection)
 {
 #ifdef _WIN32
   glewExperimental = GL_TRUE;
@@ -408,7 +407,7 @@ void GLRenderDevice::BeginDraw()
 		_shaderStateChanged = false;
 	}
   
-  auto vao = _vaoCollection->GetVao( _pipelineState->GetVertexLayout(), _boundVertexBuffer);
+  auto vao = GLVertexArrayObjectCollection::GetVao( _pipelineState->GetVertexLayout(), _boundVertexBuffer);
 	GLCall(glBindVertexArray(vao->GetId()));
 }
 

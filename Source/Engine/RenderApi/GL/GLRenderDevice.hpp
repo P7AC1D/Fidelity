@@ -9,8 +9,6 @@ class GLSamplerState;
 class GLShaderPipeline;
 class GLShaderPipelineCollection;
 class GLTexture;
-class GLVertexArrayObject;
-class GLVertexArrayObjectCollection;
 class GLVertexBuffer;
 class ShaderParams;
 
@@ -104,5 +102,4 @@ private:
   std::array<std::shared_ptr<GLSamplerState>, MaxTextureSlots> _boundSamplers;
   
   std::shared_ptr<GLShaderPipelineCollection> _shaderPipelineCollection;
-  std::shared_ptr<GLVertexArrayObjectCollection> _vaoCollection;
 };

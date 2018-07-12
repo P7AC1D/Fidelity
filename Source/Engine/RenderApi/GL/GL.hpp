@@ -17,7 +17,7 @@
 #define ASSERT(x) if (!(x)) __debugbreak();
 #endif
 
-#ifdef _DEBUG
+#ifdef NDEBUG
 #define GLCall(x) GLClearError();\
 x;\
 ASSERT(GLLogCall(#x, __FILE__, __LINE__))
@@ -25,7 +25,7 @@ ASSERT(GLLogCall(#x, __FILE__, __LINE__))
 #define GLCall(x) x;
 #endif
 
-#ifdef _DEBUG
+#ifdef NDEBUG
 #define GLCall2(x, out) { decltype(out) data = out; \
 data = (x); \
 GLClearError();\

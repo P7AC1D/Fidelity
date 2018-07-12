@@ -11,9 +11,6 @@ class GLVertexArrayObject
   friend class GLVertexArrayObjectCollection;
   
 public:
-  bool operator==(const GLVertexArrayObject& vao) const;
-  bool operator!=(const GLVertexArrayObject& vao) const;
-  
   uint32 GetId() const { return _vaoId; }
   
 private:
@@ -28,8 +25,5 @@ private:
 class GLVertexArrayObjectCollection
 {
 public:
-  std::shared_ptr<GLVertexArrayObject> GetVao(const std::shared_ptr<VertexLayout>& vertexLayout, const std::shared_ptr<GLVertexBuffer>& boundBuffer);
-  
-private:
-	std::unordered_map<std::shared_ptr<GLVertexBuffer>, std::shared_ptr<GLVertexArrayObject>> _vaos;
+  static std::shared_ptr<GLVertexArrayObject> GetVao(const std::shared_ptr<VertexLayout>& vertexLayout, const std::shared_ptr<GLVertexBuffer>& boundBuffer);
 };
