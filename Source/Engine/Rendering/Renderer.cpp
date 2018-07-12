@@ -397,7 +397,7 @@ void Renderer::StartFrame()
   framData.AmbientLight = _ambientLightData;
   framData.View = _activeCamera->GetView();
   framData.ViewPosition = Vector4(_activeCamera->GetPosition(), 1.0f);
-  _frameBuffer->WriteData(0, sizeof(FrameBufferData), &framData);
+  _frameBuffer->WriteData(0, sizeof(FrameBufferData), &framData, AccessType::WriteOnlyDiscard);
 
 	_renderDevice->ClearBuffers(RTT_Colour | RTT_Depth | RTT_Stencil);
 

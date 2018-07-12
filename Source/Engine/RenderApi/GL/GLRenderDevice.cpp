@@ -408,8 +408,7 @@ void GLRenderDevice::BeginDraw()
 		_shaderStateChanged = false;
 	}
   
-  auto glVertexShader = std::static_pointer_cast<GLShader>(_pipelineState->GetVS());
-  auto vao = _vaoCollection->GetVao(glVertexShader->GetId(), _pipelineState->GetVertexLayout(), _boundVertexBuffer);
+  auto vao = _vaoCollection->GetVao( _pipelineState->GetVertexLayout(), _boundVertexBuffer);
 	GLCall(glBindVertexArray(vao->GetId()));
 }
 

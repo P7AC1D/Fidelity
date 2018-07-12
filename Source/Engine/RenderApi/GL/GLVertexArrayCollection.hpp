@@ -1,6 +1,6 @@
 #pragma once
 #include <memory>
-#include <unordered_set>
+#include <unordered_map>
 #include "../../Core/Types.hpp"
 
 class GLVertexBuffer;
@@ -17,32 +17,19 @@ public:
   uint32 GetId() const { return _vaoId; }
   
 private:
-  class Hash
-  {
-  public:
-    std::size_t operator()(const std::shared_ptr<GLVertexArrayObject>& vao) const;
-  };
-  
-  class Equal
-  {
-  public:
-    bool operator()(const std::shared_ptr<GLVertexArrayObject>& a, const std::shared_ptr<GLVertexArrayObject>& b) const;
-  };
-  
   GLVertexArrayObject();
-  GLVertexArrayObject(uint32 vaoId, uint32 vsId, std::shared_ptr<GLVertexBuffer>& boundBuffer);
+  GLVertexArrayObject(uint32 vaoId, const std::shared_ptr<GLVertexBuffer>& boundBuffer);
   
 private:
   uint32 _vaoId;
-  uint32 _vsId;
   std::shared_ptr<GLVertexBuffer> _boundBuffer;
 };
 
 class GLVertexArrayObjectCollection
 {
 public:
-  const std::shared_ptr<GLVertexArrayObject> GetVao(uint32 vsId, const std::shared_ptr<VertexLayout>& vertexLayout, std::shared_ptr<GLVertexBuffer>& boundBuffer);
+  std::shared_ptr<GLVertexArrayObject> GetVao(const std::shared_ptr<VertexLayout>& vertexLayout, const std::shared_ptr<GLVertexBuffer>& boundBuffer);
   
 private:
-  std::unordered_set<std::shared_ptr<GLVertexArrayObject>, GLVertexArrayObject::Hash, GLVertexArrayObject::Equal> _vaoBuffers;
+	std::unordered_map<std::shared_ptr<GLVertexBuffer>, std::shared_ptr<GLVertexArrayObject>> _vaos;
 };

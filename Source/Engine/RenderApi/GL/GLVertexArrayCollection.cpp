@@ -103,7 +103,7 @@ GLint GetComponentByteCount(SemanticFormat format)
 
 bool GLVertexArrayObject::operator==(const GLVertexArrayObject& vao) const
 {
-  if (_vsId != vao._vsId)
+  if (_vaoId != vao._vaoId)
   {
     return false;
   }
@@ -120,43 +120,28 @@ bool GLVertexArrayObject::operator!=(const GLVertexArrayObject& vao) const
   return !(operator==(vao));
 }
 
-std::size_t GLVertexArrayObject::Hash::operator()(const std::shared_ptr<GLVertexArrayObject>& vao) const
-{
-  std::size_t seed = 0;
-  ::Hash::Combine(seed, vao->_vsId);
-	::Hash::Combine(seed, vao->_boundBuffer);
-  return seed;
-}
-
-bool GLVertexArrayObject::Equal::operator()(const std::shared_ptr<GLVertexArrayObject>& a, const std::shared_ptr<GLVertexArrayObject>& b) const
-{
-  return *a == *b;
-}
-
-GLVertexArrayObject::GLVertexArrayObject(): _vaoId(0), _vsId(0)
+GLVertexArrayObject::GLVertexArrayObject(): _vaoId(0)
 {
 }
 
-GLVertexArrayObject::GLVertexArrayObject(uint32 vaoId, uint32 vsId, std::shared_ptr<GLVertexBuffer>& boundBuffer):
+GLVertexArrayObject::GLVertexArrayObject(uint32 vaoId, const std::shared_ptr<GLVertexBuffer>& boundBuffer):
   _vaoId((vaoId)),
-  _vsId(vsId),
   _boundBuffer(boundBuffer)
 {
 }
 
-const std::shared_ptr<GLVertexArrayObject> GLVertexArrayObjectCollection::GetVao(uint32 vsId, const std::shared_ptr<VertexLayout>& vertexLayout, std::shared_ptr<GLVertexBuffer>& boundBuffer)
+std::shared_ptr<GLVertexArrayObject> GLVertexArrayObjectCollection::GetVao(const std::shared_ptr<VertexLayout>& vertexLayout, const std::shared_ptr<GLVertexBuffer>& boundBuffer)
 {
-  std::shared_ptr<GLVertexArrayObject> expectedVAO(new GLVertexArrayObject(0, vsId, boundBuffer));
-  auto iter = _vaoBuffers.find(expectedVAO);
-  if (iter != _vaoBuffers.end())
+  auto iter = _vaos.find(boundBuffer);
+  if (iter != _vaos.end())
   {
-    return *iter;
+    return iter->second;
   }
   
-  GLuint vao = 0;
-  GLCall(glGenVertexArrays(1, &vao));
-  ASSERT_TRUE(vao != 0, "Unabled to create OpenGL vertex array object");
-  GLCall(glBindVertexArray(vao));
+  GLuint vaoId = 0;
+  GLCall(glGenVertexArrays(1, &vaoId));
+  ASSERT_TRUE(vaoId != 0, "Unabled to create OpenGL vertex array object");
+  GLCall(glBindVertexArray(vaoId));
   
   GLsizei stride = 0;
   auto layouts = vertexLayout->GetDesc();
@@ -183,7 +168,7 @@ const std::shared_ptr<GLVertexArrayObject> GLVertexArrayObjectCollection::GetVao
   GLCall(glBindVertexArray(0));
 	GLCall(glBindBuffer(GL_ARRAY_BUFFER, 0));
   
-  expectedVAO->_vaoId = vao;
-  _vaoBuffers.insert(expectedVAO);
-  return expectedVAO;
+	std::shared_ptr<GLVertexArrayObject> vao(new GLVertexArrayObject(vaoId, boundBuffer));
+	_vaos[boundBuffer] = vao;
+  return vao;
 }
