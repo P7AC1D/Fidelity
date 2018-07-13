@@ -238,7 +238,7 @@ void Renderer::InitFrameBuffer()
   {
     GpuBufferDesc perShaderBuffDesc;
     perShaderBuffDesc.BufferType = BufferType::Constant;
-    perShaderBuffDesc.BufferUsage = BufferUsage::Dynamic;
+    perShaderBuffDesc.BufferUsage = BufferUsage::Stream;
     perShaderBuffDesc.ByteCount = sizeof(FrameBufferData);
     _frameBuffer = _renderDevice->CreateGpuBuffer(perShaderBuffDesc);
   }
@@ -254,7 +254,7 @@ void Renderer::InitMaterialBuffer()
 	{
 		GpuBufferDesc perShaderBuffDesc;
 		perShaderBuffDesc.BufferType = BufferType::Constant;
-		perShaderBuffDesc.BufferUsage = BufferUsage::Dynamic;
+		perShaderBuffDesc.BufferUsage = BufferUsage::Stream;
 		perShaderBuffDesc.ByteCount = sizeof(MaterialBufferData);
 		_materialBuffer = _renderDevice->CreateGpuBuffer(perShaderBuffDesc);
 	}
@@ -543,7 +543,7 @@ void Renderer::SetMaterialData(const std::shared_ptr<Material>& material)
     _renderDevice->SetSamplerState(3, _noMipSamplerState);
   }
 
-	_materialBuffer->WriteData(0, sizeof(MaterialBufferData), &matData);
+	_materialBuffer->WriteData(0, sizeof(MaterialBufferData), &matData, AccessType::WriteOnlyDiscard);
 	_activeMaterial = material;
 
 	_renderCounts.MaterialCount++;
