@@ -104,6 +104,12 @@ void SceneManager::SubmitSceneToRender()
 	auto actors = _sceneGraph->GetAllActors();
 	for (auto actor : actors)
 	{
-		_renderer->PushRenderable(actor->GetComponent<Renderable>(), actor->GetTransform());
+		auto renderable = actor->GetComponent<Renderable>();
+		if (renderable && !renderable->_rendererNotified)
+		{
+			_renderer->Notify(renderable, actor->GetTransform());
+			renderable->_rendererNotified = true;
+		}		
 	}
+	_renderer->SortRenderables();
 }

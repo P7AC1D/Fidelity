@@ -93,9 +93,28 @@ Renderer::Renderer(const RendererDesc& desc) :
   }
 }
 
-void Renderer::PushRenderable(const std::shared_ptr<Renderable>& renderable, const std::shared_ptr<Transform>& transform)
+void Renderer::SortRenderables()
+{
+	std::sort(_renderables.begin(), _renderables.end(), [&](const RenderableItem& lhs, const RenderableItem& rhs)
+	{
+		auto camPos = _activeCamera->GetPosition();
+
+		auto lhsPos = lhs.Transform->Get() * lhs.Renderable->GetBounds().GetMidPoint();
+		auto rhsPos = rhs.Transform->Get() * rhs.Renderable->GetBounds().GetMidPoint();
+
+		auto distToLhs = Vector4::Length(camPos - Vector3(lhsPos));
+		auto distToRhs = Vector4::Length(camPos - Vector3(rhsPos));
+		return distToLhs < distToRhs;
+	});
+}
+
+void Renderer::Notify(const std::shared_ptr<Renderable>& renderable, const std::shared_ptr<Transform>& transform)
 {
   _renderables.push_back(RenderableItem(renderable, transform));
+
+	PerObjectBufferData perObjectData;
+	perObjectData.Model = transform->Get();
+	renderable->UpdatePerObjectBuffer(perObjectData);
 }
 
 void Renderer::DrawFrame()
@@ -400,16 +419,6 @@ void Renderer::StartFrame()
   _frameBuffer->WriteData(0, sizeof(FrameBufferData), &framData, AccessType::WriteOnlyDiscard);
 
 	_renderDevice->ClearBuffers(RTT_Colour | RTT_Depth | RTT_Stencil);
-
-	for (auto& renderable : _renderables)
-	{
-		if (renderable.Transform->Modified())
-		{
-			PerObjectBufferData perObjectData;
-			perObjectData.Model = renderable.Transform->Get();
-			renderable.Renderable->UpdatePerObjectBuffer(perObjectData);
-		}
-	}
 }
 
 void Renderer::EndFrame()
@@ -446,7 +455,6 @@ void Renderer::GeometryPass()
 			_renderDevice->Draw(mesh->GetVertexCount(), 0);
 		}
 	}
-	_renderables.clear();
 
   auto end = std::chrono::high_resolution_clock::now();
   _renderTimings.GBuffer = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();

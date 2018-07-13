@@ -100,9 +100,11 @@ public:
 	void SetDirectionalLight(const DirectionalLightData& directionalLightData) { _directionalLightData = directionalLightData; }
   void SetAmbientLight(const AmbientLightData& ambientLightData) { _ambientLightData = ambientLightData; }
 
+	void SortRenderables();
+
 	void EnableGBufferDebugPass(GBufferDisplayType gBufferDisplay) { _gBufferDisplay = gBufferDisplay; }
   
-  void PushRenderable(const std::shared_ptr<Renderable>& renderable, const std::shared_ptr<Transform>& transform);
+  void Notify(const std::shared_ptr<Renderable>& renderable, const std::shared_ptr<Transform>& transform);
   
   void DrawFrame();
   

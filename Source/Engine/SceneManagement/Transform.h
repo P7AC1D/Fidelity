@@ -22,7 +22,7 @@ public:
   Vector3 GetScale() const;
   Matrix4 Get();
 
-	bool Modified() const { return _transformNeedsUpdate; }
+	bool Modified() const { return _modified; }
 
 private:
   void UpdateTransform();
@@ -32,5 +32,5 @@ private:
   Quaternion _rotation;
   Matrix4 _transform;
 
-  bool _transformNeedsUpdate;
+  bool _modified;
 };

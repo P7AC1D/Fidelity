@@ -2,6 +2,7 @@
 #include "../Core/Types.hpp"
 
 class Vector2;
+class Vector4;
 
 class Vector3
 {
@@ -19,6 +20,7 @@ public:
   Vector3(float32 a, float32 b, float32 c);
   Vector3(const Vector2& vec, float32 k = 0.0f);
   Vector3(const Vector3& vec);
+	explicit Vector3(const Vector4& vec);
 
   Vector3 operator-() const;
   

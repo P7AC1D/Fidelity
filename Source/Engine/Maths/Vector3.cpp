@@ -4,6 +4,7 @@
 #include <cmath>
 
 #include "Vector2.hpp"
+#include "Vector4.hpp"
 
 Vector3 Vector3::Zero = Vector3(0.0f);
 Vector3 Vector3::Identity = Vector3(1.0f);
@@ -67,6 +68,13 @@ Vector3::Vector3(const Vector3& vec)
   X = vec.X;
   Y = vec.Y;
   Z = vec.Z;
+}
+
+Vector3::Vector3(const Vector4& vec)
+{
+	X = vec.X;
+	Y = vec.Y;
+	Z = vec.Z;
 }
 
 Vector3 Vector3::operator-() const

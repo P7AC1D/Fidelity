@@ -2,6 +2,7 @@
 #include "../Core/Types.hpp"
 
 class Quaternion;
+class Matrix4;
 class Vector3;
 
 class Matrix3
@@ -12,6 +13,7 @@ public:
   
   Matrix3();
   Matrix3(const Matrix3& mat);
+	Matrix3(const Matrix4& mat);
   Matrix3(float32 a, float32 b, float32 c,
           float32 d, float32 e, float32 f,
           float32 g, float32 h, float32 i);

@@ -44,23 +44,23 @@ void Test3D::OnStart()
 	auto directionalLight = _sceneManager->CreateLight(LightType::Directional, "DirectionLight");
 	_sceneManager->SetDirectionLight(directionalLight);
   
-  //_sceneManager->LoadModelFromFile("./../../Resources/Models/Sponza/sponza.obj");
+  _sceneManager->LoadModelFromFile("./../../Resources/Models/Sponza/sponza.obj");
   
-  auto rootSceneNode = _sceneManager->GetRootSceneNode();
-  for (int32 i = -30; i < 30; i += 3)
-  {
-    for (int32 j = -30; j < 30; j += 3)
-    {
-      for (int32 k = -30; k < 30; k += 3)
-      {
-        auto actor = rootSceneNode->CreateActor("test_model");
-        auto renderable = actor->CreateComponent<Renderable>();
-        auto mesh = MeshFactory::CreateCube();
-        renderable->SetMesh(mesh);
-        actor->GetTransform()->Translate(Vector3(i, j, k));
-      }
-    }
-  }
+  //auto rootSceneNode = _sceneManager->GetRootSceneNode();
+  //for (int32 i = -30; i < 30; i += 3)
+  //{
+  //  for (int32 j = -30; j < 30; j += 3)
+  //  {
+  //    for (int32 k = -30; k < 30; k += 3)
+  //    {
+  //      auto actor = rootSceneNode->CreateActor("test_model");
+  //      auto renderable = actor->CreateComponent<Renderable>();
+  //      auto mesh = MeshFactory::CreateCube();
+  //      renderable->SetMesh(mesh);
+  //      actor->GetTransform()->Translate(Vector3(i, j, k));
+  //    }
+  //  }
+  //}
 //  auto actor = rootSceneNode->CreateActor("test_model");
 //  auto renderable = actor->CreateComponent<Renderable>();
 //  auto mesh = MeshFactory::CreateCube();

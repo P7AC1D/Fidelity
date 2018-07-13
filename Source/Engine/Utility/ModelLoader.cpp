@@ -100,6 +100,9 @@ std::shared_ptr<StaticMesh> BuildMesh(const std::string& filePath, const aiMesh*
   std::shared_ptr<StaticMesh> mesh(new StaticMesh());
   auto material = mesh->GetMaterial();
   BuildMaterial(filePath, aiMaterial, material);
+
+	aiString name;
+	aiMaterial->Get(AI_MATKEY_NAME, name);
   
   std::vector<Vector3> vertices;
   BuildVertexData(aiMesh->mVertices, aiMesh->mNumVertices, vertices);
