@@ -7,7 +7,6 @@
 #include "Renderer.h"
 
 StaticMesh::StaticMesh() :
-  _material(new Material),
   _vertexDataFormat(0),
   _vertexCount(0),
 	_verticesNeedUpdate(true),

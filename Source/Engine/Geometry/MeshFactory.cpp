@@ -6,6 +6,7 @@
 #include "../Maths/Vector2.hpp"
 #include "../Maths/Vector3.hpp"
 #include "../Rendering/Material.hpp"
+#include "../Rendering/MaterialFactory.hpp"
 #include "../Rendering/StaticMesh.h"
 #include "Cube.hpp"
 #include "Icosphere.hpp"
@@ -17,6 +18,7 @@ std::shared_ptr<StaticMesh> MeshFactory::CreateCube()
   mesh->SetPositionVertexData(cube.GetPositions());
   mesh->SetTextureVertexData(cube.GetTexCoords());
   mesh->SetIndexData(cube.GetIndices());
+	mesh->SetMaterial(MaterialFactory::Create());
   mesh->GenerateNormals();
   mesh->GenerateTangents();
   return mesh;
@@ -58,6 +60,9 @@ std::shared_ptr<StaticMesh> MeshFactory::CreatePlane(uint32 density)
   mesh->SetPositionVertexData(positions);
   mesh->SetNormalVertexData(normals);
   mesh->SetTextureVertexData(texCoords);
+	mesh->SetMaterial(MaterialFactory::Create());
+	mesh->GenerateNormals();
+	mesh->GenerateTangents();
   return mesh;
 }
 
@@ -68,6 +73,7 @@ std::shared_ptr<StaticMesh> MeshFactory::CreateIcosphere(uint32 recursionCount)
   mesh->SetPositionVertexData(icosphere.GetPositions());  
   mesh->SetTextureVertexData(icosphere.GetTexCoords());
   mesh->SetIndexData(icosphere.GetIndices());
+	mesh->SetMaterial(MaterialFactory::Create());
   mesh->GenerateNormals();
   mesh->GenerateTangents();
   return mesh;

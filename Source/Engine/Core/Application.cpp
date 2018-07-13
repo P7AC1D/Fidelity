@@ -187,7 +187,8 @@ bool Application::Initialize()
 		rendererDesc.RenderWidth = _desc.Width;
 		rendererDesc.RenderHeight = _desc.Height;
 		_renderer.reset(new Renderer(rendererDesc));
-		_sceneManager.reset(new SceneManager(_renderer));
+		_sceneManager = SceneManager::Get();
+		_sceneManager->SetRenderer(_renderer);
 	}
 	catch (const std::exception& exception)
 	{
@@ -198,7 +199,6 @@ bool Application::Initialize()
 	}
 
   _debugUi.reset(new DebugUi(_window, _glContext));
-  _debugUi->SetSceneManager(_sceneManager);
 	_debugUi->SetRenderer(_renderer);
   return true;
 }

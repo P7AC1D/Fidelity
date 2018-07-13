@@ -1,5 +1,6 @@
 #include "DebugUi.hpp"
 
+#include <sstream>
 #include <SDL.h>
 #include "ImGui/imgui.h"
 #include "ImGui/imgui_impl_sdl.h"
@@ -40,11 +41,6 @@ DebugUi::~DebugUi()
 	ImGui::DestroyContext();
 }
 
-void DebugUi::SetSceneManager(const std::shared_ptr<SceneManager>& sceneManager)
-{
-  _sceneManager = sceneManager;
-}
-
 void DebugUi::SetRenderer(const std::shared_ptr<Renderer>& renderer)
 {
 	_renderer = renderer;
@@ -67,10 +63,7 @@ void DebugUi::Update()
 	ImGui_ImplSDL2_NewFrame(_sdlWindow);
 	ImGui::NewFrame();
 	{
-		if (!_sceneManager)
-		{
-			return;
-		}
+		auto sceneManager = SceneManager::Get();
 
 		bool displayDebugWindow = true;
 		ImGui::SetNextWindowPos(ImVec2(0, 0));
@@ -86,7 +79,7 @@ void DebugUi::Update()
 
 		if (ImGui::TreeNode("Camera"))
 		{
-			auto camera = _sceneManager->GetCamera();
+			auto camera = sceneManager->GetCamera();
 
 			auto position = camera->GetPosition();
 			float32 camPos[3] = { position.X, position.Y, position.Z };
@@ -105,21 +98,21 @@ void DebugUi::Update()
 
     if (ImGui::TreeNode("Ambient Light"))
     {
-      auto colour = _sceneManager->GetAmbientLightColour();
+      auto colour = sceneManager->GetAmbientLightColour();
       float32 col[3] = { colour[0], colour[1], colour[2] };
       ImGui::ColorEdit3("Colour", col);
-      _sceneManager->SetAmbientLightColour(Colour(col[0] * 255, col[1] * 255, col[2] * 255));
+			sceneManager->SetAmbientLightColour(Colour(col[0] * 255, col[1] * 255, col[2] * 255));
 
-      auto intensity = _sceneManager->GetAmbientLightIntensity();
+      auto intensity = sceneManager->GetAmbientLightIntensity();
       ImGui::SliderFloat("Intensity", &intensity, 0.0f, 1.0f);
-      _sceneManager->SetAmbientLightIntensity(intensity);
+			sceneManager->SetAmbientLightIntensity(intensity);
 
       ImGui::TreePop();
     }
 
 		if (ImGui::TreeNode("Directional Light"))
 		{
-			auto dirLight = _sceneManager->GetDirectionalLight();
+			auto dirLight = sceneManager->GetDirectionalLight();
 
 			auto colour = dirLight->GetColour();
 			float32 col[3] = { colour[0], colour[1], colour[2] };
@@ -157,6 +150,11 @@ void DebugUi::Update()
 
 		ImGui::Separator();
 		{
+			std::stringstream drawCounts;
+			auto frameCounts = _renderer->GetFrameRenderCounts();
+			drawCounts << frameCounts.DrawCount << " draw calls\n" << frameCounts.TriangleCount << " triangles\n" << frameCounts.MaterialCount << " materials\n";
+			ImGui::Text(drawCounts.str().c_str());
+			
 			ImGui::Text("%.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
 		}
 

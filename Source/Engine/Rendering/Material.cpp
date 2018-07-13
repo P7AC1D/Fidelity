@@ -2,9 +2,6 @@
 
 #include "../RenderApi/Texture.hpp"
 
-Material::Material() : _specularExponent(1.0f)
-{}
-
 void Material::SetAmbientColour(const Colour& ambientColour)
 {
 	_ambientColour = ambientColour;
@@ -43,6 +40,11 @@ void Material::SetSpecularTexture(const std::shared_ptr<Texture>& specularTextur
 void Material::SetDepthTexture(const std::shared_ptr<Texture>& depthTexture)
 {
 	_depthTexture = depthTexture;
+}
+
+uint32 Material::GetId() const
+{
+	return _id;
 }
 
 Colour Material::GetAmbientColour() const
@@ -104,3 +106,6 @@ bool Material::HasDepthTexture() const
 {
 	return _depthTexture != nullptr;
 }
+
+Material::Material() : _id(0), _specularExponent(1.0f)
+{}

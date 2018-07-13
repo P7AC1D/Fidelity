@@ -4,6 +4,7 @@
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
 #include "../Rendering/Material.hpp"
+#include "../Rendering/MaterialFactory.hpp"
 #include "../Rendering/Renderable.hpp"
 #include "../Rendering/StaticMesh.h"
 #include "../SceneManagement/Actor.hpp"
@@ -46,8 +47,10 @@ void BuildVertexData(const aiVector3D* vertices, uint32 verexCount, std::vector<
   }
 }
 
-void BuildMaterial(const std::string& filePath, const aiMaterial* aiMaterial, std::shared_ptr<Material> material)
+std::shared_ptr<Material> BuildMaterial(const std::string& filePath, const aiMaterial* aiMaterial)
 {
+	std::shared_ptr<Material> material(MaterialFactory::Create());
+
   aiColor3D ambientColour;
   aiMaterial->Get(AI_MATKEY_COLOR_AMBIENT, ambientColour);
   material->SetAmbientColour(Vector3(ambientColour.r, ambientColour.g, ambientColour.b));
@@ -88,9 +91,10 @@ void BuildMaterial(const std::string& filePath, const aiMaterial* aiMaterial, st
     auto specularTexture = TextureLoader::LoadFromFile2D(filePath + specularTexturePath.C_Str());
     material->SetSpecularTexture(specularTexture);
   }
+	return material;
 }
 
-std::shared_ptr<StaticMesh> BuildMesh(const std::string& filePath, const aiMesh* aiMesh, const aiMaterial* aiMaterial)
+std::shared_ptr<StaticMesh> BuildMesh(const std::string& filePath, const aiMesh* aiMesh)
 {
   if (!aiMesh->HasPositions() || !aiMesh->HasNormals())
   {
@@ -99,10 +103,6 @@ std::shared_ptr<StaticMesh> BuildMesh(const std::string& filePath, const aiMesh*
   
   std::shared_ptr<StaticMesh> mesh(new StaticMesh());
   auto material = mesh->GetMaterial();
-  BuildMaterial(filePath, aiMaterial, material);
-
-	aiString name;
-	aiMaterial->Get(AI_MATKEY_NAME, name);
   
   std::vector<Vector3> vertices;
   BuildVertexData(aiMesh->mVertices, aiMesh->mNumVertices, vertices);
@@ -149,12 +149,19 @@ std::shared_ptr<SceneNode> BuildModel(const std::string& fileFolder, const aiSce
   {
     return nullptr;
   }
+
+	std::vector<std::shared_ptr<Material>> materials(scene->mNumMaterials);
+	for (uint32 i = 0; i < scene->mNumMaterials; i++)
+	{		
+		materials[i] = BuildMaterial(fileFolder, scene->mMaterials[i]);		
+	}
   
   std::shared_ptr<SceneNode> sceneNode(new SceneNode(scene->mRootNode->mName.C_Str()));
   for (uint32 i = 0; i < scene->mNumMeshes; i++)
   {
     auto aiMesh = scene->mMeshes[i];
-    auto mesh = BuildMesh(fileFolder, aiMesh, scene->mMaterials[aiMesh->mMaterialIndex]);
+    auto mesh = BuildMesh(fileFolder, aiMesh);
+		mesh->SetMaterial(materials[aiMesh->mMaterialIndex]);
     
     std::shared_ptr<Actor> actor(sceneNode->CreateActor(aiMesh->mName.C_Str()));
     std::shared_ptr<Renderable> renderable(new Renderable());

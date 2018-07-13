@@ -11,9 +11,11 @@
 #include "../RenderApi/ShaderParams.hpp"
 #include "../RenderApi/VertexBuffer.hpp"
 #include "../SceneManagement/Camera.hpp"
+#include "../SceneManagement/SceneManager.h"
 #include "../SceneManagement/Transform.h"
 #include "Material.hpp"
 #include "Renderable.hpp"
+#include "RenderQueue.hpp"
 #include "StaticMesh.h"
 
 struct FullscreenQuadVertex
@@ -69,7 +71,8 @@ std::shared_ptr<RenderDevice> Renderer::GetRenderDevice()
 }
 
 Renderer::Renderer(const RendererDesc& desc) :
-	_desc(desc)
+	_desc(desc),
+	_opaqueQueue(new RenderQueue)
 {
   try
   {
@@ -93,24 +96,9 @@ Renderer::Renderer(const RendererDesc& desc) :
   }
 }
 
-void Renderer::SortRenderables()
-{
-	std::sort(_renderables.begin(), _renderables.end(), [&](const RenderableItem& lhs, const RenderableItem& rhs)
-	{
-		auto camPos = _activeCamera->GetPosition();
-
-		auto lhsPos = lhs.Transform->Get() * lhs.Renderable->GetBounds().GetMidPoint();
-		auto rhsPos = rhs.Transform->Get() * rhs.Renderable->GetBounds().GetMidPoint();
-
-		auto distToLhs = Vector4::Length(camPos - Vector3(lhsPos));
-		auto distToRhs = Vector4::Length(camPos - Vector3(rhsPos));
-		return distToLhs < distToRhs;
-	});
-}
-
 void Renderer::Notify(const std::shared_ptr<Renderable>& renderable, const std::shared_ptr<Transform>& transform)
 {
-  _renderables.push_back(RenderableItem(renderable, transform));
+	_opaqueQueue->Push(renderable, transform);
 
 	PerObjectBufferData perObjectData;
 	perObjectData.Model = transform->Get();
@@ -410,15 +398,21 @@ void Renderer::InitGBufferDebugPass()
 
 void Renderer::StartFrame()
 {
+	auto camera = SceneManager::Get()->GetCamera();
+
   FrameBufferData framData;
-  framData.Proj = _activeCamera->GetProjection();
+  framData.Proj = camera->GetProjection();
 	framData.DirectionalLight = _directionalLightData;
   framData.AmbientLight = _ambientLightData;
-  framData.View = _activeCamera->GetView();
-  framData.ViewPosition = Vector4(_activeCamera->GetPosition(), 1.0f);
+  framData.View = camera->GetView();
+  framData.ViewPosition = Vector4(camera->GetPosition(), 1.0f);
   _frameBuffer->WriteData(0, sizeof(FrameBufferData), &framData, AccessType::WriteOnlyDiscard);
 
 	_renderDevice->ClearBuffers(RTT_Colour | RTT_Depth | RTT_Stencil);
+
+	_renderCounts.DrawCount = 0;
+	_renderCounts.MaterialCount = 0;
+	_renderCounts.TriangleCount = 0;
 }
 
 void Renderer::EndFrame()
@@ -436,24 +430,31 @@ void Renderer::GeometryPass()
 	_renderDevice->SetConstantBuffer(1, _frameBuffer);
 	_renderDevice->SetConstantBuffer(2, _materialBuffer);
   _renderDevice->SetSamplerState(0, _basicSamplerState);
-	for (auto& renderable : _renderables)
+	for (auto iter = _opaqueQueue->GetIteratorBegin(); iter != _opaqueQueue->GetIteratorEnd(); iter++)
 	{
-		auto mesh = renderable.Renderable->GetMesh();
+		auto mesh = iter->Renderable->GetMesh();
 		auto material = mesh->GetMaterial();
 		SetMaterialData(material);
 
-		_renderDevice->SetConstantBuffer(0, renderable.Renderable->GetPerObjectBuffer());
+		_renderDevice->SetConstantBuffer(0, iter->Renderable->GetPerObjectBuffer());
 		_renderDevice->SetVertexBuffer(mesh->GetVertexData());
-
+				
 		if (mesh->IsIndexed())
 		{
+			auto indexCount = mesh->GetIndexCount();
 			_renderDevice->SetIndexBuffer(mesh->GetIndexData());
-			_renderDevice->DrawIndexed(mesh->GetIndexCount(), 0, 0);
+			_renderDevice->DrawIndexed(indexCount, 0, 0);
+
+			_renderCounts.TriangleCount += (indexCount * 3);
 		}
 		else
 		{
 			_renderDevice->Draw(mesh->GetVertexCount(), 0);
+
+			auto vertexCount = mesh->GetVertexCount();
+			_renderCounts.TriangleCount += (vertexCount * 3);
 		}
+		_renderCounts.DrawCount++;
 	}
 
   auto end = std::chrono::high_resolution_clock::now();
@@ -544,4 +545,6 @@ void Renderer::SetMaterialData(const std::shared_ptr<Material>& material)
 
 	_materialBuffer->WriteData(0, sizeof(MaterialBufferData), &matData);
 	_activeMaterial = material;
+
+	_renderCounts.MaterialCount++;
 }

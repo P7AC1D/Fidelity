@@ -6,9 +6,9 @@ class Texture;
 
 class Material
 {
-public:
-	Material();
+	friend class MaterialFactory;
 
+public:
 	void SetAmbientColour(const Colour& ambientColour);
 	void SetDiffuseColour(const Colour& diffuseColour);
 	void SetSpecularColour(const Colour& specularColour);
@@ -19,6 +19,7 @@ public:
 	void SetSpecularTexture(const std::shared_ptr<Texture>& specularTexture);
 	void SetDepthTexture(const std::shared_ptr<Texture>& depthTexture);
 
+	uint32 GetId() const;
 	Colour GetAmbientColour() const;
 	Colour GetDiffuseColour() const;
 	Colour GetSpecularColour() const;
@@ -35,6 +36,10 @@ public:
 	bool HasDepthTexture() const;
 
 private:
+	Material();
+
+private:
+	uint32 _id;
 	Colour _ambientColour;
 	Colour _diffuseColour;
 	Colour _specularColour;

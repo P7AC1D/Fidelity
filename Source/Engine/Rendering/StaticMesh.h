@@ -15,6 +15,8 @@ class StaticMesh
 public:
   StaticMesh();
 
+	void SetMaterial(const std::shared_ptr<Material>& material) { _material = material; }
+
   void SetPositionVertexData(const std::vector<Vector3>& positionData);
   void SetNormalVertexData(const std::vector<Vector3>& normalData);
   void SetTextureVertexData(const std::vector<Vector2>& textureData);

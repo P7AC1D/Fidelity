@@ -12,13 +12,16 @@
 #include "Transform.h"
 
 static uint32 LightCount = 0;
+std::shared_ptr<SceneManager> SceneManager::Instance(new SceneManager);
 
-SceneManager::SceneManager(const std::shared_ptr<Renderer>& renderer) :
-  _sceneGraph(new SceneNode("root")),
-  _renderer(renderer),
-  _ambientLightColour(Colour::White),
-  _ambientLightIntensity(0.1f)
+std::shared_ptr<SceneManager> SceneManager::Get()
 {
+	return Instance;
+}
+
+void SceneManager::SetRenderer(const std::shared_ptr<Renderer>& renderer)
+{
+	_renderer = renderer;
 }
 
 std::shared_ptr<Light> SceneManager::CreateLight(LightType lightType, const std::string& name)
@@ -45,11 +48,11 @@ std::shared_ptr<SceneNode> SceneManager::LoadModelFromFile(const std::string& fi
 void SceneManager::SetCamera(const std::shared_ptr<Camera>& camera)
 {
 	_camera = camera;
-	_renderer->SetCamera(camera);
 }
 
 void SceneManager::SetDirectionLight(const std::shared_ptr<Light>& light)
 {
+	ASSERT_TRUE(!_renderer, "No renderer has been set");
 	ASSERT_TRUE(light->GetType() == LightType::Directional, "Light must be directional");
 	_renderer->SetDirectionalLight(DirectionalLightData(light->GetColour(), light->GetDirection(), light->GetIntensity()));
 	_directionalLight = light;
@@ -57,6 +60,7 @@ void SceneManager::SetDirectionLight(const std::shared_ptr<Light>& light)
 
 void SceneManager::SetAmbientLightColour(const Colour& colour)
 {
+	ASSERT_TRUE(!_renderer, "No renderer has been set");
   _renderer->SetAmbientLight({ colour, _ambientLightIntensity });
   _ambientLightColour = colour;
 }
@@ -96,8 +100,16 @@ void SceneManager::UpdateScene(uint32 dtMs)
   SubmitSceneToRender();
 }
 
+SceneManager::SceneManager() :
+	_sceneGraph(new SceneNode("root")),
+	_ambientLightColour(Colour::White),
+	_ambientLightIntensity(0.1f)
+{
+}
+
 void SceneManager::SubmitSceneToRender()
 {
+	ASSERT_TRUE(!_renderer, "No renderer has been set");
   _renderer->SetAmbientLight(AmbientLightData(_ambientLightColour, _ambientLightIntensity));
 	_renderer->SetDirectionalLight(DirectionalLightData(_directionalLight->GetColour(), _directionalLight->GetDirection(), _directionalLight->GetIntensity()));
   
@@ -111,5 +123,4 @@ void SceneManager::SubmitSceneToRender()
 			renderable->_rendererNotified = true;
 		}		
 	}
-	_renderer->SortRenderables();
 }

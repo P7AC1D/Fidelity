@@ -13,7 +13,9 @@ class SceneNode;
 class SceneManager
 {
 public:
-  SceneManager(const std::shared_ptr<Renderer>& renderer);
+	static std::shared_ptr<SceneManager> Get();
+
+  void SetRenderer(const std::shared_ptr<Renderer>& renderer);
 
   std::shared_ptr<Light> CreateLight(LightType lightType, const std::string& name = std::string());
   std::shared_ptr<SceneNode> LoadModelFromFile(const std::string& filePath);
@@ -32,10 +34,12 @@ public:
   void UpdateScene(uint32 dtMs);
 
 private:
-  void UpdateWorldObjects(uint32 dtMs);
+	SceneManager();
+
   void SubmitSceneToRender();
 
 private:
+	static std::shared_ptr<SceneManager> Instance;
 	std::shared_ptr<SceneNode> _sceneGraph;
   std::vector<std::shared_ptr<Light>> _lights;
 	std::shared_ptr<Light> _directionalLight;

@@ -8,7 +8,6 @@ class IndexBuffer;
 class PipelineState;
 class Renderer;
 class SamplerState;
-class SceneManager;
 class Texture;
 class VertexBuffer;
 struct ImDrawData;
@@ -22,8 +21,7 @@ class DebugUi
 public:
 	DebugUi(SDL_Window* sdlWindow, SDL_GLContext sdlGlContext);
 	~DebugUi();
-
-  void SetSceneManager(const std::shared_ptr<SceneManager>& sceneManager);
+	
 	void SetRenderer(const std::shared_ptr<Renderer>& renderer);
 
 	void ProcessEvents(SDL_Event* sdlEvent);
@@ -47,7 +45,6 @@ private:
 	std::shared_ptr<PipelineState> _pipelineState;
 	std::shared_ptr<Texture> _textureAtlas;
 	std::shared_ptr<SamplerState> _samplerState;
-	std::shared_ptr<SceneManager> _sceneManager;
 	std::shared_ptr<GpuBuffer> _constBuffer;
 	std::shared_ptr<VertexBuffer> _vertBuffer;
 	std::shared_ptr<IndexBuffer> _idxBuffer;

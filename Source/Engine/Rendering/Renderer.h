@@ -5,12 +5,12 @@
 #include "../Core/Types.hpp"
 #include "../Maths/Colour.hpp"
 
-class Camera;
 class GpuBuffer;
 class Material;
 class PipelineState;
 class SamplerState;
 class RenderDevice;
+class RenderQueue;
 class RenderTarget;
 class Renderable;
 class Transform;
@@ -44,17 +44,6 @@ struct AmbientLightData
   float32 Intensity;
 };
 
-struct RenderableItem
-{
-  RenderableItem(const std::shared_ptr<Renderable>& renderable, const std::shared_ptr<Transform>& transform):
-    Renderable(renderable),
-    Transform(transform)
-  {}
-  
-  std::shared_ptr<Renderable> Renderable;
-  std::shared_ptr<Transform> Transform;
-};
-
 enum class RenderApi
 {
   GL41
@@ -74,6 +63,13 @@ struct RenderTimings
   uint64 Frame = 0;
   uint64 GBuffer = 0;
   uint64 Lighting = 0;
+};
+
+struct RenderCounts
+{
+	uint64 TriangleCount = 0;
+	uint64 MaterialCount = 0;
+	uint64 DrawCount = 0;
 };
   
 struct RendererDesc
@@ -95,12 +91,10 @@ public:
   uint32 GetRenderWidth() const { return _desc.RenderWidth; }
   uint32 GetRenderHeight() const { return _desc.RenderHeight; }
   RenderTimings GetFrameRenderTimings() const { return _renderTimings; }
+	RenderCounts GetFrameRenderCounts() const { return _renderCounts; }
   
-  void SetCamera(const std::shared_ptr<Camera>& camera) { _activeCamera = camera; }
 	void SetDirectionalLight(const DirectionalLightData& directionalLightData) { _directionalLightData = directionalLightData; }
   void SetAmbientLight(const AmbientLightData& ambientLightData) { _ambientLightData = ambientLightData; }
-
-	void SortRenderables();
 
 	void EnableGBufferDebugPass(GBufferDisplayType gBufferDisplay) { _gBufferDisplay = gBufferDisplay; }
   
@@ -137,14 +131,13 @@ private:
   std::shared_ptr<PipelineState> _geomPassPso;
 	std::shared_ptr<PipelineState> _lightPassPso;
 	std::shared_ptr<PipelineState> _gBufferDebugPso;
-  std::shared_ptr<Camera> _activeCamera;
 	std::shared_ptr<SamplerState> _basicSamplerState;
 	std::shared_ptr<SamplerState> _noMipSamplerState;
 	std::shared_ptr<RenderTarget> _gBuffer;
 	std::shared_ptr<VertexBuffer> _fsQuadBuffer;
 	std::shared_ptr<Material> _activeMaterial;
-  
-  std::vector<RenderableItem> _renderables;
+	std::shared_ptr<RenderQueue> _opaqueQueue;
 
   RenderTimings _renderTimings;
+	RenderCounts _renderCounts;
 };
