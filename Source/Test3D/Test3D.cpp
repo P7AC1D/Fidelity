@@ -37,8 +37,8 @@ Test3D::Test3D(const ApplicationDesc& desc):
 void Test3D::OnStart()
 {
   _camera.reset(new OrbitalCamera(5.0f, 10.0f));
-  _camera->SetPerspective(Degree(67.67f), GetWidth(), GetHeight(), 0.1f, 1000.0f);
-  _camera->LookAt(Vector3(4.0f, 4.0f, -4.0f), Vector3(0.0f, 0.0f, 0.0f));
+  _camera->SetPerspective(Degree(67.67f), GetWidth(), GetHeight(), 0.1f, 10000.0f);
+  _camera->LookAt(Vector3(490.0f, 112.0f, 25.0f), Vector3::Zero);
   _sceneManager->SetCamera(_camera);
 
 	auto directionalLight = _sceneManager->CreateLight(LightType::Directional, "DirectionLight");
