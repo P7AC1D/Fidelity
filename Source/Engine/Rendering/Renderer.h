@@ -13,6 +13,7 @@ class RenderDevice;
 class RenderQueue;
 class RenderTarget;
 class Renderable;
+class Texture;
 class Transform;
 class VertexBuffer;
 
@@ -107,14 +108,18 @@ private:
   void InitFrameBuffer();
 	void InitMaterialBuffer();
 	void InitLightingPass();
+  void InitSsaoPass();
 	void InitFullscreenQuad();
 	void InitGBufferDebugPass();
+  
+  void GenerateSsaoKernel();
 
   void StartFrame();
 	void EndFrame();
 
 	void GeometryPass();
 	void LightingPass();
+  void SsaoPass();
 	void GBufferDebugPass(uint32 i);
 
 	void SetMaterialData(const std::shared_ptr<Material>& material);
@@ -128,15 +133,23 @@ private:
 
   std::shared_ptr<GpuBuffer> _frameBuffer;
 	std::shared_ptr<GpuBuffer> _materialBuffer;
+  std::shared_ptr<GpuBuffer> _ssaoBuffer;
   std::shared_ptr<PipelineState> _geomPassPso;
 	std::shared_ptr<PipelineState> _lightPassPso;
+  std::shared_ptr<PipelineState> _ssaoPassPso;
 	std::shared_ptr<PipelineState> _gBufferDebugPso;
 	std::shared_ptr<SamplerState> _basicSamplerState;
 	std::shared_ptr<SamplerState> _noMipSamplerState;
+  std::shared_ptr<SamplerState> _ssaoSamplerState;
 	std::shared_ptr<RenderTarget> _gBuffer;
+  std::shared_ptr<RenderTarget> _ssaoRT;
 	std::shared_ptr<VertexBuffer> _fsQuadBuffer;
 	std::shared_ptr<Material> _activeMaterial;
 	std::shared_ptr<RenderQueue> _opaqueQueue;
+  std::shared_ptr<Texture> _ssaoNoiseTexture;
+  
+  std::vector<Vector3> _ssaoKernel;
+  std::vector<Vector3> _ssaoNoise;
 
   RenderTimings _renderTimings;
 	RenderCounts _renderCounts;

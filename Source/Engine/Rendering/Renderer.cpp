@@ -1,6 +1,7 @@
 #include "Renderer.h"
 
 #include <chrono>
+#include <random>
 #include "../Maths/Matrix4.hpp"
 #include "../Utility/Assert.hpp"
 #include "../Utility/String.hpp"
@@ -17,6 +18,8 @@
 #include "Renderable.hpp"
 #include "RenderQueue.hpp"
 #include "StaticMesh.h"
+
+static const uint32 MaxKernelSize = 64;
 
 struct FullscreenQuadVertex
 {
@@ -62,6 +65,16 @@ struct MaterialBufferData
 	float32 SpecularExponent = 1.0f;
 };
 
+struct SsaoBufferData
+{
+  Vector3 Samples[MaxKernelSize];
+  int32 KernelSize;
+  int32 QuadWidth;
+  int32 QuadHeight;
+  float32 Radius;
+  float32 Bias;
+};
+
 std::shared_ptr<RenderDevice> Renderer::_renderDevice;
 
 std::shared_ptr<RenderDevice> Renderer::GetRenderDevice()
@@ -83,12 +96,15 @@ Renderer::Renderer(const RendererDesc& desc) :
     renderDeviceDesc.RenderHeight = _desc.RenderHeight;
     _renderDevice.reset(new GLRenderDevice(renderDeviceDesc));
     
+    GenerateSsaoKernel();
+    
     InitPipelineStates();
     InitFrameBuffer();
 		InitMaterialBuffer();
 		InitFullscreenQuad();
 		InitLightingPass();
 		InitGBufferDebugPass();
+    InitSsaoPass();
   }
   catch (const std::exception& exception)
   {
@@ -111,6 +127,7 @@ void Renderer::DrawFrame()
 
   StartFrame();
 	GeometryPass();
+  SsaoPass();
 	switch (_gBufferDisplay)
 	{
 		default:
@@ -314,6 +331,110 @@ void Renderer::InitLightingPass()
 	}
 }
 
+void Renderer::InitSsaoPass()
+{
+  try
+  {
+    TextureDesc noiseTextureDesc;
+    noiseTextureDesc.Format = TextureFormat::RGB16F;
+    noiseTextureDesc.Height = 4;
+    noiseTextureDesc.Width = 4;
+    noiseTextureDesc.Type = TextureType::Texture2D;
+    _ssaoNoiseTexture = _renderDevice->CreateTexture(noiseTextureDesc);
+    
+    std::shared_ptr<ImageData> pixelData(new ImageData(4, 4, 1, ImageFormat::RGB8));
+    pixelData->WriteData(reinterpret_cast<ubyte*>(_ssaoNoise.data()));
+    _ssaoNoiseTexture->WriteData(0, 0, pixelData);
+    
+    SamplerStateDesc noiseSamplerStateDesc;
+    noiseSamplerStateDesc.AddressingMode.U = TextureAddressMode::Wrap;
+    noiseSamplerStateDesc.AddressingMode.V = TextureAddressMode::Wrap;
+    _ssaoSamplerState = _renderDevice->CreateSamplerState(noiseSamplerStateDesc);
+    
+    ShaderDesc vsDesc;
+    vsDesc.EntryPoint = "main";
+    vsDesc.ShaderLang = ShaderLang::Glsl;
+    vsDesc.ShaderType = ShaderType::Vertex;
+    vsDesc.Source = String::LoadFromFile("./../../Resources/Shaders/FSPassThroughVS.glsl");
+    
+    ShaderDesc psDesc;
+    psDesc.EntryPoint = "main";
+    psDesc.ShaderLang = ShaderLang::Glsl;
+    psDesc.ShaderType = ShaderType::Pixel;
+    psDesc.Source = String::LoadFromFile("./../../Resources/Shaders/SsaoPS.glsl");
+    
+    std::vector<VertexLayoutDesc> vertexLayoutDesc
+    {
+      VertexLayoutDesc(SemanticType::Position, SemanticFormat::Float2),
+      VertexLayoutDesc(SemanticType::TexCoord, SemanticFormat::Float2),
+    };
+    
+    std::shared_ptr<ShaderParams> shaderParams(new ShaderParams());
+    shaderParams->AddParam(ShaderParam("PositionMap", ShaderParamType::Texture, 0));
+    shaderParams->AddParam(ShaderParam("NormalMap", ShaderParamType::Texture, 1));
+    shaderParams->AddParam(ShaderParam("NoiseMap", ShaderParamType::Texture, 2));
+    shaderParams->AddParam(ShaderParam("FrameBuffer", ShaderParamType::ConstBuffer, 1));
+    shaderParams->AddParam(ShaderParam("SsaoBuffer", ShaderParamType::ConstBuffer, 4));
+    
+    RasterizerStateDesc rasterizerStateDesc;
+    rasterizerStateDesc.CullMode = CullMode::None;
+    
+    PipelineStateDesc pipelineDesc;
+    pipelineDesc.VS = _renderDevice->CreateShader(vsDesc);
+    pipelineDesc.PS = _renderDevice->CreateShader(psDesc);
+    pipelineDesc.BlendState = _renderDevice->CreateBlendState(BlendStateDesc());
+    pipelineDesc.RasterizerState = _renderDevice->CreateRasterizerState(rasterizerStateDesc);
+    pipelineDesc.DepthStencilState = _renderDevice->CreateDepthStencilState(DepthStencilStateDesc());
+    pipelineDesc.VertexLayout = _renderDevice->CreateVertexLayout(vertexLayoutDesc);
+    pipelineDesc.ShaderParams = shaderParams;
+    
+    _ssaoPassPso = _renderDevice->CreatePipelineState(pipelineDesc);
+    
+    GpuBufferDesc ssaoBufferDesc;
+    ssaoBufferDesc.BufferType = BufferType::Constant;
+    ssaoBufferDesc.BufferUsage = BufferUsage::Default;
+    ssaoBufferDesc.ByteCount = sizeof(SsaoBufferData);
+    _ssaoBuffer = _renderDevice->CreateGpuBuffer(ssaoBufferDesc);
+    
+    SsaoBufferData ssaoBufferData;
+    ssaoBufferData.QuadWidth = _desc.RenderWidth;
+    ssaoBufferData.QuadHeight = _desc.RenderHeight;
+    ssaoBufferData.KernelSize = 64;
+    ssaoBufferData.Bias = 0.025f;
+    ssaoBufferData.Radius = 0.5f;
+    for (uint32 i = 0; i < MaxKernelSize; i++)
+    {
+      ssaoBufferData.Samples[i] = _ssaoKernel[i];
+    }
+    _ssaoBuffer->WriteData(0, sizeof(SsaoBufferData), &ssaoBufferData);
+  }
+  catch (const std::exception& exception)
+  {
+    throw std::runtime_error("Unable to initialize SSAO pass. " + std::string(exception.what()));
+  }
+  
+  try
+  {
+    TextureDesc colourTexDesc;
+    colourTexDesc.Width = GetRenderWidth();
+    colourTexDesc.Height = GetRenderHeight();
+    colourTexDesc.Usage = TextureUsage::RenderTarget;
+    colourTexDesc.Type = TextureType::Texture2D;
+    colourTexDesc.Format = TextureFormat::RGB16F;
+    
+    RenderTargetDesc rtDesc;
+    rtDesc.ColourTargets[0] = _renderDevice->CreateTexture(colourTexDesc);
+    rtDesc.Height = GetRenderHeight();
+    rtDesc.Width = GetRenderWidth();
+    
+    _ssaoRT = _renderDevice->CreateRenderTarget(rtDesc);
+  }
+  catch (const std::exception& ex)
+  {
+    throw std::runtime_error("Unable to initalize SSAO render target. " + std::string(ex.what()));
+  }
+}
+
 void Renderer::InitFullscreenQuad()
 {
 	if (!_fsQuadBuffer)
@@ -396,6 +517,38 @@ void Renderer::InitGBufferDebugPass()
 	}
 }
 
+void Renderer::GenerateSsaoKernel()
+{
+  auto lerp = [](float32 a, float32 b, float32 f)
+  {
+    return a + f * (b - a);
+  };
+  
+  std::uniform_real_distribution<float> randomFloat(0.0, 1.0);
+  std::default_random_engine generator;
+  
+  for (uint32 i = 0; i < 64; i++)
+  {
+    Vector3 sample(randomFloat(generator) * 2.0f - 1.0f,
+                   randomFloat(generator) * 2.0f - 1.0f,
+                   randomFloat(generator));
+    sample.Normalize();
+    sample *= randomFloat(generator);
+    float32 scale = 1.0f / 64.0f;
+    
+    scale = lerp(0.1f, 1.0f, scale * scale);
+    sample *= scale;
+    _ssaoKernel.push_back(sample);
+  }
+  
+  for (uint32 i = 0; i < 16; i++)
+  {
+    _ssaoNoise.push_back(Vector3(randomFloat(generator) * 2.0f - 1.0f,
+                                 randomFloat(generator) * 2.0f - 1.0f,
+                                 0.0f));
+  }
+}
+
 void Renderer::StartFrame()
 {
 	auto camera = SceneManager::Get()->GetCamera();
@@ -459,6 +612,22 @@ void Renderer::GeometryPass()
 
   auto end = std::chrono::high_resolution_clock::now();
   _renderTimings.GBuffer = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
+}
+
+void Renderer::SsaoPass()
+{
+  _renderDevice->SetPipelineState(_ssaoPassPso);
+  _renderDevice->SetRenderTarget(_ssaoRT);
+  
+  _renderDevice->SetTexture(0, _gBuffer->GetColourTarget(0));
+  _renderDevice->SetTexture(1, _gBuffer->GetColourTarget(1));
+  _renderDevice->SetTexture(2, _ssaoNoiseTexture);
+  
+  _renderDevice->SetConstantBuffer(1, _frameBuffer);
+  _renderDevice->SetConstantBuffer(4, _ssaoBuffer);
+  _renderDevice->SetSamplerState(0, _ssaoSamplerState);
+  _renderDevice->SetVertexBuffer(_fsQuadBuffer);
+  _renderDevice->Draw(6, 0);
 }
 
 void Renderer::LightingPass()
