@@ -71,7 +71,7 @@ void main()
   vec3 albedo = texture(AlbedoSpecMap, TexCoord).rgb;
   float specularSample = texture(AlbedoSpecMap, TexCoord).a;
   
-  vec3 viewDir = normalize(ViewPos.xyz - position);
+  vec3 viewDir = normalize(-position);
   
   float diffuseFactor = CalcDiffuseContribution(DirectionalLight.Direction, normal);
   float specularFactor = CalcSpecularContribution(DirectionalLight.Direction, viewDir, normal, Material.SpecularExponent);

@@ -35,7 +35,7 @@ layout(std140) uniform FrameBuffer
 
 layout(std140) uniform SsaoBuffer
 {
-  vec3 Samples[MaxKernelSize];
+  vec4 Samples[MaxKernelSize];
   int KernelSize;
   int QuadWidth;
   int QuadHeight;
@@ -62,7 +62,7 @@ void main()
   float occlusion = 0.0f;
   for (int i = 0; i < KernelSize; i++)
   {
-    vec3 noiseSample = tbn * Samples[i];
+    vec3 noiseSample = tbn * Samples[i].xyz;
     noiseSample = position + noiseSample * Radius;
     
     vec4 offset = vec4(noiseSample, 1.0f);

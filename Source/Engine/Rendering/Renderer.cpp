@@ -67,7 +67,7 @@ struct MaterialBufferData
 
 struct SsaoBufferData
 {
-  Vector3 Samples[MaxKernelSize];
+  Vector4 Samples[MaxKernelSize];
   int32 KernelSize;
   int32 QuadWidth;
   int32 QuadHeight;
@@ -404,7 +404,7 @@ void Renderer::InitSsaoPass()
     ssaoBufferData.Radius = 0.5f;
     for (uint32 i = 0; i < MaxKernelSize; i++)
     {
-      ssaoBufferData.Samples[i] = _ssaoKernel[i];
+      ssaoBufferData.Samples[i] = Vector4(_ssaoKernel[i], 0.0f);
     }
     _ssaoBuffer->WriteData(0, sizeof(SsaoBufferData), &ssaoBufferData);
   }
