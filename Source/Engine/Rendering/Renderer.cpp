@@ -105,6 +105,7 @@ Renderer::Renderer(const RendererDesc& desc) :
 		InitLightingPass();
 		InitGBufferDebugPass();
     InitSsaoPass();
+		InitSsaoBlurPass();
   }
   catch (const std::exception& exception)
   {
@@ -128,6 +129,7 @@ void Renderer::DrawFrame()
   StartFrame();
 	GeometryPass();
   SsaoPass();
+	SsaoBlurPass();
 	switch (_gBufferDisplay)
 	{
 		default:
@@ -436,6 +438,72 @@ void Renderer::InitSsaoPass()
   }
 }
 
+void Renderer::InitSsaoBlurPass()
+{
+	try
+	{
+		ShaderDesc vsDesc;
+		vsDesc.EntryPoint = "main";
+		vsDesc.ShaderLang = ShaderLang::Glsl;
+		vsDesc.ShaderType = ShaderType::Vertex;
+		vsDesc.Source = String::LoadFromFile("./../../Resources/Shaders/FSPassThroughVS.glsl");
+
+		ShaderDesc psDesc;
+		psDesc.EntryPoint = "main";
+		psDesc.ShaderLang = ShaderLang::Glsl;
+		psDesc.ShaderType = ShaderType::Pixel;
+		psDesc.Source = String::LoadFromFile("./../../Resources/Shaders/SsaoBlurPS.glsl");
+
+		std::vector<VertexLayoutDesc> vertexLayoutDesc
+		{
+			VertexLayoutDesc(SemanticType::Position, SemanticFormat::Float2),
+			VertexLayoutDesc(SemanticType::TexCoord, SemanticFormat::Float2),
+		};
+
+		std::shared_ptr<ShaderParams> shaderParams(new ShaderParams());
+		shaderParams->AddParam(ShaderParam("SsaoMap", ShaderParamType::Texture, 0));
+
+		RasterizerStateDesc rasterizerStateDesc;
+		rasterizerStateDesc.CullMode = CullMode::None;
+
+		PipelineStateDesc pipelineDesc;
+		pipelineDesc.VS = _renderDevice->CreateShader(vsDesc);
+		pipelineDesc.PS = _renderDevice->CreateShader(psDesc);
+		pipelineDesc.BlendState = _renderDevice->CreateBlendState(BlendStateDesc());
+		pipelineDesc.RasterizerState = _renderDevice->CreateRasterizerState(rasterizerStateDesc);
+		pipelineDesc.DepthStencilState = _renderDevice->CreateDepthStencilState(DepthStencilStateDesc());
+		pipelineDesc.VertexLayout = _renderDevice->CreateVertexLayout(vertexLayoutDesc);
+		pipelineDesc.ShaderParams = shaderParams;
+
+		_ssaoBlurPassPso = _renderDevice->CreatePipelineState(pipelineDesc);
+	}
+	catch (const std::exception& exception)
+	{
+		throw std::runtime_error("Unable to initialize SSAO blur pass. " + std::string(exception.what()));
+	}
+
+	try
+	{
+		TextureDesc colourTexDesc;
+		colourTexDesc.Width = GetRenderWidth();
+		colourTexDesc.Height = GetRenderHeight();
+		colourTexDesc.Usage = TextureUsage::RenderTarget;
+		colourTexDesc.Type = TextureType::Texture2D;
+		colourTexDesc.Format = TextureFormat::R8;
+
+		RenderTargetDesc rtDesc;
+		rtDesc.ColourTargets[0] = _renderDevice->CreateTexture(colourTexDesc);
+		rtDesc.Height = GetRenderHeight();
+		rtDesc.Width = GetRenderWidth();
+
+		_ssaoBlurRT = _renderDevice->CreateRenderTarget(rtDesc);
+	}
+	catch (const std::exception& ex)
+	{
+		throw std::runtime_error("Unable to initalize SSAO render target. " + std::string(ex.what()));
+	}
+}
+
 void Renderer::InitFullscreenQuad()
 {
 	if (!_fsQuadBuffer)
@@ -633,6 +701,19 @@ void Renderer::SsaoPass()
   
   _renderDevice->SetVertexBuffer(_fsQuadBuffer);
   _renderDevice->Draw(6, 0);
+}
+
+void Renderer::SsaoBlurPass()
+{
+	_renderDevice->SetPipelineState(_ssaoBlurPassPso);
+	_renderDevice->SetRenderTarget(_ssaoBlurRT);
+
+	_renderDevice->SetTexture(0, _ssaoRT->GetColourTarget(0));
+
+	_renderDevice->SetSamplerState(0, _ssaoSamplerState);
+
+	_renderDevice->SetVertexBuffer(_fsQuadBuffer);
+	_renderDevice->Draw(6, 0);
 }
 
 void Renderer::LightingPass()
