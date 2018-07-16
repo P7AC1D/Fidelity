@@ -1,5 +1,7 @@
 #version 410
 
+const int MaxKernelSize = 64;
+
 struct DirectionalLightData
 {
   vec4 Colour;
@@ -11,37 +13,34 @@ struct AmbientLightData
 {
   vec4 Colour;
   float Intensity;
+  float SpecularExponent;
+  bool SsaoEnabled;
 };
 
-struct TextureMapFlags
+struct SsaoDetailsData
 {
-  bool Diffuse;
-  bool Normal;
-  bool Specular;
-  bool Depth;
+  vec4 Samples[MaxKernelSize];
+  int KernelSize;
+  int QuadWidth;
+  int QuadHeight;
+  float Radius;
+  float Bias;
 };
-
-layout(std140) uniform MaterialBuffer
-{
-  TextureMapFlags Enabled;
-  vec4 AmbientColour;
-  vec4 DiffuseColour;
-  vec4 SpecularColour;
-  float SpecularExponent;  
-} Material;
 
 layout(std140) uniform FrameBuffer
 {
   mat4 Projection;
-  mat4 View;  
+  mat4 View;
   DirectionalLightData DirectionalLight;
   vec4 ViewPos;
   AmbientLightData AmbientLight;
+  SsaoDetailsData SsaoDetails;
 };
 
 uniform sampler2D PositionMap;
 uniform sampler2D NormalMap;
 uniform sampler2D AlbedoSpecMap;
+uniform sampler2D SsaoMap;
 
 layout(location = 0) in vec2 TexCoord;
 
@@ -70,16 +69,17 @@ void main()
   vec3 normal = texture(NormalMap, TexCoord).rgb;
   vec3 albedo = texture(AlbedoSpecMap, TexCoord).rgb;
   float specularSample = texture(AlbedoSpecMap, TexCoord).a;
+  float ambientOcclusion = texture(SsaoMap, TexCoord).r;
   
   vec3 viewDir = normalize(-position);
   
   float diffuseFactor = CalcDiffuseContribution(DirectionalLight.Direction, normal);
-  float specularFactor = CalcSpecularContribution(DirectionalLight.Direction, viewDir, normal, Material.SpecularExponent);
+  float specularFactor = CalcSpecularContribution(DirectionalLight.Direction, viewDir, normal, AmbientLight.SpecularExponent);
   
-  vec3 ambient = Material.AmbientColour.rgb * AmbientLight.Colour.rgb * AmbientLight.Intensity;
+  vec3 ambient = AmbientLight.Colour.rgb * AmbientLight.Intensity * (AmbientLight.SsaoEnabled ? ambientOcclusion : 1.0f);
   vec3 diffuse = DirectionalLight.Colour.rgb * DirectionalLight.Intensity * diffuseFactor;
   vec3 specular = DirectionalLight.Colour.rgb * DirectionalLight.Intensity * specularFactor * specularSample;
   
-  FinalColour.rgb = CorrectGamma(albedo) * (ambient + diffuse + specular);
+  FinalColour.rgb = CorrectGamma(albedo) * (ambient + diffuse + specular); 
   FinalColour.a = 1.0f;
 }

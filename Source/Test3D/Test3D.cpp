@@ -27,8 +27,6 @@
 #include "../Engine/SceneManagement/SceneNode.hpp"
 #include "../Engine/SceneManagement/Transform.h"
 
-//#define ASSERT_ON
-
 Test3D::Test3D(const ApplicationDesc& desc):
   Application(desc)
 {
@@ -36,15 +34,15 @@ Test3D::Test3D(const ApplicationDesc& desc):
 
 void Test3D::OnStart()
 {
-  _camera.reset(new OrbitalCamera(5.0f, 10.0f));
+  _camera.reset(new OrbitalCamera(1.0f, 10.0f));
   _camera->SetPerspective(Degree(67.67f), GetWidth(), GetHeight(), 0.1f, 10000.0f);
   _camera->LookAt(Vector3(490.0f, 112.0f, 25.0f), Vector3::Zero);
-  _sceneManager->SetCamera(_camera);
+	SceneManager::Get()->SetCamera(_camera);
 
-	auto directionalLight = _sceneManager->CreateLight(LightType::Directional, "DirectionLight");
-	_sceneManager->SetDirectionLight(directionalLight);
+	auto directionalLight = SceneManager::Get()->CreateLight(LightType::Directional, "DirectionLight");
+	SceneManager::Get()->SetDirectionLight(directionalLight);
   
-  _sceneManager->LoadModelFromFile("./../../Resources/Models/Sponza/sponza.obj");
+	SceneManager::Get()->LoadModelFromFile("./../../Resources/Models/Sponza/sponza.obj");
   
   //auto rootSceneNode = _sceneManager->GetRootSceneNode();
   //for (int32 i = -30; i < 30; i += 3)

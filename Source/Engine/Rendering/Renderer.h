@@ -4,6 +4,7 @@
 #include <vector>
 #include "../Core/Types.hpp"
 #include "../Maths/Colour.hpp"
+#include "../Maths/Matrix4.hpp"
 
 class GpuBuffer;
 class Material;
@@ -38,11 +39,13 @@ struct DirectionalLightData
 
 struct AmbientLightData
 {
-  AmbientLightData() : Colour(Colour::White), Intensity(0.2f) {}
-  AmbientLightData(const Colour& colour, float32 intensity) : Colour(colour), Intensity(intensity) {}
+  AmbientLightData() : Colour(Colour::White), Intensity(0.2f), SpecularExponent(10.0f), SsaoEnabled(1) {}
+  AmbientLightData(const Colour& colour, float32 intensity) : Colour(colour), Intensity(intensity), SpecularExponent(10.0f), SsaoEnabled(1) {}
 
   Colour Colour;
   float32 Intensity;
+	float32 SpecularExponent;
+	int32 SsaoEnabled;
 };
 
 enum class RenderApi
@@ -72,6 +75,13 @@ struct RenderCounts
 	uint64 MaterialCount = 0;
 	uint64 DrawCount = 0;
 };
+
+struct SsaoDetails
+{
+	uint32 Samples = 8;
+	float32 Radius = 1.0f;
+	float32 Bias = 0.01f;
+};
   
 struct RendererDesc
 {
@@ -98,13 +108,18 @@ public:
   void SetAmbientLight(const AmbientLightData& ambientLightData) { _ambientLightData = ambientLightData; }
 
 	void EnableGBufferDebugPass(GBufferDisplayType gBufferDisplay) { _gBufferDisplay = gBufferDisplay; }
+
+	void EnabledSsao(bool enabled) { _ssaoEnabled = enabled; }
+	void SetSsaoDetails(const SsaoDetails& ssaoDetails) { _ssaoDetails = ssaoDetails; }
+	bool IsSsaoEnabled() const { return _ssaoEnabled; }
+	SsaoDetails GetSsaoDetails() const { return _ssaoDetails; }
   
   void Notify(const std::shared_ptr<Renderable>& renderable, const std::shared_ptr<Transform>& transform);
   
   void DrawFrame();
   
 private:
-  void InitPipelineStates();
+  void InitGeometryPass();
   void InitFrameBuffer();
 	void InitMaterialBuffer();
 	void InitLightingPass();
@@ -127,15 +142,38 @@ private:
 	void SetMaterialData(const std::shared_ptr<Material>& material);
 
 private:
-  static std::shared_ptr<RenderDevice> _renderDevice;
+	static std::shared_ptr<RenderDevice> _renderDevice;
+	static const uint32 MaxKernelSize = 64;
+
+	struct SsaoDetailsData
+	{
+		Vector4 Samples[MaxKernelSize];
+		int32 Enabled = 1;
+		int32 KernelSize = 64;
+		int32 QuadWidth;
+		int32 QuadHeight;
+		float32 Radius = 0.5f;
+		float32 Bias = 0.025f;
+	} _ssaoDetailsData;
+
+	struct FrameBufferData
+	{
+		Matrix4 Proj;
+		Matrix4 View;
+		DirectionalLightData DirectionalLight;
+		Vector4 ViewPosition;
+		AmbientLightData AmbientLight;
+		SsaoDetailsData SsaoDetails;
+	};
+  
   RendererDesc _desc;
 	GBufferDisplayType _gBufferDisplay;
 	DirectionalLightData _directionalLightData;
   AmbientLightData _ambientLightData;
+	SsaoDetails _ssaoDetails;
 
   std::shared_ptr<GpuBuffer> _frameBuffer;
 	std::shared_ptr<GpuBuffer> _materialBuffer;
-  std::shared_ptr<GpuBuffer> _ssaoBuffer;
   std::shared_ptr<PipelineState> _geomPassPso;
 	std::shared_ptr<PipelineState> _lightPassPso;
   std::shared_ptr<PipelineState> _ssaoPassPso;
@@ -157,4 +195,5 @@ private:
 
   RenderTimings _renderTimings;
 	RenderCounts _renderCounts;
+	bool _ssaoEnabled;
 };

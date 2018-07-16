@@ -108,7 +108,7 @@ int32 Application::Run()
       }
     }   
 
-    _sceneManager->UpdateScene(dtMs);
+		SceneManager::Get()->UpdateScene(dtMs);
 		_renderer->DrawFrame();
 		_debugUi->Update();		
     SDL_GL_SwapWindow(_window);
@@ -187,8 +187,8 @@ bool Application::Initialize()
 		rendererDesc.RenderWidth = _desc.Width;
 		rendererDesc.RenderHeight = _desc.Height;
 		_renderer.reset(new Renderer(rendererDesc));
-		_sceneManager = SceneManager::Get();
-		_sceneManager->SetRenderer(_renderer);
+
+		SceneManager::Get()->SetRenderer(_renderer);
 	}
 	catch (const std::exception& exception)
 	{

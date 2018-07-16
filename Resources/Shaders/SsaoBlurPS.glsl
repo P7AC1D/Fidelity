@@ -17,6 +17,19 @@ struct AmbientLightData
 {
   vec4 Colour;
   float Intensity;
+  
+  float SpecularExponent;
+  bool SsaoEnabled;
+};
+
+struct SsaoDetailsData
+{
+  vec4 Samples[MaxKernelSize];
+  int KernelSize;
+  int QuadWidth;
+  int QuadHeight;
+  float Radius;
+  float Bias;
 };
 
 layout(std140) uniform ObjectBuffer
@@ -31,16 +44,7 @@ layout(std140) uniform FrameBuffer
   DirectionalLightData DirectionalLight;
   vec4 ViewPos;
   AmbientLightData AmbientLight;
-};
-
-layout(std140) uniform SsaoBuffer
-{
-  vec4 Samples[MaxKernelSize];
-  int KernelSize;
-  int QuadWidth;
-  int QuadHeight;
-  float Radius;
-  float Bias;
+  SsaoDetailsData SsaoDetails;
 };
 
 uniform sampler2D SsaoMap;

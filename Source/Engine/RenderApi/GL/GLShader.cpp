@@ -43,13 +43,9 @@ void GLShader::Compile()
 	GLint linkStatus = -1;
 	GLCall(glGetProgramiv(_id, GL_LINK_STATUS, &linkStatus));
   
-  std::string logMessages;
-  if (logLength > 0)
-  {
-    std::vector<byte> buffer(logLength);
-    GLCall(glGetProgramInfoLog(_id, logLength, 0, &buffer[0]));
-		logMessages = std::string(buffer.begin(), buffer.end());
-  }
+  std::vector<byte> buffer(logLength);
+  GLCall(glGetProgramInfoLog(_id, logLength, 0, &buffer[0]));
+	std::string logMessages = std::string(buffer.begin(), buffer.end());
 
 	GLCall(glUseProgram(0));
 	ASSERT_TRUE(linkStatus == GL_TRUE, "Unable to compile shader:\n" + logMessages);

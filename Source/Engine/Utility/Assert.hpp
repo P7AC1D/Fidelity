@@ -8,7 +8,11 @@ public:
   static void ThrowIfFalse(bool condition, const std::string& errorMessage);
 };
 
-#if defined(NDEBUG) && defined(ASSERT_ON)
+#ifdef _DEBUG 
+#define NDEBUG
+#endif
+
+#if defined(NDEBUG)
 #define ASSERT_FALSE(x, msg) Assert::ThrowIfTrue(x, msg)
 #define ASSERT_TRUE(x, msg) Assert::ThrowIfFalse(x, msg)
 #else

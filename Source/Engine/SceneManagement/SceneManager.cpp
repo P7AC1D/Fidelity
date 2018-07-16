@@ -12,10 +12,14 @@
 #include "Transform.h"
 
 static uint32 LightCount = 0;
-std::shared_ptr<SceneManager> SceneManager::Instance(new SceneManager);
+std::shared_ptr<SceneManager> SceneManager::Instance;
 
 std::shared_ptr<SceneManager> SceneManager::Get()
 {
+	if (!Instance)
+	{
+		Instance.reset(new SceneManager);
+	}
 	return Instance;
 }
 
@@ -52,7 +56,7 @@ void SceneManager::SetCamera(const std::shared_ptr<Camera>& camera)
 
 void SceneManager::SetDirectionLight(const std::shared_ptr<Light>& light)
 {
-	ASSERT_TRUE(!_renderer, "No renderer has been set");
+	ASSERT_TRUE(_renderer != nullptr, "No renderer has been set");
 	ASSERT_TRUE(light->GetType() == LightType::Directional, "Light must be directional");
 	_renderer->SetDirectionalLight(DirectionalLightData(light->GetColour(), light->GetDirection(), light->GetIntensity()));
 	_directionalLight = light;
@@ -60,7 +64,7 @@ void SceneManager::SetDirectionLight(const std::shared_ptr<Light>& light)
 
 void SceneManager::SetAmbientLightColour(const Colour& colour)
 {
-	ASSERT_TRUE(!_renderer, "No renderer has been set");
+	ASSERT_TRUE(_renderer != nullptr, "No renderer has been set");
   _renderer->SetAmbientLight({ colour, _ambientLightIntensity });
   _ambientLightColour = colour;
 }
@@ -103,13 +107,13 @@ void SceneManager::UpdateScene(uint32 dtMs)
 SceneManager::SceneManager() :
 	_sceneGraph(new SceneNode("root")),
 	_ambientLightColour(Colour::White),
-	_ambientLightIntensity(0.1f)
+	_ambientLightIntensity(0.3f)
 {
 }
 
 void SceneManager::SubmitSceneToRender()
 {
-	ASSERT_TRUE(!_renderer, "No renderer has been set");
+	ASSERT_TRUE(_renderer != nullptr, "No renderer has been set");
   _renderer->SetAmbientLight(AmbientLightData(_ambientLightColour, _ambientLightIntensity));
 	_renderer->SetDirectionalLight(DirectionalLightData(_directionalLight->GetColour(), _directionalLight->GetDirection(), _directionalLight->GetIntensity()));
   

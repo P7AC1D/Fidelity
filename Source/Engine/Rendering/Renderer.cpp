@@ -2,7 +2,6 @@
 
 #include <chrono>
 #include <random>
-#include "../Maths/Matrix4.hpp"
 #include "../Utility/Assert.hpp"
 #include "../Utility/String.hpp"
 #include "../RenderApi/GL/GLRenderDevice.hpp"
@@ -18,8 +17,6 @@
 #include "Renderable.hpp"
 #include "RenderQueue.hpp"
 #include "StaticMesh.h"
-
-static const uint32 MaxKernelSize = 64;
 
 struct FullscreenQuadVertex
 {
@@ -41,15 +38,6 @@ std::vector<FullscreenQuadVertex> FullscreenQuadVertices
 	FullscreenQuadVertex(Vector2(-1.0f, 1.0f), Vector2(0.0f, 1.0f))
 };
 
-struct FrameBufferData
-{
-  Matrix4 Proj;
-  Matrix4 View;
-	DirectionalLightData DirectionalLight;
-  Vector4 ViewPosition;
-  AmbientLightData AmbientLight;
-};
-
 struct MaterialBufferData
 {
   struct TextureMapFlagData
@@ -62,17 +50,6 @@ struct MaterialBufferData
   Colour Ambient = Colour::White;
   Colour Diffuse = Colour::White;
   Colour Specular = Colour::White;
-	float32 SpecularExponent = 1.0f;
-};
-
-struct SsaoBufferData
-{
-  Vector4 Samples[MaxKernelSize];
-  int32 KernelSize;
-  int32 QuadWidth;
-  int32 QuadHeight;
-  float32 Radius;
-  float32 Bias;
 };
 
 std::shared_ptr<RenderDevice> Renderer::_renderDevice;
@@ -85,7 +62,8 @@ std::shared_ptr<RenderDevice> Renderer::GetRenderDevice()
 
 Renderer::Renderer(const RendererDesc& desc) :
 	_desc(desc),
-	_opaqueQueue(new RenderQueue)
+	_opaqueQueue(new RenderQueue),
+	_ssaoEnabled(true)
 {
   try
   {
@@ -98,7 +76,7 @@ Renderer::Renderer(const RendererDesc& desc) :
     
     GenerateSsaoKernel();
     
-    InitPipelineStates();
+    InitGeometryPass();
     InitFrameBuffer();
 		InitMaterialBuffer();
 		InitFullscreenQuad();
@@ -152,7 +130,7 @@ void Renderer::DrawFrame()
   _renderTimings.Frame = std::chrono::duration_cast<std::chrono::nanoseconds>(frameEnd - frameStart).count();
 }
 
-void Renderer::InitPipelineStates()
+void Renderer::InitGeometryPass()
 {
   ShaderDesc vsDesc;
   vsDesc.EntryPoint = "main";
@@ -307,6 +285,7 @@ void Renderer::InitLightingPass()
 	shaderParams->AddParam(ShaderParam("PositionMap", ShaderParamType::Texture, 0));
 	shaderParams->AddParam(ShaderParam("NormalMap", ShaderParamType::Texture, 1));
 	shaderParams->AddParam(ShaderParam("AlbedoSpecMap", ShaderParamType::Texture, 2));
+	shaderParams->AddParam(ShaderParam("SsaoMap", ShaderParamType::Texture, 3));
 	shaderParams->AddParam(ShaderParam("ObjectBuffer", ShaderParamType::ConstBuffer, 0));
 	shaderParams->AddParam(ShaderParam("FrameBuffer", ShaderParamType::ConstBuffer, 1));
   shaderParams->AddParam(ShaderParam("MaterialBuffer", ShaderParamType::ConstBuffer, 2));
@@ -392,24 +371,13 @@ void Renderer::InitSsaoPass()
     pipelineDesc.ShaderParams = shaderParams;
     
     _ssaoPassPso = _renderDevice->CreatePipelineState(pipelineDesc);
-    
-    GpuBufferDesc ssaoBufferDesc;
-    ssaoBufferDesc.BufferType = BufferType::Constant;
-    ssaoBufferDesc.BufferUsage = BufferUsage::Default;
-    ssaoBufferDesc.ByteCount = sizeof(SsaoBufferData);
-    _ssaoBuffer = _renderDevice->CreateGpuBuffer(ssaoBufferDesc);
-    
-    SsaoBufferData ssaoBufferData;
-    ssaoBufferData.QuadWidth = _desc.RenderWidth;
-    ssaoBufferData.QuadHeight = _desc.RenderHeight;
-    ssaoBufferData.KernelSize = 64;
-    ssaoBufferData.Bias = 0.025f;
-    ssaoBufferData.Radius = 0.5f;
-    for (uint32 i = 0; i < MaxKernelSize; i++)
-    {
-      ssaoBufferData.Samples[i] = Vector4(_ssaoKernel[i], 0.0f);
-    }
-    _ssaoBuffer->WriteData(0, sizeof(SsaoBufferData), &ssaoBufferData);
+		
+		_ssaoDetailsData.QuadHeight = GetRenderHeight();
+		_ssaoDetailsData.QuadWidth = GetRenderWidth();
+		for (uint32 i = 0; i < MaxKernelSize; i++)
+		{
+			_ssaoDetailsData.Samples[i] = Vector4(_ssaoKernel[i], 0.0f);
+		}
   }
   catch (const std::exception& exception)
   {
@@ -622,12 +590,19 @@ void Renderer::StartFrame()
 {
 	auto camera = SceneManager::Get()->GetCamera();
 
+	_ambientLightData.SsaoEnabled = _ssaoEnabled ? 1 : 0;
+
+	_ssaoDetailsData.Radius = _ssaoDetails.Radius;
+	_ssaoDetailsData.KernelSize = _ssaoDetails.Samples;
+	_ssaoDetailsData.Bias = _ssaoDetails.Bias;
+
   FrameBufferData framData;
   framData.Proj = camera->GetProjection();
 	framData.DirectionalLight = _directionalLightData;
   framData.AmbientLight = _ambientLightData;
   framData.View = camera->GetView();
   framData.ViewPosition = Vector4(camera->GetPosition(), 1.0f);
+	framData.SsaoDetails = _ssaoDetailsData;
   _frameBuffer->WriteData(0, sizeof(FrameBufferData), &framData, AccessType::WriteOnlyDiscard);
 
 	_renderDevice->ClearBuffers(RTT_Colour | RTT_Depth | RTT_Stencil);
@@ -697,7 +672,6 @@ void Renderer::SsaoPass()
 	_renderDevice->SetSamplerState(2, _ssaoSamplerState);
   
   _renderDevice->SetConstantBuffer(1, _frameBuffer);
-  _renderDevice->SetConstantBuffer(4, _ssaoBuffer);
   
   _renderDevice->SetVertexBuffer(_fsQuadBuffer);
   _renderDevice->Draw(6, 0);
@@ -725,9 +699,11 @@ void Renderer::LightingPass()
 	_renderDevice->SetTexture(0, _gBuffer->GetColourTarget(0));
 	_renderDevice->SetTexture(1, _gBuffer->GetColourTarget(1));
 	_renderDevice->SetTexture(2, _gBuffer->GetColourTarget(2));
+	_renderDevice->SetTexture(3, _ssaoBlurRT->GetColourTarget(0));
 	_renderDevice->SetSamplerState(0, _noMipSamplerState);
 	_renderDevice->SetSamplerState(1, _noMipSamplerState);
 	_renderDevice->SetSamplerState(2, _noMipSamplerState);
+	_renderDevice->SetSamplerState(3, _noMipSamplerState);
 	_renderDevice->SetVertexBuffer(_fsQuadBuffer);
   _renderDevice->SetConstantBuffer(1, _frameBuffer);
 	_renderDevice->Draw(6, 0);
@@ -764,7 +740,6 @@ void Renderer::SetMaterialData(const std::shared_ptr<Material>& material)
 	matData.Ambient = material->GetAmbientColour();
 	matData.Diffuse = material->GetDiffuseColour();
 	matData.Specular = material->GetSpecularColour();
-	matData.SpecularExponent = material->GetSpecularExponent();
 
 	auto diffuseTexture = material->GetDiffuseTexture();
 	if (diffuseTexture)

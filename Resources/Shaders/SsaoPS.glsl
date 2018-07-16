@@ -16,7 +16,19 @@ struct DirectionalLightData
 struct AmbientLightData
 {
   vec4 Colour;
-  float Intensity;
+  float Intensity;  
+  float SpecularExponent;
+  bool SsaoEnabled;
+};
+
+struct SsaoDetailsData
+{
+  vec4 Samples[MaxKernelSize];
+  int KernelSize;
+  int QuadWidth;
+  int QuadHeight;
+  float Radius;
+  float Bias;
 };
 
 layout(std140) uniform ObjectBuffer
@@ -31,16 +43,7 @@ layout(std140) uniform FrameBuffer
   DirectionalLightData DirectionalLight;
   vec4 ViewPos;
   AmbientLightData AmbientLight;
-};
-
-layout(std140) uniform SsaoBuffer
-{
-  vec4 Samples[MaxKernelSize];
-  int KernelSize;
-  int QuadWidth;
-  int QuadHeight;
-  float Radius;
-  float Bias;
+  SsaoDetailsData SsaoDetails;
 };
 
 uniform sampler2D PositionMap;
@@ -49,7 +52,7 @@ uniform sampler2D NoiseMap;
 
 void main()
 {
-  vec2 noiseScale = vec2(QuadWidth / 4.0f, QuadHeight / 4.0f);
+  vec2 noiseScale = vec2(SsaoDetails.QuadWidth / 4.0f, SsaoDetails.QuadHeight / 4.0f);
   
   vec3 position = texture(PositionMap, TexCoord).rgb;
   vec3 normal = normalize(texture(NormalMap, TexCoord).rgb);
@@ -60,10 +63,10 @@ void main()
   mat3 tbn = mat3(tangent, bitangent, normal);
   
   float occlusion = 0.0f;
-  for (int i = 0; i < KernelSize; i++)
+  for (int i = 0; i < SsaoDetails.KernelSize; i++)
   {
-    vec3 noiseSample = tbn * Samples[i].xyz;
-    noiseSample = position + noiseSample * Radius;
+    vec3 noiseSample = tbn * SsaoDetails.Samples[i].xyz;
+    noiseSample = position + noiseSample * SsaoDetails.Radius;
     
     vec4 offset = vec4(noiseSample, 1.0f);
     offset = Projection * offset;
@@ -72,10 +75,10 @@ void main()
     
     float sampleDepth = texture(PositionMap, offset.xy).z;
     
-    float rangeCheck = smoothstep(0.0f, 1.0f, Radius / abs(position.z - sampleDepth));
-    occlusion += (sampleDepth >= noiseSample.z + Bias ? 1.0f : 0.0f) * rangeCheck;
+    float rangeCheck = smoothstep(0.0f, 1.0f, SsaoDetails.Radius / abs(position.z - sampleDepth));
+    occlusion += (sampleDepth >= noiseSample.z + SsaoDetails.Bias ? 1.0f : 0.0f) * rangeCheck;
   }
-  occlusion = 1.0f - (occlusion / KernelSize);
+  occlusion = 1.0f - (occlusion / SsaoDetails.KernelSize);
   
   FragColour = occlusion;
 }
