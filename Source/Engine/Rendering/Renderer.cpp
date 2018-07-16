@@ -106,8 +106,13 @@ void Renderer::DrawFrame()
 
   StartFrame();
 	GeometryPass();
+
+  auto ssaoStart = std::chrono::high_resolution_clock::now();
   SsaoPass();
 	SsaoBlurPass();
+  auto ssaoEnd = std::chrono::high_resolution_clock::now();
+  _renderTimings.Ssao = std::chrono::duration_cast<std::chrono::nanoseconds>(ssaoEnd - ssaoStart).count();
+
 	switch (_gBufferDisplay)
 	{
 		default:
@@ -592,9 +597,9 @@ void Renderer::StartFrame()
 
 	_ambientLightData.SsaoEnabled = _ssaoEnabled ? 1 : 0;
 
-	_ssaoDetailsData.Radius = _ssaoDetails.Radius;
-	_ssaoDetailsData.KernelSize = _ssaoDetails.Samples;
-	_ssaoDetailsData.Bias = _ssaoDetails.Bias;
+	_ssaoDetailsData.Radius = 1.0f;
+	_ssaoDetailsData.KernelSize = 16;
+	_ssaoDetailsData.Bias = 0.01f;
 
   FrameBufferData framData;
   framData.Proj = camera->GetProjection();

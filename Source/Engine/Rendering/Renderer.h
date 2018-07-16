@@ -67,6 +67,7 @@ struct RenderTimings
   uint64 Frame = 0;
   uint64 GBuffer = 0;
   uint64 Lighting = 0;
+  uint64 Ssao = 0;
 };
 
 struct RenderCounts
@@ -74,13 +75,6 @@ struct RenderCounts
 	uint64 TriangleCount = 0;
 	uint64 MaterialCount = 0;
 	uint64 DrawCount = 0;
-};
-
-struct SsaoDetails
-{
-	uint32 Samples = 8;
-	float32 Radius = 1.0f;
-	float32 Bias = 0.01f;
 };
   
 struct RendererDesc
@@ -110,9 +104,7 @@ public:
 	void EnableGBufferDebugPass(GBufferDisplayType gBufferDisplay) { _gBufferDisplay = gBufferDisplay; }
 
 	void EnabledSsao(bool enabled) { _ssaoEnabled = enabled; }
-	void SetSsaoDetails(const SsaoDetails& ssaoDetails) { _ssaoDetails = ssaoDetails; }
 	bool IsSsaoEnabled() const { return _ssaoEnabled; }
-	SsaoDetails GetSsaoDetails() const { return _ssaoDetails; }
   
   void Notify(const std::shared_ptr<Renderable>& renderable, const std::shared_ptr<Transform>& transform);
   
@@ -170,7 +162,6 @@ private:
 	GBufferDisplayType _gBufferDisplay;
 	DirectionalLightData _directionalLightData;
   AmbientLightData _ambientLightData;
-	SsaoDetails _ssaoDetails;
 
   std::shared_ptr<GpuBuffer> _frameBuffer;
 	std::shared_ptr<GpuBuffer> _materialBuffer;

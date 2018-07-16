@@ -36,19 +36,12 @@ void GLShader::Compile()
   const byte* ptr = _desc.Source.c_str();
 	GLCall2(glCreateShaderProgramv(GetShaderType(_desc.ShaderType), 1, &ptr), _id);
   ASSERT_FALSE(_id == 0, "Unable to generate shader object");
-  
-  int32 logLength = -1;
-  GLCall(glGetProgramiv(_id, GL_INFO_LOG_LENGTH, &logLength));
+  GLCall(glUseProgram(0));
 
 	GLint linkStatus = -1;
 	GLCall(glGetProgramiv(_id, GL_LINK_STATUS, &linkStatus));
-  
-  std::vector<byte> buffer(logLength);
-  GLCall(glGetProgramInfoLog(_id, logLength, 0, &buffer[0]));
-	std::string logMessages = std::string(buffer.begin(), buffer.end());
-
-	GLCall(glUseProgram(0));
-	ASSERT_TRUE(linkStatus == GL_TRUE, "Unable to compile shader:\n" + logMessages);
+	
+	ASSERT_TRUE(linkStatus == GL_TRUE, "Unable to compile shader:\n" + GetShaderLog());
   _isCompiled = true;
 
 	BuildUniformDefinitions();
@@ -88,6 +81,20 @@ GLShader::GLShader(const ShaderDesc& desc): Shader(desc), _id(0)
   ASSERT_FALSE(desc.Source.empty(), "Shader source is empty");
   ASSERT_FALSE(desc.EntryPoint.empty(), "Shader entry point not defined");
   ASSERT_TRUE(desc.EntryPoint == "main", "GLSL shaders must have a 'main' entry point");
+}
+
+std::string GLShader::GetShaderLog()
+{
+  int32 logLength = -1;
+  GLCall(glGetProgramiv(_id, GL_INFO_LOG_LENGTH, &logLength));
+
+  if (logLength > 0)
+  {
+    std::vector<byte> buffer(logLength);
+    GLCall(glGetProgramInfoLog(_id, logLength, 0, &buffer[0]));
+    return std::string(buffer.begin(), buffer.end());
+  }
+  return std::string();
 }
 
 uint32 GLShader::GetUniformLocation(const std::string& name)

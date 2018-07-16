@@ -138,32 +138,11 @@ void DebugUi::Update()
 
 		ImGui::Separator();
 		{
-			ImGui::Text("Rendering Features");
+			ImGui::Text("Post Processing");
 
 			bool ssaoEnabled = _renderer->IsSsaoEnabled();
 			ImGui::Checkbox("SSAO", &ssaoEnabled);
 			_renderer->EnabledSsao(ssaoEnabled);
-
-			if (ssaoEnabled && ImGui::TreeNode("SSAO Details"))
-			{
-				auto ssaoDetails = _renderer->GetSsaoDetails();
-
-				int32 samples = ssaoDetails.Samples;
-				ImGui::SliderInt("Samples", &samples, 1, 64);
-
-				float32 bias = ssaoDetails.Bias;
-				ImGui::SliderFloat("Bias", &bias, 0.00001f, 1.0f);
-
-				float32 radius = ssaoDetails.Radius;
-				ImGui::SliderFloat("Radius", &radius, 0.00001f, 1.0f);
-
-				ssaoDetails.Samples = samples;
-				ssaoDetails.Radius = radius;
-				ssaoDetails.Bias = bias;
-				_renderer->SetSsaoDetails(ssaoDetails);
-
-				ImGui::TreePop();
-			}
 		}
 
 		{
@@ -179,6 +158,7 @@ void DebugUi::Update()
 			ImGui::Text("Render Pass");
       ImGui::BulletText("All %.3f ms", static_cast<float32>(frameTimings.Frame * 1e-6f));
       ImGui::BulletText("G-Buffer %.3f ms", static_cast<float32>(frameTimings.GBuffer * 1e-6f));
+      ImGui::BulletText("SSAO %.3f ms", static_cast<float32>(frameTimings.Ssao * 1e-6f));
       ImGui::BulletText("Lighting %.3f ms", static_cast<float32>(frameTimings.Lighting * 1e-6f));
     }
 
