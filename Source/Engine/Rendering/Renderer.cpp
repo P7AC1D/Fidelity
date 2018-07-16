@@ -336,7 +336,7 @@ void Renderer::InitSsaoPass()
   try
   {
     TextureDesc noiseTextureDesc;
-    noiseTextureDesc.Format = TextureFormat::RGB16F;
+    noiseTextureDesc.Format = TextureFormat::RGB8;
     noiseTextureDesc.Height = 4;
     noiseTextureDesc.Width = 4;
     noiseTextureDesc.Type = TextureType::Texture2D;
@@ -349,6 +349,7 @@ void Renderer::InitSsaoPass()
     SamplerStateDesc noiseSamplerStateDesc;
     noiseSamplerStateDesc.AddressingMode.U = TextureAddressMode::Wrap;
     noiseSamplerStateDesc.AddressingMode.V = TextureAddressMode::Wrap;
+		noiseSamplerStateDesc.AddressingMode.W = TextureAddressMode::Wrap;
     _ssaoSamplerState = _renderDevice->CreateSamplerState(noiseSamplerStateDesc);
     
     ShaderDesc vsDesc;
@@ -420,7 +421,7 @@ void Renderer::InitSsaoPass()
     colourTexDesc.Height = GetRenderHeight();
     colourTexDesc.Usage = TextureUsage::RenderTarget;
     colourTexDesc.Type = TextureType::Texture2D;
-    colourTexDesc.Format = TextureFormat::RGB16F;
+    colourTexDesc.Format = TextureFormat::R8;
     
     RenderTargetDesc rtDesc;
     rtDesc.ColourTargets[0] = _renderDevice->CreateTexture(colourTexDesc);
@@ -622,10 +623,14 @@ void Renderer::SsaoPass()
   _renderDevice->SetTexture(0, _gBuffer->GetColourTarget(0));
   _renderDevice->SetTexture(1, _gBuffer->GetColourTarget(1));
   _renderDevice->SetTexture(2, _ssaoNoiseTexture);
+
+	_renderDevice->SetSamplerState(0, _ssaoSamplerState);
+	_renderDevice->SetSamplerState(1, _ssaoSamplerState);
+	_renderDevice->SetSamplerState(2, _ssaoSamplerState);
   
   _renderDevice->SetConstantBuffer(1, _frameBuffer);
   _renderDevice->SetConstantBuffer(4, _ssaoBuffer);
-  _renderDevice->SetSamplerState(0, _ssaoSamplerState);
+  
   _renderDevice->SetVertexBuffer(_fsQuadBuffer);
   _renderDevice->Draw(6, 0);
 }

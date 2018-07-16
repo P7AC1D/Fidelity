@@ -98,14 +98,14 @@ vec4 CalculateNormal(vec4 normalSample, vec4 normal, bool isNormalMapEnabled)
   if (isNormalMapEnabled)
   {
     vec4 correctedNormalSample = normalize(normalSample * 2.0f - 1.0f);
-    return vec4(fsIn.TbnMtx * correctedNormalSample.xyz, 0.0f);
+    return normalize(vec4(fsIn.TbnMtx * correctedNormalSample.xyz, 0.0f));
   }
-  return normal;
+  return normalize(normal);
 }
 
 void main()
 {
-  vec3 viewDir = normalize(fsIn.ViewDirTS - fsIn.PositionTS); 
+  //vec3 viewDir = normalize(fsIn.ViewDirTS - fsIn.PositionTS); 
   //vec2 parallaxTexCoord = CalcParallaxTexCoords(fsIn.TexCoord, viewDir, Material.Enabled.Depth);
 
   vec4 diffuseSample = texture(DiffuseMap, fsIn.TexCoord);  

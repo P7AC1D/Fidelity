@@ -51,22 +51,24 @@ out gl_PerVertex {
 
 layout(location=0) out ShaderInterface vsOut;
 
-mat3 CalcTbnMatrix(vec3 normal, vec3 tangent, vec3 bitangent, mat4 model)
+mat3 CalcTbnMatrix(vec3 normal, vec3 tangent, vec3 bitangent, mat4 modelView)
 {
-  vec3 t = normalize(vec3(model * vec4(tangent, 0.0f)));
-  vec3 b = normalize(vec3(model * vec4(bitangent, 0.0f)));
-  vec3 n = normalize(vec3(model * vec4(normal, 0.0f)));
+  vec3 t = normalize(vec3(modelView * vec4(tangent, 0.0f)));
+  vec3 b = normalize(vec3(modelView * vec4(bitangent, 0.0f)));
+  vec3 n = normalize(vec3(modelView * vec4(normal, 0.0f)));
   return mat3(t, b, n);
 }
 
 void main()
 {
-  vsOut.Position = Model * vec4(aPosition, 1.0f);
+  mat4 modelView = View * Model;
+
+  vsOut.Position = modelView * vec4(aPosition, 1.0f);
   vsOut.TexCoord = aTexCoord;
-  vsOut.Normal = Model * vec4(aNormal, 0.0f);
-  vsOut.TbnMtx = CalcTbnMatrix(aNormal, aTangent, aBitangent, Model);
+  vsOut.Normal = modelView * vec4(aNormal, 0.0f);
+  vsOut.TbnMtx = CalcTbnMatrix(aNormal, aTangent, aBitangent, modelView);
   vsOut.PositionTS = vsOut.TbnMtx * vsOut.Position.xyz;
   vsOut.ViewDirTS = vsOut.TbnMtx * normalize(vsOut.Position.xyz - ViewPos.xyz);
   
-  gl_Position = Projection * View * Model * vec4(aPosition, 1.0f);
+  gl_Position = Projection * vsOut.Position;
 }

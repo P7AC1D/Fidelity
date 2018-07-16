@@ -75,7 +75,7 @@ void main()
     float rangeCheck = smoothstep(0.0f, 1.0f, Radius / abs(position.z - sampleDepth));
     occlusion += (sampleDepth >= noiseSample.z + Bias ? 1.0f : 0.0f) * rangeCheck;
   }
-  occlusion = 2.0f - (occlusion / KernelSize);
+  occlusion = 1.0f - (occlusion / KernelSize);
   
   FragColour = occlusion;
 }

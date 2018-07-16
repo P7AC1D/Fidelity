@@ -66,6 +66,8 @@ void GLSamplerState::SetTextureMinMipFiltering(TextureFilteringMode minFiltering
   switch (minFilteringMode)
   {
     case TextureFilteringMode::None:
+			GLCall(glSamplerParameteri(_id, GL_TEXTURE_MIN_FILTER, GL_NEAREST));
+			break;
     case TextureFilteringMode::Point:
       switch (mipFilteringMode)
     {
