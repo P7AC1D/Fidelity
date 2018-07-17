@@ -8,7 +8,10 @@ std::string String::LoadFromFile(const std::string& path)
 {
   std::fstream fstream;
   fstream.open(path, std::fstream::in);
-  ASSERT_TRUE(fstream.is_open(), "Failed to open file " + path);
+  if (!fstream.is_open())
+  {
+    throw std::runtime_error("Failed to open file " + path);
+  }
   
   fstream.seekg(0, fstream.end);
   std::streampos fileLength = fstream.tellg();

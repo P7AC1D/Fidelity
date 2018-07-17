@@ -22,7 +22,10 @@ std::shared_ptr<ImageData> ImageLoader::LoadFromFile(const std::string& filePath
   int32 height;
   int32 channelCount;
   ubyte* rawData = stbi_load(filePath.c_str(), &width, &height, &channelCount, 0);
-  ASSERT_TRUE(rawData, "Could not load image file " + filePath);
+  if (!rawData)
+  {
+    throw std::runtime_error("Could not load image file " + filePath);
+  }
   
   auto imageData = BuildImageData(rawData, width, height, channelCount);
 	delete[] rawData;
