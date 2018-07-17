@@ -104,7 +104,7 @@ void DebugUi::Update()
 			sceneManager->SetAmbientLightColour(Colour(col[0] * 255, col[1] * 255, col[2] * 255));
 
       auto intensity = sceneManager->GetAmbientLightIntensity();
-      ImGui::SliderFloat("Intensity", &intensity, 0.0f, 1.0f);
+      ImGui::SliderFloat("Intensity", &intensity, 0.0f, 100.0f);
 			sceneManager->SetAmbientLightIntensity(intensity);
 
       ImGui::TreePop();
@@ -125,7 +125,7 @@ void DebugUi::Update()
 			dirLight->SetDirection(Vector3(dir[0], dir[1], dir[2]));
 
 			auto intensity = dirLight->GetIntensity();
-			ImGui::SliderFloat("Intensity", &intensity, 0.0f, 1.0f);
+			ImGui::SliderFloat("Intensity", &intensity, 0.0f, 100.0f);
 			dirLight->SetIntensity(intensity);
 
 			ImGui::TreePop();

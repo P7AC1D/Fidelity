@@ -63,6 +63,12 @@ vec3 CorrectGamma(vec3 inputSample)
   return pow(inputSample, vec3(GAMMA_INV));
 }
 
+vec3 ReinhardToneMapping(vec3 inputSample)
+{
+  vec3 mapped = inputSample / (inputSample + vec3(1.0f));
+  return CorrectGamma(mapped);
+}
+
 void main()
 {
   vec3 position = texture(PositionMap, TexCoord).rgb;
@@ -80,6 +86,6 @@ void main()
   vec3 diffuse = DirectionalLight.Colour.rgb * DirectionalLight.Intensity * diffuseFactor;
   vec3 specular = DirectionalLight.Colour.rgb * DirectionalLight.Intensity * specularFactor * specularSample;
   
-  FinalColour.rgb = CorrectGamma(albedo) * (ambient + diffuse + specular); 
+  FinalColour.rgb = ReinhardToneMapping(albedo * (ambient + diffuse + specular)); 
   FinalColour.a = 1.0f;
 }
