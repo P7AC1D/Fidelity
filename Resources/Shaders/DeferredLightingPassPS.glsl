@@ -50,6 +50,7 @@ void main()
   vec3 diffuse = Frame.DirectionalLight.Colour.rgb * Frame.DirectionalLight.Intensity * diffuseFactor;
   vec3 specular = Frame.DirectionalLight.Colour.rgb * Frame.DirectionalLight.Intensity * specularFactor * specularSample;
   
-  FinalColour.rgb = ReinhardToneMapping(albedo * (ambient + diffuse + specular)); 
+  FinalColour.rgb = Frame.Hdr.Enabled ? ReinhardToneMapping(albedo * (ambient + diffuse + specular)) 
+                                      : CorrectGamma(albedo) * (ambient + diffuse + specular);
   FinalColour.a = 1.0f;
 }

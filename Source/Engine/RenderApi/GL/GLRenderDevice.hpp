@@ -25,7 +25,7 @@ public:
   std::shared_ptr<RenderTarget> CreateRenderTarget(const RenderTargetDesc& desc) override;
   std::shared_ptr<IndexBuffer> CreateIndexBuffer(const IndexBufferDesc& desc) override;
   std::shared_ptr<GpuBuffer> CreateGpuBuffer(const GpuBufferDesc& desc) override;
-  std::shared_ptr<Texture> CreateTexture(const TextureDesc& desc) override;
+  std::shared_ptr<Texture> CreateTexture(const TextureDesc& desc, bool gammaCorrected = false) override;
   std::shared_ptr<SamplerState> CreateSamplerState(const SamplerStateDesc& desc) override;
   
   void SetPrimitiveTopology(PrimitiveTopology primitiveTopology) override;

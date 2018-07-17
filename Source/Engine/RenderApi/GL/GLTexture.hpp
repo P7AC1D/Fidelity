@@ -15,7 +15,7 @@ public:
   uint32 GetId() const { return _id; }
   
 protected:
-  GLTexture(const TextureDesc& desc);
+  GLTexture(const TextureDesc& desc, bool gammaCorrected);
 
 private:
   void Initialize();

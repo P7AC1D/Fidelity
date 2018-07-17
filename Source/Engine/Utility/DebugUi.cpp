@@ -2,8 +2,6 @@
 
 #include <sstream>
 #include <SDL.h>
-#include "ImGui/imgui.h"
-#include "ImGui/imgui_impl_sdl.h"
 #include "../Core/Types.hpp"
 #include "../Image/ImageData.hpp"
 #include "../Maths/Matrix4.hpp"
@@ -14,10 +12,10 @@
 #include "../SceneManagement/Camera.hpp"
 #include "../SceneManagement/SceneManager.h"
 #include "../Utility/String.hpp"
+#include "ImGui/imgui.h"
+#include "ImGui/imgui_impl_sdl.h"
 
 bool show_demo_window = false;
-bool show_another_window = false;
-ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
 
 DebugUi::DebugUi(SDL_Window* sdlWindow, SDL_GLContext sdlGlContext):
 	_io(nullptr),
@@ -104,7 +102,7 @@ void DebugUi::Update()
 			sceneManager->SetAmbientLightColour(Colour(col[0] * 255, col[1] * 255, col[2] * 255));
 
       auto intensity = sceneManager->GetAmbientLightIntensity();
-      ImGui::SliderFloat("Intensity", &intensity, 0.0f, 100.0f);
+      ImGui::SliderFloat("Intensity", &intensity, 0.0f, 10.0f);
 			sceneManager->SetAmbientLightIntensity(intensity);
 
       ImGui::TreePop();
@@ -125,7 +123,7 @@ void DebugUi::Update()
 			dirLight->SetDirection(Vector3(dir[0], dir[1], dir[2]));
 
 			auto intensity = dirLight->GetIntensity();
-			ImGui::SliderFloat("Intensity", &intensity, 0.0f, 100.0f);
+			ImGui::SliderFloat("Intensity", &intensity, 0.0f, 10.0f);
 			dirLight->SetIntensity(intensity);
 
 			ImGui::TreePop();
@@ -140,9 +138,14 @@ void DebugUi::Update()
 		{
 			ImGui::Text("Post Processing");
 
+			bool hdrEnabled = _renderer->IsHdrEnabled();
 			bool ssaoEnabled = _renderer->IsSsaoEnabled();
+
+			ImGui::Checkbox("HDR", &hdrEnabled);
 			ImGui::Checkbox("SSAO", &ssaoEnabled);
-			_renderer->EnabledSsao(ssaoEnabled);
+
+			_renderer->EnableHdr(hdrEnabled);
+			_renderer->EnableSsao(ssaoEnabled);
 		}
 
 		{

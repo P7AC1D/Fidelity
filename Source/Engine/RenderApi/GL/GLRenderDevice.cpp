@@ -149,9 +149,9 @@ std::shared_ptr<GpuBuffer> GLRenderDevice::CreateGpuBuffer(const GpuBufferDesc& 
   return std::shared_ptr<GLGpuBuffer>(new GLGpuBuffer(desc));
 }
 
-std::shared_ptr<Texture> GLRenderDevice::CreateTexture(const TextureDesc& desc)
+std::shared_ptr<Texture> GLRenderDevice::CreateTexture(const TextureDesc& desc, bool gammaCorrected)
 {
-  return std::shared_ptr<GLTexture>(new GLTexture(desc));
+  return std::shared_ptr<GLTexture>(new GLTexture(desc, gammaCorrected));
 }
 
 std::shared_ptr<SamplerState> GLRenderDevice::CreateSamplerState(const SamplerStateDesc& desc)

@@ -54,7 +54,7 @@ public:
   virtual std::shared_ptr<Shader> CreateShader(const ShaderDesc& desc) = 0;
   virtual std::shared_ptr<IndexBuffer> CreateIndexBuffer(const IndexBufferDesc& desc) = 0;
   virtual std::shared_ptr<VertexBuffer> CreateVertexBuffer(const VertexBufferDesc& desc) = 0;
-  virtual std::shared_ptr<Texture> CreateTexture(const TextureDesc& desc) = 0;
+  virtual std::shared_ptr<Texture> CreateTexture(const TextureDesc& desc, bool gammaCorrected = false) = 0;
   virtual std::shared_ptr<RenderTarget> CreateRenderTarget(const RenderTargetDesc& desc) = 0;
   virtual std::shared_ptr<GpuBuffer> CreateGpuBuffer(const GpuBufferDesc& desc) = 0;
   virtual std::shared_ptr<SamplerState> CreateSamplerState(const SamplerStateDesc& desc) = 0;

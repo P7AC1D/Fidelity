@@ -63,7 +63,8 @@ std::shared_ptr<RenderDevice> Renderer::GetRenderDevice()
 Renderer::Renderer(const RendererDesc& desc) :
 	_desc(desc),
 	_opaqueQueue(new RenderQueue),
-	_ssaoEnabled(true)
+	_ssaoEnabled(true),
+	_hdrEnabled(true)
 {
   try
   {
@@ -601,6 +602,8 @@ void Renderer::StartFrame()
 	_ssaoDetailsData.KernelSize = 16;
 	_ssaoDetailsData.Bias = 0.01f;
 
+	_hdrData.Enabled = _hdrEnabled ? 1 : 0;
+
   FrameBufferData framData;
   framData.Proj = camera->GetProjection();
 	framData.DirectionalLight = _directionalLightData;
@@ -608,6 +611,7 @@ void Renderer::StartFrame()
   framData.View = camera->GetView();
   framData.ViewPosition = Vector4(camera->GetPosition(), 1.0f);
 	framData.SsaoDetails = _ssaoDetailsData;
+	framData.Hdr = _hdrData;
   _frameBuffer->WriteData(0, sizeof(FrameBufferData), &framData, AccessType::WriteOnlyDiscard);
 
 	_renderDevice->ClearBuffers(RTT_Colour | RTT_Depth | RTT_Stencil);

@@ -12,6 +12,7 @@ struct AmbientLightData
   float Intensity;
   float SpecularExponent;
   bool SsaoEnabled;
+  float _padding;
 };
 
 struct SsaoDetailsData
@@ -22,6 +23,15 @@ struct SsaoDetailsData
   int QuadHeight;
   float Radius;
   float Bias;
+  float _paddingA;
+  float _paddingB;
+  float _paddingC;
+};
+
+struct HdrData
+{
+  bool Enabled;
+  float Exposure;
 };
 
 struct TextureMapFlags
@@ -43,8 +53,9 @@ layout(std140) uniform FrameBuffer
   mat4 View;
   DirectionalLightData DirectionalLight;
   vec4 ViewPos;
-  AmbientLightData AmbientLight;
-  SsaoDetailsData SsaoDetails;
+  AmbientLightData AmbientLight;  
+  SsaoDetailsData SsaoDetails;  
+  HdrData Hdr;
 } Frame;
 
 layout(std140) uniform MaterialBuffer

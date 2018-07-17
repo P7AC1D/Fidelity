@@ -3,7 +3,7 @@
 #include "../../Utility/Assert.hpp"
 #include "GL.hpp"
 
-void GetInternalPixelFormat(TextureFormat textureFormat, GLenum& internalFormat, GLenum& format, GLenum& type)
+void GetInternalPixelFormat(TextureFormat textureFormat, GLenum& internalFormat, GLenum& format, GLenum& type, bool gammaCorrected)
 {
   switch (textureFormat)
   {
@@ -21,13 +21,15 @@ void GetInternalPixelFormat(TextureFormat textureFormat, GLenum& internalFormat,
     }
     case TextureFormat::RGB8:
     {
-      internalFormat = format = GL_RGB;
+      format = GL_RGB;
+			internalFormat = gammaCorrected ? GL_SRGB : GL_RGB;
       type = GL_UNSIGNED_BYTE;
       break;
     }
     case TextureFormat::RGBA8:
     {
-      internalFormat = format = GL_RGBA;
+      format = GL_RGBA;
+			internalFormat = gammaCorrected ? GL_SRGB_ALPHA : GL_RGBA;
       type = GL_UNSIGNED_BYTE;
       break;
     }
@@ -111,7 +113,7 @@ void GLTexture::WriteData(uint32 mipLevel, uint32 face, const std::shared_ptr<Im
   GLenum internalFormat;
   GLenum format;
   GLenum type;
-  GetInternalPixelFormat(_desc.Format, internalFormat, format, type);
+  GetInternalPixelFormat(_desc.Format, internalFormat, format, type, _gammaCorrected);
   GLenum target = GetTextureTarget(_desc.Type);
   const auto& pixelData = data->GetPixelData();
 
@@ -157,7 +159,7 @@ void GLTexture::GenerateMips()
 	GLCall(glBindTexture(target, previouslyBoundTexture));
 }
 
-GLTexture::GLTexture(const TextureDesc& desc): Texture(desc), _id(0)
+GLTexture::GLTexture(const TextureDesc& desc, bool gammaCorrected): Texture(desc, gammaCorrected), _id(0)
 {
   Initialize();
 }
@@ -188,7 +190,7 @@ void GLTexture::Allocate()
   GLenum internalFormat;
   GLenum format;
   GLenum type;
-  GetInternalPixelFormat(_desc.Format, internalFormat, format, type);
+  GetInternalPixelFormat(_desc.Format, internalFormat, format, type, _gammaCorrected);
   switch (_desc.Type)
   {
     case TextureType::Texture1D:

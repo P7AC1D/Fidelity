@@ -103,8 +103,11 @@ public:
 
 	void EnableGBufferDebugPass(GBufferDisplayType gBufferDisplay) { _gBufferDisplay = gBufferDisplay; }
 
-	void EnabledSsao(bool enabled) { _ssaoEnabled = enabled; }
+	void EnableSsao(bool enabled) { _ssaoEnabled = enabled; }
+	void EnableHdr(bool enabled) { _hdrEnabled = enabled; }
+
 	bool IsSsaoEnabled() const { return _ssaoEnabled; }
+	bool IsHdrEnabled() const { return _hdrEnabled; }
   
   void Notify(const std::shared_ptr<Renderable>& renderable, const std::shared_ptr<Transform>& transform);
   
@@ -146,7 +149,16 @@ private:
 		int32 QuadHeight;
 		float32 Radius = 0.5f;
 		float32 Bias = 0.025f;
+		float32 _paddingA;
+		float32 _paddingB;
+		float32 _paddingC;
 	} _ssaoDetailsData;
+
+	struct HdrData
+	{
+		int Enabled = 1;
+		float32 Exposure = 1.0f;
+	} _hdrData;
 
 	struct FrameBufferData
 	{
@@ -156,6 +168,7 @@ private:
 		Vector4 ViewPosition;
 		AmbientLightData AmbientLight;
 		SsaoDetailsData SsaoDetails;
+		HdrData Hdr;
 	};
   
   RendererDesc _desc;
@@ -186,5 +199,7 @@ private:
 
   RenderTimings _renderTimings;
 	RenderCounts _renderCounts;
+
 	bool _ssaoEnabled;
+	bool _hdrEnabled;
 };

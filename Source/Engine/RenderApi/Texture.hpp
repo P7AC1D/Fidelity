@@ -54,7 +54,7 @@ struct TextureDesc
 class Texture
 {
 public:
-  Texture(const TextureDesc& desc): _desc(desc), _isInitialized(false) {}
+  Texture(const TextureDesc& desc, bool gammaCorrected): _desc(desc), _gammaCorrected(gammaCorrected), _isInitialized(false) {}
   
   TextureType GetTextureType() const { return _desc.Type; }
   const TextureDesc& GetDesc() const { return _desc; }
@@ -65,5 +65,6 @@ public:
   
 protected:
   TextureDesc _desc;
+	bool _gammaCorrected;
   bool _isInitialized;
 };
