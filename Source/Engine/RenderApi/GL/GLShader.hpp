@@ -21,6 +21,8 @@ public:
   
 private:
   GLShader(const ShaderDesc& desc);
+
+	void AttachHeaderFiles();
   std::string GetShaderLog();
   
 	uint32 GetUniformLocation(const std::string& name);

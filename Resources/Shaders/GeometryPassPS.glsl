@@ -1,4 +1,5 @@
 #version 410
+#include "Common.glsli"
 
 struct ShaderInterface
 {
@@ -9,23 +10,6 @@ struct ShaderInterface
   vec3 PositionTS;
   vec3 ViewDirTS;
 };
-
-struct TextureMapFlags
-{
-  bool Diffuse;
-  bool Normal;
-  bool Specular;
-  bool Depth;
-};
-
-layout(std140) uniform MaterialBuffer
-{
-  TextureMapFlags Enabled;
-  vec4 AmbientColour;
-  vec4 DiffuseColour;
-  vec4 SpecularColour;
-  float SpecularExponent;  
-} Material;
 
 layout(location = 0) in ShaderInterface fsIn;
 

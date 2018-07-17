@@ -2,6 +2,7 @@
 
 #include "../../Utility/Assert.hpp"
 #include "../../Utility/Hash.hpp"
+#include "../../Utility/String.hpp"
 #include "GL.hpp"
 
 GLenum GetShaderType(ShaderType shaderType)
@@ -33,8 +34,10 @@ void GLShader::Compile()
     return;
   }
   
-  const byte* ptr = _desc.Source.c_str();
+	AttachHeaderFiles();
+	const byte* ptr = _desc.Source.c_str();
 	GLCall2(glCreateShaderProgramv(GetShaderType(_desc.ShaderType), 1, &ptr), _id);
+
   ASSERT_FALSE(_id == 0, "Unable to generate shader object");
   GLCall(glUseProgram(0));
 
@@ -81,6 +84,26 @@ GLShader::GLShader(const ShaderDesc& desc): Shader(desc), _id(0)
   ASSERT_FALSE(desc.Source.empty(), "Shader source is empty");
   ASSERT_FALSE(desc.EntryPoint.empty(), "Shader entry point not defined");
   ASSERT_TRUE(desc.EntryPoint == "main", "GLSL shaders must have a 'main' entry point");
+}
+
+void GLShader::AttachHeaderFiles()
+{
+	for (auto iterPos = 0; iterPos != std::string::npos;)
+	{
+		iterPos = _desc.Source.find("#include", iterPos);
+		if (iterPos != std::string::npos)
+		{
+			auto newLinePos = _desc.Source.find("\n", iterPos);
+			auto line = _desc.Source.substr(iterPos, newLinePos - iterPos);
+			auto splitLine = String::Split(line, '\"');
+			ASSERT_TRUE(splitLine.size() == 3, "#include syntax error");
+
+			auto headerSource = String::LoadFromFile("./../../Resources/Shaders/" + splitLine[1]);
+
+			_desc.Source.erase(iterPos, newLinePos - iterPos);
+			_desc.Source.insert(iterPos, headerSource.c_str());
+		}
+	}
 }
 
 std::string GLShader::GetShaderLog()

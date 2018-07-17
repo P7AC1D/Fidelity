@@ -1,52 +1,11 @@
 #version 410
+#include "Common.glsli"
 
 layout(location = 0) in vec3 aPosition;
 layout(location = 1) in vec3 aNormal;
 layout(location = 2) in vec2 aTexCoord;
 layout(location = 3) in vec3 aTangent;
 layout(location = 4) in vec3 aBitangent;
-
-const int MaxKernelSize = 64;
-
-struct DirectionalLightData
-{
-  vec4 Colour;
-  vec3 Direction;
-  float Intensity;
-};
-
-struct AmbientLightData
-{
-  vec4 Colour;
-  float Intensity;
-  float SpecularExponent;
-  bool SsaoEnabled;
-};
-
-struct SsaoDetailsData
-{
-  vec4 Samples[MaxKernelSize];
-  int KernelSize;
-  int QuadWidth;
-  int QuadHeight;
-  float Radius;
-  float Bias;
-};
-
-layout(std140) uniform ObjectBuffer
-{
-  mat4 Model;
-};
-
-layout(std140) uniform FrameBuffer
-{
-  mat4 Projection;
-  mat4 View;
-  DirectionalLightData DirectionalLight;
-  vec4 ViewPos;
-  AmbientLightData AmbientLight;
-  SsaoDetailsData SsaoDetails;
-};
 
 struct ShaderInterface
 {
@@ -76,14 +35,14 @@ mat3 CalcTbnMatrix(vec3 normal, vec3 tangent, vec3 bitangent, mat4 modelView)
 
 void main()
 {
-  mat4 modelView = View * Model;
+  mat4 modelView = Frame.View * Object.Model;
 
   vsOut.Position = modelView * vec4(aPosition, 1.0f);
   vsOut.TexCoord = aTexCoord;
   vsOut.Normal = modelView * vec4(aNormal, 0.0f);
   vsOut.TbnMtx = CalcTbnMatrix(aNormal, aTangent, aBitangent, modelView);
   vsOut.PositionTS = vsOut.TbnMtx * vsOut.Position.xyz;
-  vsOut.ViewDirTS = vsOut.TbnMtx * normalize(vsOut.Position.xyz - ViewPos.xyz);
+  vsOut.ViewDirTS = vsOut.TbnMtx * normalize(vsOut.Position.xyz - Frame.ViewPos.xyz);
   
-  gl_Position = Projection * vsOut.Position;
+  gl_Position = Frame.Projection * vsOut.Position;
 }
