@@ -39,6 +39,7 @@ public:
   Vector3& operator+=(float32 rhs);
   Vector3& operator-=(float32 rhs);
   Vector3& operator*=(float32 rhs);
+	Vector3& operator*=(const Vector3& rhs);
   
   bool operator==(const Vector3& rhs) const;
   bool operator!=(const Vector3& rhs) const;

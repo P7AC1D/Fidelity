@@ -3,6 +3,7 @@
 #include <memory>
 #include <vector>
 #include <string>
+#include "../Maths/AABB.hpp"
 #include "../Maths/Quaternion.hpp"
 #include "../Maths/Vector3.hpp"
 #include "Component.hpp"
@@ -35,11 +36,18 @@ public:
 
 	std::shared_ptr<Transform> GetTransform() const;
 
+	Aabb GetBounds();
+
+private:
+	void CalculateBounds();
+
 private:
 	std::string _name;
 	std::shared_ptr<SceneNode> _parent;
 	std::shared_ptr<Transform> _transform;
 	std::vector<std::shared_ptr<Component>> _components;
+	Aabb _bounds;
+	bool _boundsCalculated;
 };
 
 template <typename T>

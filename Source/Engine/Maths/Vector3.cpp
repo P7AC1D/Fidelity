@@ -178,6 +178,14 @@ Vector3& Vector3::operator*=(float32 rhs)
   return *this;
 }
 
+Vector3& Vector3::operator*=(const Vector3& rhs)
+{
+	X *= rhs.X;
+	Y *= rhs.Y;
+	Z *= rhs.Z;
+	return *this;
+}
+
 bool Vector3::operator==(const Vector3& rhs) const
 {
   return X == rhs.X && Y == rhs.Y && Z == rhs.Z;

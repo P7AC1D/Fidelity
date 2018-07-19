@@ -1,11 +1,11 @@
 #pragma once
 #include "../Core/Types.hpp"
 #include "Radian.hpp"
+#include "Vector3.hpp"
 #include "Vector4.hpp"
 
 class Matrix3;
 class Quaternion;
-class Vector3;
 
 class Matrix4
 {

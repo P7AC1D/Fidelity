@@ -6,7 +6,6 @@
 #include "Math.hpp"
 #include "Matrix3.hpp"
 #include "Quaternion.hpp"
-#include "Vector3.hpp"
 
 static float32 Minor(const Matrix4& _m, const uint32 r0, const uint32 r1, const uint32 r2,
                      const uint32 c0, const uint32 c1, const uint32 c2)

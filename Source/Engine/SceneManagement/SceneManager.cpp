@@ -1,6 +1,7 @@
 #include "SceneManager.h"
 
 #include <chrono>
+#include "../Maths/Frustrum.hpp"
 #include "../Rendering/Renderable.hpp"
 #include "../Rendering/Renderer.h"
 #include "../Utility/Assert.hpp"
@@ -116,15 +117,19 @@ void SceneManager::SubmitSceneToRender()
 	ASSERT_TRUE(_renderer != nullptr, "No renderer has been set");
   _renderer->SetAmbientLight(AmbientLightData(_ambientLightColour, _ambientLightIntensity));
 	_renderer->SetDirectionalLight(DirectionalLightData(_directionalLight->GetColour(), _directionalLight->GetDirection(), _directionalLight->GetIntensity()));
+
+	Frustrum camFrustrum(_camera->GetProjection());
   
 	auto actors = _sceneGraph->GetAllActors();
 	for (auto actor : actors)
 	{
 		auto renderable = actor->GetComponent<Renderable>();
-		if (renderable && !renderable->_rendererNotified)
+		if (renderable)
 		{
-			_renderer->Notify(renderable, actor->GetTransform());
-			renderable->_rendererNotified = true;
+			if (camFrustrum.Intersects(actor->GetBounds()))
+			{
+				_renderer->Push(renderable, actor->GetTransform());
+			}
 		}		
 	}
 }

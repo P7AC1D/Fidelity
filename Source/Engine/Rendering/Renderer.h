@@ -109,7 +109,7 @@ public:
 	bool IsSsaoEnabled() const { return _ssaoEnabled; }
 	bool IsHdrEnabled() const { return _hdrEnabled; }
   
-  void Notify(const std::shared_ptr<Renderable>& renderable, const std::shared_ptr<Transform>& transform);
+  void Push(const std::shared_ptr<Renderable>& renderable, const std::shared_ptr<Transform>& transform);
   
   void DrawFrame();
   

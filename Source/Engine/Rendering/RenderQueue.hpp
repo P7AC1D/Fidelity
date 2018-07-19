@@ -22,6 +22,7 @@ class RenderQueue
 {
 public:
 	void Push(const std::shared_ptr<Renderable>& renderable, const std::shared_ptr<Transform>& transform);
+	void Clear();
 
 	std::set<RenderableItem>::const_iterator GetIteratorBegin();
 	std::set<RenderableItem>::const_iterator GetIteratorEnd();

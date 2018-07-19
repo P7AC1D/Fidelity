@@ -12,6 +12,11 @@ void RenderQueue::Push(const std::shared_ptr<Renderable>& renderable, const std:
 	_queue.emplace(renderable, transform);
 }
 
+void RenderQueue::Clear()
+{
+	_queue.clear();
+}
+
 std::set<RenderableItem>::const_iterator RenderQueue::GetIteratorBegin()
 {
 	return _queue.begin();
@@ -39,8 +44,8 @@ bool RenderQueue::RenderableItemCompare::operator()(const RenderableItem& lhs, c
 		return false;
 	}
 	
-	auto lhsPos = lhs.Transform->Get() * lhs.Renderable->GetBounds().GetMidPoint();
-	auto rhsPos = rhs.Transform->Get() * rhs.Renderable->GetBounds().GetMidPoint();
+	auto lhsPos = lhs.Transform->GetPosition();
+	auto rhsPos = rhs.Transform->GetPosition();
 
 	auto distToLhs = Vector4::Length(camPos - Vector3(lhsPos));
 	auto distToRhs = Vector4::Length(camPos - Vector3(rhsPos));

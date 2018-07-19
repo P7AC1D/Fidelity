@@ -92,7 +92,7 @@ Renderer::Renderer(const RendererDesc& desc) :
   }
 }
 
-void Renderer::Notify(const std::shared_ptr<Renderable>& renderable, const std::shared_ptr<Transform>& transform)
+void Renderer::Push(const std::shared_ptr<Renderable>& renderable, const std::shared_ptr<Transform>& transform)
 {
 	_opaqueQueue->Push(renderable, transform);
 
@@ -131,6 +131,8 @@ void Renderer::DrawFrame()
 			break;
 	}		
 	EndFrame();
+
+	_opaqueQueue->Clear();
 
   auto frameEnd = std::chrono::high_resolution_clock::now();
   _renderTimings.Frame = std::chrono::duration_cast<std::chrono::nanoseconds>(frameEnd - frameStart).count();
