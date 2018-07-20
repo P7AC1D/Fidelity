@@ -6,12 +6,15 @@
 #include "../Maths/Vector3.hpp"
 #include "Light.h"
 
+class Actor;
 class Camera;
 class Renderer;
 class SceneNode;
 
 class SceneManager
 {
+	friend class Actor;
+
 public:
 	static std::shared_ptr<SceneManager> Get();
 
@@ -31,17 +34,20 @@ public:
   Colour GetAmbientLightColour() const;
   float32 GetAmbientLightIntensity() const;
 
+
   void UpdateScene(uint32 dtMs);
 
 private:
 	SceneManager();
 
+	void PushRenderable(Actor* actor);
   void SubmitSceneToRender();
 
 private:
 	static std::shared_ptr<SceneManager> Instance;
 	std::shared_ptr<SceneNode> _sceneGraph;
   std::vector<std::shared_ptr<Light>> _lights;
+	std::vector<Actor*> _renderableActors;
 	std::shared_ptr<Light> _directionalLight;
   std::shared_ptr<Renderer> _renderer;
   std::shared_ptr<Camera> _camera;

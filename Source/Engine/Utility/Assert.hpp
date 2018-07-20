@@ -12,7 +12,7 @@ public:
 #define NDEBUG
 #endif
 
-#if defined(NDEBUG)
+#if defined(NDEBUG) && defined(ASSERT_ENABLED)
 #define ASSERT_FALSE(x, msg) Assert::ThrowIfTrue(x, msg)
 #define ASSERT_TRUE(x, msg) Assert::ThrowIfFalse(x, msg)
 #else

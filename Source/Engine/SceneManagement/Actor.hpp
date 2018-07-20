@@ -40,6 +40,7 @@ public:
 
 private:
 	void CalculateBounds();
+	void IfRenderableNotifySceneManager(const std::shared_ptr<Component>& component);
 
 private:
 	std::string _name;
@@ -77,11 +78,13 @@ void Actor::AddComponent(const std::shared_ptr<Component>& component)
 	auto iter = std::find_if(_components.begin(), _components.end(), [](const std::shared_ptr<Component>& c)
 	{
 		return std::dynamic_pointer_cast<T>(c) != nullptr;
-	});
+	});	
 	
 	if (iter != _components.end())
 	{
 		*iter = component;
 	}
 	_components.push_back(component);
+
+	IfRenderableNotifySceneManager(component);
 }

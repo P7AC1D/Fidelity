@@ -112,24 +112,24 @@ SceneManager::SceneManager() :
 {
 }
 
+void SceneManager::PushRenderable(Actor* actor)
+{
+	_renderableActors.push_back(actor);
+}
+
 void SceneManager::SubmitSceneToRender()
 {
 	ASSERT_TRUE(_renderer != nullptr, "No renderer has been set");
   _renderer->SetAmbientLight(AmbientLightData(_ambientLightColour, _ambientLightIntensity));
 	_renderer->SetDirectionalLight(DirectionalLightData(_directionalLight->GetColour(), _directionalLight->GetDirection(), _directionalLight->GetIntensity()));
 
-	Frustrum camFrustrum(_camera->GetProjection());
+	Frustrum camFrustrum(_camera->GetProjection() * _camera->GetView());
   
-	auto actors = _sceneGraph->GetAllActors();
-	for (auto actor : actors)
+	for (auto renderableActor : _renderableActors)
 	{
-		auto renderable = actor->GetComponent<Renderable>();
-		if (renderable)
-		{
-			if (camFrustrum.Intersects(actor->GetBounds()))
-			{
-				_renderer->Push(renderable, actor->GetTransform());
-			}
-		}		
+		if (renderableActor && camFrustrum.Intersects(renderableActor->GetBounds()))
+		{			
+			_renderer->Push(renderableActor->GetComponent<Renderable>(), renderableActor->GetTransform());
+		}
 	}
 }

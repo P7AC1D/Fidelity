@@ -10,6 +10,8 @@ class StaticMesh;
 struct PerObjectBufferData
 {
 	Matrix4 Model;
+	Matrix4 ModelView;
+	Matrix4 ModelViewProjection;
 };
 
 class Renderable : public Component

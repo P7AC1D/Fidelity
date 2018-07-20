@@ -12,7 +12,6 @@ struct AmbientLightData
   float Intensity;
   float SpecularExponent;
   bool SsaoEnabled;
-  float _padding;
 };
 
 struct SsaoDetailsData
@@ -45,6 +44,8 @@ struct TextureMapFlags
 layout(std140) uniform ObjectBuffer
 {
   mat4 Model;
+  mat4 ModelView;
+  mat4 ModelViewProjection;
 } Object;
 
 layout(std140) uniform FrameBuffer

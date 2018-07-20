@@ -97,7 +97,15 @@ void Camera::UpdateView()
   _up = Vector3(_view[0][1], _view[1][1], _view[2][1]);
   _forward = Vector3(_view[0][2], _view[1][2], _view[2][2]);
 }
+
 void Camera::UpdateProjection()
 {
   _proj = Matrix4::Perspective(_fov, _width / static_cast<float32>(_height), _near, _far);
+
+	UpdateFrustrum();
+}
+
+void Camera::UpdateFrustrum()
+{
+	_frustrum = Frustrum(_proj);
 }

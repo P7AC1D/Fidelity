@@ -1,11 +1,11 @@
 #pragma once
 #include "../Core/Types.hpp"
+#include "Matrix3.hpp"
+#include "Plane.hpp"
+#include "Quaternion.hpp"
 #include "Radian.hpp"
 #include "Vector3.hpp"
 #include "Vector4.hpp"
-
-class Matrix3;
-class Quaternion;
 
 class Matrix4
 {
@@ -35,6 +35,7 @@ public:
   Matrix4 operator-(const Matrix4& rhs) const;
   Matrix4 operator*(const Matrix4& rhs) const;
   Vector4 operator*(const Vector4& rhs) const;
+	Plane operator*(const Plane& rhs) const;
   
   bool operator==(const Matrix4& rhs) const;
   bool operator!=(const Matrix4& rhs) const;

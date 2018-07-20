@@ -35,14 +35,14 @@ mat3 CalcTbnMatrix(vec3 normal, vec3 tangent, vec3 bitangent, mat4 modelView)
 
 void main()
 {
-  mat4 modelView = Frame.View * Object.Model;
+  mat4 modelView = Object.ModelView;
 
-  vsOut.Position = modelView * vec4(aPosition, 1.0f);
+  vsOut.Position = Object.ModelView * vec4(aPosition, 1.0f);
   vsOut.TexCoord = aTexCoord;
-  vsOut.Normal = modelView * vec4(aNormal, 0.0f);
-  vsOut.TbnMtx = CalcTbnMatrix(aNormal, aTangent, aBitangent, modelView);
+  vsOut.Normal = Object.ModelView * vec4(aNormal, 0.0f);
+  vsOut.TbnMtx = CalcTbnMatrix(aNormal, aTangent, aBitangent, Object.ModelView);
   vsOut.PositionTS = vsOut.TbnMtx * vsOut.Position.xyz;
   vsOut.ViewDirTS = vsOut.TbnMtx * normalize(vsOut.Position.xyz - Frame.ViewPos.xyz);
   
-  gl_Position = Frame.Projection * vsOut.Position;
+  gl_Position = Object.ModelViewProjection * vec4(aPosition, 1.0f);
 }

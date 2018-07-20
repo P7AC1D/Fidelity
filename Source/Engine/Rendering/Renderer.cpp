@@ -96,8 +96,12 @@ void Renderer::Push(const std::shared_ptr<Renderable>& renderable, const std::sh
 {
 	_opaqueQueue->Push(renderable, transform);
 
+	auto camera = SceneManager::Get()->GetCamera();
+
 	PerObjectBufferData perObjectData;
 	perObjectData.Model = transform->Get();
+	perObjectData.ModelView = camera->GetView() * perObjectData.Model;
+	perObjectData.ModelViewProjection = camera->GetProjection() * perObjectData.ModelView;
 	renderable->UpdatePerObjectBuffer(perObjectData);
 }
 

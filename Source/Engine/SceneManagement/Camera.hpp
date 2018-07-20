@@ -2,6 +2,7 @@
 #include <memory>
 
 #include "../Maths/Degree.hpp"
+#include "../Maths/Frustrum.hpp"
 #include "../Maths/Matrix4.hpp"
 #include "../Maths/Quaternion.hpp"
 #include "../Maths/Radian.hpp"
@@ -17,6 +18,7 @@ public:
 
   const Matrix4& GetView();
   const Matrix4& GetProjection();
+
   inline const Vector3& GetCameraRight() const { return _right; }
   inline const Vector3& GetCameraUp() const { return _up; }
   inline const Vector3& GetCameraForward() const { return _forward; }
@@ -29,6 +31,7 @@ private:
   void SetOrientation(const Quaternion& orientation);
   void UpdateView();
   void UpdateProjection();
+	void UpdateFrustrum();
 
 private:
   int32 _width;
@@ -44,4 +47,5 @@ private:
   Vector3 _right;
   Vector3 _forward;
   Quaternion _orientation;
+	Frustrum _frustrum;
 };
