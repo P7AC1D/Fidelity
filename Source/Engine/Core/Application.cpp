@@ -29,7 +29,11 @@ int32 Application::Run()
     SDL_Event sdlEvent;
     while (SDL_PollEvent(&sdlEvent))
     {
-			_debugUi->ProcessEvents(&sdlEvent);
+			if (_debugUi->ProcessEvents(&sdlEvent))
+			{
+				continue;
+			}
+
       switch (sdlEvent.type)
       {
         case SDL_QUIT:

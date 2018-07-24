@@ -27,7 +27,7 @@ public:
 	
 	void SetRenderer(const std::shared_ptr<Renderer>& renderer);
 
-	void ProcessEvents(SDL_Event* sdlEvent);
+	bool ProcessEvents(SDL_Event* sdlEvent);
 	void Update();
 
 private:

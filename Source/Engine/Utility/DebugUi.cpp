@@ -46,9 +46,13 @@ void DebugUi::SetRenderer(const std::shared_ptr<Renderer>& renderer)
 	_renderer = renderer;
 }
 
-void DebugUi::ProcessEvents(SDL_Event* sdlEvent)
+bool DebugUi::ProcessEvents(SDL_Event* sdlEvent)
 {
-	ImGui_ImplSDL2_ProcessEvent(sdlEvent);
+	if (_io->WantCaptureMouse)
+	{
+		return ImGui_ImplSDL2_ProcessEvent(sdlEvent);
+	}
+	return false;
 }
 
 void DebugUi::Update()
