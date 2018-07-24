@@ -1,13 +1,16 @@
 #pragma once
 #include <memory>
+#include <vector>
 #include "../Core/Types.hpp"
 
+class Actor;
 class Camera;
 class GpuBuffer;
 class IndexBuffer;
 class PipelineState;
 class Renderer;
 class SamplerState;
+class SceneNode;
 class Texture;
 class VertexBuffer;
 struct ImDrawData;
@@ -31,6 +34,9 @@ private:
 	void Draw(ImDrawData* drawData);
 	void SetupRenderer();
 	void SetupFontAtlas();
+  
+  void AddChildNodes(const std::vector<std::shared_ptr<SceneNode>>& childNodes);
+  void AddChildActors(const std::vector<std::shared_ptr<Actor>>& actors);
 
 private:
 	ImGuiIO* _io;

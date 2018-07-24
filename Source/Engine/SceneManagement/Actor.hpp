@@ -28,6 +28,8 @@ public:
 	void SetPosition(const Vector3& position);
 	void SetScale(const Vector3& scale);
 	void SetRotation(const Quaternion& rotation);
+  
+  std::string GetName() const { return _name; }
 
 	void Rotate(const Quaternion& rotationDelta);
 

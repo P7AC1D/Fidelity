@@ -9,8 +9,10 @@
 #include "../RenderApi/GL/GLTexture.hpp"
 #include "../RenderApi/RenderDevice.hpp"
 #include "../Rendering/Renderer.h"
+#include "../SceneManagement/Actor.hpp"
 #include "../SceneManagement/Camera.hpp"
 #include "../SceneManagement/SceneManager.h"
+#include "../SceneManagement/SceneNode.hpp"
 #include "../Utility/String.hpp"
 #include "ImGui/imgui.h"
 #include "ImGui/imgui_impl_sdl.h"
@@ -127,12 +129,25 @@ void DebugUi::Update()
 			dirLight->SetIntensity(intensity);
 
 			ImGui::TreePop();
-		} 
+		}
+    
+    ImGui::Separator();
+    if (ImGui::TreeNode("Scene"))
+    {
+      ImGui::BeginChild("SceneGraph", ImVec2(ImGui::GetContentRegionAvailWidth(), 200), false, ImGuiWindowFlags_HorizontalScrollbar);
+      
+      auto sceneGraph = SceneManager::Get()->GetRootSceneNode();
+      AddChildNodes(sceneGraph->GetChildNodes());
+      AddChildActors(sceneGraph->GetActors());
+     
+      ImGui::EndChild();
+      ImGui::TreePop();
+    }
 
-		//ImGui::Separator();
-		//{
-		//	ImGui::Checkbox("Demo Window", &show_demo_window);
-		//}
+    ImGui::Separator();
+    {
+      ImGui::Checkbox("Demo Window", &show_demo_window);
+    }
 
 		ImGui::Separator();
 		{
@@ -389,4 +404,24 @@ void DebugUi::SetupFontAtlas()
 
 	auto glTexture = std::static_pointer_cast<GLTexture>(_textureAtlas);
 	_io->Fonts->TexID = (void *)(intptr_t)glTexture->GetId();
+}
+
+void DebugUi::AddChildNodes(const std::vector<std::shared_ptr<SceneNode>>& childNodes)
+{
+  for (auto childNode : childNodes)
+  {
+    if (ImGui::TreeNode(childNode->GetName().c_str()))
+    {
+      AddChildActors(childNode->GetActors());
+      ImGui::TreePop();
+    }
+  }
+}
+
+void DebugUi::AddChildActors(const std::vector<std::shared_ptr<Actor>>& actors)
+{
+  for (auto& actor : actors)
+  {
+    ImGui::TreeNodeEx(actor->GetName().c_str(), ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen);
+  }
 }

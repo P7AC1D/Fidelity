@@ -42,23 +42,23 @@ void Test3D::OnStart()
 	auto directionalLight = SceneManager::Get()->CreateLight(LightType::Directional, "DirectionLight");
 	SceneManager::Get()->SetDirectionLight(directionalLight);
   
-	//auto model = SceneManager::Get()->LoadModelFromFile("./../../Resources/Models/living_room/living_room.obj");
+	auto model = SceneManager::Get()->LoadModelFromFile("./../../Resources/Models/living_room/living_room.obj");
   
-  auto rootSceneNode = SceneManager::Get()->GetRootSceneNode();
-  for (int32 i = -30; i < 30; i += 3)
-  {
-    for (int32 j = -30; j < 30; j += 3)
-    {
-      for (int32 k = -30; k < 30; k += 3)
-      {
-        auto actor = rootSceneNode->CreateActor("test_model");
-        auto renderable = actor->CreateComponent<Renderable>();
-        auto mesh = MeshFactory::CreateCube();
-        renderable->SetMesh(mesh);
-        actor->GetTransform()->Translate(Vector3(i, j, k));
-      }
-    }
-  }
+//  auto rootSceneNode = SceneManager::Get()->GetRootSceneNode();
+//  for (int32 i = -30; i < 30; i += 3)
+//  {
+//    for (int32 j = -30; j < 30; j += 3)
+//    {
+//      for (int32 k = -30; k < 30; k += 3)
+//      {
+//        auto actor = rootSceneNode->CreateActor("test_model");
+//        auto renderable = actor->CreateComponent<Renderable>();
+//        auto mesh = MeshFactory::CreateCube();
+//        renderable->SetMesh(mesh);
+//        actor->GetTransform()->Translate(Vector3(i, j, k));
+//      }
+//    }
+//  }
 
 	//auto rootSceneNode = SceneManager::Get()->GetRootSceneNode();
 	//auto actor = rootSceneNode->CreateActor("test_model");

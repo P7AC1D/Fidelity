@@ -31,6 +31,8 @@ public:
 	std::vector<std::shared_ptr<Actor>> GetActors() const;
 	std::vector<std::shared_ptr<SceneNode>> GetChildNodes() const;
 	std::vector<std::shared_ptr<Actor>> GetAllActors() const;
+  
+  std::string GetName() const { return _name; }
 
 private:
 	std::string _name;
