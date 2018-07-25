@@ -53,6 +53,7 @@ private:
 	std::shared_ptr<PipelineState> _pipelineState;
 	std::shared_ptr<Texture> _textureAtlas;
 	std::shared_ptr<SamplerState> _samplerState;
+  std::shared_ptr<SamplerState> _noMipSamplerState;
 	std::shared_ptr<GpuBuffer> _constBuffer;
 	std::shared_ptr<VertexBuffer> _vertBuffer;
 	std::shared_ptr<IndexBuffer> _idxBuffer;

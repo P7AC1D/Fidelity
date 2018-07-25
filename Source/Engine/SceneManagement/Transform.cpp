@@ -47,7 +47,7 @@ Transform* Transform::SetPosition(const Vector3& position)
 Transform* Transform::SetScale(const Vector3& scale)
 {
   _modified = true;
-  _scale = scale;
+  _scale = Vector3(std::max(scale.X, 0.0f), std::max(scale.Y, 0.0f), std::max(scale.Z, 0.0f));
   return this;
 }
 
@@ -80,6 +80,6 @@ void Transform::UpdateTransform()
   Matrix4 translation = Matrix4::Translation(_position);
   Matrix4 scale = Matrix4::Scaling(_scale);
   Matrix4 rotation = Matrix4::Rotation(_rotation);
-  _transform = translation * scale * rotation;
+  _transform = scale * rotation * translation;
   _modified = false;
 }

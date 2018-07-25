@@ -55,7 +55,7 @@ public:
   Quaternion Lerp(const Quaternion& a, const Quaternion& b, float32 t);
   Quaternion Slerp(const Quaternion& a, const Quaternion& b, float32 t);
 
-	std::array<Radian, 3> ToEuler() const;
+	Vector3 ToEuler() const;
   
   friend Quaternion operator+(float32 lhs, const Quaternion& rhs);
   friend Quaternion operator-(float32 lhs, const Quaternion& rhs);
@@ -66,9 +66,9 @@ private:
   void FromAxisAngle(const Vector3& axis, const Radian& angle);
   void FromRotationMatrix(const Matrix3& rotMatrix);
 
-	Radian Pitch() const;
-	Radian Roll() const;
-	Radian Yaw() const;
+	float32 Pitch() const;
+  float32 Roll() const;
+  float32 Yaw() const;
   
 public:
   float32 X;

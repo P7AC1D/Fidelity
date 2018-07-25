@@ -18,5 +18,4 @@ public:
 private:
   std::shared_ptr<OrbitalCamera> _camera;
   std::shared_ptr<WorldObject> _object;
-  Light* _light;
 };

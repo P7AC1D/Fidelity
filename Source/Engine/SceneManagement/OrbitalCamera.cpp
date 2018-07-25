@@ -18,7 +18,8 @@ void OrbitalCamera::RotateAboutTarget(const Degree& deltaX, const Degree& deltaY
 
 void OrbitalCamera::Zoom(float32 delta, int32 dtMs)
 {
-  float32 velocity(_zoomAcceleration * static_cast<float32>(dtMs) * 0.001f);
+  float32 distanceToTarget = Vector3::Length(GetPosition() - GetTarget());
+  float32 velocity(_zoomAcceleration * distanceToTarget * static_cast<float32>(dtMs) * 0.001f);
   Vector3 cameraTarget(GetTarget());
   Vector3 oldPosition(GetPosition());
   Vector3 newPosition(oldPosition + GetCameraForward() * velocity * -delta);

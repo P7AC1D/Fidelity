@@ -626,6 +626,8 @@ void Renderer::StartFrame()
 	_renderCounts.DrawCount = 0;
 	_renderCounts.MaterialCount = 0;
 	_renderCounts.TriangleCount = 0;
+
+  _activeMaterial = nullptr;
 }
 
 void Renderer::EndFrame()

@@ -99,8 +99,8 @@ void DebugUi::Update()
 			float32 camTar[3] = { target.X, target.Y, target.Z };
 			ImGui::InputFloat3("Target", camTar, 3, ImGuiInputTextFlags_ReadOnly);
 
-			std::array<Radian, 3> euler = camera->GetOrientation().ToEuler();
-			float32 angles[3] = { euler[0].InDegrees(), euler[1].InDegrees(), euler[2].InDegrees() };
+			Vector3 euler = camera->GetOrientation().ToEuler();
+			float32 angles[3] = { euler.X, euler.Y, euler.Z };
 			ImGui::InputFloat3("Orientation", angles, 1, ImGuiInputTextFlags_ReadOnly);
 
 			ImGui::TreePop();
@@ -313,7 +313,16 @@ void DebugUi::Draw(ImDrawData* drawData)
       }
 
 			renderDevice->SetPipelineState(_pipelineState);      
-			renderDevice->SetSamplerState(0, _samplerState);
+			
+      if (texture == _textureAtlas)
+      {
+        renderDevice->SetSamplerState(0, _samplerState);
+      }
+      else
+      {
+        renderDevice->SetSamplerState(0, _noMipSamplerState);
+      }
+
 			renderDevice->SetVertexBuffer(_vertBuffer);
 			renderDevice->SetIndexBuffer(_idxBuffer);
 			renderDevice->SetConstantBuffer(0, _constBuffer);
@@ -399,6 +408,20 @@ void DebugUi::SetupRenderer()
 	{
 		throw std::runtime_error("Unable to initialize UI sampler state. " + std::string(exception.what()));
 	}
+
+  SamplerStateDesc desc;
+  desc.AddressingMode = AddressingMode{ TextureAddressMode::Wrap, TextureAddressMode::Wrap, TextureAddressMode::Wrap };
+  desc.MinFiltering = TextureFilteringMode::None;
+  desc.MinFiltering = TextureFilteringMode::None;
+  desc.MipFiltering = TextureFilteringMode::None;
+  try
+  {
+    _noMipSamplerState = renderDevice->CreateSamplerState(desc);
+  }
+  catch (const std::exception& exception)
+  {
+    throw std::runtime_error("Unable to initialize UI sampler state. " + std::string(exception.what()));
+  }
 }
 
 void DebugUi::SetupFontAtlas()
@@ -476,7 +499,12 @@ void InspectorUi::PushTextureToCache(uint64 ptr, const std::shared_ptr<Texture>&
 
 std::shared_ptr<Texture> InspectorUi::GetTextureFromCache(uint64 ptr)
 {
-  return _textureCache[ptr];
+  auto iter = _textureCache.find(ptr);
+  if (iter == _textureCache.end())
+  {
+    return nullptr;
+  }
+  return iter->second;
 }
 
 void InspectorUi::ClearCache()
@@ -491,21 +519,21 @@ void InspectorUi::BuildTransform(const std::shared_ptr<Transform>& transform)
 	{
 		Vector3 position = transform->GetPosition();
 		float32 pos[]{ position.X, position.Y, position.Z };
-		ImGui::DragFloat3("Position", pos, 2);
+		ImGui::DragFloat3("Position", pos, 0.1f);
 		transform->SetPosition(Vector3(pos[0], pos[1], pos[2]));
 	}
 
 	{
 		Vector3 scale = transform->GetScale();
 		float32 scl[]{ scale.X, scale.Y, scale.Z };
-		ImGui::DragFloat3("Scale", scl, 2);
+		ImGui::DragFloat3("Scale", scl, 0.1f);
 		transform->SetScale(Vector3(scl[0], scl[1], scl[2]));
 	}
 
 	{
-		std::array<Radian, 3> euler = transform->GetRotation().ToEuler();
-		float32 angles[3] = { euler[0].InDegrees(), euler[1].InDegrees(), euler[2].InDegrees() };
-		ImGui::DragFloat3("Orientation", angles, 1);
+		Vector3 euler = transform->GetRotation().ToEuler();
+		float32 angles[3] = { euler.X, euler.Y, euler.Z };
+		ImGui::DragFloat3("Orientation", angles, 1.0f);
 		transform->SetRotation(Quaternion(Degree(angles[0]), Degree(angles[1]), Degree(angles[2])));
 	}
 }
