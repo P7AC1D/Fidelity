@@ -127,9 +127,10 @@ void SceneManager::SubmitSceneToRender()
   
 	for (auto renderableActor : _renderableActors)
 	{
-		if (renderableActor && camFrustrum.Intersects(renderableActor->GetBounds()))
+		auto actorbounds = renderableActor->GetBounds();
+		if (renderableActor && camFrustrum.Intersects(actorbounds))
 		{			
-			_renderer->Push(renderableActor->GetComponent<Renderable>(), renderableActor->GetTransform());
+			_renderer->Push(renderableActor->GetComponent<Renderable>(), renderableActor->GetTransform(), actorbounds);
 		}
 	}
 }

@@ -8,10 +8,12 @@ class Camera;
 class GpuBuffer;
 class IndexBuffer;
 class PipelineState;
+class Renderable;
 class Renderer;
 class SamplerState;
 class SceneNode;
 class Texture;
+class Transform;
 class VertexBuffer;
 struct ImDrawData;
 struct ImGuiIO;
@@ -54,4 +56,14 @@ private:
 	std::shared_ptr<GpuBuffer> _constBuffer;
 	std::shared_ptr<VertexBuffer> _vertBuffer;
 	std::shared_ptr<IndexBuffer> _idxBuffer;
+};
+
+class InspectorUi
+{
+public:
+	static void Build(const std::shared_ptr<Actor>& actor);
+
+private:
+	static void BuildTransform(const std::shared_ptr<Transform>& transform);
+	static void BuildRenderable(const std::shared_ptr<Renderable>& renderable);
 };

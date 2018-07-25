@@ -2,6 +2,7 @@
 
 #include <chrono>
 #include <random>
+#include "../Maths/AABB.hpp"
 #include "../Utility/Assert.hpp"
 #include "../Utility/String.hpp"
 #include "../RenderApi/GL/GLRenderDevice.hpp"
@@ -92,9 +93,9 @@ Renderer::Renderer(const RendererDesc& desc) :
   }
 }
 
-void Renderer::Push(const std::shared_ptr<Renderable>& renderable, const std::shared_ptr<Transform>& transform)
+void Renderer::Push(const std::shared_ptr<Renderable>& renderable, const std::shared_ptr<Transform>& transform, const Aabb& bounds)
 {
-	_opaqueQueue->Push(renderable, transform);
+	_opaqueQueue->Push(renderable, transform, bounds);
 
 	auto camera = SceneManager::Get()->GetCamera();
 

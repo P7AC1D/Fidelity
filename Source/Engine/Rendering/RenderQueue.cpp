@@ -7,9 +7,9 @@
 #include "../SceneManagement/Camera.hpp"
 #include "../SceneManagement/Transform.h"
 
-void RenderQueue::Push(const std::shared_ptr<Renderable>& renderable, const std::shared_ptr<Transform>& transform)
+void RenderQueue::Push(const std::shared_ptr<Renderable>& renderable, const std::shared_ptr<Transform>& transform, const Aabb& bounds)
 {
-	_queue.emplace(renderable, transform);
+	_queue.emplace(renderable, transform, bounds);
 }
 
 void RenderQueue::Clear()
@@ -44,8 +44,8 @@ bool RenderQueue::RenderableItemCompare::operator()(const RenderableItem& lhs, c
 		return false;
 	}
 	
-	auto lhsPos = lhs.Transform->GetPosition();
-	auto rhsPos = rhs.Transform->GetPosition();
+	auto lhsPos = lhs.Transform->GetPosition() + lhs.Bounds.GetCenter();
+	auto rhsPos = rhs.Transform->GetPosition() + rhs.Bounds.GetCenter();
 
 	auto distToLhs = Vector4::Length(camPos - Vector3(lhsPos));
 	auto distToRhs = Vector4::Length(camPos - Vector3(rhsPos));

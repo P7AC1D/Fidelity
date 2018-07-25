@@ -6,6 +6,7 @@
 #include "../Maths/Colour.hpp"
 #include "../Maths/Matrix4.hpp"
 
+class Aabb;
 class GpuBuffer;
 class Material;
 class PipelineState;
@@ -109,7 +110,7 @@ public:
 	bool IsSsaoEnabled() const { return _ssaoEnabled; }
 	bool IsHdrEnabled() const { return _hdrEnabled; }
   
-  void Push(const std::shared_ptr<Renderable>& renderable, const std::shared_ptr<Transform>& transform);
+  void Push(const std::shared_ptr<Renderable>& renderable, const std::shared_ptr<Transform>& transform, const Aabb& bounds);
   
   void DrawFrame();
   

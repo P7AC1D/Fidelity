@@ -1,5 +1,6 @@
 #include "DebugUi.hpp"
 
+#include <memory>
 #include <sstream>
 #include <SDL.h>
 #include "../Core/Types.hpp"
@@ -8,16 +9,22 @@
 #include "../Maths/Radian.hpp"
 #include "../RenderApi/GL/GLTexture.hpp"
 #include "../RenderApi/RenderDevice.hpp"
+#include "../Rendering/Material.hpp"
 #include "../Rendering/Renderer.h"
+#include "../Rendering/Renderable.hpp"
+#include "../Rendering/StaticMesh.h"
 #include "../SceneManagement/Actor.hpp"
 #include "../SceneManagement/Camera.hpp"
 #include "../SceneManagement/SceneManager.h"
 #include "../SceneManagement/SceneNode.hpp"
+#include "../SceneManagement/Transform.h"
 #include "../Utility/String.hpp"
 #include "ImGui/imgui.h"
 #include "ImGui/imgui_impl_sdl.h"
 
 bool show_demo_window = false;
+uint32 selectedActorIndex = -1;
+std::shared_ptr<Actor> selectedActor = nullptr;
 
 DebugUi::DebugUi(SDL_Window* sdlWindow, SDL_GLContext sdlGlContext):
 	_io(nullptr),
@@ -74,8 +81,7 @@ void DebugUi::Update()
 		if (!ImGui::Begin("Debug", &displayDebugWindow, ImGuiWindowFlags_AlwaysAutoResize | 
 																										ImGuiWindowFlags_NoResize |
 																										ImGuiWindowFlags_NoSavedSettings |
-																										ImGuiWindowFlags_NoMove |
-																										ImGuiWindowFlags_NoCollapse))
+																										ImGuiWindowFlags_NoMove))
 		{
 			ImGui::End();
 			return;
@@ -93,8 +99,8 @@ void DebugUi::Update()
 			float32 camTar[3] = { target.X, target.Y, target.Z };
 			ImGui::InputFloat3("Target", camTar, 3, ImGuiInputTextFlags_ReadOnly);
 
-			auto euler = camera->GetOrientation().ToEuler();
-			float32 angles[3] = { (euler)->InDegrees(), (euler + 1)->InDegrees(), (euler + 2)->InDegrees() };
+			std::array<Radian, 3> euler = camera->GetOrientation().ToEuler();
+			float32 angles[3] = { euler[0].InDegrees(), euler[1].InDegrees(), euler[2].InDegrees() };
 			ImGui::InputFloat3("Orientation", angles, 1, ImGuiInputTextFlags_ReadOnly);
 
 			ImGui::TreePop();
@@ -203,6 +209,8 @@ void DebugUi::Update()
 		ImGui::ShowDemoWindow(&show_demo_window);
 	}
 
+	InspectorUi::Build(selectedActor);
+
 	ImGui::EndFrame();
 	ImGui::Render();
 	SDL_GL_MakeCurrent(_sdlWindow, _sdlGlContext);
@@ -289,7 +297,7 @@ void DebugUi::Draw(ImDrawData* drawData)
 		for (int32 i = 0; i < cmdList->CmdBuffer.size(); i++)
 		{
 			const ImDrawCmd* pCmd = &cmdList->CmdBuffer[i];
-			ImVec4 clipRect(pCmd->ClipRect.x - pos.x, pCmd->ClipRect.y - pos.y, pCmd->ClipRect.z - pos.x, pCmd->ClipRect.w - pos.y);
+			ImVec4 clipRect(pCmd->ClipRect.x - pos.x, pCmd->ClipRect.y - pos.y, pCmd->ClipRect.z - pos.x, pCmd->ClipRect.w - pos.y);			
 
 			ScissorDesc newScissorDim;
 			newScissorDim.X = clipRect.x;
@@ -298,8 +306,10 @@ void DebugUi::Draw(ImDrawData* drawData)
 			newScissorDim.H = clipRect.w - clipRect.y;
 			renderDevice->SetScissorDimensions(newScissorDim);
 
+			auto texture = reinterpret_cast<std::shared_ptr<Texture>*>(pCmd->TextureId);
+
 			renderDevice->SetPipelineState(_pipelineState);
-			renderDevice->SetTexture(0, _textureAtlas);
+			renderDevice->SetTexture(0, *texture);
 			renderDevice->SetSamplerState(0, _samplerState);
 			renderDevice->SetVertexBuffer(_vertBuffer);
 			renderDevice->SetIndexBuffer(_idxBuffer);
@@ -406,8 +416,7 @@ void DebugUi::SetupFontAtlas()
 	_textureAtlas->WriteData(0, 0, imageData);
 	_textureAtlas->GenerateMips();
 
-	auto glTexture = std::static_pointer_cast<GLTexture>(_textureAtlas);
-	_io->Fonts->TexID = (void *)(intptr_t)glTexture->GetId();
+	_io->Fonts->TexID = &_textureAtlas;
 }
 
 void DebugUi::AddChildNodes(const std::vector<std::shared_ptr<SceneNode>>& childNodes)
@@ -424,8 +433,125 @@ void DebugUi::AddChildNodes(const std::vector<std::shared_ptr<SceneNode>>& child
 
 void DebugUi::AddChildActors(const std::vector<std::shared_ptr<Actor>>& actors)
 {
-  for (auto& actor : actors)
+	ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen;
+  for (uint64 i = 0; i < actors.size(); i++)
   {
-    ImGui::TreeNodeEx(actor->GetName().c_str(), ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen);
+    ImGui::TreeNodeEx(actors[i]->GetName().c_str(), flags | (selectedActorIndex == i ? ImGuiTreeNodeFlags_Selected : 0));
+		if (ImGui::IsItemClicked())
+		{
+			selectedActor = actors[i];
+			selectedActorIndex = i;
+		}
   }
+}
+
+void InspectorUi::Build(const std::shared_ptr<Actor>& actor)
+{
+	if (!actor)
+	{
+		return;
+	}
+
+	ImVec2 screenSize = ImGui::GetIO().DisplaySize;
+	ImGui::Begin("Inspector", 0, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_AlwaysAutoResize);
+
+	BuildTransform(actor->GetTransform());
+	BuildRenderable(actor->GetComponent<Renderable>());
+
+	ImGui::SetWindowPos(ImVec2(screenSize.x - ImGui::GetWindowWidth(), 0));
+	ImGui::End();
+}
+
+void InspectorUi::BuildTransform(const std::shared_ptr<Transform>& transform)
+{
+	ImGui::Separator();
+	ImGui::Text("Transform");
+	{
+		Vector3 position = transform->GetPosition();
+		float32 pos[]{ position.X, position.Y, position.Z };
+		ImGui::DragFloat3("Position", pos, 2);
+		transform->SetPosition(Vector3(pos[0], pos[1], pos[2]));
+	}
+
+	{
+		Vector3 scale = transform->GetScale();
+		float32 scl[]{ scale.X, scale.Y, scale.Z };
+		ImGui::DragFloat3("Scale", scl, 2);
+		transform->SetScale(Vector3(scl[0], scl[1], scl[2]));
+	}
+
+	{
+		std::array<Radian, 3> euler = transform->GetRotation().ToEuler();
+		float32 angles[3] = { euler[0].InDegrees(), euler[1].InDegrees(), euler[2].InDegrees() };
+		ImGui::DragFloat3("Orientation", angles, 1);
+		transform->SetRotation(Quaternion(Degree(angles[0]), Degree(angles[1]), Degree(angles[2])));
+	}
+}
+
+void InspectorUi::BuildRenderable(const std::shared_ptr<Renderable>& renderable)
+{
+	if (!renderable)
+	{
+		return;
+	}
+
+	auto material = renderable->GetMesh()->GetMaterial();
+
+	ImGui::Separator();
+	ImGui::Text("Renderable");
+	{
+		Colour ambient = material->GetAmbientColour();
+		float32 col[3] = {ambient[0], ambient[1], ambient[2] };
+		ImGui::ColorEdit3("Ambient", col);
+		material->SetAmbientColour(Colour(col[0] * 255, col[1] * 255, col[2] * 255));
+	}
+	{
+		Colour diffuse = material->GetDiffuseColour();
+		float32 col[3] = { diffuse[0], diffuse[1], diffuse[2] };
+		ImGui::ColorEdit3("Diffuse", col);
+		material->SetDiffuseColour(Colour(col[0] * 255, col[1] * 255, col[2] * 255));
+	}
+	{
+		Colour specular = material->GetSpecularColour();
+		float32 col[3] = { specular[0], specular[1], specular[2] };
+		ImGui::ColorEdit3("Specular", col);
+		material->SetSpecularColour(Colour(col[0] * 255, col[1] * 255, col[2] * 255));
+	}
+	{
+		float32 exponent = material->GetSpecularExponent();
+		ImGui::SliderFloat("Exponent", &exponent, 0.0f, 256.0f);
+		material->SetSpecularExponent(exponent);
+	}
+	{
+		const char* items[] = { "Diffuse", "Normal", "Specular" };
+		static int currentItem = 0;
+		ImGui::Combo("Texture", &currentItem, items, 3);	
+
+		auto diffuseTexture = material->GetDiffuseTexture();
+		if (diffuseTexture)
+		{
+			auto desc = diffuseTexture->GetDesc();
+
+			ImGui::Text("%.0fx%.0f", desc.Width, desc.Height);
+			ImGui::Image(&diffuseTexture, ImVec2(desc.Width, desc.Height), ImVec2(0, 0), ImVec2(1, 1), ImColor(255, 255, 255, 255), ImColor(255, 255, 255, 128));
+		}
+
+		//ImGui::Text("%.0fx%.0f", my_tex_w, my_tex_h);
+		//ImVec2 pos = ImGui::GetCursorScreenPos();
+		//ImGui::Image(my_tex_id, ImVec2(my_tex_w, my_tex_h), ImVec2(0, 0), ImVec2(1, 1), ImColor(255, 255, 255, 255), ImColor(255, 255, 255, 128));
+		//if (ImGui::IsItemHovered())
+		//{
+		//	ImGui::BeginTooltip();
+		//	float region_sz = 32.0f;
+		//	float region_x = io.MousePos.x - pos.x - region_sz * 0.5f; if (region_x < 0.0f) region_x = 0.0f; else if (region_x > my_tex_w - region_sz) region_x = my_tex_w - region_sz;
+		//	float region_y = io.MousePos.y - pos.y - region_sz * 0.5f; if (region_y < 0.0f) region_y = 0.0f; else if (region_y > my_tex_h - region_sz) region_y = my_tex_h - region_sz;
+		//	float zoom = 4.0f;
+		//	ImGui::Text("Min: (%.2f, %.2f)", region_x, region_y);
+		//	ImGui::Text("Max: (%.2f, %.2f)", region_x + region_sz, region_y + region_sz);
+		//	ImVec2 uv0 = ImVec2((region_x) / my_tex_w, (region_y) / my_tex_h);
+		//	ImVec2 uv1 = ImVec2((region_x + region_sz) / my_tex_w, (region_y + region_sz) / my_tex_h);
+		//	ImGui::Image(my_tex_id, ImVec2(region_sz * zoom, region_sz * zoom), uv0, uv1, ImColor(255, 255, 255, 255), ImColor(255, 255, 255, 128));
+		//	ImGui::EndTooltip();
+		//}
+	}
 }

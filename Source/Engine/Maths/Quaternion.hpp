@@ -1,4 +1,5 @@
 #pragma once
+#include <array>
 #include "../Core/Types.hpp"
 
 class Degree;
@@ -54,7 +55,7 @@ public:
   Quaternion Lerp(const Quaternion& a, const Quaternion& b, float32 t);
   Quaternion Slerp(const Quaternion& a, const Quaternion& b, float32 t);
 
-	Radian* ToEuler() const;
+	std::array<Radian, 3> ToEuler() const;
   
   friend Quaternion operator+(float32 lhs, const Quaternion& rhs);
   friend Quaternion operator-(float32 lhs, const Quaternion& rhs);

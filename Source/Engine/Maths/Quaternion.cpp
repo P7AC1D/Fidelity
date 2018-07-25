@@ -222,10 +222,9 @@ Quaternion Quaternion::Slerp(const Quaternion& a, const Quaternion& b, float32 t
   return wa * a + wb * b;
 }
 
-Radian* Quaternion::ToEuler() const
+std::array<Radian, 3> Quaternion::ToEuler() const
 {
-	Radian eulerAngles[3] = { Pitch(), Yaw(), Roll() };
-	return eulerAngles;
+	return { Pitch(), Yaw(), Roll() };
 }
 
 Quaternion operator+(float32 lhs, const Quaternion& rhs)

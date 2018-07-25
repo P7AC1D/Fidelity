@@ -1,5 +1,6 @@
 #pragma once
 #include "../Core/Types.hpp"
+#include "../Maths/AABB.hpp"
 #include <memory>
 #include <set>
 
@@ -9,19 +10,21 @@ class Transform;
 
 struct RenderableItem
 {
-	RenderableItem(const std::shared_ptr<Renderable>& renderable, const std::shared_ptr<Transform>& transform) :
+	RenderableItem(const std::shared_ptr<Renderable>& renderable, const std::shared_ptr<Transform>& transform, const Aabb& bounds) :
 		Renderable(renderable),
-		Transform(transform)
+		Transform(transform),
+		Bounds(bounds)
 	{}
 
 	std::shared_ptr<Renderable> Renderable;
 	std::shared_ptr<Transform> Transform;
+	Aabb Bounds;
 };
 
 class RenderQueue
 {
 public:
-	void Push(const std::shared_ptr<Renderable>& renderable, const std::shared_ptr<Transform>& transform);
+	void Push(const std::shared_ptr<Renderable>& renderable, const std::shared_ptr<Transform>& transform, const Aabb& Bounds);
 	void Clear();
 
 	std::set<RenderableItem>::const_iterator GetIteratorBegin();
