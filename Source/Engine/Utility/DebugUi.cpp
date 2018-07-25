@@ -306,10 +306,13 @@ void DebugUi::Draw(ImDrawData* drawData)
 			newScissorDim.H = clipRect.w - clipRect.y;
 			renderDevice->SetScissorDimensions(newScissorDim);
 
-			auto texture = reinterpret_cast<std::shared_ptr<Texture>*>(pCmd->TextureId);
+      auto texture = InspectorUi::GetTextureFromCache(reinterpret_cast<uint64>(pCmd->TextureId));
+      if (texture)
+      {
+        renderDevice->SetTexture(0, texture);
+      }
 
-			renderDevice->SetPipelineState(_pipelineState);
-			renderDevice->SetTexture(0, *texture);
+			renderDevice->SetPipelineState(_pipelineState);      
 			renderDevice->SetSamplerState(0, _samplerState);
 			renderDevice->SetVertexBuffer(_vertBuffer);
 			renderDevice->SetIndexBuffer(_idxBuffer);
@@ -323,6 +326,9 @@ void DebugUi::Draw(ImDrawData* drawData)
 
 	renderDevice->SetScissorDimensions(currentScissorDim);
 	renderDevice->SetViewport(currentViewport);
+
+  InspectorUi::ClearCache();
+  InspectorUi::PushTextureToCache(reinterpret_cast<uint64>(&_textureAtlas), _textureAtlas);
 }
 
 void DebugUi::SetupRenderer()
@@ -417,6 +423,7 @@ void DebugUi::SetupFontAtlas()
 	_textureAtlas->GenerateMips();
 
 	_io->Fonts->TexID = &_textureAtlas;
+  InspectorUi::PushTextureToCache(reinterpret_cast<uint64>(&_textureAtlas), _textureAtlas);
 }
 
 void DebugUi::AddChildNodes(const std::vector<std::shared_ptr<SceneNode>>& childNodes)
@@ -462,6 +469,21 @@ void InspectorUi::Build(const std::shared_ptr<Actor>& actor)
 	ImGui::End();
 }
 
+void InspectorUi::PushTextureToCache(uint64 ptr, const std::shared_ptr<Texture>& texture)
+{
+  _textureCache[ptr] = texture;
+}
+
+std::shared_ptr<Texture> InspectorUi::GetTextureFromCache(uint64 ptr)
+{
+  return _textureCache[ptr];
+}
+
+void InspectorUi::ClearCache()
+{
+  _textureCache.clear();
+}
+
 void InspectorUi::BuildTransform(const std::shared_ptr<Transform>& transform)
 {
 	ImGui::Separator();
@@ -487,6 +509,8 @@ void InspectorUi::BuildTransform(const std::shared_ptr<Transform>& transform)
 		transform->SetRotation(Quaternion(Degree(angles[0]), Degree(angles[1]), Degree(angles[2])));
 	}
 }
+
+std::unordered_map<uint64, std::shared_ptr<Texture>> InspectorUi::_textureCache;
 
 void InspectorUi::BuildRenderable(const std::shared_ptr<Renderable>& renderable)
 {
@@ -527,14 +551,51 @@ void InspectorUi::BuildRenderable(const std::shared_ptr<Renderable>& renderable)
 		static int currentItem = 0;
 		ImGui::Combo("Texture", &currentItem, items, 3);	
 
-		auto diffuseTexture = material->GetDiffuseTexture();
-		if (diffuseTexture)
-		{
-			auto desc = diffuseTexture->GetDesc();
+    switch (currentItem)
+    {
+      case 0:
+      {
+        auto diffuseTexture = material->GetDiffuseTexture();
+        if (diffuseTexture)
+        {
+          auto width = diffuseTexture->GetWidth();
+          auto height = diffuseTexture->GetHeight();
+          auto ratio = width / height;
 
-			ImGui::Text("%.0fx%.0f", desc.Width, desc.Height);
-			ImGui::Image(&diffuseTexture, ImVec2(desc.Width, desc.Height), ImVec2(0, 0), ImVec2(1, 1), ImColor(255, 255, 255, 255), ImColor(255, 255, 255, 128));
-		}
+          PushTextureToCache(reinterpret_cast<uint64>(&diffuseTexture), diffuseTexture);
+          ImGui::Image(&diffuseTexture, ImVec2(ImGui::GetWindowContentRegionWidth() * 0.9f, ImGui::GetWindowContentRegionWidth() * 0.9f / ratio), ImVec2(0, 0), ImVec2(1, 1), ImColor(255, 255, 255, 255), ImColor(255, 255, 255, 128));
+        }
+        break;
+      }
+      case 1:
+      {
+        auto normalTexture = material->GetNormalTexture();
+        if (normalTexture)
+        {
+          auto width = normalTexture->GetWidth();
+          auto height = normalTexture->GetHeight();
+          auto ratio = width / height;
+
+          PushTextureToCache(reinterpret_cast<uint64>(&normalTexture), normalTexture);
+          ImGui::Image(&normalTexture, ImVec2(ImGui::GetWindowContentRegionWidth() * 0.9f, ImGui::GetWindowContentRegionWidth() * 0.9f / ratio), ImVec2(0, 0), ImVec2(1, 1), ImColor(255, 255, 255, 255), ImColor(255, 255, 255, 128));
+        }
+        break;
+      }
+      case 2:
+      {
+        auto specularTexture = material->GetSpecularTexture();
+        if (specularTexture)
+        {
+          auto width = specularTexture->GetWidth();
+          auto height = specularTexture->GetHeight();
+          auto ratio = width / height;
+
+          PushTextureToCache(reinterpret_cast<uint64>(&specularTexture), specularTexture);
+          ImGui::Image(&specularTexture, ImVec2(ImGui::GetWindowContentRegionWidth() * 0.9f, ImGui::GetWindowContentRegionWidth() * 0.9f / ratio), ImVec2(0, 0), ImVec2(1, 1), ImColor(255, 255, 255, 255), ImColor(255, 255, 255, 128));
+        }
+        break;
+      }
+    }
 
 		//ImGui::Text("%.0fx%.0f", my_tex_w, my_tex_h);
 		//ImVec2 pos = ImGui::GetCursorScreenPos();

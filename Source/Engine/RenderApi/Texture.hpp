@@ -57,6 +57,10 @@ public:
   Texture(const TextureDesc& desc, bool gammaCorrected): _desc(desc), _gammaCorrected(gammaCorrected), _isInitialized(false) {}
   
   TextureType GetTextureType() const { return _desc.Type; }
+  uint32 GetWidth() const { return _desc.Width; }
+  uint32 GetHeight() const { return _desc.Height; }
+  uint32 GetDepth() const { return _desc.Depth; }
+
   const TextureDesc& GetDesc() const { return _desc; }
   bool IsInitialized() const { return _isInitialized; }
   
