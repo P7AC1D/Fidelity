@@ -1,19 +1,16 @@
 #pragma once
 #include <memory>
-#include <unordered_map>#include <vector>
+#include <vector>
 #include "../Core/Types.hpp"
 
 class Actor;
-class Camera;
 class GpuBuffer;
 class IndexBuffer;
 class PipelineState;
-class Renderable;
 class Renderer;
 class SamplerState;
 class SceneNode;
 class Texture;
-class Transform;
 class VertexBuffer;
 struct ImDrawData;
 struct ImGuiIO;
@@ -21,11 +18,11 @@ struct SDL_Window;
 typedef void* SDL_GLContext;
 typedef union SDL_Event;
 
-class DebugUi
+class UiManager
 {
 public:
-	DebugUi(SDL_Window* sdlWindow, SDL_GLContext sdlGlContext);
-	~DebugUi();
+	UiManager(SDL_Window* sdlWindow, SDL_GLContext sdlGlContext);
+	~UiManager();
 	
 	void SetRenderer(const std::shared_ptr<Renderer>& renderer);
 
@@ -57,21 +54,4 @@ private:
 	std::shared_ptr<GpuBuffer> _constBuffer;
 	std::shared_ptr<VertexBuffer> _vertBuffer;
 	std::shared_ptr<IndexBuffer> _idxBuffer;
-};
-
-class InspectorUi
-{
-public:
-	static void Build(const std::shared_ptr<Actor>& actor);
-
-  static void PushTextureToCache(uint64 ptr, const std::shared_ptr<Texture>& texture);
-  static std::shared_ptr<Texture> GetTextureFromCache(uint64 ptr);
-  static void ClearCache();
-
-private:
-	static void BuildTransform(const std::shared_ptr<Transform>& transform);
-	static void BuildRenderable(const std::shared_ptr<Renderable>& renderable);
-
-private:
-  static std::unordered_map<uint64, std::shared_ptr<Texture>> _textureCache;
 };

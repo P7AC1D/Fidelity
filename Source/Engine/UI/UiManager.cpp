@@ -1,4 +1,4 @@
-#include "DebugUi.hpp"
+#include "UiManager.hpp"
 
 #include <memory>
 #include <sstream>
@@ -21,12 +21,13 @@
 #include "../Utility/String.hpp"
 #include "ImGui/imgui.h"
 #include "ImGui/imgui_impl_sdl.h"
+#include "UiInspector.hpp"
 
 bool show_demo_window = false;
 uint32 selectedActorIndex = -1;
 std::shared_ptr<Actor> selectedActor = nullptr;
 
-DebugUi::DebugUi(SDL_Window* sdlWindow, SDL_GLContext sdlGlContext):
+UiManager::UiManager(SDL_Window* sdlWindow, SDL_GLContext sdlGlContext):
 	_io(nullptr),
 	_sdlWindow(sdlWindow),
 	_sdlGlContext(sdlGlContext),
@@ -42,18 +43,18 @@ DebugUi::DebugUi(SDL_Window* sdlWindow, SDL_GLContext sdlGlContext):
 	ImGui_ImplSDL2_InitForOpenGL(_sdlWindow, sdlGlContext);
 }
 
-DebugUi::~DebugUi()
+UiManager::~UiManager()
 {
 	ImGui_ImplSDL2_Shutdown();
 	ImGui::DestroyContext();
 }
 
-void DebugUi::SetRenderer(const std::shared_ptr<Renderer>& renderer)
+void UiManager::SetRenderer(const std::shared_ptr<Renderer>& renderer)
 {
 	_renderer = renderer;
 }
 
-bool DebugUi::ProcessEvents(SDL_Event* sdlEvent)
+bool UiManager::ProcessEvents(SDL_Event* sdlEvent)
 {
 	if (_io->WantCaptureMouse)
 	{
@@ -62,7 +63,7 @@ bool DebugUi::ProcessEvents(SDL_Event* sdlEvent)
 	return false;
 }
 
-void DebugUi::Update()
+void UiManager::Update()
 {
 	if (!_initialized)
 	{
@@ -209,7 +210,7 @@ void DebugUi::Update()
 		ImGui::ShowDemoWindow(&show_demo_window);
 	}
 
-	InspectorUi::Build(selectedActor);
+	UiInspector::Build(selectedActor);
 
 	ImGui::EndFrame();
 	ImGui::Render();
@@ -217,7 +218,7 @@ void DebugUi::Update()
 	Draw(ImGui::GetDrawData());
 }
 
-void DebugUi::Draw(ImDrawData* drawData)
+void UiManager::Draw(ImDrawData* drawData)
 {
 	auto renderDevice = Renderer::GetRenderDevice();
 	auto currentScissorDim = renderDevice->GetScissorDimensions();
@@ -306,7 +307,7 @@ void DebugUi::Draw(ImDrawData* drawData)
 			newScissorDim.H = clipRect.w - clipRect.y;
 			renderDevice->SetScissorDimensions(newScissorDim);
 
-      auto texture = InspectorUi::GetTextureFromCache(reinterpret_cast<uint64>(pCmd->TextureId));
+      auto texture = UiInspector::GetTextureFromCache(reinterpret_cast<uint64>(pCmd->TextureId));
       if (texture)
       {
         renderDevice->SetTexture(0, texture);
@@ -336,11 +337,11 @@ void DebugUi::Draw(ImDrawData* drawData)
 	renderDevice->SetScissorDimensions(currentScissorDim);
 	renderDevice->SetViewport(currentViewport);
 
-  InspectorUi::ClearCache();
-  InspectorUi::PushTextureToCache(reinterpret_cast<uint64>(&_textureAtlas), _textureAtlas);
+	UiInspector::ClearCache();
+	UiInspector::PushTextureToCache(reinterpret_cast<uint64>(&_textureAtlas), _textureAtlas);
 }
 
-void DebugUi::SetupRenderer()
+void UiManager::SetupRenderer()
 {
 	ShaderDesc vsShaderDesc;
 	vsShaderDesc.EntryPoint = "main";
@@ -424,7 +425,7 @@ void DebugUi::SetupRenderer()
   }
 }
 
-void DebugUi::SetupFontAtlas()
+void UiManager::SetupFontAtlas()
 {
 	ubyte* pixels = nullptr;
 	int32 width = 0;
@@ -446,201 +447,31 @@ void DebugUi::SetupFontAtlas()
 	_textureAtlas->GenerateMips();
 
 	_io->Fonts->TexID = &_textureAtlas;
-  InspectorUi::PushTextureToCache(reinterpret_cast<uint64>(&_textureAtlas), _textureAtlas);
+	UiInspector::PushTextureToCache(reinterpret_cast<uint64>(&_textureAtlas), _textureAtlas);
 }
 
-void DebugUi::AddChildNodes(const std::vector<std::shared_ptr<SceneNode>>& childNodes)
+void UiManager::AddChildNodes(const std::vector<std::shared_ptr<SceneNode>>& childNodes)
 {
-  for (auto childNode : childNodes)
-  {
-    if (ImGui::TreeNode(childNode->GetName().c_str()))
-    {
-      AddChildActors(childNode->GetActors());
-      ImGui::TreePop();
-    }
-  }
+	for (auto childNode : childNodes)
+	{
+		if (ImGui::TreeNode(childNode->GetName().c_str()))
+		{
+			AddChildActors(childNode->GetActors());
+			ImGui::TreePop();
+		}
+	}
 }
 
-void DebugUi::AddChildActors(const std::vector<std::shared_ptr<Actor>>& actors)
+void UiManager::AddChildActors(const std::vector<std::shared_ptr<Actor>>& actors)
 {
 	ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen;
-  for (uint64 i = 0; i < actors.size(); i++)
-  {
-    ImGui::TreeNodeEx(actors[i]->GetName().c_str(), flags | (selectedActorIndex == i ? ImGuiTreeNodeFlags_Selected : 0));
+	for (uint64 i = 0; i < actors.size(); i++)
+	{
+		ImGui::TreeNodeEx(actors[i]->GetName().c_str(), flags | (selectedActorIndex == i ? ImGuiTreeNodeFlags_Selected : 0));
 		if (ImGui::IsItemClicked())
 		{
 			selectedActor = actors[i];
 			selectedActorIndex = i;
 		}
-  }
-}
-
-void InspectorUi::Build(const std::shared_ptr<Actor>& actor)
-{
-	if (!actor)
-	{
-		return;
-	}
-
-	ImVec2 screenSize = ImGui::GetIO().DisplaySize;
-	ImGui::Begin("Inspector", 0, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_AlwaysAutoResize);
-
-	BuildTransform(actor->GetTransform());
-	BuildRenderable(actor->GetComponent<Renderable>());
-
-	ImGui::SetWindowPos(ImVec2(screenSize.x - ImGui::GetWindowWidth(), 0));
-	ImGui::End();
-}
-
-void InspectorUi::PushTextureToCache(uint64 ptr, const std::shared_ptr<Texture>& texture)
-{
-  _textureCache[ptr] = texture;
-}
-
-std::shared_ptr<Texture> InspectorUi::GetTextureFromCache(uint64 ptr)
-{
-  auto iter = _textureCache.find(ptr);
-  if (iter == _textureCache.end())
-  {
-    return nullptr;
-  }
-  return iter->second;
-}
-
-void InspectorUi::ClearCache()
-{
-  _textureCache.clear();
-}
-
-void InspectorUi::BuildTransform(const std::shared_ptr<Transform>& transform)
-{
-	ImGui::Separator();
-	ImGui::Text("Transform");
-	{
-		Vector3 position = transform->GetPosition();
-		float32 pos[]{ position.X, position.Y, position.Z };
-		ImGui::DragFloat3("Position", pos, 0.1f);
-		transform->SetPosition(Vector3(pos[0], pos[1], pos[2]));
-	}
-
-	{
-		Vector3 scale = transform->GetScale();
-		float32 scl[]{ scale.X, scale.Y, scale.Z };
-		ImGui::DragFloat3("Scale", scl, 0.1f);
-		transform->SetScale(Vector3(scl[0], scl[1], scl[2]));
-	}
-
-	{
-		Vector3 euler = transform->GetRotation().ToEuler();
-		float32 angles[3] = { euler.X, euler.Y, euler.Z };
-		ImGui::DragFloat3("Orientation", angles, 1.0f);
-		transform->SetRotation(Quaternion(Degree(angles[0]), Degree(angles[1]), Degree(angles[2])));
-	}
-}
-
-std::unordered_map<uint64, std::shared_ptr<Texture>> InspectorUi::_textureCache;
-
-void InspectorUi::BuildRenderable(const std::shared_ptr<Renderable>& renderable)
-{
-	if (!renderable)
-	{
-		return;
-	}
-
-	auto material = renderable->GetMesh()->GetMaterial();
-
-	ImGui::Separator();
-	ImGui::Text("Renderable");
-	{
-		Colour ambient = material->GetAmbientColour();
-		float32 col[3] = {ambient[0], ambient[1], ambient[2] };
-		ImGui::ColorEdit3("Ambient", col);
-		material->SetAmbientColour(Colour(col[0] * 255, col[1] * 255, col[2] * 255));
-	}
-	{
-		Colour diffuse = material->GetDiffuseColour();
-		float32 col[3] = { diffuse[0], diffuse[1], diffuse[2] };
-		ImGui::ColorEdit3("Diffuse", col);
-		material->SetDiffuseColour(Colour(col[0] * 255, col[1] * 255, col[2] * 255));
-	}
-	{
-		Colour specular = material->GetSpecularColour();
-		float32 col[3] = { specular[0], specular[1], specular[2] };
-		ImGui::ColorEdit3("Specular", col);
-		material->SetSpecularColour(Colour(col[0] * 255, col[1] * 255, col[2] * 255));
-	}
-	{
-		float32 exponent = material->GetSpecularExponent();
-		ImGui::SliderFloat("Exponent", &exponent, 0.0f, 256.0f);
-		material->SetSpecularExponent(exponent);
-	}
-	{
-		const char* items[] = { "Diffuse", "Normal", "Specular" };
-		static int currentItem = 0;
-		ImGui::Combo("Texture", &currentItem, items, 3);	
-
-    switch (currentItem)
-    {
-      case 0:
-      {
-        auto diffuseTexture = material->GetDiffuseTexture();
-        if (diffuseTexture)
-        {
-          auto width = diffuseTexture->GetWidth();
-          auto height = diffuseTexture->GetHeight();
-          auto ratio = width / height;
-
-          PushTextureToCache(reinterpret_cast<uint64>(&diffuseTexture), diffuseTexture);
-          ImGui::Image(&diffuseTexture, ImVec2(ImGui::GetWindowContentRegionWidth() * 0.9f, ImGui::GetWindowContentRegionWidth() * 0.9f / ratio), ImVec2(0, 0), ImVec2(1, 1), ImColor(255, 255, 255, 255), ImColor(255, 255, 255, 128));
-        }
-        break;
-      }
-      case 1:
-      {
-        auto normalTexture = material->GetNormalTexture();
-        if (normalTexture)
-        {
-          auto width = normalTexture->GetWidth();
-          auto height = normalTexture->GetHeight();
-          auto ratio = width / height;
-
-          PushTextureToCache(reinterpret_cast<uint64>(&normalTexture), normalTexture);
-          ImGui::Image(&normalTexture, ImVec2(ImGui::GetWindowContentRegionWidth() * 0.9f, ImGui::GetWindowContentRegionWidth() * 0.9f / ratio), ImVec2(0, 0), ImVec2(1, 1), ImColor(255, 255, 255, 255), ImColor(255, 255, 255, 128));
-        }
-        break;
-      }
-      case 2:
-      {
-        auto specularTexture = material->GetSpecularTexture();
-        if (specularTexture)
-        {
-          auto width = specularTexture->GetWidth();
-          auto height = specularTexture->GetHeight();
-          auto ratio = width / height;
-
-          PushTextureToCache(reinterpret_cast<uint64>(&specularTexture), specularTexture);
-          ImGui::Image(&specularTexture, ImVec2(ImGui::GetWindowContentRegionWidth() * 0.9f, ImGui::GetWindowContentRegionWidth() * 0.9f / ratio), ImVec2(0, 0), ImVec2(1, 1), ImColor(255, 255, 255, 255), ImColor(255, 255, 255, 128));
-        }
-        break;
-      }
-    }
-
-		//ImGui::Text("%.0fx%.0f", my_tex_w, my_tex_h);
-		//ImVec2 pos = ImGui::GetCursorScreenPos();
-		//ImGui::Image(my_tex_id, ImVec2(my_tex_w, my_tex_h), ImVec2(0, 0), ImVec2(1, 1), ImColor(255, 255, 255, 255), ImColor(255, 255, 255, 128));
-		//if (ImGui::IsItemHovered())
-		//{
-		//	ImGui::BeginTooltip();
-		//	float region_sz = 32.0f;
-		//	float region_x = io.MousePos.x - pos.x - region_sz * 0.5f; if (region_x < 0.0f) region_x = 0.0f; else if (region_x > my_tex_w - region_sz) region_x = my_tex_w - region_sz;
-		//	float region_y = io.MousePos.y - pos.y - region_sz * 0.5f; if (region_y < 0.0f) region_y = 0.0f; else if (region_y > my_tex_h - region_sz) region_y = my_tex_h - region_sz;
-		//	float zoom = 4.0f;
-		//	ImGui::Text("Min: (%.2f, %.2f)", region_x, region_y);
-		//	ImGui::Text("Max: (%.2f, %.2f)", region_x + region_sz, region_y + region_sz);
-		//	ImVec2 uv0 = ImVec2((region_x) / my_tex_w, (region_y) / my_tex_h);
-		//	ImVec2 uv1 = ImVec2((region_x + region_sz) / my_tex_w, (region_y + region_sz) / my_tex_h);
-		//	ImGui::Image(my_tex_id, ImVec2(region_sz * zoom, region_sz * zoom), uv0, uv1, ImColor(255, 255, 255, 255), ImColor(255, 255, 255, 128));
-		//	ImGui::EndTooltip();
-		//}
 	}
 }

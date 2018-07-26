@@ -40,6 +40,18 @@ file(GLOB RenderApiGLSrc
 	${CMAKE_CURRENT_SOURCE_DIR}/RenderApi/GL/*.cpp
 	)
 	
+file(GLOB UiSrc
+	${CMAKE_CURRENT_SOURCE_DIR}/UI/*.h 
+	${CMAKE_CURRENT_SOURCE_DIR}/UI/*.hpp
+	${CMAKE_CURRENT_SOURCE_DIR}/UI/*.cpp
+	)
+	
+file(GLOB UiImGuiSrc
+	${CMAKE_CURRENT_SOURCE_DIR}/UI/ImGui/*.h 
+	${CMAKE_CURRENT_SOURCE_DIR}/UI/ImGui/*.hpp
+	${CMAKE_CURRENT_SOURCE_DIR}/UI/ImGui/*.cpp
+)
+	
 file(GLOB GeometrySrc
 	${CMAKE_CURRENT_SOURCE_DIR}/Geometry/*.h 
 	${CMAKE_CURRENT_SOURCE_DIR}/Geometry/*.hpp
@@ -63,12 +75,6 @@ file(GLOB UtilitySrc
 	${CMAKE_CURRENT_SOURCE_DIR}/Utility/*.hpp
 	${CMAKE_CURRENT_SOURCE_DIR}/Utility/*.cpp
 	)
-	
-file(GLOB UtilityImGuiSrc
-	${CMAKE_CURRENT_SOURCE_DIR}/Utility/ImGui/*.h 
-	${CMAKE_CURRENT_SOURCE_DIR}/Utility/ImGui/*.hpp
-	${CMAKE_CURRENT_SOURCE_DIR}/Utility/ImGui/*.cpp
-)
 
 file(GLOB ShaderSrc 
 	${CMAKE_CURRENT_SOURCE_DIR}/Shaders/*.hpp
@@ -85,8 +91,9 @@ source_group(RenderApi\\GL FILES ${RenderApiGLSrc})
 source_group(Geometry FILES ${GeometrySrc})
 source_group(SceneManagement FILES ${SceneManagementSrc})
 source_group(Overlay FILES ${OverlaySrc})
+source_group(UI FILES ${UiSrc})
+source_group(UI\\ImGui FILES ${UiImGuiSrc})
 source_group(Utility FILES ${UtilitySrc})
-source_group(Utility\\ImGui FILES ${UtilityImGuiSrc})
 source_group(Shaders FILES ${ShaderSrc})
 source_group(Input FILES ${InputSrc})
 
@@ -98,4 +105,4 @@ IF (APPLE)
 include_directories(${OPENGL_INCLUDE_DIRS})
 ENDIF()
 
-add_library(Engine STATIC ${CoreSrc} ${GeometrySrc} ${ImageSrc} ${MathsSrc} ${OverlaySrc} ${RenderApiSrc} ${RenderApiGLSrc} ${RenderingSrc} ${SceneManagementSrc} ${UtilitySrc} ${UtilityImGuiSrc} ${ShaderSrc} ${InputSrc})
+add_library(Engine STATIC ${CoreSrc} ${GeometrySrc} ${ImageSrc} ${MathsSrc} ${OverlaySrc} ${RenderApiSrc} ${RenderApiGLSrc} ${RenderingSrc} ${SceneManagementSrc} ${UiSrc} ${UiImGuiSrc} ${UtilitySrc} ${ShaderSrc} ${InputSrc})

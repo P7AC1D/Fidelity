@@ -5,7 +5,7 @@
 
 #include "../Core/Types.hpp"
 #include "../Maths/Vector2I.hpp"
-#include "../Utility/DebugUi.hpp"
+#include "../UI/UiManager.hpp"
 
 class EventDispatcher;
 class InputHandler;
@@ -48,7 +48,7 @@ private:
 protected:
   std::unique_ptr<EventDispatcher> _eventDispatcher;
   std::unique_ptr<InputHandler> _inputHandler;
-	std::unique_ptr<DebugUi> _debugUi;
+	std::unique_ptr<UiManager> _debugUi;
   std::shared_ptr<Renderer> _renderer;
 
 private:
