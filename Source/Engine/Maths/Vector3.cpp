@@ -130,6 +130,14 @@ Vector3 Vector3::operator*(float32 rhs) const
   return Vector3(x, y, z);
 }
 
+Vector3  Vector3::operator/(float32 rhs) const
+{
+	float32 x = X / rhs;
+	float32 y = Y / rhs;
+	float32 z = Z / rhs;
+	return Vector3(x, y, z);
+}
+
 Vector3 Vector3::operator*(const Vector3& rhs) const
 {
   float32 x = X * rhs[0];

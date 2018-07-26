@@ -3,15 +3,25 @@
 #include <assimp/Importer.hpp>
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
+#include "../Maths/Math.hpp"
 #include "../Rendering/Material.hpp"
 #include "../Rendering/MaterialFactory.hpp"
 #include "../Rendering/Renderable.hpp"
 #include "../Rendering/StaticMesh.h"
 #include "../SceneManagement/Actor.hpp"
 #include "../SceneManagement/SceneNode.hpp"
+#include "../SceneManagement/Transform.h"
 #include "Assert.hpp"
 #include "String.hpp"
 #include "TextureLoader.hpp"
+
+void OffsetVertices(std::vector<Vector3>& vertices, const Vector3& midPoint)
+{
+	for (auto& vertex : vertices)
+	{
+		vertex *= midPoint;
+	}
+}
 
 void BuildIndexData(const aiFace* faces, uint32 indexCount, std::vector<uint32>& indicesOut)
 {
@@ -38,13 +48,32 @@ void BuildTexCoordData(const aiVector3D* texCoords, uint32 texCoordCount, std::v
   }
 }
 
-void BuildVertexData(const aiVector3D* vertices, uint32 verexCount, std::vector<Vector3>& verticesOut)
+Vector3 BuildVertexData(const aiVector3D* vertices, uint32 verexCount, std::vector<Vector3>& verticesOut)
 {
+	Vector3 min(std::numeric_limits<float32>::max());
+	Vector3 max(std::numeric_limits<float32>::min());
+
   verticesOut.reserve(verexCount);
   for (uint32 i = 0; i < verexCount; i++)
   {
-    verticesOut.emplace_back(vertices[i].x, vertices[i].y, vertices[i].z);
+		Vector3 vertex(vertices[i].x, vertices[i].y, vertices[i].z);
+
+		min = Math::Min(min, vertex);
+		max = Math::Max(max, vertex);
+
+    verticesOut.push_back(vertex);
   }
+
+	return (max - min) / 2.0f;
+}
+
+void BuildNormalData(const aiVector3D* normals, uint32 normalCount, std::vector<Vector3>& normalsOut)
+{
+	normalsOut.reserve(normalCount);
+	for (uint32 i = 0; i < normalCount; i++)
+	{
+		normalsOut.emplace_back(normals[i].x, normals[i].y, normals[i].z);
+	}
 }
 
 std::shared_ptr<Material> BuildMaterial(const std::string& filePath, const aiMaterial* aiMaterial)
@@ -94,7 +123,7 @@ std::shared_ptr<Material> BuildMaterial(const std::string& filePath, const aiMat
 	return material;
 }
 
-std::shared_ptr<StaticMesh> BuildMesh(const std::string& filePath, const aiMesh* aiMesh)
+std::shared_ptr<StaticMesh> BuildMesh(const std::string& filePath, const aiMesh* aiMesh, bool reconstructWorldTransforms, Vector3& offset)
 {
   if (!aiMesh->HasPositions() || !aiMesh->HasNormals())
   {
@@ -105,13 +134,18 @@ std::shared_ptr<StaticMesh> BuildMesh(const std::string& filePath, const aiMesh*
   auto material = mesh->GetMaterial();
   
   std::vector<Vector3> vertices;
-  BuildVertexData(aiMesh->mVertices, aiMesh->mNumVertices, vertices);
+  Vector3 midPoint = BuildVertexData(aiMesh->mVertices, aiMesh->mNumVertices, vertices);
+	if (reconstructWorldTransforms)
+	{
+		offset = midPoint;
+		OffsetVertices(vertices, midPoint);
+	}
   mesh->SetPositionVertexData(vertices);
   
   if (aiMesh->HasNormals())
   {
     std::vector<Vector3> normals;
-    BuildVertexData(aiMesh->mNormals, aiMesh->mNumVertices, normals);
+		BuildNormalData(aiMesh->mNormals, aiMesh->mNumVertices, normals);
     mesh->SetNormalVertexData(normals);
   }
   else
@@ -143,7 +177,7 @@ std::shared_ptr<StaticMesh> BuildMesh(const std::string& filePath, const aiMesh*
   return mesh;
 }
 
-std::shared_ptr<SceneNode> BuildModel(const std::string& fileFolder, const aiScene* scene)
+std::shared_ptr<SceneNode> BuildModel(const std::string& fileFolder, const aiScene* scene, bool reconstructWorldTransforms)
 {
   if (!scene->HasMeshes() || !scene->HasMaterials())
   {
@@ -159,11 +193,15 @@ std::shared_ptr<SceneNode> BuildModel(const std::string& fileFolder, const aiSce
   std::shared_ptr<SceneNode> sceneNode(new SceneNode(scene->mRootNode->mName.C_Str()));
   for (uint32 i = 0; i < scene->mNumMeshes; i++)
   {
+		Vector3 offset;
+
     auto aiMesh = scene->mMeshes[i];
-    auto mesh = BuildMesh(fileFolder, aiMesh);
+    auto mesh = BuildMesh(fileFolder, aiMesh, reconstructWorldTransforms, offset);
 		mesh->SetMaterial(materials[aiMesh->mMaterialIndex]);
     
     std::shared_ptr<Actor> actor(sceneNode->CreateActor(aiMesh->mName.C_Str()));
+		actor->SetPosition(offset);
+
     std::shared_ptr<Renderable> renderable(new Renderable());
     renderable->SetMesh(mesh);
     
@@ -172,7 +210,7 @@ std::shared_ptr<SceneNode> BuildModel(const std::string& fileFolder, const aiSce
   return sceneNode;
 }
 
-std::shared_ptr<SceneNode> ModelLoader::LoadFromFile(const std::string& filePath)
+std::shared_ptr<SceneNode> ModelLoader::LoadFromFile(const std::string& filePath, bool reconstructWorldTransforms)
 {
   Assimp::Importer importer;
   auto scene = importer.ReadFile(filePath, aiProcess_Triangulate | aiProcess_GenNormals | aiProcess_GenUVCoords);
@@ -181,5 +219,5 @@ std::shared_ptr<SceneNode> ModelLoader::LoadFromFile(const std::string& filePath
   auto splitPath = String::Split(filePath, '/');
 	splitPath.pop_back();
 	auto fileFolder = String::Join(splitPath, '/');
-  return BuildModel(fileFolder, scene);
+  return BuildModel(fileFolder, scene, reconstructWorldTransforms);
 }

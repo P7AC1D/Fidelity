@@ -21,7 +21,7 @@ public:
   void SetRenderer(const std::shared_ptr<Renderer>& renderer);
 
   std::shared_ptr<Light> CreateLight(LightType lightType, const std::string& name = std::string());
-  std::shared_ptr<SceneNode> LoadModelFromFile(const std::string& filePath);
+  std::shared_ptr<SceneNode> LoadModelFromFile(const std::string& filePath, bool reconstructWorldTransforms = false);
 
 	void SetCamera(const std::shared_ptr<Camera>& camera);
 	void SetDirectionLight(const std::shared_ptr<Light>& light);

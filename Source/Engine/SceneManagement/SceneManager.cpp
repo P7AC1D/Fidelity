@@ -43,9 +43,9 @@ std::shared_ptr<Light> SceneManager::CreateLight(LightType lightType, const std:
 	return light;
 }
 
-std::shared_ptr<SceneNode> SceneManager::LoadModelFromFile(const std::string& filePath)
+std::shared_ptr<SceneNode> SceneManager::LoadModelFromFile(const std::string& filePath, bool reconstructWorldTransforms)
 {
-  std::shared_ptr<SceneNode> modelNode = ModelLoader::LoadFromFile(filePath);
+  std::shared_ptr<SceneNode> modelNode = ModelLoader::LoadFromFile(filePath, reconstructWorldTransforms);
   _sceneGraph->AddChildNode(modelNode);
   return modelNode;
 }

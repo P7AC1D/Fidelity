@@ -7,5 +7,5 @@ class SceneNode;
 class ModelLoader
 {
 public:
-  static std::shared_ptr<SceneNode> LoadFromFile(const std::string& filePath);
+  static std::shared_ptr<SceneNode> LoadFromFile(const std::string& filePath, bool reconstructWorldTransforms);
 };
