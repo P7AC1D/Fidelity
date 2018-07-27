@@ -17,9 +17,9 @@
 
 void OffsetVertices(std::vector<Vector3>& vertices, const Vector3& midPoint)
 {
-	for (auto& vertex : vertices)
+	for (uint32 i = 0; i < vertices.size(); i++)
 	{
-		vertex *= midPoint;
+		vertices[i] = vertices[i] - midPoint;
 	}
 }
 
@@ -64,7 +64,11 @@ Vector3 BuildVertexData(const aiVector3D* vertices, uint32 verexCount, std::vect
     verticesOut.push_back(vertex);
   }
 
-	return (max - min) / 2.0f;
+	Vector3 midPoint;
+	midPoint.X = (max.X + min.X) / 2.0f;
+	midPoint.Y = (max.Y + min.Y) / 2.0f;
+	midPoint.Z = (max.Z + min.Z) / 2.0f;
+	return midPoint;
 }
 
 void BuildNormalData(const aiVector3D* normals, uint32 normalCount, std::vector<Vector3>& normalsOut)
