@@ -8,6 +8,7 @@
 
 class Actor;
 class Camera;
+class Ray;
 class Renderer;
 class SceneNode;
 
@@ -33,9 +34,9 @@ public:
 	std::shared_ptr<Light> GetDirectionalLight() const;
   Colour GetAmbientLightColour() const;
   float32 GetAmbientLightIntensity() const;
-
-
+  
   void UpdateScene(uint32 dtMs);
+  void CastRayIntoScene(const Ray& ray) const;
 
 private:
 	SceneManager();
