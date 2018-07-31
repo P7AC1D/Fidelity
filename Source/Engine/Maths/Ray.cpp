@@ -10,7 +10,7 @@ _direction(direction)
 {
 }
 
-bool Ray::Intersect(const Aabb &aabb) const
+bool Ray::Intersects(const Aabb &aabb) const
 {
   Vector3 size(aabb.GetSize());
   std::vector<Plane> planes;

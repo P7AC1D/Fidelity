@@ -8,7 +8,7 @@ class Ray
 public:
   Ray(const Vector3& position, const Vector3& direction);
   
-  bool Intersect(const Aabb& aabb) const;
+  bool Intersects(const Aabb& aabb) const;
   
 private:
   Vector3 _position;

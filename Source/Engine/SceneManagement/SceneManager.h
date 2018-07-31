@@ -36,7 +36,6 @@ public:
   float32 GetAmbientLightIntensity() const;
   
   void UpdateScene(uint32 dtMs);
-  void CastRayIntoScene(const Ray& ray) const;
 
 private:
 	SceneManager();

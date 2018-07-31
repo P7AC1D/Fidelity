@@ -6,6 +6,8 @@
 #include "../Maths/Matrix4.hpp"
 #include "../Maths/Quaternion.hpp"
 #include "../Maths/Radian.hpp"
+#include "../Maths/Ray.hpp"
+#include "../Maths/Vector2I.hpp"
 #include "../Maths/Vector3.hpp"
 
 class Camera
@@ -15,6 +17,8 @@ public:
 
   void LookAt(const Vector3& position, const Vector3& target, const Vector3& up = Vector3(0.0f, 1.0f, 0.0f));
   void SetPerspective(const Degree& fovy, int32 width, int32 height, float32 nearClip, float32 farClip);
+  
+  Ray ScreenPointToRay(const Vector2I& screenPoint) const;
 
   const Matrix4& GetView();
   const Matrix4& GetProjection();
@@ -39,13 +43,18 @@ private:
   Radian _fov;
   float32 _near;
   float32 _far;
+  
   Matrix4 _view;
+  Matrix4 _viewInvs;
   Matrix4 _proj;
+  Matrix4 _projInvs;
+  
   Vector3 _position;
   Vector3 _target;
   Vector3 _up;
   Vector3 _right;
   Vector3 _forward;
+  
   Quaternion _orientation;
 	Frustrum _frustrum;
 };

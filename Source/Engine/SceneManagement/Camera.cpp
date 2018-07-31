@@ -2,7 +2,7 @@
 
 #include <cmath>
 #include "../Maths/Matrix3.hpp"
-
+#include "../Maths/Ray.hpp"
 
 Camera::Camera() :
   _width(0),
@@ -53,6 +53,25 @@ void Camera::SetPerspective(const Degree& fovy, int32 width, int32 height, float
   UpdateProjection();
 }
 
+Ray Camera::ScreenPointToRay(const Vector2I& screenPoint) const
+{
+  // Screen space to NDC
+  float32 x = (2.0f * screenPoint.X) / _width - 1.0f;
+  float32 y = 1.0f - (2.0f * screenPoint.Y) / _height;
+  
+  // NDC to 4D Homogenous Coords
+  Vector4 rayDir(x, y -1.0f, 1.0f);
+  
+  // 4D Coords to View Space
+  rayDir = _projInvs * rayDir;
+  
+  // View Space to World Space
+  rayDir = Vector4(rayDir.X, rayDir.Y, -1.0f, 0.0f);
+  rayDir = _viewInvs * rayDir;
+  
+  return Ray(_position, Vector3::Normalize(Vector3(rayDir.X, rayDir.Y, rayDir.Z)));
+}
+
 const Matrix4& Camera::GetView()
 {
   UpdateView();
@@ -92,6 +111,7 @@ void Camera::UpdateView()
   translation[3][2] = -translation[3][2];
 
   _view = rotation * translation;
+  _viewInvs = _view.Inverse();
 
   _right = Vector3(_view[0][0], _view[1][0], _view[2][0]);
   _up = Vector3(_view[0][1], _view[1][1], _view[2][1]);
@@ -101,7 +121,7 @@ void Camera::UpdateView()
 void Camera::UpdateProjection()
 {
   _proj = Matrix4::Perspective(_fov, _width / static_cast<float32>(_height), _near, _far);
-
+  _projInvs = _proj.Inverse();
 	UpdateFrustrum();
 }
 
