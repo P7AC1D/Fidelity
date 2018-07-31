@@ -14,12 +14,12 @@
 
 struct ViewportDesc
 {
-  float32 TopLeftX;
-  float32 TopLeftY;
+  float32 TopLeftX = 0.0;
+  float32 TopLeftY = 0.0;
   float32 Width;
   float32 Height;
-  float32 MinDepth;
-  float32 MaxDepth;
+  float32 MinDepth = 0.0f;
+  float32 MaxDepth = 1.0f;
 };
 
 struct ScissorDesc

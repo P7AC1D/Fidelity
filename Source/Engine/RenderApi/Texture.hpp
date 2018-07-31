@@ -26,6 +26,7 @@ enum class TextureUsage
 {
   Default,
   RenderTarget,
+  Depth,
   DepthStencil,
 };
 

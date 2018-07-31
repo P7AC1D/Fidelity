@@ -5,6 +5,7 @@
 #include "../Core/Types.hpp"
 #include "../Maths/Colour.hpp"
 #include "../Maths/Matrix4.hpp"
+#include "../Maths/Vector2I.hpp"
 
 class Aabb;
 class GpuBuffer;
@@ -66,6 +67,7 @@ enum class GBufferDisplayType
 struct RenderTimings
 {
   uint64 Frame = 0;
+  uint64 Shadow = 0;
   uint64 GBuffer = 0;
   uint64 Lighting = 0;
   uint64 Ssao = 0;
@@ -85,6 +87,7 @@ struct RendererDesc
   RenderApi RenderApi = RenderApi::GL41;
   bool FullscreenEnabled = false;
   bool VsyncEnabled = false;
+  Vector2I ShadowRes = Vector2I(512, 512);
 };
 
 class Renderer
@@ -115,6 +118,8 @@ public:
   void DrawFrame();
   
 private:
+  void InitShadowDepthPass();
+  void InitDepthBuffer();
   void InitGeometryPass();
   void InitFrameBuffer();
 	void InitMaterialBuffer();
@@ -129,6 +134,7 @@ private:
   void StartFrame();
 	void EndFrame();
 
+  void ShadowDepthPass();
 	void GeometryPass();
 	void LightingPass();
   void SsaoPass();
@@ -179,17 +185,23 @@ private:
 
   std::shared_ptr<GpuBuffer> _frameBuffer;
 	std::shared_ptr<GpuBuffer> _materialBuffer;
+  
+  std::shared_ptr<PipelineState> _shadowDepthPso;
   std::shared_ptr<PipelineState> _geomPassPso;
 	std::shared_ptr<PipelineState> _lightPassPso;
   std::shared_ptr<PipelineState> _ssaoPassPso;
 	std::shared_ptr<PipelineState> _ssaoBlurPassPso;
 	std::shared_ptr<PipelineState> _gBufferDebugPso;
+  
 	std::shared_ptr<SamplerState> _basicSamplerState;
 	std::shared_ptr<SamplerState> _noMipSamplerState;
   std::shared_ptr<SamplerState> _ssaoSamplerState;
+  
+  std::shared_ptr<RenderTarget> _depthBuffer;
 	std::shared_ptr<RenderTarget> _gBuffer;
   std::shared_ptr<RenderTarget> _ssaoRT;
 	std::shared_ptr<RenderTarget> _ssaoBlurRT;
+  
 	std::shared_ptr<VertexBuffer> _fsQuadBuffer;
 	std::shared_ptr<Material> _activeMaterial;
 	std::shared_ptr<RenderQueue> _opaqueQueue;

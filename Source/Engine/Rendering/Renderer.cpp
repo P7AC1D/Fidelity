@@ -78,6 +78,8 @@ Renderer::Renderer(const RendererDesc& desc) :
     
     GenerateSsaoKernel();
     
+    InitShadowDepthPass();
+    InitDepthBuffer();
     InitGeometryPass();
     InitFrameBuffer();
 		InitMaterialBuffer();
@@ -111,6 +113,7 @@ void Renderer::DrawFrame()
   auto frameStart = std::chrono::high_resolution_clock::now();
 
   StartFrame();
+  ShadowDepthPass();
 	GeometryPass();
 
   auto ssaoStart = std::chrono::high_resolution_clock::now();
@@ -141,6 +144,72 @@ void Renderer::DrawFrame()
 
   auto frameEnd = std::chrono::high_resolution_clock::now();
   _renderTimings.Frame = std::chrono::duration_cast<std::chrono::nanoseconds>(frameEnd - frameStart).count();
+}
+
+void Renderer::InitShadowDepthPass()
+{
+  ShaderDesc vsDesc;
+  vsDesc.EntryPoint = "main";
+  vsDesc.ShaderLang = ShaderLang::Glsl;
+  vsDesc.ShaderType = ShaderType::Vertex;
+  vsDesc.Source = String::LoadFromFile("./../../Resources/Shaders/ShadowDepthVS.glsl");
+  
+  ShaderDesc psDesc;
+  psDesc.EntryPoint = "main";
+  psDesc.ShaderLang = ShaderLang::Glsl;
+  psDesc.ShaderType = ShaderType::Pixel;
+  psDesc.Source = String::LoadFromFile("./../../Resources/Shaders/EmptyPS.glsl");
+  
+  std::vector<VertexLayoutDesc> vertexLayoutDesc
+  {
+    VertexLayoutDesc(SemanticType::Position, SemanticFormat::Float3)
+  };
+  
+  std::shared_ptr<ShaderParams> shaderParams(new ShaderParams());
+  shaderParams->AddParam(ShaderParam("ObjectBuffer", ShaderParamType::ConstBuffer, 0));
+  shaderParams->AddParam(ShaderParam("FrameBuffer", ShaderParamType::ConstBuffer, 1));
+  
+  try
+  {
+    PipelineStateDesc pipelineDesc;
+    pipelineDesc.VS = _renderDevice->CreateShader(vsDesc);
+    pipelineDesc.PS = _renderDevice->CreateShader(psDesc);
+    pipelineDesc.BlendState = _renderDevice->CreateBlendState(BlendStateDesc());
+    pipelineDesc.RasterizerState = _renderDevice->CreateRasterizerState(RasterizerStateDesc());
+    pipelineDesc.DepthStencilState = _renderDevice->CreateDepthStencilState(DepthStencilStateDesc());
+    pipelineDesc.VertexLayout = _renderDevice->CreateVertexLayout(vertexLayoutDesc);
+    pipelineDesc.ShaderParams = shaderParams;
+    
+    _shadowDepthPso = _renderDevice->CreatePipelineState(pipelineDesc);
+  }
+  catch (const std::exception& exception)
+  {
+    throw std::runtime_error("Unable to initialize shadow-depth pipeline states. " + std::string(exception.what()));
+  }
+}
+
+void Renderer::InitDepthBuffer()
+{
+  try
+  {
+    TextureDesc depthStencilDesc;
+    depthStencilDesc.Width = GetRenderWidth();
+    depthStencilDesc.Height = GetRenderHeight();
+    depthStencilDesc.Usage = TextureUsage::Depth;
+    depthStencilDesc.Type = TextureType::Texture2D;
+    depthStencilDesc.Format = TextureFormat::D32;
+    
+    RenderTargetDesc rtDesc;
+    rtDesc.DepthStencilTarget = _renderDevice->CreateTexture(depthStencilDesc);
+    rtDesc.Height = _desc.ShadowRes.Y;
+    rtDesc.Width = _desc.ShadowRes.X;
+    
+    _depthBuffer = _renderDevice->CreateRenderTarget(rtDesc);
+  }
+  catch (const std::exception& ex)
+  {
+    throw std::runtime_error("Unable to initalize shadow depth render targets. " + std::string(ex.what()));
+  }
 }
 
 void Renderer::InitGeometryPass()
@@ -632,6 +701,39 @@ void Renderer::StartFrame()
 
 void Renderer::EndFrame()
 {
+}
+
+void Renderer::ShadowDepthPass()
+{
+  auto viewport = _renderDevice->GetViewport();
+  
+  ViewportDesc desc;
+  desc.Height = _desc.ShadowRes.Y;
+  desc.Width = _desc.ShadowRes.X;
+  _renderDevice->SetViewport(desc);
+  
+  _renderDevice->SetPipelineState(_shadowDepthPso);
+  _renderDevice->SetRenderTarget(_depthBuffer);
+  
+  for (auto iter = _opaqueQueue->GetIteratorBegin(); iter != _opaqueQueue->GetIteratorEnd(); iter++)
+  {
+    auto mesh = iter->Renderable->GetMesh();
+    _renderDevice->SetConstantBuffer(0, iter->Renderable->GetPerObjectBuffer());
+    _renderDevice->SetVertexBuffer(mesh->GetVertexData());
+    
+    if (mesh->IsIndexed())
+    {
+      auto indexCount = mesh->GetIndexCount();
+      _renderDevice->SetIndexBuffer(mesh->GetIndexData());
+      _renderDevice->DrawIndexed(indexCount, 0, 0);
+    }
+    else
+    {
+      _renderDevice->Draw(mesh->GetVertexCount(), 0);
+    }
+  }
+  
+  _renderDevice->SetViewport(viewport);
 }
 
 void Renderer::GeometryPass()
