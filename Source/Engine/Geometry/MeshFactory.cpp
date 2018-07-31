@@ -27,38 +27,32 @@ std::shared_ptr<StaticMesh> MeshFactory::CreateCube()
 std::shared_ptr<StaticMesh> MeshFactory::CreatePlane(uint32 density)
 {
   std::vector<Vector3> positions;
-  std::vector<Vector3> normals;
   std::vector<Vector2> texCoords;
 
   float32 interval = 1.0f / static_cast<float32>(density);
-  for (float32 i = -1.0f; i < 1.0f; i += interval)
-  {
-    for (float32 j = -1.0f; j < 1.0f; j += interval)
-    {
-      positions.emplace_back(i, 0.0f, j + interval);
-      positions.emplace_back(i + interval, 0.0f, j);
-      positions.emplace_back(i, 0.0f, j);
-      normals.emplace_back(0.0f, 1.0f, 0.0f);
-      normals.emplace_back(0.0f, 1.0f, 0.0f);
-      normals.emplace_back(0.0f, 1.0f, 0.0f);
-      texCoords.emplace_back(1.0f, 0.0f);
-      texCoords.emplace_back(0.0f, 1.0f);
-      texCoords.emplace_back(0.0f, 0.0f);
+  //for (float32 i = -1.0f; i < 1.0f; i += interval)
+  //{
+  //  for (float32 j = -1.0f; j < 1.0f; j += interval)
+  //  {
+	float32 i = 0.0f;
+	float32 j = 0.0f;
+      positions.push_back(Vector3(i + interval, 0.0f, j));
+      positions.push_back(Vector3(i, 0.0f, j + interval));
+      positions.push_back(Vector3(i, 0.0f, j));
+      texCoords.push_back(Vector2(1.0f, 0.0f));
+      texCoords.push_back(Vector2(1.0f, 1.0f));
+      texCoords.push_back(Vector2(0.0f, 0.0f));
 
-      positions.emplace_back(i + interval, 0.0f, j + interval);
-      positions.emplace_back(i + interval, 0.0f, j);
-      positions.emplace_back(i, 0.0f, j + interval);
-      normals.emplace_back(0.0f, 1.0f, 0.0f);
-      normals.emplace_back(0.0f, 1.0f, 0.0f);
-      normals.emplace_back(0.0f, 1.0f, 0.0f);
-      texCoords.emplace_back(1.0f, 1.0f);
-      texCoords.emplace_back(0.0f, 1.0f);
-      texCoords.emplace_back(1.0f, 0.0f);
-    }
-  }
+      positions.push_back(Vector3(i + interval, 0.0f, j));
+      positions.push_back(Vector3(i + interval, 0.0f, j + interval));
+      positions.push_back(Vector3(i, 0.0f, j + interval));
+      texCoords.push_back(Vector2(1.0f, 0.0f));
+      texCoords.push_back(Vector2(1.0f, 1.0f));
+      texCoords.push_back(Vector2(0.0f, 1.0f));
+  //  }
+  //}
   auto mesh = std::make_shared<StaticMesh>();
   mesh->SetPositionVertexData(positions);
-  mesh->SetNormalVertexData(normals);
   mesh->SetTextureVertexData(texCoords);
 	mesh->SetMaterial(MaterialFactory::Create());
 	mesh->GenerateNormals();

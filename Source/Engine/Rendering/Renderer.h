@@ -119,7 +119,8 @@ public:
   
 private:
   void InitShadowDepthPass();
-  void InitDepthBuffer();
+  void InitDepthRenderTarget();
+	void InitDepthBuffer();
   void InitGeometryPass();
   void InitFrameBuffer();
 	void InitMaterialBuffer();
@@ -146,6 +147,12 @@ private:
 private:
 	static std::shared_ptr<RenderDevice> _renderDevice;
 	static const uint32 MaxKernelSize = 64;
+
+	struct DepthBufferData
+	{
+		Matrix4 Projection;
+		Matrix4 View;
+	};
 
 	struct SsaoDetailsData
 	{
@@ -185,6 +192,7 @@ private:
 
   std::shared_ptr<GpuBuffer> _frameBuffer;
 	std::shared_ptr<GpuBuffer> _materialBuffer;
+	std::shared_ptr<GpuBuffer> _depthBuffer;
   
   std::shared_ptr<PipelineState> _shadowDepthPso;
   std::shared_ptr<PipelineState> _geomPassPso;
@@ -197,7 +205,7 @@ private:
 	std::shared_ptr<SamplerState> _noMipSamplerState;
   std::shared_ptr<SamplerState> _ssaoSamplerState;
   
-  std::shared_ptr<RenderTarget> _depthBuffer;
+  std::shared_ptr<RenderTarget> _depthRenderTarget;
 	std::shared_ptr<RenderTarget> _gBuffer;
   std::shared_ptr<RenderTarget> _ssaoRT;
 	std::shared_ptr<RenderTarget> _ssaoBlurRT;

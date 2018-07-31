@@ -42,7 +42,7 @@ void Test3D::OnStart()
 	auto directionalLight = SceneManager::Get()->CreateLight(LightType::Directional, "DirectionLight");
 	SceneManager::Get()->SetDirectionLight(directionalLight);
   
-  auto model = SceneManager::Get()->LoadModelFromFile("./../../Resources/Models/living_room/living_room.obj", true);
+  //auto model = SceneManager::Get()->LoadModelFromFile("./../../Resources/Models/living_room/living_room.obj", true);
   
 //  auto rootSceneNode = SceneManager::Get()->GetRootSceneNode();
 //  for (int32 i = -30; i < 30; i += 3)
@@ -67,19 +67,27 @@ void Test3D::OnStart()
 	//renderable->SetMesh(mesh);
 	//actor->GetTransform()->Translate(Vector3(0, 0, 20.0f));
 
-//  auto rootSceneNode = SceneManager::Get()->GetRootSceneNode();
-//  auto actor = rootSceneNode->CreateActor("test_model");
-//  auto renderable = actor->CreateComponent<Renderable>();
-//  auto mesh = MeshFactory::CreateCube();
-//  renderable->SetMesh(mesh);
-//  auto material = mesh->GetMaterial();
-//  material->SetSpecularExponent(4.0f);
-//  auto diffuseTexture = TextureLoader::LoadFromFile2D("./../../Resources/Textures/brick_floor_tileable_Base_Color.jpg", true);
-//  auto normalTexture = TextureLoader::LoadFromFile2D("./../../Resources/Textures/brick_floor_tileable_Normal.jpg");
-//  auto specularTexture = TextureLoader::LoadFromFile2D("./../../Resources/Textures/brick_floor_tileable_Glossiness.jpg");
-//  material->SetDiffuseTexture(diffuseTexture);
-//  material->SetNormalTexture(normalTexture);
-//  material->SetSpecularTexture(specularTexture);
+  auto rootSceneNode = SceneManager::Get()->GetRootSceneNode();
+  auto actor = rootSceneNode->CreateActor("test_model");
+  auto renderable = actor->CreateComponent<Renderable>();
+  auto mesh = MeshFactory::CreateCube();
+  renderable->SetMesh(mesh);
+  auto material = mesh->GetMaterial();
+  material->SetSpecularExponent(4.0f);
+  auto diffuseTexture = TextureLoader::LoadFromFile2D("./../../Resources/Textures/brick_floor_tileable_Base_Color.jpg", true);
+  auto normalTexture = TextureLoader::LoadFromFile2D("./../../Resources/Textures/brick_floor_tileable_Normal.jpg");
+  auto specularTexture = TextureLoader::LoadFromFile2D("./../../Resources/Textures/brick_floor_tileable_Glossiness.jpg");
+  material->SetDiffuseTexture(diffuseTexture);
+  material->SetNormalTexture(normalTexture);
+  material->SetSpecularTexture(specularTexture);
+
+	auto floor = rootSceneNode->CreateActor("floor");
+	floor->SetPosition(Vector3(0.0f, -10.0f, 0.0f));
+	floor->SetScale(Vector3(10.0f, 10.0f, 10.0f));
+	auto renderableFloor = floor->CreateComponent<Renderable>();
+	auto plane = MeshFactory::CreatePlane();
+	renderableFloor->SetMesh(plane);
+	plane->GetMaterial()->SetDiffuseTexture(TextureLoader::LoadFromFile2D("./../../Resources/Textures/177.JPG", true));
 	
   _inputHandler->BindButtonToState("ActivateCameraLook", Button::Button_LMouse);
 	_inputHandler->BindAxisToState("CameraZoom", Axis::MouseScrollXY);

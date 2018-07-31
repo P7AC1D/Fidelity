@@ -78,8 +78,9 @@ Renderer::Renderer(const RendererDesc& desc) :
     
     GenerateSsaoKernel();
     
+		InitDepthBuffer();
     InitShadowDepthPass();
-    InitDepthBuffer();
+    InitDepthRenderTarget();
     InitGeometryPass();
     InitFrameBuffer();
 		InitMaterialBuffer();
@@ -113,7 +114,7 @@ void Renderer::DrawFrame()
   auto frameStart = std::chrono::high_resolution_clock::now();
 
   StartFrame();
-  ShadowDepthPass();
+  //ShadowDepthPass();
 	GeometryPass();
 
   auto ssaoStart = std::chrono::high_resolution_clock::now();
@@ -167,7 +168,7 @@ void Renderer::InitShadowDepthPass()
   
   std::shared_ptr<ShaderParams> shaderParams(new ShaderParams());
   shaderParams->AddParam(ShaderParam("ObjectBuffer", ShaderParamType::ConstBuffer, 0));
-  shaderParams->AddParam(ShaderParam("FrameBuffer", ShaderParamType::ConstBuffer, 1));
+  shaderParams->AddParam(ShaderParam("DepthBuffer", ShaderParamType::ConstBuffer, 1));
   
   try
   {
@@ -188,7 +189,7 @@ void Renderer::InitShadowDepthPass()
   }
 }
 
-void Renderer::InitDepthBuffer()
+void Renderer::InitDepthRenderTarget()
 {
   try
   {
@@ -204,12 +205,28 @@ void Renderer::InitDepthBuffer()
     rtDesc.Height = _desc.ShadowRes.Y;
     rtDesc.Width = _desc.ShadowRes.X;
     
-    _depthBuffer = _renderDevice->CreateRenderTarget(rtDesc);
+    _depthRenderTarget = _renderDevice->CreateRenderTarget(rtDesc);
   }
   catch (const std::exception& ex)
   {
     throw std::runtime_error("Unable to initalize shadow depth render targets. " + std::string(ex.what()));
   }
+}
+
+void Renderer::InitDepthBuffer()
+{
+	try
+	{
+		GpuBufferDesc desc;
+		desc.BufferType = BufferType::Constant;
+		desc.BufferUsage = BufferUsage::Stream;
+		desc.ByteCount = sizeof(FrameBufferData);
+		_depthBuffer = _renderDevice->CreateGpuBuffer(desc);
+	}
+	catch (const std::exception& exception)
+	{
+		throw std::runtime_error(std::string("Could not initialize depth constant buffer\n") + exception.what());
+	}
 }
 
 void Renderer::InitGeometryPass()
@@ -705,6 +722,11 @@ void Renderer::EndFrame()
 
 void Renderer::ShadowDepthPass()
 {
+	DepthBufferData data;
+	data.Projection = Matrix4::Orthographic(-10.0f, 10.0f, -10.0f, 10.0f, 1.0f, 7.5f);
+	data.View = Matrix4::LookAt(-_directionalLightData.Direction, Vector3::Zero, Vector3(0.0f, 1.0f, 0.0f));
+	_depthBuffer->WriteData(0, sizeof(DepthBufferData), &data, AccessType::WriteOnlyDiscard);
+
   auto viewport = _renderDevice->GetViewport();
   
   ViewportDesc desc;
@@ -713,7 +735,8 @@ void Renderer::ShadowDepthPass()
   _renderDevice->SetViewport(desc);
   
   _renderDevice->SetPipelineState(_shadowDepthPso);
-  _renderDevice->SetRenderTarget(_depthBuffer);
+  _renderDevice->SetRenderTarget(_depthRenderTarget);
+	_renderDevice->SetConstantBuffer(1, _depthBuffer);
   
   for (auto iter = _opaqueQueue->GetIteratorBegin(); iter != _opaqueQueue->GetIteratorEnd(); iter++)
   {

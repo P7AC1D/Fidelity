@@ -2,6 +2,12 @@
 #include "Common.glsli"
 layout(location = 0) in vec3 aPosition;
 
+layout(std140) uniform DepthBuffer
+{
+  mat4 Proj;
+  mat4 View;
+} Depth;
+
 out gl_PerVertex {
   vec4 gl_Position;
   float gl_PointSize;
@@ -10,5 +16,5 @@ out gl_PerVertex {
 
 void main()
 {
-  gl_Position = Frame.View * Object.Model * vec4(aPosition, 1.0f);
+  gl_Position = Depth.Proj * Depth.View * Object.Model * vec4(aPosition, 1.0f);
 }
