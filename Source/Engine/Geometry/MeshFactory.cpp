@@ -40,18 +40,14 @@ std::shared_ptr<StaticMesh> MeshFactory::CreatePlane(uint32 density)
 	texCoords.reserve(vertexCount);
 	indices.reserve(indexCount);
 
-  for (float32 x = -1.0f; x < 1.0f; x += interval)
+  for (uint32 i = 0; i < vertexWidth; i++)
   {
-    for (float32 y = -1.0f; y < 1.0f; y += interval)
-    {			
+    float32 y = -1.0f + i * interval;
+    for (uint32 j = 0; j < vertexWidth; j++)
+    {
+      float32 x = -1.0f + j * interval;
       positions.push_back(Vector3(x, 0.0f, y));
-      positions.push_back(Vector3(x + interval, 0.0f, y));
-      positions.push_back(Vector3(x, 0.0f, y + interval));
-      positions.push_back(Vector3(x + interval, 0.0f, y + interval));
-      texCoords.push_back(Vector2(0.0f, 0.0f));
-      texCoords.push_back(Vector2(0.0f, 1.0f));
-      texCoords.push_back(Vector2(1.0f, 0.0f));
-      texCoords.push_back(Vector2(1.0f, 1.0f));
+      texCoords.push_back(Vector2(i, j));
     }
   }
 
@@ -66,12 +62,12 @@ std::shared_ptr<StaticMesh> MeshFactory::CreatePlane(uint32 density)
 		}
 
 		indices.push_back(cornerIndex);
+		indices.push_back(cornerIndex + vertexWidth);
 		indices.push_back(cornerIndex + vertexWidth + 1);
-		indices.push_back(cornerIndex + 1);
 
-		indices.push_back(cornerIndex + 1);
+		indices.push_back(cornerIndex);
 		indices.push_back(cornerIndex + vertexWidth + 1);
-		indices.push_back(cornerIndex + vertexWidth + 2);
+		indices.push_back(cornerIndex + 1);
 	}
 
   auto mesh = std::make_shared<StaticMesh>();
