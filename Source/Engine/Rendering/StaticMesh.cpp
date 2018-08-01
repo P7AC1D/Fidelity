@@ -4,6 +4,7 @@
 #include "../RenderApi/RenderDevice.hpp"
 #include "../RenderApi/VertexBuffer.hpp"
 #include "Material.hpp"
+#include "MaterialFactory.hpp"
 #include "Renderer.h"
 
 StaticMesh::StaticMesh() :
@@ -11,7 +12,8 @@ StaticMesh::StaticMesh() :
   _vertexCount(0),
 	_verticesNeedUpdate(true),
 	_indicesNeedUpdate(true),
-  _indexed(false)
+  _indexed(false),
+	_material(MaterialFactory::Create())
 {}
 
 void StaticMesh::SetPositionVertexData(const std::vector<Vector3>& positionData)
