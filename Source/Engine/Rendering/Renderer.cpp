@@ -114,7 +114,7 @@ void Renderer::DrawFrame()
   auto frameStart = std::chrono::high_resolution_clock::now();
 
   StartFrame();
-  //ShadowDepthPass();
+  ShadowDepthPass();
 	GeometryPass();
 
   auto ssaoStart = std::chrono::high_resolution_clock::now();
@@ -159,11 +159,15 @@ void Renderer::InitShadowDepthPass()
   psDesc.EntryPoint = "main";
   psDesc.ShaderLang = ShaderLang::Glsl;
   psDesc.ShaderType = ShaderType::Pixel;
-  psDesc.Source = String::LoadFromFile("./../../Resources/Shaders/EmptyPS.glsl");
+  psDesc.Source = String::LoadFromFile("./../../Resources/Shaders/ShadowDepthPS.glsl");
   
   std::vector<VertexLayoutDesc> vertexLayoutDesc
   {
-    VertexLayoutDesc(SemanticType::Position, SemanticFormat::Float3)
+    VertexLayoutDesc(SemanticType::Position, SemanticFormat::Float3),
+    VertexLayoutDesc(SemanticType::Normal, SemanticFormat::Float3),
+    VertexLayoutDesc(SemanticType::TexCoord, SemanticFormat::Float2),
+    VertexLayoutDesc(SemanticType::Tangent, SemanticFormat::Float3),
+    VertexLayoutDesc(SemanticType::Bitangent, SemanticFormat::Float3)
   };
   
   std::shared_ptr<ShaderParams> shaderParams(new ShaderParams());

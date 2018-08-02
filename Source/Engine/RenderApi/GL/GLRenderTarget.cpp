@@ -87,7 +87,15 @@ void GLRenderTarget::Initialize()
   {
     AttachDepthStencilTexture(_desc.DepthStencilTarget);
   }
-  GLCall(glDrawBuffers(attachments.size(), attachments.data()));
+
+  if (attachments.size() > 0)
+  {
+    GLCall(glDrawBuffers(attachments.size(), attachments.data()));
+  }
+  else
+  {
+    GLCall(glDrawBuffer(GL_NONE));
+  }
 
   GLenum frameBufferComplete = 0;
 	GLCall2(glCheckFramebufferStatus(GL_FRAMEBUFFER), frameBufferComplete);
