@@ -8,6 +8,8 @@ public:
   static void ThrowIfFalse(bool condition, const std::string& errorMessage);
 };
 
+#define ASSERT_ENABLED
+
 #ifdef _DEBUG 
 #define NDEBUG
 #endif

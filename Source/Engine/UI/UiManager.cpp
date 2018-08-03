@@ -175,10 +175,10 @@ void UiManager::Update()
 		}
 
 		{
-			const char* gBufferDebugItems[] = { "Disabled", "Position", "Normal", "Albedo" };
-			static int gBufferDebugCurrentItem = 0;
-			ImGui::Combo("G-Buffer Debug", &gBufferDebugCurrentItem, gBufferDebugItems, 4);
-			_renderer->EnableGBufferDebugPass(static_cast<GBufferDisplayType>(gBufferDebugCurrentItem));
+			const char* debugRenderingItems[] = { "Disabled", "ShadowMap", "Position", "Normal", "Albedo" };
+			static int debugRenderingCurrentItem = 0;
+			ImGui::Combo("Debug Rendering", &debugRenderingCurrentItem, debugRenderingItems, 5);
+			_renderer->EnableDebugPass(static_cast<DebugDisplayType>(debugRenderingCurrentItem));
 			ImGui::Separator();
 		}
 
@@ -186,6 +186,7 @@ void UiManager::Update()
       auto frameTimings = _renderer->GetFrameRenderTimings();
 			ImGui::Text("Render Pass");
       ImGui::BulletText("All %.3f ms", static_cast<float32>(frameTimings.Frame * 1e-6f));
+			ImGui::BulletText("Shadow %.3f ms", static_cast<float32>(frameTimings.Shadow * 1e-6f));
       ImGui::BulletText("G-Buffer %.3f ms", static_cast<float32>(frameTimings.GBuffer * 1e-6f));
       ImGui::BulletText("SSAO %.3f ms", static_cast<float32>(frameTimings.Ssao * 1e-6f));
       ImGui::BulletText("Lighting %.3f ms", static_cast<float32>(frameTimings.Lighting * 1e-6f));

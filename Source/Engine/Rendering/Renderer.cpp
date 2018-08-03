@@ -123,19 +123,22 @@ void Renderer::DrawFrame()
   auto ssaoEnd = std::chrono::high_resolution_clock::now();
   _renderTimings.Ssao = std::chrono::duration_cast<std::chrono::nanoseconds>(ssaoEnd - ssaoStart).count();
 
-	switch (_gBufferDisplay)
+	switch (_debugDisplayType)
 	{
 		default:
-		case GBufferDisplayType::Disabled:
+		case DebugDisplayType::Disabled:
 			LightingPass();
 			break;
-		case GBufferDisplayType::Position:
+		case DebugDisplayType::ShadowMap:
+			ShadowDepthDebugPass();
+			break;
+		case DebugDisplayType::Position:
 			GBufferDebugPass(0);
 			break;
-		case GBufferDisplayType::Normal:
+		case DebugDisplayType::Normal:
 			GBufferDebugPass(1);
 			break;
-		case GBufferDisplayType::Albedo:
+		case DebugDisplayType::Albedo:
 			GBufferDebugPass(2);
 			break;
 	}		
@@ -163,11 +166,11 @@ void Renderer::InitShadowDepthPass()
   
   std::vector<VertexLayoutDesc> vertexLayoutDesc
   {
-    VertexLayoutDesc(SemanticType::Position, SemanticFormat::Float3),
-    VertexLayoutDesc(SemanticType::Normal, SemanticFormat::Float3),
-    VertexLayoutDesc(SemanticType::TexCoord, SemanticFormat::Float2),
-    VertexLayoutDesc(SemanticType::Tangent, SemanticFormat::Float3),
-    VertexLayoutDesc(SemanticType::Bitangent, SemanticFormat::Float3)
+		VertexLayoutDesc(SemanticType::Position, SemanticFormat::Float3),
+		VertexLayoutDesc(SemanticType::Normal, SemanticFormat::Float3),
+		VertexLayoutDesc(SemanticType::TexCoord, SemanticFormat::Float2),
+		VertexLayoutDesc(SemanticType::Tangent, SemanticFormat::Float3),
+		VertexLayoutDesc(SemanticType::Bitangent, SemanticFormat::Float3)
   };
   
   std::shared_ptr<ShaderParams> shaderParams(new ShaderParams());
@@ -857,6 +860,16 @@ void Renderer::LightingPass()
 
   auto end = std::chrono::high_resolution_clock::now();
   _renderTimings.Lighting = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
+}
+
+void Renderer::ShadowDepthDebugPass()
+{
+	_renderDevice->SetRenderTarget(nullptr);
+	_renderDevice->SetPipelineState(_gBufferDebugPso);
+	_renderDevice->SetTexture(0, _depthRenderTarget->GetDepthStencilTarget());
+	_renderDevice->SetSamplerState(0, _noMipSamplerState);
+	_renderDevice->SetVertexBuffer(_fsQuadBuffer);
+	_renderDevice->Draw(6, 0);
 }
 
 void Renderer::GBufferDebugPass(uint32 i)

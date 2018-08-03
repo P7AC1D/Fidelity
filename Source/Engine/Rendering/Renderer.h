@@ -55,9 +55,10 @@ enum class RenderApi
   GL41
 };
 
-enum class GBufferDisplayType
+enum class DebugDisplayType
 {
 	Disabled,
+	ShadowMap,
 	Position,
 	Normal,
 	Albedo
@@ -105,7 +106,7 @@ public:
 	void SetDirectionalLight(const DirectionalLightData& directionalLightData) { _directionalLightData = directionalLightData; }
   void SetAmbientLight(const AmbientLightData& ambientLightData) { _ambientLightData = ambientLightData; }
 
-	void EnableGBufferDebugPass(GBufferDisplayType gBufferDisplay) { _gBufferDisplay = gBufferDisplay; }
+	void EnableDebugPass(DebugDisplayType debugDisplayType) { _debugDisplayType = debugDisplayType; }
 
 	void EnableSsao(bool enabled) { _ssaoEnabled = enabled; }
 	void EnableHdr(bool enabled) { _hdrEnabled = enabled; }
@@ -140,6 +141,8 @@ private:
 	void LightingPass();
   void SsaoPass();
 	void SsaoBlurPass();
+
+	void ShadowDepthDebugPass();
 	void GBufferDebugPass(uint32 i);
 
 	void SetMaterialData(const std::shared_ptr<Material>& material);
@@ -186,7 +189,7 @@ private:
 	};
   
   RendererDesc _desc;
-	GBufferDisplayType _gBufferDisplay;
+	DebugDisplayType _debugDisplayType;
 	DirectionalLightData _directionalLightData;
   AmbientLightData _ambientLightData;
 
