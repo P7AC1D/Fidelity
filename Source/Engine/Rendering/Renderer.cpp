@@ -86,6 +86,7 @@ Renderer::Renderer(const RendererDesc& desc) :
 		InitMaterialBuffer();
 		InitFullscreenQuad();
 		InitLightingPass();
+    InitDepthDebugPass();
 		InitGBufferDebugPass();
     InitSsaoPass();
 		InitSsaoBlurPass();
@@ -201,8 +202,8 @@ void Renderer::InitDepthRenderTarget()
   try
   {
     TextureDesc depthStencilDesc;
-    depthStencilDesc.Width = GetRenderWidth();
-    depthStencilDesc.Height = GetRenderHeight();
+    depthStencilDesc.Width = _desc.ShadowRes.X;
+    depthStencilDesc.Height = _desc.ShadowRes.Y;
     depthStencilDesc.Usage = TextureUsage::Depth;
     depthStencilDesc.Type = TextureType::Texture2D;
     depthStencilDesc.Format = TextureFormat::D32;
@@ -615,6 +616,51 @@ void Renderer::InitFullscreenQuad()
 	}
 }
 
+void Renderer::InitDepthDebugPass()
+{
+  ShaderDesc vsDesc;
+  vsDesc.EntryPoint = "main";
+  vsDesc.ShaderLang = ShaderLang::Glsl;
+  vsDesc.ShaderType = ShaderType::Vertex;
+  vsDesc.Source = String::LoadFromFile("./../../Resources/Shaders/FSPassThroughVS.glsl");
+  
+  ShaderDesc psDesc;
+  psDesc.EntryPoint = "main";
+  psDesc.ShaderLang = ShaderLang::Glsl;
+  psDesc.ShaderType = ShaderType::Pixel;
+  psDesc.Source = String::LoadFromFile("./../../Resources/Shaders/DepthDebugPS.glsl");
+  
+  std::vector<VertexLayoutDesc> vertexLayoutDesc
+  {
+    VertexLayoutDesc(SemanticType::Position, SemanticFormat::Float2),
+    VertexLayoutDesc(SemanticType::TexCoord, SemanticFormat::Float2),
+  };
+  
+  std::shared_ptr<ShaderParams> shaderParams(new ShaderParams());
+  shaderParams->AddParam(ShaderParam("QuadTexture", ShaderParamType::Texture, 0));
+  
+  RasterizerStateDesc rasterizerStateDesc;
+  rasterizerStateDesc.CullMode = CullMode::None;
+  
+  try
+  {
+    PipelineStateDesc pipelineDesc;
+    pipelineDesc.VS = _renderDevice->CreateShader(vsDesc);
+    pipelineDesc.PS = _renderDevice->CreateShader(psDesc);
+    pipelineDesc.BlendState = _renderDevice->CreateBlendState(BlendStateDesc());
+    pipelineDesc.RasterizerState = _renderDevice->CreateRasterizerState(rasterizerStateDesc);
+    pipelineDesc.DepthStencilState = _renderDevice->CreateDepthStencilState(DepthStencilStateDesc());
+    pipelineDesc.VertexLayout = _renderDevice->CreateVertexLayout(vertexLayoutDesc);
+    pipelineDesc.ShaderParams = shaderParams;
+    
+    _depthDebugPso = _renderDevice->CreatePipelineState(pipelineDesc);
+  }
+  catch (const std::exception& exception)
+  {
+    throw std::runtime_error("Unable to initialize depth debug pipeline states. " + std::string(exception.what()));
+  }
+}
+
 void Renderer::InitGBufferDebugPass()
 {
 	ShaderDesc vsDesc;
@@ -729,21 +775,23 @@ void Renderer::EndFrame()
 
 void Renderer::ShadowDepthPass()
 {
+  auto currentViewport = _renderDevice->GetViewport();
+  
+  ViewportDesc newViewport;
+  newViewport.Width = _desc.ShadowRes.X;
+  newViewport.Height = _desc.ShadowRes.Y;
+  _renderDevice->SetViewport(newViewport);
+  
 	DepthBufferData data;
-	data.Projection = Matrix4::Orthographic(-10.0f, 10.0f, -10.0f, 10.0f, 1.0f, 7.5f);
+	data.Projection = Matrix4::Orthographic(-10.0f, 10.0f, -10.0f, 10.0f, -10.0f, 10.0f);
 	data.View = Matrix4::LookAt(-_directionalLightData.Direction, Vector3::Zero, Vector3(0.0f, 1.0f, 0.0f));
 	_depthBuffer->WriteData(0, sizeof(DepthBufferData), &data, AccessType::WriteOnlyDiscard);
-
-  auto viewport = _renderDevice->GetViewport();
-  
-  ViewportDesc desc;
-  desc.Height = _desc.ShadowRes.Y;
-  desc.Width = _desc.ShadowRes.X;
-  _renderDevice->SetViewport(desc);
   
   _renderDevice->SetPipelineState(_shadowDepthPso);
   _renderDevice->SetRenderTarget(_depthRenderTarget);
 	_renderDevice->SetConstantBuffer(1, _depthBuffer);
+  
+  _renderDevice->ClearBuffers(RTT_Depth);
   
   for (auto iter = _opaqueQueue->GetIteratorBegin(); iter != _opaqueQueue->GetIteratorEnd(); iter++)
   {
@@ -763,7 +811,7 @@ void Renderer::ShadowDepthPass()
     }
   }
   
-  _renderDevice->SetViewport(viewport);
+  _renderDevice->SetViewport(currentViewport);
 }
 
 void Renderer::GeometryPass()
@@ -865,7 +913,7 @@ void Renderer::LightingPass()
 void Renderer::ShadowDepthDebugPass()
 {
 	_renderDevice->SetRenderTarget(nullptr);
-	_renderDevice->SetPipelineState(_gBufferDebugPso);
+	_renderDevice->SetPipelineState(_depthDebugPso);
 	_renderDevice->SetTexture(0, _depthRenderTarget->GetDepthStencilTarget());
 	_renderDevice->SetSamplerState(0, _noMipSamplerState);
 	_renderDevice->SetVertexBuffer(_fsQuadBuffer);

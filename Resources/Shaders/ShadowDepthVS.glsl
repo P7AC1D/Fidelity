@@ -20,5 +20,5 @@ out gl_PerVertex {
 
 void main()
 {
-  gl_Position = Object.Model * vec4(aPosition, 1.0f);
+  gl_Position = Depth.Proj * Depth.View * Object.Model * vec4(aPosition, 1.0f);
 }

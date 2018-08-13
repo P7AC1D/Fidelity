@@ -129,6 +129,7 @@ private:
   void InitSsaoPass();
 	void InitSsaoBlurPass();
 	void InitFullscreenQuad();
+  void InitDepthDebugPass();
 	void InitGBufferDebugPass();
   
   void GenerateSsaoKernel();
@@ -203,6 +204,7 @@ private:
   std::shared_ptr<PipelineState> _ssaoPassPso;
 	std::shared_ptr<PipelineState> _ssaoBlurPassPso;
 	std::shared_ptr<PipelineState> _gBufferDebugPso;
+  std::shared_ptr<PipelineState> _depthDebugPso;
   
 	std::shared_ptr<SamplerState> _basicSamplerState;
 	std::shared_ptr<SamplerState> _noMipSamplerState;

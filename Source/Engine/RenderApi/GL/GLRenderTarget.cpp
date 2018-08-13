@@ -15,7 +15,7 @@ void AttachDepthStencilTexture(const std::shared_ptr<Texture>& texture)
       {
         GLCall(glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, glTexture->GetId(), 0));
       }
-      else
+      else if (textureDesc.Usage == TextureUsage::DepthStencil)
       {
         GLCall(glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, glTexture->GetId(), 0));
         GLCall(glFramebufferTexture2D(GL_FRAMEBUFFER, GL_STENCIL_ATTACHMENT, GL_TEXTURE_2D, glTexture->GetId(), 0));
@@ -47,6 +47,7 @@ void AttachColourTexture(const std::shared_ptr<Texture>& texture, uint32 attachm
     default:
       throw std::runtime_error("Unsupported TextureType for colour target attachment");
   }
+  GLCall(glReadBuffer(GL_COLOR_ATTACHMENT0 + attachmentIndex));
 }
 
 GLRenderTarget::~GLRenderTarget()
@@ -95,9 +96,12 @@ void GLRenderTarget::Initialize()
   else
   {
     GLCall(glDrawBuffer(GL_NONE));
+    GLCall(glReadBuffer(GL_NONE));
   }
 
   GLenum frameBufferComplete = 0;
 	GLCall2(glCheckFramebufferStatus(GL_FRAMEBUFFER), frameBufferComplete);
   ASSERT_TRUE(frameBufferComplete == GL_FRAMEBUFFER_COMPLETE, "Framebuffer is not complete");
+  
+  GLCall(glBindFramebuffer(GL_FRAMEBUFFER, 0));
 }

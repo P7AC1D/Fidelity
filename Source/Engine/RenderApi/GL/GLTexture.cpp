@@ -49,7 +49,7 @@ void GetInternalPixelFormat(TextureFormat textureFormat, GLenum& internalFormat,
     }
     case TextureFormat::D32:
     {
-      internalFormat = GL_DEPTH_COMPONENT32F;
+      internalFormat = GL_DEPTH_COMPONENT;
       format = GL_DEPTH_COMPONENT;
       type = GL_FLOAT;
       break;
