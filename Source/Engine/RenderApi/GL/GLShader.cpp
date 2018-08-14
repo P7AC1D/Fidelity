@@ -44,7 +44,11 @@ void GLShader::Compile()
 	GLint linkStatus = -1;
 	GLCall(glGetProgramiv(_id, GL_LINK_STATUS, &linkStatus));
 	
-	ASSERT_TRUE(linkStatus == GL_TRUE, "Unable to compile shader:\n" + GetShaderLog());
+  if (linkStatus == GL_FALSE)
+  {
+    std::string errorMessage = "Unable to compile shader:\n" + GetShaderLog();
+    throw std::runtime_error(errorMessage);
+  }
   _isCompiled = true;
 
 	BuildUniformDefinitions();

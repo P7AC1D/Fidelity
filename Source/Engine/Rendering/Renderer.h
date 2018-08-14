@@ -152,10 +152,11 @@ private:
 	static std::shared_ptr<RenderDevice> _renderDevice;
 	static const uint32 MaxKernelSize = 64;
 
-	struct DepthBufferData
+	struct ShadowBufferData
 	{
 		Matrix4 Projection;
 		Matrix4 View;
+    Vector2 TexelDims;
 	};
 
 	struct SsaoDetailsData
@@ -182,6 +183,7 @@ private:
 	{
 		Matrix4 Proj;
 		Matrix4 View;
+    Matrix4 ViewInvs;
 		DirectionalLightData DirectionalLight;
 		Vector4 ViewPosition;
 		AmbientLightData AmbientLight;

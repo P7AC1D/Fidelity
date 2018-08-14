@@ -52,6 +52,7 @@ layout(std140) uniform FrameBuffer
 {
   mat4 Projection;
   mat4 View;
+  mat4 ViewInvs; 
   DirectionalLightData DirectionalLight;
   vec4 ViewPos;
   AmbientLightData AmbientLight;  
@@ -67,3 +68,10 @@ layout(std140) uniform MaterialBuffer
   vec4 SpecularColour;
   float SpecularExponent;  
 } Material;
+
+layout(std140) uniform ShadowBuffer
+{
+  mat4 Proj;
+  mat4 View;
+  vec2 TexelDims;
+} Shadow;

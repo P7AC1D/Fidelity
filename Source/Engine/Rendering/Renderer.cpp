@@ -115,7 +115,12 @@ void Renderer::DrawFrame()
   auto frameStart = std::chrono::high_resolution_clock::now();
 
   StartFrame();
+  
+  auto shadowPassStart = std::chrono::high_resolution_clock::now();
   ShadowDepthPass();
+  auto shadowPassEnd = std::chrono::high_resolution_clock::now();
+  _renderTimings.Shadow = std::chrono::duration_cast<std::chrono::nanoseconds>(shadowPassEnd - shadowPassStart).count();
+  
 	GeometryPass();
 
   auto ssaoStart = std::chrono::high_resolution_clock::now();
@@ -176,7 +181,7 @@ void Renderer::InitShadowDepthPass()
   
   std::shared_ptr<ShaderParams> shaderParams(new ShaderParams());
   shaderParams->AddParam(ShaderParam("ObjectBuffer", ShaderParamType::ConstBuffer, 0));
-  shaderParams->AddParam(ShaderParam("DepthBuffer", ShaderParamType::ConstBuffer, 1));
+  shaderParams->AddParam(ShaderParam("ShadowBuffer", ShaderParamType::ConstBuffer, 3));
   
   try
   {
@@ -393,9 +398,11 @@ void Renderer::InitLightingPass()
 	shaderParams->AddParam(ShaderParam("NormalMap", ShaderParamType::Texture, 1));
 	shaderParams->AddParam(ShaderParam("AlbedoSpecMap", ShaderParamType::Texture, 2));
 	shaderParams->AddParam(ShaderParam("SsaoMap", ShaderParamType::Texture, 3));
+  shaderParams->AddParam(ShaderParam("ShadowMap", ShaderParamType::Texture, 4));
 	shaderParams->AddParam(ShaderParam("ObjectBuffer", ShaderParamType::ConstBuffer, 0));
 	shaderParams->AddParam(ShaderParam("FrameBuffer", ShaderParamType::ConstBuffer, 1));
   shaderParams->AddParam(ShaderParam("MaterialBuffer", ShaderParamType::ConstBuffer, 2));
+  shaderParams->AddParam(ShaderParam("ShadowBuffer", ShaderParamType::ConstBuffer, 3));
 
 	RasterizerStateDesc rasterizerStateDesc;
 	rasterizerStateDesc.CullMode = CullMode::None;
@@ -755,6 +762,7 @@ void Renderer::StartFrame()
 	framData.DirectionalLight = _directionalLightData;
   framData.AmbientLight = _ambientLightData;
   framData.View = camera->GetView();
+  framData.ViewInvs = framData.View.Inverse();
   framData.ViewPosition = Vector4(camera->GetPosition(), 1.0f);
 	framData.SsaoDetails = _ssaoDetailsData;
 	framData.Hdr = _hdrData;
@@ -775,6 +783,8 @@ void Renderer::EndFrame()
 
 void Renderer::ShadowDepthPass()
 {
+  auto start = std::chrono::high_resolution_clock::now();
+  
   auto currentViewport = _renderDevice->GetViewport();
   
   ViewportDesc newViewport;
@@ -782,14 +792,15 @@ void Renderer::ShadowDepthPass()
   newViewport.Height = _desc.ShadowRes.Y;
   _renderDevice->SetViewport(newViewport);
   
-	DepthBufferData data;
-	data.Projection = Matrix4::Orthographic(-10.0f, 10.0f, -10.0f, 10.0f, -10.0f, 10.0f);
+	ShadowBufferData data;
+	data.Projection = Matrix4::Orthographic(-25.0f, 25.0f, -25.0f, 25.0f, -25.0f, 25.0f);
 	data.View = Matrix4::LookAt(-_directionalLightData.Direction, Vector3::Zero, Vector3(0.0f, 1.0f, 0.0f));
-	_depthBuffer->WriteData(0, sizeof(DepthBufferData), &data, AccessType::WriteOnlyDiscard);
+  data.TexelDims = Vector2(1.0f / _desc.ShadowRes.X, 1.0f / _desc.ShadowRes.Y);
+	_depthBuffer->WriteData(0, sizeof(ShadowBufferData), &data, AccessType::WriteOnlyDiscard);
   
   _renderDevice->SetPipelineState(_shadowDepthPso);
   _renderDevice->SetRenderTarget(_depthRenderTarget);
-	_renderDevice->SetConstantBuffer(1, _depthBuffer);
+	_renderDevice->SetConstantBuffer(3, _depthBuffer);
   
   _renderDevice->ClearBuffers(RTT_Depth);
   
@@ -812,6 +823,9 @@ void Renderer::ShadowDepthPass()
   }
   
   _renderDevice->SetViewport(currentViewport);
+  
+  auto end = std::chrono::high_resolution_clock::now();
+  _renderTimings.Shadow = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
 }
 
 void Renderer::GeometryPass()
@@ -824,7 +838,9 @@ void Renderer::GeometryPass()
 	
 	_renderDevice->SetConstantBuffer(1, _frameBuffer);
 	_renderDevice->SetConstantBuffer(2, _materialBuffer);
+  
   _renderDevice->SetSamplerState(0, _basicSamplerState);
+  
 	for (auto iter = _opaqueQueue->GetIteratorBegin(); iter != _opaqueQueue->GetIteratorEnd(); iter++)
 	{
 		auto mesh = iter->Renderable->GetMesh();
@@ -898,12 +914,15 @@ void Renderer::LightingPass()
 	_renderDevice->SetTexture(1, _gBuffer->GetColourTarget(1));
 	_renderDevice->SetTexture(2, _gBuffer->GetColourTarget(2));
 	_renderDevice->SetTexture(3, _ssaoBlurRT->GetColourTarget(0));
+  _renderDevice->SetTexture(4, _depthRenderTarget->GetDepthStencilTarget());
 	_renderDevice->SetSamplerState(0, _noMipSamplerState);
 	_renderDevice->SetSamplerState(1, _noMipSamplerState);
 	_renderDevice->SetSamplerState(2, _noMipSamplerState);
 	_renderDevice->SetSamplerState(3, _noMipSamplerState);
+  _renderDevice->SetSamplerState(4, _noMipSamplerState);
 	_renderDevice->SetVertexBuffer(_fsQuadBuffer);
   _renderDevice->SetConstantBuffer(1, _frameBuffer);
+  _renderDevice->SetConstantBuffer(3, _depthBuffer);
 	_renderDevice->Draw(6, 0);
 
   auto end = std::chrono::high_resolution_clock::now();
@@ -932,17 +951,17 @@ void Renderer::GBufferDebugPass(uint32 i)
 
 void Renderer::SetMaterialData(const std::shared_ptr<Material>& material)
 {
-	if (_activeMaterial != nullptr &&
+  if (_activeMaterial != nullptr &&
       material->GetAmbientColour() == _activeMaterial->GetAmbientColour() &&
-		  material->GetDiffuseColour() == _activeMaterial->GetDiffuseColour() &&
-		  material->GetSpecularColour() == _activeMaterial->GetSpecularColour() &&
-			material->GetDiffuseTexture() == _activeMaterial->GetDiffuseTexture() &&
-			material->GetNormalTexture() == _activeMaterial->GetNormalTexture() &&
-			material->GetSpecularTexture() == _activeMaterial->GetSpecularTexture() &&
-			material->GetDepthTexture() == _activeMaterial->GetDepthTexture())
-	{
-		return;
-	}
+      material->GetDiffuseColour() == _activeMaterial->GetDiffuseColour() &&
+      material->GetSpecularColour() == _activeMaterial->GetSpecularColour() &&
+      material->GetDiffuseTexture() == _activeMaterial->GetDiffuseTexture() &&
+      material->GetNormalTexture() == _activeMaterial->GetNormalTexture() &&
+      material->GetSpecularTexture() == _activeMaterial->GetSpecularTexture() &&
+      material->GetDepthTexture() == _activeMaterial->GetDepthTexture())
+  {
+    return;
+  }
 
 	MaterialBufferData matData;
 	matData.Ambient = material->GetAmbientColour();
