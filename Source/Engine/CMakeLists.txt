@@ -1,13 +1,13 @@
-file(GLOB ComponentsSrc 
-	${CMAKE_CURRENT_SOURCE_DIR}/Components/*.h 
-	${CMAKE_CURRENT_SOURCE_DIR}/Components/*.hpp
-	${CMAKE_CURRENT_SOURCE_DIR}/Components/*.cpp
-	)
-	
 file(GLOB CoreSrc 
 	${CMAKE_CURRENT_SOURCE_DIR}/Core/*.h 
 	${CMAKE_CURRENT_SOURCE_DIR}/Core/*.hpp
 	${CMAKE_CURRENT_SOURCE_DIR}/Core/*.cpp
+	)
+
+file(GLOB ImageSrc 
+	${CMAKE_CURRENT_SOURCE_DIR}/Image/*.h 
+	${CMAKE_CURRENT_SOURCE_DIR}/Image/*.hpp
+	${CMAKE_CURRENT_SOURCE_DIR}/Image/*.cpp
 	)
 	
 file(GLOB MathsSrc 
@@ -27,6 +27,30 @@ file(GLOB RenderingSrc
 	${CMAKE_CURRENT_SOURCE_DIR}/Rendering/*.hpp
 	${CMAKE_CURRENT_SOURCE_DIR}/Rendering/*.cpp
 	)
+	
+file(GLOB RenderApiSrc 
+	${CMAKE_CURRENT_SOURCE_DIR}/RenderApi/*.h 
+	${CMAKE_CURRENT_SOURCE_DIR}/RenderApi/*.hpp
+	${CMAKE_CURRENT_SOURCE_DIR}/RenderApi/*.cpp
+	)
+	
+file(GLOB RenderApiGLSrc
+	${CMAKE_CURRENT_SOURCE_DIR}/RenderApi/GL/*.h 
+	${CMAKE_CURRENT_SOURCE_DIR}/RenderApi/GL/*.hpp
+	${CMAKE_CURRENT_SOURCE_DIR}/RenderApi/GL/*.cpp
+	)
+	
+file(GLOB UiSrc
+	${CMAKE_CURRENT_SOURCE_DIR}/UI/*.h 
+	${CMAKE_CURRENT_SOURCE_DIR}/UI/*.hpp
+	${CMAKE_CURRENT_SOURCE_DIR}/UI/*.cpp
+	)
+	
+file(GLOB UiImGuiSrc
+	${CMAKE_CURRENT_SOURCE_DIR}/UI/ImGui/*.h 
+	${CMAKE_CURRENT_SOURCE_DIR}/UI/ImGui/*.hpp
+	${CMAKE_CURRENT_SOURCE_DIR}/UI/ImGui/*.cpp
+)
 	
 file(GLOB GeometrySrc
 	${CMAKE_CURRENT_SOURCE_DIR}/Geometry/*.h 
@@ -58,13 +82,17 @@ file(GLOB ShaderSrc
 	${CMAKE_CURRENT_SOURCE_DIR}/Shaders/*.shader
 	)
 
-source_group(Components FILES ${ComponentsSrc})
 source_group(Core FILES ${CoreSrc})
+source_group(Images FILES ${ImageSrc})
 source_group(Maths FILES ${MathsSrc})
-source_group(Rendering FILES ${RenderingSrc})
+source_group(Rendering FILES ${RenderingSrc}) 
+source_group(RenderApi FILES ${RenderApiSrc})
+source_group(RenderApi\\GL FILES ${RenderApiGLSrc})
 source_group(Geometry FILES ${GeometrySrc})
 source_group(SceneManagement FILES ${SceneManagementSrc})
 source_group(Overlay FILES ${OverlaySrc})
+source_group(UI FILES ${UiSrc})
+source_group(UI\\ImGui FILES ${UiImGuiSrc})
 source_group(Utility FILES ${UtilitySrc})
 source_group(Shaders FILES ${ShaderSrc})
 source_group(Input FILES ${InputSrc})
@@ -77,4 +105,4 @@ IF (APPLE)
 include_directories(${OPENGL_INCLUDE_DIRS})
 ENDIF()
 
-add_library(Engine STATIC ${ComponentsSrc} ${CoreSrc} ${GeometrySrc} ${MathsSrc} ${OverlaySrc} ${RenderingSrc} ${SceneManagementSrc} ${UtilitySrc} ${ShaderSrc} ${InputSrc})
+add_library(Engine STATIC ${CoreSrc} ${GeometrySrc} ${ImageSrc} ${MathsSrc} ${OverlaySrc} ${RenderApiSrc} ${RenderApiGLSrc} ${RenderingSrc} ${SceneManagementSrc} ${UiSrc} ${UiImGuiSrc} ${UtilitySrc} ${ShaderSrc} ${InputSrc})

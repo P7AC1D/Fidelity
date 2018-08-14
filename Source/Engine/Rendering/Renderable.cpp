@@ -1,24 +1,39 @@
 #include "Renderable.hpp"
 
-#include <cassert>
-
+#include "../RenderApi/GpuBuffer.hpp"
+#include "../RenderApi/RenderDevice.hpp"
+#include "Renderer.h"
 #include "StaticMesh.h"
 
-namespace Rendering
+Renderable::Renderable(): Component()
 {
-Renderable::Renderable():
-_castShadows(true)
+	GpuBufferDesc desc;
+	desc.BufferType = BufferType::Constant;
+	desc.BufferUsage = BufferUsage::Stream;
+	desc.ByteCount = sizeof(PerObjectBufferData);
+	_perObjectBuffer = Renderer::GetRenderDevice()->CreateGpuBuffer(desc);
+}
+
+void Renderable::Update()
 {
 }
 
-void Renderable::PushMesh(std::shared_ptr<StaticMesh> mesh)
+void Renderable::UpdatePerObjectBuffer(const PerObjectBufferData& perObjectData)
 {
-  _subMeshes.push_back(mesh);
+	_perObjectBuffer->WriteData(0, sizeof(PerObjectBufferData), &perObjectData, AccessType::WriteOnlyDiscard);
 }
 
-std::shared_ptr<StaticMesh> Renderable::GetMeshAtIndex(size_t index) const
+void Renderable::SetMesh(const std::shared_ptr<StaticMesh>& mesh)
 {
-  assert(index < _subMeshes.size());
-  return _subMeshes[index];
+	_mesh = mesh;
 }
+
+std::shared_ptr<StaticMesh> Renderable::GetMesh() const
+{
+	return _mesh;
+}
+
+std::shared_ptr<GpuBuffer> Renderable::GetPerObjectBuffer() const
+{
+	return _perObjectBuffer;
 }

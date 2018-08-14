@@ -4,6 +4,7 @@
 #include <cmath>
 #include <cstring>
 
+#include "Matrix4.hpp"
 #include "Quaternion.hpp"
 #include "Vector3.hpp"
 
@@ -22,6 +23,13 @@ Matrix3::Matrix3()
 Matrix3::Matrix3(const Matrix3& mat)
 {
   std::memcpy(_m, mat._m, 9 * sizeof(float32));
+}
+
+Matrix3::Matrix3(const Matrix4& mat)
+{
+	_m[0][0] = mat[0][0]; _m[0][1] = mat[0][1]; _m[0][2] = mat[0][2];
+	_m[1][0] = mat[1][0]; _m[1][1] = mat[1][1]; _m[1][2] = mat[1][2];
+	_m[2][0] = mat[2][0]; _m[2][1] = mat[2][1]; _m[2][2] = mat[2][2];
 }
 
 Matrix3::Matrix3(float32 a, float32 b, float32 c,

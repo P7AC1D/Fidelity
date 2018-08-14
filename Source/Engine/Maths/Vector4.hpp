@@ -11,6 +11,7 @@ public:
   
   static float32 Dot(const Vector4& lhs, const Vector4& rhs);
   static Vector4 Normalize(const Vector4& vec);
+	static float32 Length(const Vector4& vec);
   
   Vector4();
   Vector4(float32 k);

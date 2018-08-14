@@ -1,5 +1,7 @@
 #include "Math.hpp"
 
+#include "Vector3.hpp"
+
 float32 Math::Sin(const Radian& angle)
 {
   return std::sinf(angle.InRadians());
@@ -38,4 +40,19 @@ float32 Math::Clamp(float32 value, float32 min, float32 max)
 float32 Math::Abs(float32 value)
 {
   return std::fabs(value);
+}
+
+Vector3 Math::Min(Vector3 a, Vector3 b)
+{
+	return Vector3(std::fmin(a.X, b.X), std::fmin(a.Y, b.Y), std::fmin(a.Z, b.Z));
+}
+
+Vector3 Math::Max(Vector3 a, Vector3 b)
+{
+	return Vector3(std::fmax(a.X, b.X), std::fmax(a.Y, b.Y), std::fmax(a.Z, b.Z));
+}
+
+Vector3 Math::Abs(Vector3 a)
+{
+	return Vector3(std::fabs(a.X), std::fabs(a.Y), std::fabs(a.Z));
 }

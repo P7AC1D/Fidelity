@@ -1,18 +1,15 @@
 #include "Application.h"
 
+#include <iostream>
 #include <SDL.h>
-
 #include "../Input/EventDispatcher.hpp"
 #include "../Input/InputHandler.hpp"
-#include "../Overlay/GuiSystem.hpp"
 #include "../Rendering/Renderer.h"
-#include "../Utility/AssetManager.h"
 #include "../SceneManagement/SceneManager.h"
 
-using namespace Rendering;
-
-Application::~Application()
+Application::~Application() 
 {
+	SDL_DestroyWindow(_window);
 }
 
 int32 Application::Run()
@@ -32,6 +29,11 @@ int32 Application::Run()
     SDL_Event sdlEvent;
     while (SDL_PollEvent(&sdlEvent))
     {
+			if (_debugUi->ProcessEvents(&sdlEvent))
+			{
+				continue;
+			}
+
       switch (sdlEvent.type)
       {
         case SDL_QUIT:
@@ -60,7 +62,6 @@ int32 Application::Run()
           inputEvent.Button = SDLToButton(sdlEvent.key.keysym.sym);
           inputEvent.ButtonEvent = ButtonEvent::Released;
           _inputHandler->Dispatch(inputEvent, dtMs);
-          GuiSystem::Get()->OnEvent(inputEvent);
           break;
         }
         case SDL_KEYDOWN:
@@ -69,7 +70,6 @@ int32 Application::Run()
           inputEvent.Button = SDLToButton(sdlEvent.key.keysym.sym);
           inputEvent.ButtonEvent = ButtonEvent::Pressed;
           _inputHandler->Dispatch(inputEvent, dtMs);
-          GuiSystem::Get()->OnEvent(inputEvent);
           break;
         }          
         case SDL_MOUSEBUTTONUP:
@@ -79,7 +79,6 @@ int32 Application::Run()
           inputEvent.Button = SDLToButton(sdlEvent.button.button);
           inputEvent.ButtonEvent = ButtonEvent::Released;
           _inputHandler->Dispatch(inputEvent, dtMs);
-          GuiSystem::Get()->OnEvent(inputEvent);
           break;
         }
         case SDL_MOUSEBUTTONDOWN:
@@ -89,7 +88,6 @@ int32 Application::Run()
           inputEvent.Button = SDLToButton(sdlEvent.button.button);
           inputEvent.ButtonEvent = ButtonEvent::Pressed;
           _inputHandler->Dispatch(inputEvent, dtMs);
-          GuiSystem::Get()->OnEvent(inputEvent);
           break;
         }
         case SDL_MOUSEMOTION:
@@ -99,7 +97,6 @@ int32 Application::Run()
           inputEvent.AxisPos = Vector2I(sdlEvent.motion.x, sdlEvent.motion.y);
           inputEvent.AxisPosDelta = _cursorPosition - inputEvent.AxisPos;
           _inputHandler->Dispatch(inputEvent, dtMs);
-          GuiSystem::Get()->OnEvent(inputEvent);
 
           _cursorPosition = inputEvent.AxisPos;
           break;
@@ -110,30 +107,26 @@ int32 Application::Run()
           inputEvent.Axis = Axis::MouseScrollXY;
           inputEvent.AxisPosDelta = Vector2I(sdlEvent.wheel.x, sdlEvent.wheel.y);
           _inputHandler->Dispatch(inputEvent, dtMs);
-          GuiSystem::Get()->OnEvent(inputEvent);
           break;
         }
       }
     }   
 
-    _sceneManager->UpdateScene(dtMs);
-    GuiSystem::Get()->Draw();
-
+		SceneManager::Get()->UpdateScene(dtMs);
+		_renderer->DrawFrame();
+		_debugUi->Update();		
     SDL_GL_SwapWindow(_window);
   }
 
-  SDL_DestroyWindow(_window);
   return 0;
 }
 
 Application::Application(const ApplicationDesc &desc) :
   _eventDispatcher(new EventDispatcher),
   _inputHandler(new InputHandler(*_eventDispatcher.get())),
-  _isRunning(false),
   _mouseFocus(true),
   _desc(desc)
 {
-  _sceneManager.reset(new SceneManager());
 }
 
 float32 Application::GetAverageTickMs(int32 dtMs)
@@ -172,7 +165,7 @@ bool Application::Initialize()
 
   SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
   SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);
-  SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
+  SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 1);
   SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
   SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8);
 
@@ -192,12 +185,25 @@ bool Application::Initialize()
     return false;
   }
 
-  auto renderer = Renderer::Get();
-  renderer->SetRenderDimensions(_desc.Width, _desc.Height);
-  if (!renderer->Initialize())
-  {
-    return false;
-  }
+	try
+	{
+		RendererDesc rendererDesc;
+		rendererDesc.RenderWidth = _desc.Width;
+		rendererDesc.RenderHeight = _desc.Height;
+		_renderer.reset(new Renderer(rendererDesc));
+
+		SceneManager::Get()->SetRenderer(_renderer);
+	}
+	catch (const std::exception& exception)
+	{
+#ifdef _DEBUG
+		std::cout << exception.what();
+#endif
+		return false;
+	}
+
+  _debugUi.reset(new UiManager(_window, _glContext));
+	_debugUi->SetRenderer(_renderer);
   return true;
 }
 

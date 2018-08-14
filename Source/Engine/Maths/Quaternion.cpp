@@ -1,5 +1,6 @@
 #include "Quaternion.hpp"
 
+#include <algorithm>
 #include <cassert>
 
 #include "Degree.hpp"
@@ -19,6 +20,10 @@ float32 Quaternion::Dot(const Quaternion& lhs, const Quaternion& rhs)
 Quaternion Quaternion::Normalize(const Quaternion& quat)
 {
   float32 norm = quat.Norm();
+  if (norm <= 0.0f)
+  {
+    return Quaternion(1.0f, 0.0f, 0.0f, 0.0f);
+  }    
   float32 normInv = 1.0f / norm;
   return Quaternion(quat[0] * normInv, quat[1] * normInv, quat[2] * normInv, quat[3] * normInv);
 }
@@ -222,6 +227,11 @@ Quaternion Quaternion::Slerp(const Quaternion& a, const Quaternion& b, float32 t
   return wa * a + wb * b;
 }
 
+Vector3 Quaternion::ToEuler() const
+{
+  return Vector3(Radian(Pitch()).InDegrees(), Radian(Yaw()).InDegrees(), Radian(Roll()).InDegrees());
+}
+
 Quaternion operator+(float32 lhs, const Quaternion& rhs)
 {
   return Quaternion(lhs + rhs.W, lhs + rhs.X, lhs + rhs.Y, lhs + rhs.Z);
@@ -239,24 +249,13 @@ Quaternion operator*(float32 lhs, const Quaternion& rhs)
 
 void Quaternion::FromEulerAngles(const Radian& xAngle, const Radian& yAngle, const Radian& zAngle)
 {
-  Radian halfXAngle = xAngle * 0.5f;
-  Radian halfYAngle = yAngle * 0.5f;
-  Radian halfZAngle = zAngle * 0.5f;
-  
-  float cx = Math::Cos(halfXAngle);
-  float sx = Math::Sin(halfXAngle);
-  
-  float cy = Math::Cos(halfYAngle);
-  float sy = Math::Sin(halfYAngle);
-  
-  float cz = Math::Cos(halfZAngle);
-  float sz = Math::Sin(halfZAngle);
-  
-  Quaternion quatX(cx, sx, 0.0f, 0.0f);
-  Quaternion quatY(cy, 0.0f, sy, 0.0f);
-  Quaternion quatZ(cz, 0.0f, 0.0f, sz);
-  
-  *this = (quatZ * quatX) * quatY;
+  Vector3 c(Math::Cos(xAngle * 0.5f), Math::Cos(yAngle * 0.5f), Math::Cos(zAngle * 0.5f));
+  Vector3 s(Math::Sin(xAngle * 0.5f), Math::Sin(yAngle * 0.5f), Math::Sin(zAngle * 0.5f));
+
+  this->W = c.X * c.Y * c.Z + s.X * s.Y * s.Z;
+  this->X = s.X * c.Y * c.Z - c.X * s.Y * s.Z;
+  this->Y = c.X * s.Y * c.Z + s.X * c.Y * s.Z;
+  this->Z = c.X * c.Y * s.Z - s.X * s.Y * c.Z;
 }
 
 void Quaternion::FromAxisAngle(const Vector3& axis, const Radian& angle)
@@ -315,4 +314,26 @@ void Quaternion::FromRotationMatrix(const Matrix3 & m)
     default: 
       *this = Quaternion(1, 0, 0, 0);
   }
+}
+
+float32 Quaternion::Pitch() const
+{
+	const float32 y = 2.0f * (Y * Z + W * X);
+	const float32 x = W * W - X * X - Y * Y + Z * Z;
+
+	if (y == 0.0f && x == 0.0f)
+	{
+    return 2.0f * std::atan2(X, W);		
+	}
+	return std::atan2(y, x);
+}
+
+float32 Quaternion::Roll() const
+{
+  return std::atan2(2.0f * (X * Y + W * Z), W * W + X * X - Y * Y - Z * Z);
+}
+
+float32 Quaternion::Yaw() const
+{
+  return std::asin(Math::Clamp(-2.0f * (X * Z - W * Y), -1.0f, 1.0f));
 }

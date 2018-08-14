@@ -5,17 +5,16 @@
 
 #include "../Maths/Vector2.hpp"
 #include "../Maths/Vector3.hpp"
-#include "../Rendering/Material.h"
+#include "../Rendering/Material.hpp"
+#include "../Rendering/MaterialFactory.hpp"
 #include "../Rendering/StaticMesh.h"
 #include "Cube.hpp"
 #include "Icosphere.hpp"
 
-using namespace Rendering;
-
 std::shared_ptr<StaticMesh> MeshFactory::CreateCube()
 {
   Cube cube;
-  auto mesh = std::make_shared<StaticMesh>("Cube");
+  auto mesh = std::make_shared<StaticMesh>();
   mesh->SetPositionVertexData(cube.GetPositions());
   mesh->SetTextureVertexData(cube.GetTexCoords());
   mesh->SetIndexData(cube.GetIndices());
@@ -26,47 +25,64 @@ std::shared_ptr<StaticMesh> MeshFactory::CreateCube()
 
 std::shared_ptr<StaticMesh> MeshFactory::CreatePlane(uint32 density)
 {
+	float32 interval = 1.0f / static_cast<float32>(density);
+
+	uint32 vertexWidth = density + 2;
+	uint32 vertexCount = vertexWidth * vertexWidth;
+	uint32 faceCount = (density + 1) * (density + 1);
+	uint32 indexCount = faceCount * 6;
+
   std::vector<Vector3> positions;
-  std::vector<Vector3> normals;
   std::vector<Vector2> texCoords;
+	std::vector<uint32> indices;
 
-  float32 interval = 1.0f / static_cast<float32>(density);
-  for (float32 i = -1.0f; i < 1.0f; i += interval)
+	positions.reserve(vertexCount);
+	texCoords.reserve(vertexCount);
+	indices.reserve(indexCount);
+
+  for (uint32 i = 0; i < vertexWidth; i++)
   {
-    for (float32 j = -1.0f; j < 1.0f; j += interval)
+    float32 y = -1.0f + i * interval;
+    for (uint32 j = 0; j < vertexWidth; j++)
     {
-      positions.emplace_back(i, 0.0f, j + interval);
-      positions.emplace_back(i + interval, 0.0f, j);
-      positions.emplace_back(i, 0.0f, j);
-      normals.emplace_back(0.0f, 1.0f, 0.0f);
-      normals.emplace_back(0.0f, 1.0f, 0.0f);
-      normals.emplace_back(0.0f, 1.0f, 0.0f);
-      texCoords.emplace_back(1.0f, 0.0f);
-      texCoords.emplace_back(0.0f, 1.0f);
-      texCoords.emplace_back(0.0f, 0.0f);
-
-      positions.emplace_back(i + interval, 0.0f, j + interval);
-      positions.emplace_back(i + interval, 0.0f, j);
-      positions.emplace_back(i, 0.0f, j + interval);
-      normals.emplace_back(0.0f, 1.0f, 0.0f);
-      normals.emplace_back(0.0f, 1.0f, 0.0f);
-      normals.emplace_back(0.0f, 1.0f, 0.0f);
-      texCoords.emplace_back(1.0f, 1.0f);
-      texCoords.emplace_back(0.0f, 1.0f);
-      texCoords.emplace_back(1.0f, 0.0f);
+      float32 x = -1.0f + j * interval;
+      positions.push_back(Vector3(x, 0.0f, y));
+      texCoords.push_back(Vector2(i, j));
     }
   }
-  auto mesh = std::make_shared<StaticMesh>("Plane");
+
+	uint32 offset = 0;
+	for (uint32 i = 0; i < indexCount; i = i + 6)
+	{
+		uint32 cornerIndex = i / 6 + offset;
+		if ((cornerIndex + 1) % vertexWidth == 0)
+		{
+			offset++;
+			cornerIndex++;
+		}
+
+		indices.push_back(cornerIndex);
+		indices.push_back(cornerIndex + vertexWidth);
+		indices.push_back(cornerIndex + vertexWidth + 1);
+
+		indices.push_back(cornerIndex);
+		indices.push_back(cornerIndex + vertexWidth + 1);
+		indices.push_back(cornerIndex + 1);
+	}
+
+  auto mesh = std::make_shared<StaticMesh>();
   mesh->SetPositionVertexData(positions);
-  mesh->SetNormalVertexData(normals);
   mesh->SetTextureVertexData(texCoords);
+	mesh->SetIndexData(indices);
+	mesh->GenerateNormals();
+	mesh->GenerateTangents();
   return mesh;
 }
 
-std::shared_ptr<Rendering::StaticMesh> MeshFactory::CreateIcosphere(uint32 recursionCount)
+std::shared_ptr<StaticMesh> MeshFactory::CreateIcosphere(uint32 recursionCount)
 {
   Icosphere icosphere(recursionCount);
-  auto mesh = std::make_shared<StaticMesh>("Icosphere");
+  auto mesh = std::make_shared<StaticMesh>();
   mesh->SetPositionVertexData(icosphere.GetPositions());  
   mesh->SetTextureVertexData(icosphere.GetTexCoords());
   mesh->SetIndexData(icosphere.GetIndices());

@@ -2,6 +2,7 @@
 
 #include <cassert>
 
+Colour Colour::Zero = Colour(0, 0, 0, 0);
 Colour Colour::Black = Colour(0, 0, 0);
 Colour Colour::White = Colour(255, 255, 255);
 Colour Colour::Red = Colour(255, 0, 0);
@@ -83,3 +84,8 @@ float32 Colour::operator[](int32 i) const
   return *(&_red + i);
 }
 
+float32& Colour::operator[](int32 i)
+{
+  assert(i < 4);
+  return *(&_red + i);
+}

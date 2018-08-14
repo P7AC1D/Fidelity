@@ -4,9 +4,15 @@
 #include <cmath>
 
 #include "Vector2.hpp"
+#include "Vector4.hpp"
 
 Vector3 Vector3::Zero = Vector3(0.0f);
 Vector3 Vector3::Identity = Vector3(1.0f);
+
+float32 Vector3::Length(const Vector3& a)
+{
+	return a.Length();
+}
 
 float32 Vector3::Dot(const Vector3& a, const Vector3& b)
 {
@@ -64,6 +70,13 @@ Vector3::Vector3(const Vector3& vec)
   Z = vec.Z;
 }
 
+Vector3::Vector3(const Vector4& vec)
+{
+	X = vec.X;
+	Y = vec.Y;
+	Z = vec.Z;
+}
+
 Vector3 Vector3::operator-() const
 {
   return Vector3(-X, -Y, -Z);
@@ -117,6 +130,14 @@ Vector3 Vector3::operator*(float32 rhs) const
   return Vector3(x, y, z);
 }
 
+Vector3  Vector3::operator/(float32 rhs) const
+{
+	float32 x = X / rhs;
+	float32 y = Y / rhs;
+	float32 z = Z / rhs;
+	return Vector3(x, y, z);
+}
+
 Vector3 Vector3::operator*(const Vector3& rhs) const
 {
   float32 x = X * rhs[0];
@@ -163,6 +184,14 @@ Vector3& Vector3::operator*=(float32 rhs)
   Y *= rhs;
   Z *= rhs;
   return *this;
+}
+
+Vector3& Vector3::operator*=(const Vector3& rhs)
+{
+	X *= rhs.X;
+	Y *= rhs.Y;
+	Z *= rhs.Z;
+	return *this;
 }
 
 bool Vector3::operator==(const Vector3& rhs) const

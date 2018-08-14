@@ -1,128 +1,233 @@
 #pragma once
 #include <memory>
 #include <string>
-#include <unordered_map>
 #include <vector>
-
-#include "../Core/System.hpp"
 #include "../Core/Types.hpp"
 #include "../Maths/Colour.hpp"
-#include "../Maths/Vector3.hpp"
-#include "../SceneManagement/Light.h"
-#include "../SceneManagement/Camera.hpp"
-#include "../SceneManagement/Transform.h"
-#include "Renderable.hpp"
+#include "../Maths/Matrix4.hpp"
+#include "../Maths/Vector2I.hpp"
 
-class SkyBox;
-class TextOverlay;
+class Aabb;
+class GpuBuffer;
+class Material;
+class PipelineState;
+class SamplerState;
+class RenderDevice;
+class RenderQueue;
+class RenderTarget;
+class Renderable;
+class Texture;
+class Transform;
+class VertexBuffer;
 
-namespace Rendering
+struct DirectionalLightData
 {
-  class ConstantBuffer;
-  class RenderTarget;
-  class Shader;
-  class ShaderCollection;
-  class StaticMesh;
-  class Texture;
-  class VertexBuffer;
-  enum class RenderingTechnique;
+	DirectionalLightData():
+		Colour(Colour::White),
+		Direction(-Vector3::Identity),
+		Intensity(1.0f)
+	{}
 
-enum ClearType : uint8
-{
-  CT_Colour = 1 << 0,
-  CT_Depth = 1 << 1,
-  CT_Stencil = 1 << 2
+	DirectionalLightData(const Colour& colour, const Vector3& direction, float32 intensity):
+		Colour(colour),
+		Direction(direction),
+		Intensity(intensity)
+	{}
+
+	Colour Colour;
+	Vector3 Direction;
+	float32 Intensity;
 };
 
-enum class BlendType
+struct AmbientLightData
 {
-  SrcAlpha,
-  OneMinusSrcAlpha
+  AmbientLightData() : Colour(Colour::White), Intensity(0.2f), SpecularExponent(10.0f), SsaoEnabled(1) {}
+  AmbientLightData(const Colour& colour, float32 intensity) : Colour(colour), Intensity(intensity), SpecularExponent(10.0f), SsaoEnabled(1) {}
+
+  Colour Colour;
+  float32 Intensity;
+	float32 SpecularExponent;
+	int32 SsaoEnabled;
 };
 
-struct RenderableItem
+enum class RenderApi
 {
-  RenderableItem(std::shared_ptr<Renderable> renderable, std::shared_ptr<Transform> transform):
-    Renderable(renderable),
-    Transform(transform)
-  {}
-
-  std::shared_ptr<Renderable> Renderable;
-  std::shared_ptr<Transform> Transform;
+  GL41
 };
 
-class Renderer : public System<Renderer>
+enum class DebugDisplayType
+{
+	Disabled,
+	ShadowMap,
+	Position,
+	Normal,
+	Albedo
+};
+
+// In nano-seconds
+struct RenderTimings
+{
+  uint64 Frame = 0;
+  uint64 Shadow = 0;
+  uint64 GBuffer = 0;
+  uint64 Lighting = 0;
+  uint64 Ssao = 0;
+};
+
+struct RenderCounts
+{
+	uint64 TriangleCount = 0;
+	uint64 MaterialCount = 0;
+	uint64 DrawCount = 0;
+};
+  
+struct RendererDesc
+{
+  uint32 RenderWidth;
+  uint32 RenderHeight;
+  RenderApi RenderApi = RenderApi::GL41;
+  bool FullscreenEnabled = false;
+  bool VsyncEnabled = false;
+  Vector2I ShadowRes = Vector2I(512, 512);
+};
+
+class Renderer
 {
 public:
-  ~Renderer();
+	static std::shared_ptr<RenderDevice> GetRenderDevice();
 
-  inline void SetAmbientLight(const Colour& ambientLight) { _ambientLight = ambientLight; }
-  inline void SetSkyBox(std::shared_ptr<SkyBox> skyBox) { _skyBox = skyBox; }
-  inline void PushRenderable(std::shared_ptr<Renderable> renderable, std::shared_ptr<Transform> transform) { _renderables.emplace_back(renderable, transform); }
-  inline void PushPointLight(const Light& pointLight) { _pointLights.push_back(pointLight); }
-  inline void PushDirectionalLight(const Light& directionalLight) { _directionalLights.push_back(directionalLight); }
-
-  inline uint32 GetWidth() const { return _renderWidth; }
-  inline uint32 GetHeight() const { return _renderHeight; }
-
-  void SetClearColour(const Colour& colour);
-
-  void DrawScene(std::weak_ptr<Camera> camera);
-
-  static void Draw(uint32 vertexCount, uint32 vertexOffset = 0);
-  static void DrawIndexed(uint32 indexCount);
-
-  bool Initialize();
+  Renderer(const RendererDesc& desc);
   
-  void SetRenderDimensions(uint32 width, uint32 height);
-
-  void EnableBlend(BlendType source, BlendType destination);
-  void DisableBlend();
+  uint32 GetRenderWidth() const { return _desc.RenderWidth; }
+  uint32 GetRenderHeight() const { return _desc.RenderHeight; }
+  RenderTimings GetFrameRenderTimings() const { return _renderTimings; }
+	RenderCounts GetFrameRenderCounts() const { return _renderCounts; }
   
-  void EnableDepthTest();
-  void DisableDepthTest();
-  void EnableStencilTest();
-  void DisableStencilTest();
+	void SetDirectionalLight(const DirectionalLightData& directionalLightData) { _directionalLightData = directionalLightData; }
+  void SetAmbientLight(const AmbientLightData& ambientLightData) { _ambientLightData = ambientLightData; }
+
+	void EnableDebugPass(DebugDisplayType debugDisplayType) { _debugDisplayType = debugDisplayType; }
+
+	void EnableSsao(bool enabled) { _ssaoEnabled = enabled; }
+	void EnableHdr(bool enabled) { _hdrEnabled = enabled; }
+
+	bool IsSsaoEnabled() const { return _ssaoEnabled; }
+	bool IsHdrEnabled() const { return _hdrEnabled; }
+  
+  void Push(const std::shared_ptr<Renderable>& renderable, const std::shared_ptr<Transform>& transform, const Aabb& bounds);
+  
+  void DrawFrame();
+  
+private:
+  void InitShadowDepthPass();
+  void InitDepthRenderTarget();
+	void InitDepthBuffer();
+  void InitGeometryPass();
+  void InitFrameBuffer();
+	void InitMaterialBuffer();
+	void InitLightingPass();
+  void InitSsaoPass();
+	void InitSsaoBlurPass();
+	void InitFullscreenQuad();
+  void InitDepthDebugPass();
+	void InitGBufferDebugPass();
+  
+  void GenerateSsaoKernel();
+
+  void StartFrame();
+	void EndFrame();
+
+  void ShadowDepthPass();
+	void GeometryPass();
+	void LightingPass();
+  void SsaoPass();
+	void SsaoBlurPass();
+
+	void ShadowDepthDebugPass();
+	void GBufferDebugPass(uint32 i);
+
+	void SetMaterialData(const std::shared_ptr<Material>& material);
 
 private:
-  void SetViewport(uint32 renderWidth, uint32 renderHeight);  
-  Renderer();
+	static std::shared_ptr<RenderDevice> _renderDevice;
+	static const uint32 MaxKernelSize = 64;
 
-  void UploadPointLightData(const Light& pointLight);
-  void UploadDirectionalLightData(const Light& directionalLight);
+	struct ShadowBufferData
+	{
+		Matrix4 Projection;
+		Matrix4 View;
+    Vector2 TexelDims;
+	};
 
-  void ExecuteDirectionalLightDepthPass(const Matrix4& lightSpaceTransform, uint32 shadowResolution);
-  void ExecuteGeometryPass(std::weak_ptr<Camera> camera);
-  void ExecuteLightingPass(std::weak_ptr<Camera> camera, const Matrix4& lightSpaceTransform);
-  void DrawSkyBox(std::weak_ptr<Camera> camera);
+	struct SsaoDetailsData
+	{
+		Vector4 Samples[MaxKernelSize];
+		int32 Enabled = 1;
+		int32 KernelSize = 64;
+		int32 QuadWidth;
+		int32 QuadHeight;
+		float32 Radius = 0.5f;
+		float32 Bias = 0.025f;
+		float32 _paddingA;
+		float32 _paddingB;
+		float32 _paddingC;
+	} _ssaoDetailsData;
 
-  void ClearBuffer(uint32 clearType);
+	struct HdrData
+	{
+		int Enabled = 1;
+		float32 Exposure = 1.0f;
+	} _hdrData;
 
-  Matrix4 BuildLightSpaceTransform(const Light& directionalLight);
-
-private:
-  std::vector<RenderableItem> _renderables;
-  std::vector<Light> _pointLights;
-  std::vector<Light> _directionalLights;
+	struct FrameBufferData
+	{
+		Matrix4 Proj;
+		Matrix4 View;
+    Matrix4 ViewInvs;
+		DirectionalLightData DirectionalLight;
+		Vector4 ViewPosition;
+		AmbientLightData AmbientLight;
+		SsaoDetailsData SsaoDetails;
+		HdrData Hdr;
+	};
   
-  std::unique_ptr<ShaderCollection> _shaderCollection;
+  RendererDesc _desc;
+	DebugDisplayType _debugDisplayType;
+	DirectionalLightData _directionalLightData;
+  AmbientLightData _ambientLightData;
 
-  std::unique_ptr<ConstantBuffer> _lightBuffer;
-  std::unique_ptr<ConstantBuffer> _ambientLightBuffer;
-
-  std::unique_ptr<VertexBuffer> _quadVertexData;
-  std::unique_ptr<VertexBuffer> _skyBoxVertexData;
+  std::shared_ptr<GpuBuffer> _frameBuffer;
+	std::shared_ptr<GpuBuffer> _materialBuffer;
+	std::shared_ptr<GpuBuffer> _depthBuffer;
   
-  std::shared_ptr<RenderTarget> _gBuffer;
-  std::shared_ptr<RenderTarget> _depthBuffer;
+  std::shared_ptr<PipelineState> _shadowDepthPso;
+  std::shared_ptr<PipelineState> _geomPassPso;
+	std::shared_ptr<PipelineState> _lightPassPso;
+  std::shared_ptr<PipelineState> _ssaoPassPso;
+	std::shared_ptr<PipelineState> _ssaoBlurPassPso;
+	std::shared_ptr<PipelineState> _gBufferDebugPso;
+  std::shared_ptr<PipelineState> _depthDebugPso;
+  
+	std::shared_ptr<SamplerState> _basicSamplerState;
+	std::shared_ptr<SamplerState> _noMipSamplerState;
+  std::shared_ptr<SamplerState> _ssaoSamplerState;
+  
+  std::shared_ptr<RenderTarget> _depthRenderTarget;
+	std::shared_ptr<RenderTarget> _gBuffer;
+  std::shared_ptr<RenderTarget> _ssaoRT;
+	std::shared_ptr<RenderTarget> _ssaoBlurRT;
+  
+	std::shared_ptr<VertexBuffer> _fsQuadBuffer;
+	std::shared_ptr<Material> _activeMaterial;
+	std::shared_ptr<RenderQueue> _opaqueQueue;
+  std::shared_ptr<Texture> _ssaoNoiseTexture;
+  
+  std::vector<Vector3> _ssaoKernel;
+  std::vector<Vector3> _ssaoNoise;
 
-  std::shared_ptr<SkyBox> _skyBox;
+  RenderTimings _renderTimings;
+	RenderCounts _renderCounts;
 
-  uint32 _renderWidth;
-  uint32 _renderHeight;
-  uint32 _shadowResolution = 4096;
-  Colour _ambientLight;
-
-  friend class System<Renderer>;
+	bool _ssaoEnabled;
+	bool _hdrEnabled;
 };
-}

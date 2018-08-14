@@ -5,6 +5,8 @@
 #include "Degree.hpp"
 #include "Radian.hpp"
 
+class Vector3;
+
 class Math
 {
 public:
@@ -24,4 +26,8 @@ public:
 
   static float32 Clamp(float32 value, float32 min, float32 max);
   static float32 Abs(float32 value);
+
+	static Vector3 Min(Vector3 a, Vector3 b);
+	static Vector3 Max(Vector3 a, Vector3 b);
+	static Vector3 Abs(Vector3 a);
 };

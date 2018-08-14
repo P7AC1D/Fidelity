@@ -5,7 +5,6 @@ class OrbitalCamera : public Camera
 {
 public:
   OrbitalCamera(float32 rotationAcceleration = 1.0f, float32 zoomAcceleration = 1.0f);
-  virtual ~OrbitalCamera();
 
   void RotateAboutTarget(const Degree& deltaX, const Degree& deltaY, int32 dtMs);
   void Zoom(float32 delta, int32 dtMs);

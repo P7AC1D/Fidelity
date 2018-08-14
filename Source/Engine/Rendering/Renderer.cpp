@@ -1,339 +1,1007 @@
 #include "Renderer.h"
 
-#include "../Maths/Colour.hpp"
-#include "../Maths/Matrix4.hpp"
-#include "../SceneManagement/Light.h"
-#include "../SceneManagement/SkyBox.hpp"
-#include "../SceneManagement/WorldObject.h"
-#include "../Shaders/DirDepthPassShader.hpp"
-#include "../Shaders/GeometryPassShader.hpp"
-#include "../Shaders/DirLightingPassShader.hpp"
-#include "../Shaders/SkyBoxShader.hpp"
-#include "../Shaders/TextOverlayShader.hpp"
-#include "ConstantBuffer.h"
-#include "Material.h"
-#include "OpenGL.h"
+#include <chrono>
+#include <random>
+#include "../Maths/AABB.hpp"
+#include "../Utility/Assert.hpp"
+#include "../Utility/String.hpp"
+#include "../RenderApi/GL/GLRenderDevice.hpp"
+#include "../RenderApi/PipelineState.hpp"
+#include "../RenderApi/RenderTarget.hpp"
+#include "../RenderApi/SamplerState.hpp"
+#include "../RenderApi/ShaderParams.hpp"
+#include "../RenderApi/VertexBuffer.hpp"
+#include "../SceneManagement/Camera.hpp"
+#include "../SceneManagement/SceneManager.h"
+#include "../SceneManagement/Transform.h"
+#include "Material.hpp"
 #include "Renderable.hpp"
-#include "RenderTarget.hpp"
-#include "Shader.h"
-#include "ShaderCollection.h"
-#include "Texture.hpp"
+#include "RenderQueue.hpp"
 #include "StaticMesh.h"
-#include "VertexBuffer.h"
 
-namespace Rendering
+struct FullscreenQuadVertex
 {
-GLenum ToBlendType(BlendType blendType)
-{
-  switch (blendType)
-  {
-    case BlendType::SrcAlpha: return GL_SRC_ALPHA;
-    case BlendType::OneMinusSrcAlpha: return GL_ONE_MINUS_SRC_ALPHA;
-    default: GL_ONE;
-  }
-}
+	Vector2 Position;
+	Vector2 TexCoord;
 
-enum class UniformBindingPoint
-{
-  Transforms = 0,
-  Light = 1,
+	FullscreenQuadVertex(const Vector2& position, const Vector2& texCoord) :
+		Position(position), TexCoord(texCoord)
+	{}
 };
 
-Renderer::~Renderer()
+std::vector<FullscreenQuadVertex> FullscreenQuadVertices
 {
-}
+	FullscreenQuadVertex(Vector2(-1.0f, -1.0f), Vector2(0.0f, 0.0f)),
+	FullscreenQuadVertex(Vector2(1.0f, -1.0f), Vector2(1.0f, 0.0f)),
+	FullscreenQuadVertex(Vector2(-1.0f, 1.0f), Vector2(0.0f, 1.0f)),
+	FullscreenQuadVertex(Vector2(1.0f, -1.0f), Vector2(1.0f, 0.0f)),
+	FullscreenQuadVertex(Vector2(1.0f, 1.0f), Vector2(1.0f, 1.0f)),
+	FullscreenQuadVertex(Vector2(-1.0f, 1.0f), Vector2(0.0f, 1.0f))
+};
 
-void Renderer::SetClearColour(const Colour& colour)
+struct MaterialBufferData
 {
-  glClearColor(colour[0], colour[1], colour[2], 0.0f);
-}
-
-void Renderer::DrawScene(std::weak_ptr<Camera> camera)
-{
-  auto lightSpaceTransform = BuildLightSpaceTransform(_directionalLights[0]);
-  ExecuteDirectionalLightDepthPass(lightSpaceTransform, _shadowResolution);
-
-  ExecuteGeometryPass(camera);
-  ExecuteLightingPass(camera, lightSpaceTransform);
-  DrawSkyBox(camera);
-
-  _renderables.clear();
-  _pointLights.clear();
-  _directionalLights.clear();
-}
-
-void Renderer::Draw(uint32 vertexCount, uint32 vertexOffset)
-{
-  GLCall(glDrawArrays(GL_TRIANGLES, vertexOffset, vertexCount));
-}
-
-void Renderer::DrawIndexed(uint32 indexCount)
-{
-  GLCall(glDrawElements(GL_TRIANGLES, indexCount, GL_UNSIGNED_INT, 0));
-}
-
-bool Renderer::Initialize()
-{
-#ifdef _WIN32
-  glewExperimental = GL_TRUE;
-  GLenum error = glewInit();
-  if (error != GLEW_OK)
+  struct TextureMapFlagData
   {
-    //LOG_ERROR << "Could not initialize GLEW: " + std::string((char*)glewGetErrorString(error));
-    return false;
-  }
-#endif
+    int32 Diffuse = 0;
+    int32 Normal = 0;
+    int32 Specular = 0;
+    int32 Depth = 0;
+  } EnabledTextureMaps;
+  Colour Ambient = Colour::White;
+  Colour Diffuse = Colour::White;
+  Colour Specular = Colour::White;
+};
+
+std::shared_ptr<RenderDevice> Renderer::_renderDevice;
+
+std::shared_ptr<RenderDevice> Renderer::GetRenderDevice()
+{
+	ASSERT_FALSE(_renderDevice == nullptr, "Render device has not been initialized");
+	return _renderDevice;
+}
+
+Renderer::Renderer(const RendererDesc& desc) :
+	_desc(desc),
+	_opaqueQueue(new RenderQueue),
+	_ssaoEnabled(true),
+	_hdrEnabled(true)
+{
+  try
+  {
+    ASSERT_TRUE(desc.RenderApi == RenderApi::GL41, "Only OpenGL 4.1 is supported");
     
-  GLCall(glCullFace(GL_BACK));
-  GLCall(glFrontFace(GL_CCW));
-
-  SetClearColour(Colour::Black);
-  _lightBuffer.reset(new ConstantBuffer(52));
-
-  RenderTargetDesc gBufferDesc;
-  gBufferDesc.Width = _renderWidth;
-  gBufferDesc.Height = _renderHeight;
-  gBufferDesc.ColourBufferCount = 3;
-  gBufferDesc.EnableStencilBuffer = true;
-  _gBuffer.reset(new RenderTarget(gBufferDesc));
-
-  RenderTargetDesc dirDepthBufferDesc;
-  dirDepthBufferDesc.Width = _shadowResolution;
-  dirDepthBufferDesc.Height = _shadowResolution;
-  dirDepthBufferDesc.ColourBufferCount = 0;
-  dirDepthBufferDesc.EnableStencilBuffer = false;
-  _depthBuffer.reset(new RenderTarget(dirDepthBufferDesc));
-
-  if (!_quadVertexData)
+    RenderDeviceDesc renderDeviceDesc;
+    renderDeviceDesc.RenderWidth = _desc.RenderWidth;
+    renderDeviceDesc.RenderHeight = _desc.RenderHeight;
+    _renderDevice.reset(new GLRenderDevice(renderDeviceDesc));
+    
+    GenerateSsaoKernel();
+    
+		InitDepthBuffer();
+    InitShadowDepthPass();
+    InitDepthRenderTarget();
+    InitGeometryPass();
+    InitFrameBuffer();
+		InitMaterialBuffer();
+		InitFullscreenQuad();
+		InitLightingPass();
+    InitDepthDebugPass();
+		InitGBufferDebugPass();
+    InitSsaoPass();
+		InitSsaoBlurPass();
+  }
+  catch (const std::exception& exception)
   {
-    std::vector<Vector2> quadVertexData
+    throw std::runtime_error(std::string("Could not initialize Renderer\n") + exception.what());
+  }
+}
+
+void Renderer::Push(const std::shared_ptr<Renderable>& renderable, const std::shared_ptr<Transform>& transform, const Aabb& bounds)
+{
+	_opaqueQueue->Push(renderable, transform, bounds);
+
+	auto camera = SceneManager::Get()->GetCamera();
+
+	PerObjectBufferData perObjectData;
+	perObjectData.Model = transform->Get();
+	perObjectData.ModelView = camera->GetView() * perObjectData.Model;
+	perObjectData.ModelViewProjection = camera->GetProjection() * perObjectData.ModelView;
+	renderable->UpdatePerObjectBuffer(perObjectData);
+}
+
+void Renderer::DrawFrame()
+{
+  auto frameStart = std::chrono::high_resolution_clock::now();
+
+  StartFrame();
+  
+  auto shadowPassStart = std::chrono::high_resolution_clock::now();
+  ShadowDepthPass();
+  auto shadowPassEnd = std::chrono::high_resolution_clock::now();
+  _renderTimings.Shadow = std::chrono::duration_cast<std::chrono::nanoseconds>(shadowPassEnd - shadowPassStart).count();
+  
+	GeometryPass();
+
+  auto ssaoStart = std::chrono::high_resolution_clock::now();
+  SsaoPass();
+	SsaoBlurPass();
+  auto ssaoEnd = std::chrono::high_resolution_clock::now();
+  _renderTimings.Ssao = std::chrono::duration_cast<std::chrono::nanoseconds>(ssaoEnd - ssaoStart).count();
+
+	switch (_debugDisplayType)
+	{
+		default:
+		case DebugDisplayType::Disabled:
+			LightingPass();
+			break;
+		case DebugDisplayType::ShadowMap:
+			ShadowDepthDebugPass();
+			break;
+		case DebugDisplayType::Position:
+			GBufferDebugPass(0);
+			break;
+		case DebugDisplayType::Normal:
+			GBufferDebugPass(1);
+			break;
+		case DebugDisplayType::Albedo:
+			GBufferDebugPass(2);
+			break;
+	}		
+	EndFrame();
+
+	_opaqueQueue->Clear();
+
+  auto frameEnd = std::chrono::high_resolution_clock::now();
+  _renderTimings.Frame = std::chrono::duration_cast<std::chrono::nanoseconds>(frameEnd - frameStart).count();
+}
+
+void Renderer::InitShadowDepthPass()
+{
+  ShaderDesc vsDesc;
+  vsDesc.EntryPoint = "main";
+  vsDesc.ShaderLang = ShaderLang::Glsl;
+  vsDesc.ShaderType = ShaderType::Vertex;
+  vsDesc.Source = String::LoadFromFile("./../../Resources/Shaders/ShadowDepthVS.glsl");
+  
+  ShaderDesc psDesc;
+  psDesc.EntryPoint = "main";
+  psDesc.ShaderLang = ShaderLang::Glsl;
+  psDesc.ShaderType = ShaderType::Pixel;
+  psDesc.Source = String::LoadFromFile("./../../Resources/Shaders/ShadowDepthPS.glsl");
+  
+  std::vector<VertexLayoutDesc> vertexLayoutDesc
+  {
+		VertexLayoutDesc(SemanticType::Position, SemanticFormat::Float3),
+		VertexLayoutDesc(SemanticType::Normal, SemanticFormat::Float3),
+		VertexLayoutDesc(SemanticType::TexCoord, SemanticFormat::Float2),
+		VertexLayoutDesc(SemanticType::Tangent, SemanticFormat::Float3),
+		VertexLayoutDesc(SemanticType::Bitangent, SemanticFormat::Float3)
+  };
+  
+  std::shared_ptr<ShaderParams> shaderParams(new ShaderParams());
+  shaderParams->AddParam(ShaderParam("ObjectBuffer", ShaderParamType::ConstBuffer, 0));
+  shaderParams->AddParam(ShaderParam("ShadowBuffer", ShaderParamType::ConstBuffer, 3));
+  
+  try
+  {
+    PipelineStateDesc pipelineDesc;
+    pipelineDesc.VS = _renderDevice->CreateShader(vsDesc);
+    pipelineDesc.PS = _renderDevice->CreateShader(psDesc);
+    pipelineDesc.BlendState = _renderDevice->CreateBlendState(BlendStateDesc());
+    pipelineDesc.RasterizerState = _renderDevice->CreateRasterizerState(RasterizerStateDesc());
+    pipelineDesc.DepthStencilState = _renderDevice->CreateDepthStencilState(DepthStencilStateDesc());
+    pipelineDesc.VertexLayout = _renderDevice->CreateVertexLayout(vertexLayoutDesc);
+    pipelineDesc.ShaderParams = shaderParams;
+    
+    _shadowDepthPso = _renderDevice->CreatePipelineState(pipelineDesc);
+  }
+  catch (const std::exception& exception)
+  {
+    throw std::runtime_error("Unable to initialize shadow-depth pipeline states. " + std::string(exception.what()));
+  }
+}
+
+void Renderer::InitDepthRenderTarget()
+{
+  try
+  {
+    TextureDesc depthStencilDesc;
+    depthStencilDesc.Width = _desc.ShadowRes.X;
+    depthStencilDesc.Height = _desc.ShadowRes.Y;
+    depthStencilDesc.Usage = TextureUsage::Depth;
+    depthStencilDesc.Type = TextureType::Texture2D;
+    depthStencilDesc.Format = TextureFormat::D32;
+    
+    RenderTargetDesc rtDesc;
+    rtDesc.DepthStencilTarget = _renderDevice->CreateTexture(depthStencilDesc);
+    rtDesc.Height = _desc.ShadowRes.Y;
+    rtDesc.Width = _desc.ShadowRes.X;
+    
+    _depthRenderTarget = _renderDevice->CreateRenderTarget(rtDesc);
+  }
+  catch (const std::exception& ex)
+  {
+    throw std::runtime_error("Unable to initalize shadow depth render targets. " + std::string(ex.what()));
+  }
+}
+
+void Renderer::InitDepthBuffer()
+{
+	try
+	{
+		GpuBufferDesc desc;
+		desc.BufferType = BufferType::Constant;
+		desc.BufferUsage = BufferUsage::Stream;
+		desc.ByteCount = sizeof(FrameBufferData);
+		_depthBuffer = _renderDevice->CreateGpuBuffer(desc);
+	}
+	catch (const std::exception& exception)
+	{
+		throw std::runtime_error(std::string("Could not initialize depth constant buffer\n") + exception.what());
+	}
+}
+
+void Renderer::InitGeometryPass()
+{
+  ShaderDesc vsDesc;
+  vsDesc.EntryPoint = "main";
+  vsDesc.ShaderLang = ShaderLang::Glsl;
+  vsDesc.ShaderType = ShaderType::Vertex;
+  vsDesc.Source = String::LoadFromFile("./../../Resources/Shaders/GeometryPassVS.glsl");
+  
+  ShaderDesc psDesc;
+  psDesc.EntryPoint = "main";
+  psDesc.ShaderLang = ShaderLang::Glsl;
+  psDesc.ShaderType = ShaderType::Pixel;
+  psDesc.Source = String::LoadFromFile("./../../Resources/Shaders/GeometryPassPS.glsl");
+  
+  std::vector<VertexLayoutDesc> vertexLayoutDesc
+  {
+    VertexLayoutDesc(SemanticType::Position, SemanticFormat::Float3),
+		VertexLayoutDesc(SemanticType::Normal, SemanticFormat::Float3),
+		VertexLayoutDesc(SemanticType::TexCoord, SemanticFormat::Float2),
+		VertexLayoutDesc(SemanticType::Tangent, SemanticFormat::Float3),
+		VertexLayoutDesc(SemanticType::Bitangent, SemanticFormat::Float3)
+  };
+  
+  std::shared_ptr<ShaderParams> shaderParams(new ShaderParams());
+	shaderParams->AddParam(ShaderParam("ObjectBuffer", ShaderParamType::ConstBuffer, 0));
+  shaderParams->AddParam(ShaderParam("FrameBuffer", ShaderParamType::ConstBuffer, 1));
+	shaderParams->AddParam(ShaderParam("MaterialBuffer", ShaderParamType::ConstBuffer, 2));
+	shaderParams->AddParam(ShaderParam("DiffuseMap", ShaderParamType::Texture, 0));
+	shaderParams->AddParam(ShaderParam("NormalMap", ShaderParamType::Texture, 1));
+	shaderParams->AddParam(ShaderParam("SpecularMap", ShaderParamType::Texture, 2));
+	shaderParams->AddParam(ShaderParam("DepthMap", ShaderParamType::Texture, 3));
+  
+	RasterizerStateDesc rasterizerStateDesc;
+	rasterizerStateDesc.CullMode = CullMode::CounterClockwise;
+
+  try
+  {
+    PipelineStateDesc pipelineDesc;
+    pipelineDesc.VS = _renderDevice->CreateShader(vsDesc);
+    pipelineDesc.PS = _renderDevice->CreateShader(psDesc);
+    pipelineDesc.BlendState = _renderDevice->CreateBlendState(BlendStateDesc());
+    pipelineDesc.RasterizerState = _renderDevice->CreateRasterizerState(rasterizerStateDesc);
+    pipelineDesc.DepthStencilState = _renderDevice->CreateDepthStencilState(DepthStencilStateDesc());
+    pipelineDesc.VertexLayout = _renderDevice->CreateVertexLayout(vertexLayoutDesc);
+    pipelineDesc.ShaderParams = shaderParams;
+    
+    _geomPassPso = _renderDevice->CreatePipelineState(pipelineDesc);
+  }
+  catch (const std::exception& exception)
+  {
+    throw std::runtime_error("Unable to initialize pipeline states. " + std::string(exception.what()));
+  }
+
+	try
+	{
+		SamplerStateDesc desc;
+    desc.AddressingMode = AddressingMode{ TextureAddressMode::Wrap, TextureAddressMode::Wrap, TextureAddressMode::Wrap };
+		desc.MinFiltering = TextureFilteringMode::Linear;
+		desc.MinFiltering = TextureFilteringMode::Linear;
+		desc.MipFiltering = TextureFilteringMode::Linear;
+		_basicSamplerState = _renderDevice->CreateSamplerState(desc);
+	}
+	catch (const std::exception& ex)
+	{
+		throw std::runtime_error("Unable to initalize sampler state. " + std::string(ex.what()));
+	}
+
+	try
+	{
+		TextureDesc colourTexDesc;
+		colourTexDesc.Width = GetRenderWidth();
+		colourTexDesc.Height = GetRenderHeight();
+		colourTexDesc.Usage = TextureUsage::RenderTarget;
+		colourTexDesc.Type = TextureType::Texture2D;
+		colourTexDesc.Format = TextureFormat::RGB16F;
+
+		TextureDesc depthStencilDesc;
+		depthStencilDesc.Width = GetRenderWidth();
+		depthStencilDesc.Height = GetRenderHeight();
+		depthStencilDesc.Usage = TextureUsage::DepthStencil;
+		depthStencilDesc.Type = TextureType::Texture2D;
+		depthStencilDesc.Format = TextureFormat::D24S8;
+
+		RenderTargetDesc rtDesc;
+		rtDesc.ColourTargets[0] = _renderDevice->CreateTexture(colourTexDesc);
+		rtDesc.ColourTargets[1] = _renderDevice->CreateTexture(colourTexDesc);
+		rtDesc.ColourTargets[2] = _renderDevice->CreateTexture(colourTexDesc);
+		rtDesc.DepthStencilTarget = _renderDevice->CreateTexture(depthStencilDesc);
+		rtDesc.Height = GetRenderHeight();
+		rtDesc.Width = GetRenderWidth();
+
+		_gBuffer = _renderDevice->CreateRenderTarget(rtDesc);
+	}
+	catch (const std::exception& ex)
+	{
+		throw std::runtime_error("Unable to initalize render targets. " + std::string(ex.what()));
+	}
+}
+
+void Renderer::InitFrameBuffer()
+{
+  try
+  {
+    GpuBufferDesc perShaderBuffDesc;
+    perShaderBuffDesc.BufferType = BufferType::Constant;
+    perShaderBuffDesc.BufferUsage = BufferUsage::Stream;
+    perShaderBuffDesc.ByteCount = sizeof(FrameBufferData);
+    _frameBuffer = _renderDevice->CreateGpuBuffer(perShaderBuffDesc);
+  }
+  catch (const std::exception& exception)
+  {
+    throw std::runtime_error(std::string("Could not initialize camera constant buffer\n") + exception.what());
+  }
+}
+
+void Renderer::InitMaterialBuffer()
+{
+	try
+	{
+		GpuBufferDesc perShaderBuffDesc;
+		perShaderBuffDesc.BufferType = BufferType::Constant;
+		perShaderBuffDesc.BufferUsage = BufferUsage::Stream;
+		perShaderBuffDesc.ByteCount = sizeof(MaterialBufferData);
+		_materialBuffer = _renderDevice->CreateGpuBuffer(perShaderBuffDesc);
+	}
+	catch (const std::exception& exception)
+	{
+		throw std::runtime_error(std::string("Could not initialize material constant buffer\n") + exception.what());
+	}
+}
+
+void Renderer::InitLightingPass()
+{
+	ShaderDesc vsDesc;
+	vsDesc.EntryPoint = "main";
+	vsDesc.ShaderLang = ShaderLang::Glsl;
+	vsDesc.ShaderType = ShaderType::Vertex;
+	vsDesc.Source = String::LoadFromFile("./../../Resources/Shaders/FSPassThroughVS.glsl");
+
+	ShaderDesc psDesc;
+	psDesc.EntryPoint = "main";
+	psDesc.ShaderLang = ShaderLang::Glsl;
+	psDesc.ShaderType = ShaderType::Pixel;
+	psDesc.Source = String::LoadFromFile("./../../Resources/Shaders/DeferredLightingPassPS.glsl");
+
+	std::vector<VertexLayoutDesc> vertexLayoutDesc
+	{
+		VertexLayoutDesc(SemanticType::Position, SemanticFormat::Float2),
+		VertexLayoutDesc(SemanticType::TexCoord, SemanticFormat::Float2),
+	};
+
+	std::shared_ptr<ShaderParams> shaderParams(new ShaderParams());
+	shaderParams->AddParam(ShaderParam("PositionMap", ShaderParamType::Texture, 0));
+	shaderParams->AddParam(ShaderParam("NormalMap", ShaderParamType::Texture, 1));
+	shaderParams->AddParam(ShaderParam("AlbedoSpecMap", ShaderParamType::Texture, 2));
+	shaderParams->AddParam(ShaderParam("SsaoMap", ShaderParamType::Texture, 3));
+  shaderParams->AddParam(ShaderParam("ShadowMap", ShaderParamType::Texture, 4));
+	shaderParams->AddParam(ShaderParam("ObjectBuffer", ShaderParamType::ConstBuffer, 0));
+	shaderParams->AddParam(ShaderParam("FrameBuffer", ShaderParamType::ConstBuffer, 1));
+  shaderParams->AddParam(ShaderParam("MaterialBuffer", ShaderParamType::ConstBuffer, 2));
+  shaderParams->AddParam(ShaderParam("ShadowBuffer", ShaderParamType::ConstBuffer, 3));
+
+	RasterizerStateDesc rasterizerStateDesc;
+	rasterizerStateDesc.CullMode = CullMode::None;
+
+	try
+	{
+		PipelineStateDesc pipelineDesc;
+		pipelineDesc.VS = _renderDevice->CreateShader(vsDesc);
+		pipelineDesc.PS = _renderDevice->CreateShader(psDesc);
+		pipelineDesc.BlendState = _renderDevice->CreateBlendState(BlendStateDesc());
+		pipelineDesc.RasterizerState = _renderDevice->CreateRasterizerState(rasterizerStateDesc);
+		pipelineDesc.DepthStencilState = _renderDevice->CreateDepthStencilState(DepthStencilStateDesc());
+		pipelineDesc.VertexLayout = _renderDevice->CreateVertexLayout(vertexLayoutDesc);
+		pipelineDesc.ShaderParams = shaderParams;
+
+		_lightPassPso = _renderDevice->CreatePipelineState(pipelineDesc);
+	}
+	catch (const std::exception& exception)
+	{
+		throw std::runtime_error("Unable to initialize pipeline states. " + std::string(exception.what()));
+	}
+}
+
+void Renderer::InitSsaoPass()
+{
+  try
+  {
+    TextureDesc noiseTextureDesc;
+    noiseTextureDesc.Format = TextureFormat::RGB8;
+    noiseTextureDesc.Height = 4;
+    noiseTextureDesc.Width = 4;
+    noiseTextureDesc.Type = TextureType::Texture2D;
+    _ssaoNoiseTexture = _renderDevice->CreateTexture(noiseTextureDesc);
+    
+    std::shared_ptr<ImageData> pixelData(new ImageData(4, 4, 1, ImageFormat::RGB8));
+    pixelData->WriteData(reinterpret_cast<ubyte*>(_ssaoNoise.data()));
+    _ssaoNoiseTexture->WriteData(0, 0, pixelData);
+    
+    SamplerStateDesc noiseSamplerStateDesc;
+    noiseSamplerStateDesc.AddressingMode.U = TextureAddressMode::Wrap;
+    noiseSamplerStateDesc.AddressingMode.V = TextureAddressMode::Wrap;
+		noiseSamplerStateDesc.AddressingMode.W = TextureAddressMode::Wrap;
+    _ssaoSamplerState = _renderDevice->CreateSamplerState(noiseSamplerStateDesc);
+    
+    ShaderDesc vsDesc;
+    vsDesc.EntryPoint = "main";
+    vsDesc.ShaderLang = ShaderLang::Glsl;
+    vsDesc.ShaderType = ShaderType::Vertex;
+    vsDesc.Source = String::LoadFromFile("./../../Resources/Shaders/FSPassThroughVS.glsl");
+    
+    ShaderDesc psDesc;
+    psDesc.EntryPoint = "main";
+    psDesc.ShaderLang = ShaderLang::Glsl;
+    psDesc.ShaderType = ShaderType::Pixel;
+    psDesc.Source = String::LoadFromFile("./../../Resources/Shaders/SsaoPS.glsl");
+    
+    std::vector<VertexLayoutDesc> vertexLayoutDesc
     {
-      Vector2(-1.0f, -1.0f),
-      Vector2(0.0f, 0.0f),
-
-      Vector2(1.0f, -1.0f),
-      Vector2(1.0f, 0.0f),
-
-      Vector2(-1.0f, 1.0f),
-      Vector2(0.0f, 1.0f),
-
-      Vector2(1.0f, -1.0f),
-      Vector2(1.0f, 0.0f),
-
-      Vector2(1.0f, 1.0f),
-      Vector2(1.0f, 1.0f),
-
-      Vector2(-1.0f, 1.0f),
-      Vector2(0.0f, 1.0f)
+      VertexLayoutDesc(SemanticType::Position, SemanticFormat::Float2),
+      VertexLayoutDesc(SemanticType::TexCoord, SemanticFormat::Float2),
     };
-
-    _quadVertexData.reset(new VertexBuffer());
-    _quadVertexData->PushVertexAttrib(VertexAttribType::Vec2);
-    _quadVertexData->PushVertexAttrib(VertexAttribType::Vec2);
-    _quadVertexData->UploadData<Vector2>(quadVertexData, BufferUsage::Static);
+    
+    std::shared_ptr<ShaderParams> shaderParams(new ShaderParams());
+    shaderParams->AddParam(ShaderParam("PositionMap", ShaderParamType::Texture, 0));
+    shaderParams->AddParam(ShaderParam("NormalMap", ShaderParamType::Texture, 1));
+    shaderParams->AddParam(ShaderParam("NoiseMap", ShaderParamType::Texture, 2));
+    shaderParams->AddParam(ShaderParam("FrameBuffer", ShaderParamType::ConstBuffer, 1));
+    shaderParams->AddParam(ShaderParam("SsaoBuffer", ShaderParamType::ConstBuffer, 4));
+    
+    RasterizerStateDesc rasterizerStateDesc;
+    rasterizerStateDesc.CullMode = CullMode::None;
+    
+    PipelineStateDesc pipelineDesc;
+    pipelineDesc.VS = _renderDevice->CreateShader(vsDesc);
+    pipelineDesc.PS = _renderDevice->CreateShader(psDesc);
+    pipelineDesc.BlendState = _renderDevice->CreateBlendState(BlendStateDesc());
+    pipelineDesc.RasterizerState = _renderDevice->CreateRasterizerState(rasterizerStateDesc);
+    pipelineDesc.DepthStencilState = _renderDevice->CreateDepthStencilState(DepthStencilStateDesc());
+    pipelineDesc.VertexLayout = _renderDevice->CreateVertexLayout(vertexLayoutDesc);
+    pipelineDesc.ShaderParams = shaderParams;
+    
+    _ssaoPassPso = _renderDevice->CreatePipelineState(pipelineDesc);
+		
+		_ssaoDetailsData.QuadHeight = GetRenderHeight();
+		_ssaoDetailsData.QuadWidth = GetRenderWidth();
+		for (uint32 i = 0; i < MaxKernelSize; i++)
+		{
+			_ssaoDetailsData.Samples[i] = Vector4(_ssaoKernel[i], 0.0f);
+		}
   }
-
-  return true;
-}
-  
-void Renderer::SetRenderDimensions(uint32 width, uint32 height)
-{
-  _renderWidth = width;
-  _renderHeight = height;
-}
-
-void Renderer::EnableBlend(BlendType source, BlendType destination)
-{
-  GLCall(glEnable(GL_BLEND));
-  GLCall(glBlendFunc(ToBlendType(source), ToBlendType(destination)));
-}
-
-void Renderer::DisableBlend()
-{
-  GLCall(glDisable(GL_BLEND));
-}
-  
-void Renderer::SetViewport(uint32 width, uint32 height)
-{
-  GLCall(glViewport(0, 0, static_cast<GLsizei>(width), static_cast<GLsizei>(height)));
-}
-
-Renderer::Renderer() :
-  _shaderCollection(new ShaderCollection),
-  _renderWidth(0),
-  _renderHeight(0),
-  _ambientLight(Vector3::Identity)
-{
-}
-
-void Renderer::UploadPointLightData(const Light& pointLight)
-{
-  _lightBuffer->UploadData(0, 12, &pointLight.GetPosition()[0]);
-  _lightBuffer->UploadData(32, 12, &(pointLight.GetColour().ToVec3())[0]);
-
-  float32 radius = pointLight.GetRadius();
-  _lightBuffer->UploadData(44, 4, &radius);
-}
-
-void Renderer::UploadDirectionalLightData(const Light& directionalLight)
-{
-  _lightBuffer->UploadData(16, 12, &directionalLight.GetDirection()[0]);
-  _lightBuffer->UploadData(32, 12, &(directionalLight.GetColour().ToVec3())[0]);
-}
-
-void Renderer::ExecuteDirectionalLightDepthPass(const Matrix4& lightSpaceTransform, uint32 shadowResolution)
-{
-  EnableDepthTest();
-  DisableStencilTest();
-
-  SetViewport(shadowResolution, shadowResolution);
-
-  _depthBuffer->BindForDraw();
-  ClearBuffer(ClearType::CT_Depth | ClearType::CT_Stencil);
-
-  auto shader = _shaderCollection->GetShader<DirDepthPassShader>();
-  shader->SetLightSpaceTransform(lightSpaceTransform);
-  for (auto& renderable : _renderables)
+  catch (const std::exception& exception)
   {
-    auto meshCount = renderable.Renderable->GetMeshCount();
-    for (size_t i = 0; i < meshCount; i++)
-    {
-      auto staticMesh = renderable.Renderable->GetMeshAtIndex(i);
-      shader->SetModelSpaceTransform(renderable.Transform->Get());
+    throw std::runtime_error("Unable to initialize SSAO pass. " + std::string(exception.what()));
+  }
+  
+  try
+  {
+    TextureDesc colourTexDesc;
+    colourTexDesc.Width = GetRenderWidth();
+    colourTexDesc.Height = GetRenderHeight();
+    colourTexDesc.Usage = TextureUsage::RenderTarget;
+    colourTexDesc.Type = TextureType::Texture2D;
+    colourTexDesc.Format = TextureFormat::R8;
+    
+    RenderTargetDesc rtDesc;
+    rtDesc.ColourTargets[0] = _renderDevice->CreateTexture(colourTexDesc);
+    rtDesc.Height = GetRenderHeight();
+    rtDesc.Width = GetRenderWidth();
+    
+    _ssaoRT = _renderDevice->CreateRenderTarget(rtDesc);
+  }
+  catch (const std::exception& ex)
+  {
+    throw std::runtime_error("Unable to initalize SSAO render target. " + std::string(ex.what()));
+  }
+}
 
-      shader->Apply();
-      staticMesh->Draw();
+void Renderer::InitSsaoBlurPass()
+{
+	try
+	{
+		ShaderDesc vsDesc;
+		vsDesc.EntryPoint = "main";
+		vsDesc.ShaderLang = ShaderLang::Glsl;
+		vsDesc.ShaderType = ShaderType::Vertex;
+		vsDesc.Source = String::LoadFromFile("./../../Resources/Shaders/FSPassThroughVS.glsl");
+
+		ShaderDesc psDesc;
+		psDesc.EntryPoint = "main";
+		psDesc.ShaderLang = ShaderLang::Glsl;
+		psDesc.ShaderType = ShaderType::Pixel;
+		psDesc.Source = String::LoadFromFile("./../../Resources/Shaders/SsaoBlurPS.glsl");
+
+		std::vector<VertexLayoutDesc> vertexLayoutDesc
+		{
+			VertexLayoutDesc(SemanticType::Position, SemanticFormat::Float2),
+			VertexLayoutDesc(SemanticType::TexCoord, SemanticFormat::Float2),
+		};
+
+		std::shared_ptr<ShaderParams> shaderParams(new ShaderParams());
+		shaderParams->AddParam(ShaderParam("SsaoMap", ShaderParamType::Texture, 0));
+
+		RasterizerStateDesc rasterizerStateDesc;
+		rasterizerStateDesc.CullMode = CullMode::None;
+
+		PipelineStateDesc pipelineDesc;
+		pipelineDesc.VS = _renderDevice->CreateShader(vsDesc);
+		pipelineDesc.PS = _renderDevice->CreateShader(psDesc);
+		pipelineDesc.BlendState = _renderDevice->CreateBlendState(BlendStateDesc());
+		pipelineDesc.RasterizerState = _renderDevice->CreateRasterizerState(rasterizerStateDesc);
+		pipelineDesc.DepthStencilState = _renderDevice->CreateDepthStencilState(DepthStencilStateDesc());
+		pipelineDesc.VertexLayout = _renderDevice->CreateVertexLayout(vertexLayoutDesc);
+		pipelineDesc.ShaderParams = shaderParams;
+
+		_ssaoBlurPassPso = _renderDevice->CreatePipelineState(pipelineDesc);
+	}
+	catch (const std::exception& exception)
+	{
+		throw std::runtime_error("Unable to initialize SSAO blur pass. " + std::string(exception.what()));
+	}
+
+	try
+	{
+		TextureDesc colourTexDesc;
+		colourTexDesc.Width = GetRenderWidth();
+		colourTexDesc.Height = GetRenderHeight();
+		colourTexDesc.Usage = TextureUsage::RenderTarget;
+		colourTexDesc.Type = TextureType::Texture2D;
+		colourTexDesc.Format = TextureFormat::R8;
+
+		RenderTargetDesc rtDesc;
+		rtDesc.ColourTargets[0] = _renderDevice->CreateTexture(colourTexDesc);
+		rtDesc.Height = GetRenderHeight();
+		rtDesc.Width = GetRenderWidth();
+
+		_ssaoBlurRT = _renderDevice->CreateRenderTarget(rtDesc);
+	}
+	catch (const std::exception& ex)
+	{
+		throw std::runtime_error("Unable to initalize SSAO render target. " + std::string(ex.what()));
+	}
+}
+
+void Renderer::InitFullscreenQuad()
+{
+	if (!_fsQuadBuffer)
+	{
+		VertexBufferDesc vtxBuffDesc;
+		vtxBuffDesc.BufferUsage = BufferUsage::Default;
+		vtxBuffDesc.VertexCount = FullscreenQuadVertices.size();
+		vtxBuffDesc.VertexSizeBytes = sizeof(FullscreenQuadVertex);
+		try
+		{
+			_fsQuadBuffer = _renderDevice->CreateVertexBuffer(vtxBuffDesc);
+			_fsQuadBuffer->WriteData(0, sizeof(FullscreenQuadVertex) * FullscreenQuadVertices.size(), FullscreenQuadVertices.data(), AccessType::WriteOnlyDiscardRange);
+		}
+		catch (const std::exception& exception)
+		{
+			throw std::runtime_error("Unable to initialize fullscreen Quad vertex buffer. " + std::string(exception.what()));
+		}
+	}
+
+	if (!_noMipSamplerState)
+	{
+		SamplerStateDesc desc;
+		desc.AddressingMode = AddressingMode{ TextureAddressMode::Wrap, TextureAddressMode::Wrap, TextureAddressMode::Wrap };
+		desc.MinFiltering = TextureFilteringMode::None;
+		desc.MinFiltering = TextureFilteringMode::None;
+		desc.MipFiltering = TextureFilteringMode::None;
+		try
+		{
+			_noMipSamplerState = _renderDevice->CreateSamplerState(desc);
+		}
+		catch (const std::exception& exception)
+		{
+			throw std::runtime_error("Unable to initialize fullscreen Quad sampler state. " + std::string(exception.what()));
+		}
+	}
+}
+
+void Renderer::InitDepthDebugPass()
+{
+  ShaderDesc vsDesc;
+  vsDesc.EntryPoint = "main";
+  vsDesc.ShaderLang = ShaderLang::Glsl;
+  vsDesc.ShaderType = ShaderType::Vertex;
+  vsDesc.Source = String::LoadFromFile("./../../Resources/Shaders/FSPassThroughVS.glsl");
+  
+  ShaderDesc psDesc;
+  psDesc.EntryPoint = "main";
+  psDesc.ShaderLang = ShaderLang::Glsl;
+  psDesc.ShaderType = ShaderType::Pixel;
+  psDesc.Source = String::LoadFromFile("./../../Resources/Shaders/DepthDebugPS.glsl");
+  
+  std::vector<VertexLayoutDesc> vertexLayoutDesc
+  {
+    VertexLayoutDesc(SemanticType::Position, SemanticFormat::Float2),
+    VertexLayoutDesc(SemanticType::TexCoord, SemanticFormat::Float2),
+  };
+  
+  std::shared_ptr<ShaderParams> shaderParams(new ShaderParams());
+  shaderParams->AddParam(ShaderParam("QuadTexture", ShaderParamType::Texture, 0));
+  
+  RasterizerStateDesc rasterizerStateDesc;
+  rasterizerStateDesc.CullMode = CullMode::None;
+  
+  try
+  {
+    PipelineStateDesc pipelineDesc;
+    pipelineDesc.VS = _renderDevice->CreateShader(vsDesc);
+    pipelineDesc.PS = _renderDevice->CreateShader(psDesc);
+    pipelineDesc.BlendState = _renderDevice->CreateBlendState(BlendStateDesc());
+    pipelineDesc.RasterizerState = _renderDevice->CreateRasterizerState(rasterizerStateDesc);
+    pipelineDesc.DepthStencilState = _renderDevice->CreateDepthStencilState(DepthStencilStateDesc());
+    pipelineDesc.VertexLayout = _renderDevice->CreateVertexLayout(vertexLayoutDesc);
+    pipelineDesc.ShaderParams = shaderParams;
+    
+    _depthDebugPso = _renderDevice->CreatePipelineState(pipelineDesc);
+  }
+  catch (const std::exception& exception)
+  {
+    throw std::runtime_error("Unable to initialize depth debug pipeline states. " + std::string(exception.what()));
+  }
+}
+
+void Renderer::InitGBufferDebugPass()
+{
+	ShaderDesc vsDesc;
+	vsDesc.EntryPoint = "main";
+	vsDesc.ShaderLang = ShaderLang::Glsl;
+	vsDesc.ShaderType = ShaderType::Vertex;
+	vsDesc.Source = String::LoadFromFile("./../../Resources/Shaders/FSPassThroughVS.glsl");
+
+	ShaderDesc psDesc;
+	psDesc.EntryPoint = "main";
+	psDesc.ShaderLang = ShaderLang::Glsl;
+	psDesc.ShaderType = ShaderType::Pixel;
+	psDesc.Source = String::LoadFromFile("./../../Resources/Shaders/FullscreenQuad.glsl");
+
+	std::vector<VertexLayoutDesc> vertexLayoutDesc
+	{
+		VertexLayoutDesc(SemanticType::Position, SemanticFormat::Float2),
+		VertexLayoutDesc(SemanticType::TexCoord, SemanticFormat::Float2),
+	};
+
+	std::shared_ptr<ShaderParams> shaderParams(new ShaderParams());
+	shaderParams->AddParam(ShaderParam("QuadTexture", ShaderParamType::Texture, 0));
+
+	RasterizerStateDesc rasterizerStateDesc;
+	rasterizerStateDesc.CullMode = CullMode::None;
+
+	try
+	{
+		PipelineStateDesc pipelineDesc;
+		pipelineDesc.VS = _renderDevice->CreateShader(vsDesc);
+		pipelineDesc.PS = _renderDevice->CreateShader(psDesc);
+		pipelineDesc.BlendState = _renderDevice->CreateBlendState(BlendStateDesc());
+		pipelineDesc.RasterizerState = _renderDevice->CreateRasterizerState(rasterizerStateDesc);
+		pipelineDesc.DepthStencilState = _renderDevice->CreateDepthStencilState(DepthStencilStateDesc());
+		pipelineDesc.VertexLayout = _renderDevice->CreateVertexLayout(vertexLayoutDesc);
+		pipelineDesc.ShaderParams = shaderParams;
+
+		_gBufferDebugPso = _renderDevice->CreatePipelineState(pipelineDesc);
+	}
+	catch (const std::exception& exception)
+	{
+		throw std::runtime_error("Unable to initialize pipeline states. " + std::string(exception.what()));
+	}
+}
+
+void Renderer::GenerateSsaoKernel()
+{
+  auto lerp = [](float32 a, float32 b, float32 f)
+  {
+    return a + f * (b - a);
+  };
+  
+  std::uniform_real_distribution<float> randomFloat(0.0, 1.0);
+  std::default_random_engine generator;
+  
+  for (uint32 i = 0; i < 64; i++)
+  {
+    Vector3 sample(randomFloat(generator) * 2.0f - 1.0f,
+                   randomFloat(generator) * 2.0f - 1.0f,
+                   randomFloat(generator));
+    sample.Normalize();
+    sample *= randomFloat(generator);
+    float32 scale = 1.0f / 64.0f;
+    
+    scale = lerp(0.1f, 1.0f, scale * scale);
+    sample *= scale;
+    _ssaoKernel.push_back(sample);
+  }
+  
+  for (uint32 i = 0; i < 16; i++)
+  {
+    _ssaoNoise.push_back(Vector3(randomFloat(generator) * 2.0f - 1.0f,
+                                 randomFloat(generator) * 2.0f - 1.0f,
+                                 0.0f));
+  }
+}
+
+void Renderer::StartFrame()
+{
+	auto camera = SceneManager::Get()->GetCamera();
+
+	_ambientLightData.SsaoEnabled = _ssaoEnabled ? 1 : 0;
+
+	_ssaoDetailsData.Radius = 1.0f;
+	_ssaoDetailsData.KernelSize = 16;
+	_ssaoDetailsData.Bias = 0.01f;
+
+	_hdrData.Enabled = _hdrEnabled ? 1 : 0;
+
+  FrameBufferData framData;
+  framData.Proj = camera->GetProjection();
+	framData.DirectionalLight = _directionalLightData;
+  framData.AmbientLight = _ambientLightData;
+  framData.View = camera->GetView();
+  framData.ViewInvs = framData.View.Inverse();
+  framData.ViewPosition = Vector4(camera->GetPosition(), 1.0f);
+	framData.SsaoDetails = _ssaoDetailsData;
+	framData.Hdr = _hdrData;
+  _frameBuffer->WriteData(0, sizeof(FrameBufferData), &framData, AccessType::WriteOnlyDiscard);
+
+	_renderDevice->ClearBuffers(RTT_Colour | RTT_Depth | RTT_Stencil);
+
+	_renderCounts.DrawCount = 0;
+	_renderCounts.MaterialCount = 0;
+	_renderCounts.TriangleCount = 0;
+
+  _activeMaterial = nullptr;
+}
+
+void Renderer::EndFrame()
+{
+}
+
+void Renderer::ShadowDepthPass()
+{
+  auto start = std::chrono::high_resolution_clock::now();
+  
+  auto currentViewport = _renderDevice->GetViewport();
+  
+  ViewportDesc newViewport;
+  newViewport.Width = _desc.ShadowRes.X;
+  newViewport.Height = _desc.ShadowRes.Y;
+  _renderDevice->SetViewport(newViewport);
+  
+	ShadowBufferData data;
+	data.Projection = Matrix4::Orthographic(-25.0f, 25.0f, -25.0f, 25.0f, -25.0f, 25.0f);
+	data.View = Matrix4::LookAt(-_directionalLightData.Direction, Vector3::Zero, Vector3(0.0f, 1.0f, 0.0f));
+  data.TexelDims = Vector2(1.0f / _desc.ShadowRes.X, 1.0f / _desc.ShadowRes.Y);
+	_depthBuffer->WriteData(0, sizeof(ShadowBufferData), &data, AccessType::WriteOnlyDiscard);
+  
+  _renderDevice->SetPipelineState(_shadowDepthPso);
+  _renderDevice->SetRenderTarget(_depthRenderTarget);
+	_renderDevice->SetConstantBuffer(3, _depthBuffer);
+  
+  _renderDevice->ClearBuffers(RTT_Depth);
+  
+  for (auto iter = _opaqueQueue->GetIteratorBegin(); iter != _opaqueQueue->GetIteratorEnd(); iter++)
+  {
+    auto mesh = iter->Renderable->GetMesh();
+    _renderDevice->SetConstantBuffer(0, iter->Renderable->GetPerObjectBuffer());
+    _renderDevice->SetVertexBuffer(mesh->GetVertexData());
+    
+    if (mesh->IsIndexed())
+    {
+      auto indexCount = mesh->GetIndexCount();
+      _renderDevice->SetIndexBuffer(mesh->GetIndexData());
+      _renderDevice->DrawIndexed(indexCount, 0, 0);
+    }
+    else
+    {
+      _renderDevice->Draw(mesh->GetVertexCount(), 0);
     }
   }
-  _gBuffer->Unbind();
-  SetViewport(_renderWidth, _renderHeight);
+  
+  _renderDevice->SetViewport(currentViewport);
+  
+  auto end = std::chrono::high_resolution_clock::now();
+  _renderTimings.Shadow = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
 }
 
-void Renderer::ExecuteGeometryPass(std::weak_ptr<Camera> camera)
+void Renderer::GeometryPass()
 {
-  EnableStencilTest();
+  auto start = std::chrono::high_resolution_clock::now();
 
-  _gBuffer->Bind();
-  GLCall(glStencilFunc(GL_ALWAYS, 1, 0xFF));
-  GLCall(glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE));
-  GLCall(glStencilMask(0xFF));
-  ClearBuffer(CT_Colour | CT_Depth | CT_Stencil);
+	_renderDevice->SetPipelineState(_geomPassPso);
+	_renderDevice->SetRenderTarget(_gBuffer);
+	_renderDevice->ClearBuffers(RTT_Colour | RTT_Depth | RTT_Stencil);  
+	
+	_renderDevice->SetConstantBuffer(1, _frameBuffer);
+	_renderDevice->SetConstantBuffer(2, _materialBuffer);
+  
+  _renderDevice->SetSamplerState(0, _basicSamplerState);
+  
+	for (auto iter = _opaqueQueue->GetIteratorBegin(); iter != _opaqueQueue->GetIteratorEnd(); iter++)
+	{
+		auto mesh = iter->Renderable->GetMesh();
+		auto material = mesh->GetMaterial();
+		SetMaterialData(material);
 
-  //GLCall(glPolygonMode(GL_FRONT_AND_BACK, GL_LINE));
+		_renderDevice->SetConstantBuffer(0, iter->Renderable->GetPerObjectBuffer());
+		_renderDevice->SetVertexBuffer(mesh->GetVertexData());
+				
+		if (mesh->IsIndexed())
+		{
+			auto indexCount = mesh->GetIndexCount();
+			_renderDevice->SetIndexBuffer(mesh->GetIndexData());
+			_renderDevice->DrawIndexed(indexCount, 0, 0);
 
-  auto cameraLocked = camera.lock();
-  auto shader = _shaderCollection->GetShader<GeometryPassShader>();
-  shader->SetTransformsBindingPoint(camera.lock()->GetInternalBufferIndex());
-  shader->SetViewDirection(cameraLocked->GetCameraForward());
-  for (auto renderable : _renderables)
-  {    
-    auto meshCount = renderable.Renderable->GetMeshCount();
-    for (size_t i = 0; i < meshCount; i++)
-    {
-      auto staticMesh = renderable.Renderable->GetMeshAtIndex(i);
-      shader->SetModelTransform(renderable.Transform->Get());
-      shader->SetMaterialProperties(staticMesh->GetMaterial());
+			_renderCounts.TriangleCount += (indexCount * 3);
+		}
+		else
+		{
+			_renderDevice->Draw(mesh->GetVertexCount(), 0);
 
-      shader->Apply();
-      staticMesh->Draw();
-    }
-  }
-  _gBuffer->Unbind();
+			auto vertexCount = mesh->GetVertexCount();
+			_renderCounts.TriangleCount += (vertexCount * 3);
+		}
+		_renderCounts.DrawCount++;
+	}
 
-  //GLCall(glPolygonMode(GL_FRONT_AND_BACK, GL_FILL));
+  auto end = std::chrono::high_resolution_clock::now();
+  _renderTimings.GBuffer = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
 }
 
-void Renderer::ExecuteLightingPass(std::weak_ptr<Camera> camera, const Matrix4& lightSpaceTransform)
+void Renderer::SsaoPass()
 {
-  DisableDepthTest();
-  DisableStencilTest();
-  ClearBuffer(ClearType::CT_Colour);
+  _renderDevice->SetPipelineState(_ssaoPassPso);
+  _renderDevice->SetRenderTarget(_ssaoRT);
+  
+  _renderDevice->SetTexture(0, _gBuffer->GetColourTarget(0));
+  _renderDevice->SetTexture(1, _gBuffer->GetColourTarget(1));
+  _renderDevice->SetTexture(2, _ssaoNoiseTexture);
 
-  auto shader = _shaderCollection->GetShader<DirLightingPassShader>();
-  shader->SetViewDirection(camera.lock()->GetCameraForward());
-  shader->SetDirectionalLight(_directionalLights[0]);
-  shader->SetGeometryBuffer(_gBuffer);
-  shader->SetDirLightDepthBuffer(_depthBuffer);
-  shader->SetLightSpaceTransform(lightSpaceTransform);
-  shader->Apply();
-
-  _quadVertexData->Apply();
-  Draw(6);
+	_renderDevice->SetSamplerState(0, _ssaoSamplerState);
+	_renderDevice->SetSamplerState(1, _ssaoSamplerState);
+	_renderDevice->SetSamplerState(2, _ssaoSamplerState);
+  
+  _renderDevice->SetConstantBuffer(1, _frameBuffer);
+  
+  _renderDevice->SetVertexBuffer(_fsQuadBuffer);
+  _renderDevice->Draw(6, 0);
 }
 
-void Renderer::DrawSkyBox(std::weak_ptr<Camera> camera)
+void Renderer::SsaoBlurPass()
 {
-  if (!_skyBox)
+	_renderDevice->SetPipelineState(_ssaoBlurPassPso);
+	_renderDevice->SetRenderTarget(_ssaoBlurRT);
+
+	_renderDevice->SetTexture(0, _ssaoRT->GetColourTarget(0));
+
+	_renderDevice->SetSamplerState(0, _ssaoSamplerState);
+
+	_renderDevice->SetVertexBuffer(_fsQuadBuffer);
+	_renderDevice->Draw(6, 0);
+}
+
+void Renderer::LightingPass()
+{
+  auto start = std::chrono::high_resolution_clock::now();
+
+	_renderDevice->SetRenderTarget(nullptr);
+	_renderDevice->SetPipelineState(_lightPassPso);
+	_renderDevice->SetTexture(0, _gBuffer->GetColourTarget(0));
+	_renderDevice->SetTexture(1, _gBuffer->GetColourTarget(1));
+	_renderDevice->SetTexture(2, _gBuffer->GetColourTarget(2));
+	_renderDevice->SetTexture(3, _ssaoBlurRT->GetColourTarget(0));
+  _renderDevice->SetTexture(4, _depthRenderTarget->GetDepthStencilTarget());
+	_renderDevice->SetSamplerState(0, _noMipSamplerState);
+	_renderDevice->SetSamplerState(1, _noMipSamplerState);
+	_renderDevice->SetSamplerState(2, _noMipSamplerState);
+	_renderDevice->SetSamplerState(3, _noMipSamplerState);
+  _renderDevice->SetSamplerState(4, _noMipSamplerState);
+	_renderDevice->SetVertexBuffer(_fsQuadBuffer);
+  _renderDevice->SetConstantBuffer(1, _frameBuffer);
+  _renderDevice->SetConstantBuffer(3, _depthBuffer);
+	_renderDevice->Draw(6, 0);
+
+  auto end = std::chrono::high_resolution_clock::now();
+  _renderTimings.Lighting = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
+}
+
+void Renderer::ShadowDepthDebugPass()
+{
+	_renderDevice->SetRenderTarget(nullptr);
+	_renderDevice->SetPipelineState(_depthDebugPso);
+	_renderDevice->SetTexture(0, _depthRenderTarget->GetDepthStencilTarget());
+	_renderDevice->SetSamplerState(0, _noMipSamplerState);
+	_renderDevice->SetVertexBuffer(_fsQuadBuffer);
+	_renderDevice->Draw(6, 0);
+}
+
+void Renderer::GBufferDebugPass(uint32 i)
+{
+	_renderDevice->SetRenderTarget(nullptr);
+	_renderDevice->SetPipelineState(_gBufferDebugPso);
+	_renderDevice->SetTexture(0, _gBuffer->GetColourTarget(i));
+	_renderDevice->SetSamplerState(0, _noMipSamplerState);
+	_renderDevice->SetVertexBuffer(_fsQuadBuffer);
+	_renderDevice->Draw(6, 0);
+}
+
+void Renderer::SetMaterialData(const std::shared_ptr<Material>& material)
+{
+  if (_activeMaterial != nullptr &&
+      material->GetAmbientColour() == _activeMaterial->GetAmbientColour() &&
+      material->GetDiffuseColour() == _activeMaterial->GetDiffuseColour() &&
+      material->GetSpecularColour() == _activeMaterial->GetSpecularColour() &&
+      material->GetDiffuseTexture() == _activeMaterial->GetDiffuseTexture() &&
+      material->GetNormalTexture() == _activeMaterial->GetNormalTexture() &&
+      material->GetSpecularTexture() == _activeMaterial->GetSpecularTexture() &&
+      material->GetDepthTexture() == _activeMaterial->GetDepthTexture())
   {
     return;
   }
-  DisableDepthTest();
-  EnableStencilTest();
 
-  _gBuffer->BindForRead();
-  GLCall(glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0));
-  GLCall(glBlitFramebuffer(0, 0, _renderWidth, _renderHeight, 0, 0, _renderWidth, _renderHeight, GL_STENCIL_BUFFER_BIT, GL_NEAREST));
-  GLCall(glBindFramebuffer(GL_FRAMEBUFFER, 0));
+	MaterialBufferData matData;
+	matData.Ambient = material->GetAmbientColour();
+	matData.Diffuse = material->GetDiffuseColour();
+	matData.Specular = material->GetSpecularColour();
 
-  GLCall(glStencilFunc(GL_NOTEQUAL, 1, 0xFF));
-  
-  GLCall(glDisable(GL_CULL_FACE));
+	auto diffuseTexture = material->GetDiffuseTexture();
+	if (diffuseTexture)
+	{
+		matData.EnabledTextureMaps.Diffuse = 1;
+		_renderDevice->SetTexture(0, diffuseTexture);
+		_renderDevice->SetSamplerState(0, _basicSamplerState);
+	}
 
-  auto shader = _shaderCollection->GetShader<SkyBoxShader>();
-  shader->SetTransformsBindingPoint(camera.lock()->GetInternalBufferIndex());
-  shader->SetSkyBox(_skyBox);
-  shader->Apply();
+	auto normalTexture = material->GetNormalTexture();
+	if (normalTexture)
+	{
+		matData.EnabledTextureMaps.Normal = 1;
+		_renderDevice->SetTexture(1, normalTexture);
+		_renderDevice->SetSamplerState(1, _noMipSamplerState);
+	}
 
-  _skyBox->Draw();
-
-  GLCall(glEnable(GL_CULL_FACE));
-}
-
-void Renderer::ClearBuffer(uint32 clearType)
-{
-  GLbitfield clearTarget = 0;
-  if (clearType & ClearType::CT_Colour)
+  auto specularTexture = material->GetSpecularTexture();
+  if (specularTexture)
   {
-    clearTarget |= GL_COLOR_BUFFER_BIT;
+    matData.EnabledTextureMaps.Specular = 1;
+    _renderDevice->SetTexture(2, specularTexture);
+    _renderDevice->SetSamplerState(2, _noMipSamplerState);
   }
 
-  if (clearType & ClearType::CT_Depth)
+  auto depthTexture = material->GetDepthTexture();
+  if (depthTexture)
   {
-    clearTarget |= GL_DEPTH_BUFFER_BIT;
+    matData.EnabledTextureMaps.Depth = 1;
+    _renderDevice->SetTexture(3, depthTexture);
+    _renderDevice->SetSamplerState(3, _noMipSamplerState);
   }
 
-  if (clearType & ClearType::CT_Stencil)
-  {
-    clearTarget |= GL_STENCIL_BUFFER_BIT;
-  }
+	_materialBuffer->WriteData(0, sizeof(MaterialBufferData), &matData, AccessType::WriteOnlyDiscard);
+	_activeMaterial = material;
 
-  GLCall(glClear(clearTarget));
-}
-
-void Renderer::EnableDepthTest()
-{
-  GLCall(glEnable(GL_DEPTH_TEST));
-}
-
-void Renderer::DisableDepthTest()
-{
-  GLCall(glDisable(GL_DEPTH_TEST));
-}
-
-void Renderer::EnableStencilTest()
-{
-  GLCall(glEnable(GL_STENCIL_TEST));
-}
-
-void Renderer::DisableStencilTest()
-{
-  GLCall(glDisable(GL_STENCIL_TEST));
-}
-
-Matrix4 Renderer::BuildLightSpaceTransform(const Light& directionalLight)
-{
-  auto lightProj = Matrix4::Orthographic(-100.0f, 100.0f, -100.0f, 100.0f, -100.0f, 100.0f);
-  auto lightView = Matrix4::LookAt(-directionalLight.GetDirection(), Vector3::Zero, Vector3(0.0f, 1.0f, 0.0f));
-  return lightProj * lightView; 
-}
+	_renderCounts.MaterialCount++;
 }

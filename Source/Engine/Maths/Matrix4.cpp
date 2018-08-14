@@ -6,7 +6,6 @@
 #include "Math.hpp"
 #include "Matrix3.hpp"
 #include "Quaternion.hpp"
-#include "Vector3.hpp"
 
 static float32 Minor(const Matrix4& _m, const uint32 r0, const uint32 r1, const uint32 r2,
                      const uint32 c0, const uint32 c1, const uint32 c2)
@@ -203,10 +202,12 @@ Matrix4 Matrix4::operator*(const Matrix4& rhs) const
 
 Vector4 Matrix4::operator*(const Vector4& rhs) const
 {
-  return Vector4(rhs[0] * _m[0][0] + rhs[1] * _m[0][1] + rhs[2] * _m[0][2] + rhs[3] * _m[0][3],
-                 rhs[0] * _m[1][0] + rhs[1] * _m[1][1] + rhs[2] * _m[1][2] + rhs[3] * _m[1][3],
-                 rhs[0] * _m[2][0] + rhs[1] * _m[2][1] + rhs[2] * _m[2][2] + rhs[3] * _m[2][3],
-                 rhs[0] * _m[3][0] + rhs[1] * _m[3][1] + rhs[2] * _m[3][2] + rhs[3] * _m[3][3]);
+	Vector4 result;
+	result[0] = _m[0][0] * rhs[0] + _m[0][1] * rhs[1] + _m[0][2] * rhs[2] + _m[0][3] * rhs[3];
+	result[1] = _m[1][0] * rhs[0] + _m[1][1] * rhs[1] + _m[1][2] * rhs[2] + _m[1][3] * rhs[3];
+	result[2] = _m[2][0] * rhs[0] + _m[2][1] * rhs[1] + _m[2][2] * rhs[2] + _m[2][3] * rhs[3];
+	result[3] = _m[3][0] * rhs[0] + _m[3][1] * rhs[1] + _m[3][2] * rhs[2] + _m[3][3] * rhs[3];
+	return result;
 }
 
 //Matrix4& Matrix4::operator+=(float32 rhs)
@@ -247,6 +248,21 @@ Vector4 Matrix4::operator*(const Vector4& rhs) const
 //  }
 //  return *this;
 //}
+
+Plane Matrix4::operator*(const Plane& rhs) const
+{
+	Vector4 localNormal(rhs.Normal.X, rhs.Normal.Y, rhs.Normal.Z, 0.0f);
+	Vector4 localPoint = localNormal * rhs.D;
+	localPoint.W = 1.0f;
+
+	Matrix4 itMat = Inverse().Transpose();
+	Vector4 worldNormal = itMat * localNormal;
+	Vector4 worldPoint = operator*(localPoint);
+
+	float32 d = Vector4::Dot(worldNormal, worldPoint);
+
+	return Plane(Vector3(worldNormal.X, worldNormal.Y, worldNormal.Z), d);
+}
 
 bool Matrix4::operator==(const Matrix4& rhs) const
 {

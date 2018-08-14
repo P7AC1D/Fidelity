@@ -1,22 +1,19 @@
 #include "StaticMesh.h"
 
-#include "IndexBuffer.hpp"
-#include "Material.h"
+#include "../RenderApi/IndexBuffer.hpp"
+#include "../RenderApi/RenderDevice.hpp"
+#include "../RenderApi/VertexBuffer.hpp"
+#include "Material.hpp"
+#include "MaterialFactory.hpp"
 #include "Renderer.h"
-#include "VertexBuffer.h"
 
-namespace Rendering
-{
-StaticMesh::StaticMesh(const std::string& meshName) :
-  _name(meshName),
-  _material(new Material),
+StaticMesh::StaticMesh() :
   _vertexDataFormat(0),
   _vertexCount(0),
-  _isDirty(true),
-  _indexed(false)
-{}
-
-StaticMesh::~StaticMesh()
+	_verticesNeedUpdate(true),
+	_indicesNeedUpdate(true),
+  _indexed(false),
+	_material(MaterialFactory::Create())
 {}
 
 void StaticMesh::SetPositionVertexData(const std::vector<Vector3>& positionData)
@@ -24,14 +21,14 @@ void StaticMesh::SetPositionVertexData(const std::vector<Vector3>& positionData)
   auto vertexCount = static_cast<int32>(positionData.size());
   if (vertexCount == 0)
   {
-return;
+		return;
   }
 
   _vertexCount = _vertexCount >= vertexCount || _vertexCount == 0 ? vertexCount : _vertexCount;
 
   _positionData = positionData;
   _vertexDataFormat |= VertexDataFormat::Position;
-  _isDirty = true;
+	_verticesNeedUpdate = true;
 }
 
 void StaticMesh::SetNormalVertexData(const std::vector<Vector3>& normalData)
@@ -46,7 +43,7 @@ void StaticMesh::SetNormalVertexData(const std::vector<Vector3>& normalData)
 
   _normalData = normalData;
   _vertexDataFormat |= VertexDataFormat::Normal;
-  _isDirty = true;
+	_verticesNeedUpdate = true;
 }
   
 void StaticMesh::SetTangentVertexData(const std::vector<Vector3>& tangentData)
@@ -61,7 +58,7 @@ void StaticMesh::SetTangentVertexData(const std::vector<Vector3>& tangentData)
   
   _tangentData = tangentData;
   _vertexDataFormat |= VertexDataFormat::Tangent;
-  _isDirty = true;
+	_verticesNeedUpdate = true;
 }
   
 void StaticMesh::SetBitangentVertexData(const std::vector<Vector3>& bitangentData)
@@ -76,7 +73,7 @@ void StaticMesh::SetBitangentVertexData(const std::vector<Vector3>& bitangentDat
   
   _bitangentData = bitangentData;
   _vertexDataFormat |= VertexDataFormat::Bitanget;
-  _isDirty = true;
+	_verticesNeedUpdate = true;
 }
 
 void StaticMesh::SetTextureVertexData(const std::vector<Vector2>& textureData)
@@ -91,7 +88,7 @@ void StaticMesh::SetTextureVertexData(const std::vector<Vector2>& textureData)
 
   _textureData = textureData;
   _vertexDataFormat |= VertexDataFormat::Uv;
-  _isDirty = true;
+	_verticesNeedUpdate = true;
 }
 
 void StaticMesh::SetIndexData(const std::vector<uint32>& indexData)
@@ -104,7 +101,7 @@ void StaticMesh::SetIndexData(const std::vector<uint32>& indexData)
   }
   _indexCount = indexCount;
   _indexData = indexData;
-  _isDirty = true;
+  _indicesNeedUpdate = true;
   _indexed = true;
 }
   
@@ -202,7 +199,7 @@ void StaticMesh::CalculateTangents(const std::vector<Vector3>& positionData, con
     _bitangentData.push_back(bitangent);
     _bitangentData.push_back(bitangent);
   }
-  _isDirty = true;
+	_verticesNeedUpdate = true;
 }
 
 void StaticMesh::GenerateNormals()
@@ -253,31 +250,24 @@ std::shared_ptr<Material> StaticMesh::GetMaterial()
   return _material;
 }
 
-std::shared_ptr<VertexBuffer> StaticMesh::GetVertexData() const
+std::shared_ptr<VertexBuffer> StaticMesh::GetVertexData()
 {
+  if (_verticesNeedUpdate)
+  {
+    UploadVertexData();
+		_verticesNeedUpdate = false;
+  }
   return _vertexBuffer;
 }
 
-void StaticMesh::Draw()
+std::shared_ptr<IndexBuffer> StaticMesh::GetIndexData()
 {
-  if (_isDirty)
+  if (_indicesNeedUpdate)
   {
-    UploadVertexData();
     UploadIndexData();
-    SetVertexAttribs();
-    _isDirty = false;
+		_indicesNeedUpdate = false;
   }
-
-  _vertexBuffer->Apply();
-  if (_indexed)
-  {
-    _indexBuffer->Bind();
-    Renderer::DrawIndexed(_indexCount);
-  }
-  else
-  {
-    Renderer::Draw(_vertexCount);
-  }
+  return _indexBuffer;
 }
 
 std::vector<float32> StaticMesh::CreateRestructuredVertexDataArray(int32& stride) const
@@ -372,52 +362,22 @@ std::vector<float32> StaticMesh::CreateVertexDataArray() const
 void StaticMesh::UploadVertexData()
 {
   int32 stride = 0;
-  _vertexBuffer.reset(new VertexBuffer);
   auto dataToUpload = CreateRestructuredVertexDataArray(stride);
-  _vertexBuffer->UploadData(dataToUpload, BufferUsage::Static);
-
-  _positionData.clear();
-  _positionData.shrink_to_fit();
-  _normalData.clear();
-  _normalData.shrink_to_fit();
-  _tangentData.clear();
-  _tangentData.shrink_to_fit();
-  _bitangentData.clear();
-  _bitangentData.shrink_to_fit();
-  _textureData.clear();
-  _textureData.shrink_to_fit();
+  
+  VertexBufferDesc desc;
+  desc.BufferUsage = BufferUsage::Default;
+  desc.VertexCount = _vertexCount;
+  desc.VertexSizeBytes = stride;
+  _vertexBuffer = Renderer::GetRenderDevice()->CreateVertexBuffer(desc);
+  _vertexBuffer->WriteData(0, dataToUpload.size() * sizeof(float32), dataToUpload.data(), AccessType::WriteOnlyDiscard);
 }
 
 void StaticMesh::UploadIndexData()
 {
-  _indexBuffer.reset(new IndexBuffer);
-  _indexBuffer->UploadData(_indexData);
-  _indexData.clear();
-  _indexData.shrink_to_fit();
-}
-
-void StaticMesh::SetVertexAttribs()
-{
-  _vertexBuffer->ResetVertexAttribs();
-  if (_vertexDataFormat & VertexDataFormat::Position)
-  {
-    _vertexBuffer->PushVertexAttrib(VertexAttribType::Vec3);
-  }
-  if (_vertexDataFormat & VertexDataFormat::Normal)
-  {
-    _vertexBuffer->PushVertexAttrib(VertexAttribType::Vec3);
-  }
-  if (_vertexDataFormat & VertexDataFormat::Uv)
-  {
-    _vertexBuffer->PushVertexAttrib(VertexAttribType::Vec2);
-  }
-  if (_vertexDataFormat & VertexDataFormat::Tangent)
-  {
-    _vertexBuffer->PushVertexAttrib(VertexAttribType::Vec3);
-  }
-  if (_vertexDataFormat & VertexDataFormat::Bitanget)
-  {
-    _vertexBuffer->PushVertexAttrib(VertexAttribType::Vec3);
-  }
-}
+  IndexBufferDesc desc;
+  desc.BufferUsage = BufferUsage::Default;
+  desc.IndexCount = static_cast<uint32>(_indexData.size());
+  desc.IndexType = IndexType::UInt32;
+  _indexBuffer = Renderer::GetRenderDevice()->CreateIndexBuffer(desc);
+  _indexBuffer->WriteData(0, _indexData.size() * IndexBuffer::GetBytesPerIndex(desc.IndexType), _indexData.data(), AccessType::WriteOnlyDiscard);
 }

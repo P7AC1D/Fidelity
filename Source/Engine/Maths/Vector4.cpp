@@ -20,6 +20,11 @@ Vector4 Vector4::Normalize(const Vector4& vec)
   return Vector4(vec[0] * lengthInv, vec[1] * lengthInv, vec[2] * lengthInv, vec[3] * lengthInv);
 }
 
+float32 Vector4::Length(const Vector4& vec)
+{
+	return vec.Length();
+}
+
 Vector4::Vector4()
 {
   X = 0.0f;

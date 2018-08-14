@@ -2,32 +2,20 @@
 #include <memory>
 #include <vector>
 
-#include "../Components/Component.h"
 #include "../Core/Types.hpp"
 #include "../Maths/Vector2.hpp"
 #include "../Maths/Vector3.hpp"
-#include "VertexBuffer.h"
 
-namespace Rendering
-{
 class IndexBuffer;
 class Material;
 class VertexBuffer;
 
-enum VertexDataFormat : int32
-{
-  Position = 1 << 0,
-  Normal   = 1 << 1,
-  Uv       = 1 << 2,
-  Tangent  = 1 << 3,
-  Bitanget = 1 << 4
-};
-
 class StaticMesh
 {
 public:
-  StaticMesh(const std::string& meshName);
-  ~StaticMesh();
+  StaticMesh();
+
+	void SetMaterial(const std::shared_ptr<Material>& material) { _material = material; }
 
   void SetPositionVertexData(const std::vector<Vector3>& positionData);
   void SetNormalVertexData(const std::vector<Vector3>& normalData);
@@ -50,22 +38,28 @@ public:
   void GenerateNormals();
 
   std::shared_ptr<Material> GetMaterial();
-  std::shared_ptr<VertexBuffer> GetVertexData() const;
+	std::shared_ptr<VertexBuffer> GetVertexData();
+	std::shared_ptr<IndexBuffer> GetIndexData();
 
-  void Draw();
+  bool IsInitialized() const { return _verticesNeedUpdate && _indicesNeedUpdate; }
+  bool IsIndexed() const { return _indexed; }
 
-  bool IsInitialized() const { return _isDirty; }
-
-private:
+private:  
   std::vector<float32> CreateRestructuredVertexDataArray(int32& stride) const;
   std::vector<float32> CreateVertexDataArray() const;
   void UploadVertexData();
   void UploadIndexData();
-  void SetVertexAttribs();
 
 private:
+  enum VertexDataFormat : int32
+  {
+    Position = 1 << 0,
+    Normal   = 1 << 1,
+    Uv       = 1 << 2,
+    Tangent  = 1 << 3,
+    Bitanget = 1 << 4
+  };
 
-  std::string _name;
   std::shared_ptr<IndexBuffer> _indexBuffer;
   std::shared_ptr<Material> _material;
   std::shared_ptr<VertexBuffer> _vertexBuffer;
@@ -78,9 +72,7 @@ private:
   int32 _vertexDataFormat;
   int32 _vertexCount;
   int32 _indexCount;
-  bool _isDirty;
+  bool _verticesNeedUpdate;
+	bool _indicesNeedUpdate;
   bool _indexed;
-
-  friend class Renderer;
 };
-}

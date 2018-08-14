@@ -1,26 +1,35 @@
 #pragma once
 #include <memory>
 #include <vector>
+#include "../Maths/Matrix4.hpp"
+#include "../SceneManagement/Component.hpp"
 
-namespace Rendering
-{
+class GpuBuffer;
 class StaticMesh;
 
-class Renderable
+struct PerObjectBufferData
 {
+	Matrix4 Model;
+	Matrix4 ModelView;
+	Matrix4 ModelViewProjection;
+};
+
+class Renderable : public Component
+{
+	friend class SceneManager;
+
 public:
-  Renderable();
+	Renderable();
 
-  inline void CastShadows(bool castShadows) { _castShadows = castShadows; }
-  inline bool CastShadows() const { return _castShadows; }
+	void Update() override;
+	void UpdatePerObjectBuffer(const PerObjectBufferData& perObjectData);	
 
-  void PushMesh(std::shared_ptr<StaticMesh> mesh);
-  std::shared_ptr<StaticMesh> GetMeshAtIndex(size_t index) const;
+	void SetMesh(const std::shared_ptr<StaticMesh>& mesh);
 
-  inline size_t GetMeshCount() const { return _subMeshes.size(); }
+	std::shared_ptr<StaticMesh> GetMesh() const;
+	std::shared_ptr<GpuBuffer> GetPerObjectBuffer() const;
 
 private:
-  std::vector<std::shared_ptr<StaticMesh>> _subMeshes;
-  bool _castShadows;
+  std::shared_ptr<StaticMesh> _mesh;
+	std::shared_ptr<GpuBuffer> _perObjectBuffer;
 };
-}

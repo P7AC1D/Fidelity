@@ -6,6 +6,7 @@
 class Colour
 {
 public:
+	static Colour Zero;
   static Colour Black;
   static Colour White;
   static Colour Red;
@@ -36,6 +37,7 @@ public:
   Vector4 ToVec4() const { return Vector4(_red, _green, _blue, _alpha); }
   
   float32 operator[](int32 i) const;
+  float32& operator[](int32 i);
 
 private:
   float32 _red;

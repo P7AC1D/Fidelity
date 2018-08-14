@@ -1,4 +1,5 @@
 #pragma once
+#include <array>
 #include "../Core/Types.hpp"
 
 class Degree;
@@ -53,6 +54,8 @@ public:
   // TBD: Unit test these guys
   Quaternion Lerp(const Quaternion& a, const Quaternion& b, float32 t);
   Quaternion Slerp(const Quaternion& a, const Quaternion& b, float32 t);
+
+	Vector3 ToEuler() const;
   
   friend Quaternion operator+(float32 lhs, const Quaternion& rhs);
   friend Quaternion operator-(float32 lhs, const Quaternion& rhs);
@@ -62,6 +65,10 @@ private:
   void FromEulerAngles(const Radian& pitch, const Radian& yaw, const Radian& roll);
   void FromAxisAngle(const Vector3& axis, const Radian& angle);
   void FromRotationMatrix(const Matrix3& rotMatrix);
+
+	float32 Pitch() const;
+  float32 Roll() const;
+  float32 Yaw() const;
   
 public:
   float32 X;

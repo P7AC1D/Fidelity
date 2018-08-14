@@ -2,46 +2,55 @@
 #include <memory>
 #include <string>
 #include <vector>
-
 #include "../Core/Types.hpp"
 #include "../Maths/Vector3.hpp"
 #include "Light.h"
-#include "SkyBox.hpp"
 
+class Actor;
 class Camera;
-class WorldObject;
-
-namespace Rendering
-{
+class Ray;
 class Renderer;
-}
+class SceneNode;
 
 class SceneManager
 {
+	friend class Actor;
+
 public:
-  SceneManager();
+	static std::shared_ptr<SceneManager> Get();
 
-  std::shared_ptr<WorldObject> CreateObject(const std::string& name = std::string());  
-  std::shared_ptr<WorldObject> LoadObjectFromFile(const std::string& filePath);
-  Light& CreateLight(LightType lightType, const std::string& name = std::string());
+  void SetRenderer(const std::shared_ptr<Renderer>& renderer);
 
-  inline void SetCamera(std::shared_ptr<Camera> camera) { _camera = camera; }
-  inline void SetSkyBox(std::shared_ptr<SkyBox> skyBox) { _skyBox = skyBox; }
-  inline void SetAmbientLight(const Colour& colour) { _ambientLight = colour; }
+  std::shared_ptr<Light> CreateLight(LightType lightType, const std::string& name = std::string());
+  std::shared_ptr<SceneNode> LoadModelFromFile(const std::string& filePath, bool reconstructWorldTransforms = false);
 
-  inline const Colour& GetAmbientLight() const { return _ambientLight; }
+	void SetCamera(const std::shared_ptr<Camera>& camera);
+	void SetDirectionLight(const std::shared_ptr<Light>& light);
+  void SetAmbientLightColour(const Colour& colour);
+  void SetAmbientLightIntensity(float32 intensity);
 
+	std::shared_ptr<SceneNode> GetRootSceneNode() const;
+  std::shared_ptr<Camera> GetCamera() const;
+	std::shared_ptr<Light> GetDirectionalLight() const;
+  Colour GetAmbientLightColour() const;
+  float32 GetAmbientLightIntensity() const;
+  
   void UpdateScene(uint32 dtMs);
 
 private:
-  void UpdateWorldObjects(uint32 dtMs);
+	SceneManager();
+
+	void PushRenderable(Actor* actor);
   void SubmitSceneToRender();
 
 private:
-  std::vector<std::shared_ptr<WorldObject>> _worldObjects;
-  std::vector<Light> _lights;
+	static std::shared_ptr<SceneManager> Instance;
+	std::shared_ptr<SceneNode> _sceneGraph;
+  std::vector<std::shared_ptr<Light>> _lights;
+	std::vector<Actor*> _renderableActors;
+	std::shared_ptr<Light> _directionalLight;
+  std::shared_ptr<Renderer> _renderer;
   std::shared_ptr<Camera> _camera;
-  std::shared_ptr<SkyBox> _skyBox;
-  Colour _ambientLight;
-  Rendering::Renderer* _renderer;
+  Colour _ambientLightColour;
+  float32 _ambientLightIntensity;
 };
