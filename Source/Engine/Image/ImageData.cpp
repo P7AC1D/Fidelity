@@ -1,5 +1,8 @@
 #include "ImageData.hpp"
 
+#include <stdexcept>
+
+
 #include "../Utility/Assert.hpp"
 
 ImageData::ImageData(const ImageVolume& volume, ImageFormat format): _volume(volume), _format(format)

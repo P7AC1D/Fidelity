@@ -15,9 +15,8 @@ find_package(SDL2 REQUIRED)
 find_package(OpenGL REQUIRED)
 
 IF (WIN32)
-set(GLEW_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/Externals/glew-2.1.0/include")
+set(GLEW_INCLUDE_DIRS "${CMAKE_CURRENT_LIST_DIR}/Externals/glew-2.1.0/include")
 set(GLEW_LIBRARY "${CMAKE_CURRENT_LIST_DIR}/Externals/glew-2.1.0")
-find_package(GLEW REQUIRED)
 ENDIF()
 
 add_subdirectory(Source)

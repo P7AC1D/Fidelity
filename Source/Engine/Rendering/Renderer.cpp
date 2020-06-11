@@ -2,6 +2,8 @@
 
 #include <chrono>
 #include <random>
+#include <stdexcept>
+
 #include "../Maths/AABB.hpp"
 #include "../Utility/Assert.hpp"
 #include "../Utility/String.hpp"

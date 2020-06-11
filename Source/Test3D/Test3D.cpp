@@ -43,7 +43,7 @@ void Test3D::OnStart()
   directionalLight->SetDirection(Vector3(0.1f, -1.0f, 0.1f));
 	SceneManager::Get()->SetDirectionLight(directionalLight);
   
-  auto model = SceneManager::Get()->LoadModelFromFile("./../../Resources/Models/living_room/living_room.obj", true);
+  auto model = SceneManager::Get()->LoadModelFromFile("./../../Resources/Models/Sponza/sponza.obj", true);
   
 //  auto rootSceneNode = SceneManager::Get()->GetRootSceneNode();
 //  for (int32 i = -30; i < 30; i += 3)

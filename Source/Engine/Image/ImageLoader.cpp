@@ -1,6 +1,8 @@
 #include "ImageLoader.hpp"
 
 #define STB_IMAGE_IMPLEMENTATION
+#include <stdexcept>
+
 #include "STB/stb_image.h"
 #include "../Utility/Assert.hpp"
 

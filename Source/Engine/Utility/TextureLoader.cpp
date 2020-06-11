@@ -1,5 +1,8 @@
 #include "TextureLoader.hpp"
 
+#include <stdexcept>
+
+
 #include "../Image/ImageLoader.hpp"
 #include "../RenderApi/RenderDevice.hpp"
 #include "../RenderApi/Texture.hpp"
