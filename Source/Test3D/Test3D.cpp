@@ -21,11 +21,12 @@
 #include "../Engine/SceneManagement/Component.hpp"
 #include "../Engine/SceneManagement/Light.h"
 #include "../Engine/SceneManagement/Actor.hpp"
+#include "../Engine/SceneManagement/ActorNode.hpp"
+#include "../Engine/SceneManagement/CameraNode.hpp"
 #include "../Engine/SceneManagement/FpsCamera.hpp"
 #include "../Engine/SceneManagement/OrbitalCamera.hpp"
 #include "../Engine/SceneManagement/SceneManager.h"
 #include "../Engine/SceneManagement/SceneNode.hpp"
-#include "../Engine/SceneManagement/SceneNodeFactory.hpp"
 #include "../Engine/SceneManagement/Transform.h"
 
 Test3D::Test3D(const ApplicationDesc& desc):
@@ -39,7 +40,8 @@ void Test3D::OnStart()
   _camera->SetPerspective(Degree(67.67f), GetWidth(), GetHeight(), 0.1f, 10000.0f);
   _camera->LookAt(Vector3(0.0f, 0.0f, 45.0f), Vector3::Zero);
    
-  _sceneGraph->AddChildNode(SceneNodeFactory::CreateActor());
+  _sceneGraph->AddChildNode(SceneNode::Create<ActorNode>());
+  _sceneGraph->AddChildNode(SceneNode::Create<CameraNode>());
 	
 	SceneManager::Get()->SetCamera(_camera);
 

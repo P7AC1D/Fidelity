@@ -6,6 +6,7 @@
 #include "../Input/EventDispatcher.hpp"
 #include "../Input/InputHandler.hpp"
 #include "../Rendering/Renderer.h"
+#include "../SceneManagement/GenericNode.hpp"
 #include "../SceneManagement/SceneNode.hpp"
 
 Application::~Application() 
@@ -125,7 +126,7 @@ int32 Application::Run()
 Application::Application(ApplicationDesc desc) :
   _eventDispatcher(new EventDispatcher),
   _inputHandler(new InputHandler(*_eventDispatcher.get())),
-  _sceneGraph(new SceneNode()),
+  _sceneGraph(new GenericNode()),
   _mouseFocus(true),
   _desc(std::move(desc))
 {

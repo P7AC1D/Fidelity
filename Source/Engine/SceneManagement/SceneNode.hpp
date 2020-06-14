@@ -9,6 +9,9 @@
 class SceneNode : public ISceneNode
 {
 public:
+	template <typename T>
+	static std::shared_ptr<T> Create();
+	
 	SceneNode() = default;
 	SceneNode(const SceneNode& other) = default;
 	SceneNode(SceneNode&& other) noexcept = default;
@@ -49,3 +52,9 @@ private:
 	std::vector<SceneNodePtr> _childNodes;
 };
 
+template<typename T>
+std::shared_ptr<T> SceneNode::Create()
+{
+	static_assert(std::is_base_of<SceneNode, T>::value, "Template type must be a child class of Component");
+	return std::make_shared<T>();
+}
