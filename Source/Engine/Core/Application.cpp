@@ -1,11 +1,12 @@
 #include "Application.h"
 
 #include <iostream>
+#include <utility>
 #include <SDL.h>
 #include "../Input/EventDispatcher.hpp"
 #include "../Input/InputHandler.hpp"
 #include "../Rendering/Renderer.h"
-#include "../SceneManagement/SceneManager.h"
+#include "../SceneManagement/SceneNode.hpp"
 
 Application::~Application() 
 {
@@ -112,7 +113,7 @@ int32 Application::Run()
       }
     }   
 
-		SceneManager::Get()->UpdateScene(dtMs);
+		_sceneGraph->Update(dtMs);
 		_renderer->DrawFrame();
 		_debugUi->Update();		
     SDL_GL_SwapWindow(_window);
@@ -121,11 +122,12 @@ int32 Application::Run()
   return 0;
 }
 
-Application::Application(const ApplicationDesc &desc) :
+Application::Application(ApplicationDesc desc) :
   _eventDispatcher(new EventDispatcher),
   _inputHandler(new InputHandler(*_eventDispatcher.get())),
+  _sceneGraph(new SceneNode()),
   _mouseFocus(true),
-  _desc(desc)
+  _desc(std::move(desc))
 {
 }
 

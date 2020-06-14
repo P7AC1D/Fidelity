@@ -88,7 +88,7 @@ struct RendererDesc
   RenderApi RenderApi = RenderApi::GL41;
   bool FullscreenEnabled = false;
   bool VsyncEnabled = false;
-  Vector2I ShadowRes = Vector2I(512, 512);
+  Vector2I ShadowRes = Vector2I(2048, 2048);
 };
 
 class Renderer
@@ -117,7 +117,11 @@ public:
   void Push(const std::shared_ptr<Renderable>& renderable, const std::shared_ptr<Transform>& transform, const Aabb& bounds);
   
   void DrawFrame();
-  
+
+
+	float32 GetOrthographicSize() const;
+	void SetOrthographicSize(float32 shadowOrthographicSize);
+	
 private:
   void InitShadowDepthPass();
   void InitDepthRenderTarget();
@@ -190,7 +194,14 @@ private:
 		SsaoDetailsData SsaoDetails;
 		HdrData Hdr;
 	};
-  
+
+public:
+	[[nodiscard]] float32 ShadowOrthographicSize() const
+	{
+		return _shadowOrthographicSize;
+	}
+
+private:
   RendererDesc _desc;
 	DebugDisplayType _debugDisplayType;
 	DirectionalLightData _directionalLightData;
@@ -230,4 +241,7 @@ private:
 
 	bool _ssaoEnabled;
 	bool _hdrEnabled;
+
+	uint32 _shadowResolution;
+	float32 _shadowOrthographicSize;
 };

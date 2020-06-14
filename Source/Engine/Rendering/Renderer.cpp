@@ -67,7 +67,9 @@ Renderer::Renderer(const RendererDesc& desc) :
 	_desc(desc),
 	_opaqueQueue(new RenderQueue),
 	_ssaoEnabled(true),
-	_hdrEnabled(true)
+	_hdrEnabled(true),
+	_shadowResolution(2048),
+  _shadowOrthographicSize(250.0f)
 {
   try
   {
@@ -158,6 +160,16 @@ void Renderer::DrawFrame()
   _renderTimings.Frame = std::chrono::duration_cast<std::chrono::nanoseconds>(frameEnd - frameStart).count();
 }
 
+float32 Renderer::GetOrthographicSize() const
+{
+	return _shadowOrthographicSize;
+}
+
+void Renderer::SetOrthographicSize(float32 shadowOrthographicSize)
+{
+	_shadowOrthographicSize = shadowOrthographicSize;
+}
+
 void Renderer::InitShadowDepthPass()
 {
   ShaderDesc vsDesc;
@@ -211,9 +223,9 @@ void Renderer::InitDepthRenderTarget()
     TextureDesc depthStencilDesc;
     depthStencilDesc.Width = _desc.ShadowRes.X;
     depthStencilDesc.Height = _desc.ShadowRes.Y;
-    depthStencilDesc.Usage = TextureUsage::Depth;
+    depthStencilDesc.Usage = TextureUsage::DepthStencil;
     depthStencilDesc.Type = TextureType::Texture2D;
-    depthStencilDesc.Format = TextureFormat::D32;
+    depthStencilDesc.Format = TextureFormat::D24S8;
     
     RenderTargetDesc rtDesc;
     rtDesc.DepthStencilTarget = _renderDevice->CreateTexture(depthStencilDesc);
@@ -795,7 +807,7 @@ void Renderer::ShadowDepthPass()
   _renderDevice->SetViewport(newViewport);
   
 	ShadowBufferData data;
-	data.Projection = Matrix4::Orthographic(-25.0f, 25.0f, -25.0f, 25.0f, -25.0f, 25.0f);
+	data.Projection = Matrix4::Orthographic(-_shadowOrthographicSize, _shadowOrthographicSize, -_shadowOrthographicSize, _shadowOrthographicSize, -_shadowOrthographicSize, _shadowOrthographicSize);
 	data.View = Matrix4::LookAt(-_directionalLightData.Direction, Vector3::Zero, Vector3(0.0f, 1.0f, 0.0f));
   data.TexelDims = Vector2(1.0f / _desc.ShadowRes.X, 1.0f / _desc.ShadowRes.Y);
 	_depthBuffer->WriteData(0, sizeof(ShadowBufferData), &data, AccessType::WriteOnlyDiscard);

@@ -24,6 +24,7 @@
 #include "UiInspector.hpp"
 
 bool show_demo_window = false;
+bool lockCameraToLight = false;
 uint32 selectedActorIndex = -1;
 std::shared_ptr<Actor> selectedActor = nullptr;
 
@@ -130,6 +131,11 @@ void UiManager::Update()
 			ImGui::ColorEdit3("Colour", col);
 			dirLight->SetColour(Colour(col[0] * 255, col[1] * 255, col[2] * 255));
 
+			auto position = dirLight->GetPosition();
+			float32 pos[3] = { position[0], position[1], position[2] };
+			ImGui::DragFloat3("Position", pos, 0.1f);
+			dirLight->SetPosition(Vector3(pos[0], pos[1], pos[2]));
+
 			auto direction = dirLight->GetDirection();
 			float32 dir[3] = { direction[0], direction[1], direction[2] };
 			ImGui::SliderFloat3("Direction", dir, -1.0f, 1.0f);
@@ -138,6 +144,14 @@ void UiManager::Update()
 			auto intensity = dirLight->GetIntensity();
 			ImGui::SliderFloat("Intensity", &intensity, 0.0f, 10.0f);
 			dirLight->SetIntensity(intensity);
+
+			ImGui::Checkbox("Lock Camera", &lockCameraToLight);
+
+			if (lockCameraToLight)
+			{
+				auto camera = sceneManager->GetCamera();
+				camera->LookAt(dirLight->GetPosition(), dirLight->GetDirection());
+			}
 
 			ImGui::TreePop();
 		}
@@ -180,6 +194,15 @@ void UiManager::Update()
 			ImGui::Combo("Debug Rendering", &debugRenderingCurrentItem, debugRenderingItems, 5);
 			_renderer->EnableDebugPass(static_cast<DebugDisplayType>(debugRenderingCurrentItem));
 			ImGui::Separator();
+		}
+
+		ImGui::Separator();
+		{
+			ImGui::Text("Renderer Settings");
+
+			float32 currentSize = _renderer->GetOrthographicSize();
+			ImGui::DragFloat("Shadow Projection Size", &currentSize);
+			_renderer->SetOrthographicSize(currentSize);
 		}
 
     {

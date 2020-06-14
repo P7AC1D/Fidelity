@@ -16,6 +16,11 @@ public:
 	virtual void Execute(const FrameGraphNodeInputs& inputs) = 0;
 };
 
+class DepthPrepass : public FrameGraphNode
+{
+	
+};
+
 class GBufferNode : public FrameGraphNode
 {
 public:

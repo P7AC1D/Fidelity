@@ -25,6 +25,7 @@
 #include "../Engine/SceneManagement/OrbitalCamera.hpp"
 #include "../Engine/SceneManagement/SceneManager.h"
 #include "../Engine/SceneManagement/SceneNode.hpp"
+#include "../Engine/SceneManagement/SceneNodeFactory.hpp"
 #include "../Engine/SceneManagement/Transform.h"
 
 Test3D::Test3D(const ApplicationDesc& desc):
@@ -37,6 +38,9 @@ void Test3D::OnStart()
   _camera.reset(new OrbitalCamera(1.0f, 10.0f));
   _camera->SetPerspective(Degree(67.67f), GetWidth(), GetHeight(), 0.1f, 10000.0f);
   _camera->LookAt(Vector3(0.0f, 0.0f, 45.0f), Vector3::Zero);
+   
+  _sceneGraph->AddChildNode(SceneNodeFactory::CreateActor());
+	
 	SceneManager::Get()->SetCamera(_camera);
 
 	auto directionalLight = SceneManager::Get()->CreateLight(LightType::Directional, "DirectionLight");
