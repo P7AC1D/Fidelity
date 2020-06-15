@@ -10,11 +10,12 @@ enum class LightType
 	Area
 };
 
-class LightNode final : SceneNode
+class LightNode final : public SceneNode
 {
 public:
 	LightNode();
 
+	void OnDraw(std::shared_ptr<Renderer> renderer) override;
 	void OnUpdate(float64 dt) override {}
 	
 	Colour GetColour() const;

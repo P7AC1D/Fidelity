@@ -1,16 +1,37 @@
 #include "CameraNode.hpp"
 
 #include "../Maths/Degree.hpp"
+#include "../Rendering/Renderer.h"
 
 CameraNode::CameraNode():
 	_width(1280),
 _height(768),
 _fov(Degree(60.f)),
 _near(0.1f),
-_far(10000.0f),
-_projection(CameraProjection::Projection)
+_far(10000.0f)
 {
 	
+}
+
+void CameraNode::OnDraw(std::shared_ptr<Renderer> renderer)
+{
+	renderer->BindCamera(std::dynamic_pointer_cast<CameraNode>(shared_from_this()));
+}
+
+void CameraNode::OnUpdate(float64 dt)
+{
+	UpdateView();
+	UpdateProjection();
+}
+
+Matrix4 CameraNode::GetView() const
+{
+	return _view;
+}
+
+Matrix4 CameraNode::GetProj() const
+{
+	return _proj;
 }
 
 int32 CameraNode::GetWidth() const
@@ -63,12 +84,19 @@ void CameraNode::SetFar(float32 far)
 	_far = far;
 }
 
-CameraProjection CameraNode::GetProjection() const
+void CameraNode::UpdateView()
 {
-	return _projection;
+	Transform& transform = GetTransform();
+	Matrix4 rotation(transform.GetRotation());
+	Matrix4 translation(Matrix4::Translation(transform.GetPosition()));
+	translation[3][0] = -translation[3][0];
+	translation[3][1] = -translation[3][1];
+	translation[3][2] = -translation[3][2];
+
+	_view = rotation * translation;
 }
 
-void CameraNode::SetProjection(CameraProjection projection)
+void CameraNode::UpdateProjection()
 {
-	_projection = projection;
+	_proj = Matrix4::Perspective(_fov, _width / static_cast<float32>(_height), _near, _far);
 }

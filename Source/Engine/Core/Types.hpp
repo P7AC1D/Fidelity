@@ -17,3 +17,5 @@ typedef std::uint8_t uint8;
 
 typedef float float32;
 typedef double float64;
+
+#define sptr std::shared_ptr

@@ -14,7 +14,6 @@
 #include "../RenderApi/ShaderParams.hpp"
 #include "../RenderApi/VertexBuffer.hpp"
 #include "../SceneManagement/Camera.hpp"
-#include "../SceneManagement/SceneManager.h"
 #include "../SceneManagement/Transform.h"
 #include "Material.hpp"
 #include "Renderable.hpp"
@@ -103,15 +102,29 @@ Renderer::Renderer(const RendererDesc& desc) :
 
 void Renderer::Push(const std::shared_ptr<Renderable>& renderable, const std::shared_ptr<Transform>& transform, const Aabb& bounds)
 {
-	_opaqueQueue->Push(renderable, transform, bounds);
+}
 
-	auto camera = SceneManager::Get()->GetCamera();
+void Renderer::BindCamera(std::shared_ptr<CameraNode> camera)
+{
+	_camera = camera;
+}
 
-	PerObjectBufferData perObjectData;
-	perObjectData.Model = transform->Get();
-	perObjectData.ModelView = camera->GetView() * perObjectData.Model;
-	perObjectData.ModelViewProjection = camera->GetProjection() * perObjectData.ModelView;
-	renderable->UpdatePerObjectBuffer(perObjectData);
+void Renderer::SubmitLight(const sptr<LightNode>& lightNode)
+{
+	//TODO Multiple light sources and types
+
+	const Quaternion orientation = lightNode->GetTransform().GetRotation();
+
+	_directionalLightData.Colour = lightNode->GetColour();
+	_directionalLightData.Direction = orientation.Rotate(Vector3::Identity);
+	_directionalLightData.Intensity = lightNode->GetIntensity();
+}
+
+void Renderer::SubmitRenderable(const sptr<Renderable>& renderable)
+{
+	//TODO Implement RenderQueue
+
+	_renderables.push_back(renderable);
 }
 
 void Renderer::DrawFrame()
@@ -761,8 +774,6 @@ void Renderer::GenerateSsaoKernel()
 
 void Renderer::StartFrame()
 {
-	auto camera = SceneManager::Get()->GetCamera();
-
 	_ambientLightData.SsaoEnabled = _ssaoEnabled ? 1 : 0;
 
 	_ssaoDetailsData.Radius = 1.0f;
@@ -770,14 +781,14 @@ void Renderer::StartFrame()
 	_ssaoDetailsData.Bias = 0.01f;
 
 	_hdrData.Enabled = _hdrEnabled ? 1 : 0;
-
+	
   FrameBufferData framData;
-  framData.Proj = camera->GetProjection();
+  framData.Proj = _camera->GetProj();
 	framData.DirectionalLight = _directionalLightData;
   framData.AmbientLight = _ambientLightData;
-  framData.View = camera->GetView();
+  framData.View = _camera->GetView();
   framData.ViewInvs = framData.View.Inverse();
-  framData.ViewPosition = Vector4(camera->GetPosition(), 1.0f);
+  framData.ViewPosition = Vector4(_camera->GetTransform().GetPosition(), 1.0f);
 	framData.SsaoDetails = _ssaoDetailsData;
 	framData.Hdr = _hdrData;
   _frameBuffer->WriteData(0, sizeof(FrameBufferData), &framData, AccessType::WriteOnlyDiscard);
@@ -816,12 +827,12 @@ void Renderer::ShadowDepthPass()
   _renderDevice->SetRenderTarget(_depthRenderTarget);
 	_renderDevice->SetConstantBuffer(3, _depthBuffer);
   
-  _renderDevice->ClearBuffers(RTT_Depth);
+  _renderDevice->ClearBuffers(RTT_Depth);	
   
-  for (auto iter = _opaqueQueue->GetIteratorBegin(); iter != _opaqueQueue->GetIteratorEnd(); iter++)
+  for (auto renderable : _renderables)
   {
-    auto mesh = iter->Renderable->GetMesh();
-    _renderDevice->SetConstantBuffer(0, iter->Renderable->GetPerObjectBuffer());
+		auto mesh = renderable->GetMesh();
+    _renderDevice->SetConstantBuffer(0, renderable->GetPerObjectBuffer());
     _renderDevice->SetVertexBuffer(mesh->GetVertexData());
     
     if (mesh->IsIndexed())
@@ -855,13 +866,13 @@ void Renderer::GeometryPass()
   
   _renderDevice->SetSamplerState(0, _basicSamplerState);
   
-	for (auto iter = _opaqueQueue->GetIteratorBegin(); iter != _opaqueQueue->GetIteratorEnd(); iter++)
+	for (auto renderable : _renderables)
 	{
-		auto mesh = iter->Renderable->GetMesh();
+		auto mesh = renderable->GetMesh();
 		auto material = mesh->GetMaterial();
 		SetMaterialData(material);
 
-		_renderDevice->SetConstantBuffer(0, iter->Renderable->GetPerObjectBuffer());
+		_renderDevice->SetConstantBuffer(0, renderable->GetPerObjectBuffer());
 		_renderDevice->SetVertexBuffer(mesh->GetVertexData());
 				
 		if (mesh->IsIndexed())

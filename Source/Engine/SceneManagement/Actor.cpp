@@ -3,7 +3,6 @@
 #include <algorithm>
 #include "../Rendering/StaticMesh.h"
 #include "../Rendering/Renderable.hpp"
-#include "SceneManager.h"
 #include "SceneNode.hpp"
 #include "Transform.h"
 
@@ -93,10 +92,10 @@ void Actor::CalculateBounds()
 }
 
 void Actor::IfRenderableNotifySceneManager(const std::shared_ptr<Component>& component)
-{
+{/*
 	auto renderable = std::dynamic_pointer_cast<Renderable>(component);
 	if (renderable != nullptr)
 	{
 		SceneManager::Get()->PushRenderable(this);
-	}
+	}*/
 }

@@ -1,10 +1,17 @@
 #include "LightNode.hpp"
 
+#include "../Rendering/Renderer.h"
+
 LightNode::LightNode() :
 	_colour(Colour::White),
 	_intensity(1.0f),
 	_lightType(LightType::Point)
 {
+}
+
+void LightNode::OnDraw(std::shared_ptr<Renderer> renderer)
+{
+	
 }
 
 Colour LightNode::GetColour() const

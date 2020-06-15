@@ -15,7 +15,6 @@
 #include "../Rendering/StaticMesh.h"
 #include "../SceneManagement/Actor.hpp"
 #include "../SceneManagement/Camera.hpp"
-#include "../SceneManagement/SceneManager.h"
 #include "../SceneManagement/SceneNode.hpp"
 #include "../SceneManagement/Transform.h"
 #include "../Utility/String.hpp"
@@ -76,7 +75,7 @@ void UiManager::Update()
 	ImGui_ImplSDL2_NewFrame(_sdlWindow);
 	ImGui::NewFrame();
 	{
-		auto sceneManager = SceneManager::Get();
+		
 
 		bool displayDebugWindow = true;
 		ImGui::SetNextWindowPos(ImVec2(0, 0));
@@ -89,81 +88,80 @@ void UiManager::Update()
 			return;
 		}		
 
-		if (ImGui::TreeNode("Camera"))
-		{
-			auto camera = sceneManager->GetCamera();
+		//if (ImGui::TreeNode("Camera"))
+		//{
+		//	Transform& cameraTransform = _renderer->GetBoundCamera()->GetTransform();
 
-			auto position = camera->GetPosition();
-			float32 camPos[3] = { position.X, position.Y, position.Z };
-			ImGui::InputFloat3("Position", camPos, 3, ImGuiInputTextFlags_ReadOnly);
+		//	auto position = cameraTransform.GetPosition();
+		//	float32 camPos[3] = { position.X, position.Y, position.Z };
+		//	ImGui::InputFloat3("Position", camPos, 3, ImGuiInputTextFlags_ReadOnly);
 
-			auto target = camera->GetTarget();
-			float32 camTar[3] = { target.X, target.Y, target.Z };
-			ImGui::InputFloat3("Target", camTar, 3, ImGuiInputTextFlags_ReadOnly);
+		//	auto orientation = cameraTransform.GetTarget();
+		//	float32 camTar[3] = { target.X, target.Y, target.Z };
+		//	ImGui::InputFloat3("Target", camTar, 3, ImGuiInputTextFlags_ReadOnly);
 
-			Vector3 euler = camera->GetOrientation().ToEuler();
-			float32 angles[3] = { euler.X, euler.Y, euler.Z };
-			ImGui::InputFloat3("Orientation", angles, 1, ImGuiInputTextFlags_ReadOnly);
+		//	Vector3 euler = cameraTransform.GetOrientation().ToEuler();
+		//	float32 angles[3] = { euler.X, euler.Y, euler.Z };
+		//	ImGui::InputFloat3("Orientation", angles, 1, ImGuiInputTextFlags_ReadOnly);
 
-			ImGui::TreePop();
-		}
+		//	ImGui::TreePop();
+		//}
 
-    if (ImGui::TreeNode("Ambient Light"))
-    {
-      auto colour = sceneManager->GetAmbientLightColour();
-      float32 col[3] = { colour[0], colour[1], colour[2] };
-      ImGui::ColorEdit3("Colour", col);
-			sceneManager->SetAmbientLightColour(Colour(col[0] * 255, col[1] * 255, col[2] * 255));
+   // if (ImGui::TreeNode("Ambient Light"))
+   // {
+   //   auto colour = sceneManager->GetAmbientLightColour();
+   //   float32 col[3] = { colour[0], colour[1], colour[2] };
+   //   ImGui::ColorEdit3("Colour", col);
+			//sceneManager->SetAmbientLightColour(Colour(col[0] * 255, col[1] * 255, col[2] * 255));
 
-      auto intensity = sceneManager->GetAmbientLightIntensity();
-      ImGui::SliderFloat("Intensity", &intensity, 0.0f, 10.0f);
-			sceneManager->SetAmbientLightIntensity(intensity);
+   //   auto intensity = sceneManager->GetAmbientLightIntensity();
+   //   ImGui::SliderFloat("Intensity", &intensity, 0.0f, 10.0f);
+			//sceneManager->SetAmbientLightIntensity(intensity);
 
-      ImGui::TreePop();
-    }
+   //   ImGui::TreePop();
+   // }
 
-		if (ImGui::TreeNode("Directional Light"))
-		{
-			auto dirLight = sceneManager->GetDirectionalLight();
+		//if (ImGui::TreeNode("Directional Light"))
+		//{
+		//	auto dirLight = sceneManager->GetDirectionalLight();
 
-			auto colour = dirLight->GetColour();
-			float32 col[3] = { colour[0], colour[1], colour[2] };
-			ImGui::ColorEdit3("Colour", col);
-			dirLight->SetColour(Colour(col[0] * 255, col[1] * 255, col[2] * 255));
+		//	auto colour = dirLight->GetColour();
+		//	float32 col[3] = { colour[0], colour[1], colour[2] };
+		//	ImGui::ColorEdit3("Colour", col);
+		//	dirLight->SetColour(Colour(col[0] * 255, col[1] * 255, col[2] * 255));
 
-			auto position = dirLight->GetPosition();
-			float32 pos[3] = { position[0], position[1], position[2] };
-			ImGui::DragFloat3("Position", pos, 0.1f);
-			dirLight->SetPosition(Vector3(pos[0], pos[1], pos[2]));
+		//	auto position = dirLight->GetPosition();
+		//	float32 pos[3] = { position[0], position[1], position[2] };
+		//	ImGui::DragFloat3("Position", pos, 0.1f);
+		//	dirLight->SetPosition(Vector3(pos[0], pos[1], pos[2]));
 
-			auto direction = dirLight->GetDirection();
-			float32 dir[3] = { direction[0], direction[1], direction[2] };
-			ImGui::SliderFloat3("Direction", dir, -1.0f, 1.0f);
-			dirLight->SetDirection(Vector3(dir[0], dir[1], dir[2]));
+		//	auto direction = dirLight->GetDirection();
+		//	float32 dir[3] = { direction[0], direction[1], direction[2] };
+		//	ImGui::SliderFloat3("Direction", dir, -1.0f, 1.0f);
+		//	dirLight->SetDirection(Vector3(dir[0], dir[1], dir[2]));
 
-			auto intensity = dirLight->GetIntensity();
-			ImGui::SliderFloat("Intensity", &intensity, 0.0f, 10.0f);
-			dirLight->SetIntensity(intensity);
+		//	auto intensity = dirLight->GetIntensity();
+		//	ImGui::SliderFloat("Intensity", &intensity, 0.0f, 10.0f);
+		//	dirLight->SetIntensity(intensity);
 
-			ImGui::Checkbox("Lock Camera", &lockCameraToLight);
+		//	ImGui::Checkbox("Lock Camera", &lockCameraToLight);
 
-			if (lockCameraToLight)
-			{
-				auto camera = sceneManager->GetCamera();
-				camera->LookAt(dirLight->GetPosition(), dirLight->GetDirection());
-			}
+		//	if (lockCameraToLight)
+		//	{
+		//		auto camera = sceneManager->GetCamera();
+		//		camera->LookAt(dirLight->GetPosition(), dirLight->GetDirection());
+		//	}
 
-			ImGui::TreePop();
-		}
+		//	ImGui::TreePop();
+		//}
     
     ImGui::Separator();
     if (ImGui::TreeNode("Scene"))
     {
       ImGui::BeginChild("SceneGraph", ImVec2(ImGui::GetContentRegionAvailWidth(), 200), false, ImGuiWindowFlags_HorizontalScrollbar);
       
-      auto sceneGraph = SceneManager::Get()->GetRootSceneNode();
-      AddChildNodes(sceneGraph->GetChildNodes());
-      AddChildActors(sceneGraph->GetActors());
+      //AddChildNodes(sceneGraph->GetChildNodes());
+      //AddChildActors(sceneGraph->GetActors());
      
       ImGui::EndChild();
       ImGui::TreePop();
@@ -476,17 +474,17 @@ void UiManager::SetupFontAtlas()
 
 void UiManager::AddChildNodes(const std::vector<std::shared_ptr<SceneNode>>& childNodes)
 {
-	for (auto childNode : childNodes)
-	{
-		if (ImGui::TreeNode(childNode->GetName().c_str()))
-		{
-			AddChildActors(childNode->GetActors());
-			ImGui::TreePop();
-		}
-	}
+	//for (auto childNode : childNodes)
+	//{
+	//	if (ImGui::TreeNode(childNode->GetName().c_str()))
+	//	{
+	//		AddChildActors(childNode->GetActors());
+	//		ImGui::TreePop();
+	//	}
+	//}
 }
 
-void UiManager::AddChildActors(const std::vector<std::shared_ptr<Actor>>& actors)
+void UiManager::AddChildActors(const std::vector<sptr<Actor>>& actors)
 {
 	ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen;
 	for (uint64 i = 0; i < actors.size(); i++)

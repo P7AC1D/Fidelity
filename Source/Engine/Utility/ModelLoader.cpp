@@ -10,12 +10,13 @@
 #include "../Rendering/MaterialFactory.hpp"
 #include "../Rendering/Renderable.hpp"
 #include "../Rendering/StaticMesh.h"
-#include "../SceneManagement/Actor.hpp"
+#include "../SceneManagement/ActorNode.hpp"
 #include "../SceneManagement/SceneNode.hpp"
 #include "../SceneManagement/Transform.h"
 #include "Assert.hpp"
 #include "String.hpp"
 #include "TextureLoader.hpp"
+#include "../SceneManagement/GenericNode.hpp"
 
 void OffsetVertices(std::vector<Vector3>& vertices, const Vector3& midPoint)
 {
@@ -196,7 +197,7 @@ std::shared_ptr<SceneNode> BuildModel(const std::string& fileFolder, const aiSce
 		materials[i] = BuildMaterial(fileFolder, scene->mMaterials[i]);		
 	}
   
-  std::shared_ptr<SceneNode> sceneNode(new SceneNode(scene->mRootNode->mName.C_Str()));
+  std::shared_ptr<GenericNode> sceneNode(new GenericNode);
   for (uint32 i = 0; i < scene->mNumMeshes; i++)
   {
 		Vector3 offset;
@@ -205,12 +206,11 @@ std::shared_ptr<SceneNode> BuildModel(const std::string& fileFolder, const aiSce
     auto mesh = BuildMesh(fileFolder, aiMesh, reconstructWorldTransforms, offset);
 		mesh->SetMaterial(materials[aiMesh->mMaterialIndex]);
     
-    std::shared_ptr<Actor> actor(sceneNode->CreateActor(aiMesh->mName.C_Str()));
-		actor->SetPosition(offset);
-
-    std::shared_ptr<Renderable> renderable(new Renderable());
-    renderable->SetMesh(mesh);
-    
+    std::shared_ptr<ActorNode> actor(new ActorNode);
+    sceneNode->AddChild(actor);
+  	   
+    std::shared_ptr<Renderable> renderable(new Renderable());  	
+    renderable->SetMesh(mesh);    
     actor->AddComponent<Renderable>(renderable);
   }
   return sceneNode;

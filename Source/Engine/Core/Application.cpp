@@ -115,6 +115,8 @@ int32 Application::Run()
     }   
 
 		_sceneGraph->Update(dtMs);
+    _sceneGraph->Draw(_renderer); //TODO Change name to SubmitDraw() or PrepareDraw() or something similar.
+  	
 		_renderer->DrawFrame();
 		_debugUi->Update();		
     SDL_GL_SwapWindow(_window);
@@ -194,8 +196,6 @@ bool Application::Initialize()
 		rendererDesc.RenderWidth = _desc.Width;
 		rendererDesc.RenderHeight = _desc.Height;
 		_renderer.reset(new Renderer(rendererDesc));
-
-		SceneManager::Get()->SetRenderer(_renderer);
 	}
 	catch (const std::exception& exception)
 	{

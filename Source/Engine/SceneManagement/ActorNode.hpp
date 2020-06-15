@@ -1,31 +1,29 @@
 #pragma once
+#include <string>
+
 #include "Component.hpp"
 #include "SceneNode.hpp"
-#include "Transform.h"
 
-class ActorNode : public SceneNode
+class ActorNode final : public SceneNode
 {
 public:
 	template <typename T>
 	std::shared_ptr<T> CreateComponent();
 
 	template <typename T>
-	void AddComponent(const std::shared_ptr<Component>& component);
+	void AddComponent(const ComponentPtr& component);
 
 	template <typename T>
 	std::shared_ptr<T> GetComponent() const;
 
-	ActorNode();
-	~ActorNode();
+	ActorNode() = default;
+	~ActorNode() = default;
 
-	std::string GetName() const
-	{
-		return _name;
-	}
+	void OnDraw(std::shared_ptr<Renderer> renderer) override;
+	void OnUpdate(float64 dt) override;
 
 private:
-	std::string _name;
-	std::vector<std::shared_ptr<Component>> _components;
+	std::vector<ComponentPtr> _components;
 };
 
 template <typename T>
@@ -49,7 +47,7 @@ std::shared_ptr<T> ActorNode::GetComponent() const
 }
 
 template <typename T>
-void ActorNode::AddComponent(const std::shared_ptr<Component>& component)
+void ActorNode::AddComponent(const ComponentPtr& component)
 {
 	static_assert(std::is_base_of<Component, T>::value, "Template type must be a child class of Component");
 	auto iter = std::find_if(_components.begin(), _components.end(), [](const std::shared_ptr<Component>& c)
@@ -61,5 +59,7 @@ void ActorNode::AddComponent(const std::shared_ptr<Component>& component)
 	{
 		*iter = component;
 	}
+
+	component->_parent = shared_from_this();
 	_components.push_back(component);
 }

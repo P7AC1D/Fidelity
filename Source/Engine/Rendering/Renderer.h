@@ -6,6 +6,8 @@
 #include "../Maths/Colour.hpp"
 #include "../Maths/Matrix4.hpp"
 #include "../Maths/Vector2I.hpp"
+#include "../SceneManagement/CameraNode.hpp"
+#include "../SceneManagement/LightNode.hpp"
 
 class Aabb;
 class GpuBuffer;
@@ -97,6 +99,7 @@ public:
 	static std::shared_ptr<RenderDevice> GetRenderDevice();
 
   Renderer(const RendererDesc& desc);
+	virtual ~Renderer() = default;
   
   uint32 GetRenderWidth() const { return _desc.RenderWidth; }
   uint32 GetRenderHeight() const { return _desc.RenderHeight; }
@@ -118,6 +121,11 @@ public:
   
   void DrawFrame();
 
+	void BindCamera(std::shared_ptr<CameraNode> camera);
+	sptr<CameraNode> GetBoundCamera() const { return _camera; }
+	
+	void SubmitLight(const sptr<LightNode>& lightNode);
+	void SubmitRenderable(const sptr<Renderable>& renderable);
 
 	float32 GetOrthographicSize() const;
 	void SetOrthographicSize(float32 shadowOrthographicSize);
@@ -207,6 +215,8 @@ private:
 	DirectionalLightData _directionalLightData;
   AmbientLightData _ambientLightData;
 
+	std::shared_ptr<CameraNode> _camera;
+
   std::shared_ptr<GpuBuffer> _frameBuffer;
 	std::shared_ptr<GpuBuffer> _materialBuffer;
 	std::shared_ptr<GpuBuffer> _depthBuffer;
@@ -244,4 +254,6 @@ private:
 
 	uint32 _shadowResolution;
 	float32 _shadowOrthographicSize;
+
+	std::vector<sptr<Renderable>> _renderables;
 };

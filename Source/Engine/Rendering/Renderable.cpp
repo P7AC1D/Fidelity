@@ -14,13 +14,19 @@ Renderable::Renderable(): Component()
 	_perObjectBuffer = Renderer::GetRenderDevice()->CreateGpuBuffer(desc);
 }
 
-void Renderable::Update()
+void Renderable::Draw(const std::shared_ptr<Renderer>& renderer)
 {
+	PerObjectBufferData perObjectBufferData;
+	perObjectBufferData.Model = GetParent()->GetTransform().Get();
+	perObjectBufferData.ModelView = renderer->GetBoundCamera()->GetView() * perObjectBufferData.Model;
+	perObjectBufferData.ModelViewProjection = renderer->GetBoundCamera()->GetProj() * perObjectBufferData.ModelView;
+	_perObjectBuffer->WriteData(0, sizeof(PerObjectBufferData), &perObjectBufferData, AccessType::WriteOnlyDiscard);
+	
+	renderer->SubmitRenderable(shared_from_this());
 }
 
-void Renderable::UpdatePerObjectBuffer(const PerObjectBufferData& perObjectData)
+void Renderable::Update()
 {
-	_perObjectBuffer->WriteData(0, sizeof(PerObjectBufferData), &perObjectData, AccessType::WriteOnlyDiscard);
 }
 
 void Renderable::SetMesh(const std::shared_ptr<StaticMesh>& mesh)
