@@ -16,3 +16,7 @@ void ActorNode::OnUpdate(float64 dt)
 	}	
 }
 
+SceneNodeType ActorNode::GetNodeType() const
+{
+	return SceneNodeType::Actor;
+}

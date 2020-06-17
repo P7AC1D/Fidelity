@@ -167,6 +167,7 @@ void Renderer::DrawFrame()
 	}		
 	EndFrame();
 
+	_renderables.clear();
 	_opaqueQueue->Clear();
 
   auto frameEnd = std::chrono::high_resolution_clock::now();

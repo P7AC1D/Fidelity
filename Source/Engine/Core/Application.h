@@ -49,7 +49,7 @@ protected:
   std::unique_ptr<EventDispatcher> _eventDispatcher;
   std::unique_ptr<InputHandler> _inputHandler;
 	std::unique_ptr<UiManager> _debugUi;
-  std::unique_ptr<SceneNode> _sceneGraph;
+  std::shared_ptr<SceneNode> _sceneGraph;
   std::shared_ptr<Renderer> _renderer;
 
 private:

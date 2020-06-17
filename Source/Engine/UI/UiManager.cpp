@@ -3,6 +3,8 @@
 #include <memory>
 #include <sstream>
 #include <SDL.h>
+
+#include "UiInspector.hpp"
 #include "../Core/Types.hpp"
 #include "../Image/ImageData.hpp"
 #include "../Maths/Matrix4.hpp"
@@ -13,19 +15,17 @@
 #include "../Rendering/Renderer.h"
 #include "../Rendering/Renderable.hpp"
 #include "../Rendering/StaticMesh.h"
-#include "../SceneManagement/Actor.hpp"
 #include "../SceneManagement/Camera.hpp"
 #include "../SceneManagement/SceneNode.hpp"
 #include "../SceneManagement/Transform.h"
 #include "../Utility/String.hpp"
 #include "ImGui/imgui.h"
 #include "ImGui/imgui_impl_sdl.h"
-#include "UiInspector.hpp"
 
 bool show_demo_window = false;
 bool lockCameraToLight = false;
 uint32 selectedActorIndex = -1;
-std::shared_ptr<Actor> selectedActor = nullptr;
+std::shared_ptr<SceneNode> selectedActor = nullptr;
 
 UiManager::UiManager(SDL_Window* sdlWindow, SDL_GLContext sdlGlContext):
 	_io(nullptr),
@@ -52,6 +52,11 @@ UiManager::~UiManager()
 void UiManager::SetRenderer(const std::shared_ptr<Renderer>& renderer)
 {
 	_renderer = renderer;
+}
+
+void UiManager::SetSceneGraph(const std::shared_ptr<SceneNode>& sceneGraph)
+{
+	_sceneGraph = sceneGraph;
 }
 
 bool UiManager::ProcessEvents(SDL_Event* sdlEvent)
@@ -159,9 +164,8 @@ void UiManager::Update()
     if (ImGui::TreeNode("Scene"))
     {
       ImGui::BeginChild("SceneGraph", ImVec2(ImGui::GetContentRegionAvailWidth(), 200), false, ImGuiWindowFlags_HorizontalScrollbar);
-      
-      //AddChildNodes(sceneGraph->GetChildNodes());
-      //AddChildActors(sceneGraph->GetActors());
+			DrawSceneNode(_sceneGraph);
+			UiInspector::Build(selectedActor);
      
       ImGui::EndChild();
       ImGui::TreePop();
@@ -232,7 +236,6 @@ void UiManager::Update()
 		ImGui::ShowDemoWindow(&show_demo_window);
 	}
 
-	UiInspector::Build(selectedActor);
 
 	ImGui::EndFrame();
 	ImGui::Render();
@@ -329,22 +332,11 @@ void UiManager::Draw(ImDrawData* drawData)
 			newScissorDim.H = clipRect.w - clipRect.y;
 			renderDevice->SetScissorDimensions(newScissorDim);
 
-      auto texture = UiInspector::GetTextureFromCache(reinterpret_cast<uint64>(pCmd->TextureId));
-      if (texture)
-      {
-        renderDevice->SetTexture(0, texture);
-      }
+ 
 
-			renderDevice->SetPipelineState(_pipelineState);      
-			
-      if (texture == _textureAtlas)
-      {
-        renderDevice->SetSamplerState(0, _samplerState);
-      }
-      else
-      {
-        renderDevice->SetSamplerState(0, _noMipSamplerState);
-      }
+			renderDevice->SetTexture(0, _textureAtlas);
+			renderDevice->SetPipelineState(_pipelineState);  
+			renderDevice->SetSamplerState(0, _samplerState);
 
 			renderDevice->SetVertexBuffer(_vertBuffer);
 			renderDevice->SetIndexBuffer(_idxBuffer);
@@ -358,9 +350,6 @@ void UiManager::Draw(ImDrawData* drawData)
 
 	renderDevice->SetScissorDimensions(currentScissorDim);
 	renderDevice->SetViewport(currentViewport);
-
-	UiInspector::ClearCache();
-	UiInspector::PushTextureToCache(reinterpret_cast<uint64>(&_textureAtlas), _textureAtlas);
 }
 
 void UiManager::SetupRenderer()
@@ -469,31 +458,36 @@ void UiManager::SetupFontAtlas()
 	_textureAtlas->GenerateMips();
 
 	_io->Fonts->TexID = &_textureAtlas;
-	UiInspector::PushTextureToCache(reinterpret_cast<uint64>(&_textureAtlas), _textureAtlas);
 }
 
-void UiManager::AddChildNodes(const std::vector<std::shared_ptr<SceneNode>>& childNodes)
+void UiManager::DrawSceneNode(const sptr<SceneNode>& parentNode)
 {
-	//for (auto childNode : childNodes)
-	//{
-	//	if (ImGui::TreeNode(childNode->GetName().c_str()))
-	//	{
-	//		AddChildActors(childNode->GetActors());
-	//		ImGui::TreePop();
-	//	}
-	//}
-}
+	auto childNodes = parentNode->GetAllChildNodes();
+	ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick | (selectedActor == parentNode ? ImGuiTreeNodeFlags_Selected : 0);
 
-void UiManager::AddChildActors(const std::vector<sptr<Actor>>& actors)
-{
-	ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen;
-	for (uint64 i = 0; i < actors.size(); i++)
+	if (childNodes.empty())
 	{
-		ImGui::TreeNodeEx(actors[i]->GetName().c_str(), flags | (selectedActorIndex == i ? ImGuiTreeNodeFlags_Selected : 0));
+		flags |= ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen;
+		ImGui::TreeNodeEx(parentNode->GetName().c_str(), flags);
 		if (ImGui::IsItemClicked())
 		{
-			selectedActor = actors[i];
-			selectedActorIndex = i;
+			selectedActor = parentNode;
+		}
+	}
+	else
+	{
+		bool open = ImGui::TreeNodeEx(parentNode->GetName().c_str(), flags);
+		if (ImGui::IsItemClicked())
+		{
+			selectedActor = parentNode;
+		}
+		if (open)
+		{
+			for (auto childNode : childNodes)
+			{
+				DrawSceneNode(childNode);
+			}
+			ImGui::TreePop();
 		}
 	}
 }

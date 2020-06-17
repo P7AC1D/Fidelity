@@ -25,6 +25,7 @@ public:
 	~UiManager();
 	
 	void SetRenderer(const std::shared_ptr<Renderer>& renderer);
+	void SetSceneGraph(const std::shared_ptr<SceneNode>& sceneGraph);
 
 	bool ProcessEvents(SDL_Event* sdlEvent);
 	void Update();
@@ -36,6 +37,7 @@ private:
   
   void AddChildNodes(const std::vector<std::shared_ptr<SceneNode>>& childNodes);
   void AddChildActors(const std::vector<std::shared_ptr<Actor>>& actors);
+	void DrawSceneNode(const sptr<SceneNode>& node);
 
 private:
 	ImGuiIO* _io;
@@ -47,6 +49,7 @@ private:
 	uint64 _idxBuffSize;
 
 	std::shared_ptr<Renderer> _renderer;
+	std::shared_ptr<SceneNode> _sceneGraph;
 	std::shared_ptr<PipelineState> _pipelineState;
 	std::shared_ptr<Texture> _textureAtlas;
 	std::shared_ptr<SamplerState> _samplerState;

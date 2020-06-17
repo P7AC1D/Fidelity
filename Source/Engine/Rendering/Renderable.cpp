@@ -22,7 +22,7 @@ void Renderable::Draw(const std::shared_ptr<Renderer>& renderer)
 	perObjectBufferData.ModelViewProjection = renderer->GetBoundCamera()->GetProj() * perObjectBufferData.ModelView;
 	_perObjectBuffer->WriteData(0, sizeof(PerObjectBufferData), &perObjectBufferData, AccessType::WriteOnlyDiscard);
 	
-	renderer->SubmitRenderable(shared_from_this());
+	renderer->SubmitRenderable(std::dynamic_pointer_cast<Renderable>(shared_from_this()));
 }
 
 void Renderable::Update()

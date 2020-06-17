@@ -128,7 +128,7 @@ int32 Application::Run()
 Application::Application(ApplicationDesc desc) :
   _eventDispatcher(new EventDispatcher),
   _inputHandler(new InputHandler(*_eventDispatcher.get())),
-  _sceneGraph(new GenericNode()),
+  _sceneGraph(SceneNode::Create<GenericNode>()),
   _mouseFocus(true),
   _desc(std::move(desc))
 {
@@ -207,6 +207,7 @@ bool Application::Initialize()
 
   _debugUi.reset(new UiManager(_window, _glContext));
 	_debugUi->SetRenderer(_renderer);
+  _debugUi->SetSceneGraph(_sceneGraph);
   return true;
 }
 

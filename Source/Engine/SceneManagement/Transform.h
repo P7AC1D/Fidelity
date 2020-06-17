@@ -16,11 +16,16 @@ public:
   Transform* SetRotation(const Quaternion& rotation);
   Transform* SetPosition(const Vector3& position);
   Transform* SetScale(const Vector3& scale);
+  Transform* LookAt(const Vector3& eye, const Vector3& target, const Vector3& up = Vector3(0.0f, 1.0f, 0.0f));
 
   Quaternion GetRotation() const;
   Vector3 GetPosition() const;
   Vector3 GetScale() const;
   Matrix4 Get();
+
+  Vector3 GetForward() const;
+  Vector3 GetUp() const;
+  Vector3 GetRight() const;
 
 	bool Modified() const { return _modified; }
 

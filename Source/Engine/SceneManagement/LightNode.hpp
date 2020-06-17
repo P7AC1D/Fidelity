@@ -12,9 +12,9 @@ enum class LightType
 
 class LightNode final : public SceneNode
 {
+	friend class SceneNode;
+	
 public:
-	LightNode();
-
 	void OnDraw(std::shared_ptr<Renderer> renderer) override;
 	void OnUpdate(float64 dt) override {}
 	
@@ -24,6 +24,12 @@ public:
 	void SetIntensity(const float32 intensity);
 	LightType GetLightType() const;
 	void SetLightType(const LightType lightType);
+
+	SceneNodeType GetNodeType() const override;
+
+protected:
+	LightNode();
+	
 private:
 	Colour _colour;
 	float32 _intensity;

@@ -3,7 +3,7 @@
 
 #include "SceneNode.hpp"
 
-class Component
+class Component : public std::enable_shared_from_this<Component>
 {
 	friend class ActorNode;
 	

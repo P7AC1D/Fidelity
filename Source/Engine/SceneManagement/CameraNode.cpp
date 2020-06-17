@@ -24,6 +24,15 @@ void CameraNode::OnUpdate(float64 dt)
 	UpdateProjection();
 }
 
+void CameraNode::SetPerspective(const Degree& fovY, int32 width, int32 height, float32 nearClip, float32 farClip)
+{
+	SetWidth(width);
+	SetHeight(height);
+	SetFov(fovY);
+	SetNear(nearClip);
+	SetFar(farClip);
+}
+
 Matrix4 CameraNode::GetView() const
 {
 	return _view;
@@ -82,6 +91,11 @@ float32 CameraNode::GetFar() const
 void CameraNode::SetFar(float32 far)
 {
 	_far = far;
+}
+
+SceneNodeType CameraNode::GetNodeType() const
+{
+	return SceneNodeType::Camera;
 }
 
 void CameraNode::UpdateView()

@@ -4,16 +4,20 @@
 
 class CameraNode final : public SceneNode
 {
-public:
-  CameraNode();
+  friend class SceneNode;
+	
+public:  
 	CameraNode(const CameraNode& other) = default;
 	CameraNode(CameraNode&& other) noexcept = default;
 	CameraNode& operator=(const CameraNode& other) = default;
 	CameraNode& operator=(CameraNode&& other) noexcept = default;	
   ~CameraNode() = default;
 
+  void OnDrawInspector() override {}
   void OnDraw(std::shared_ptr<Renderer> renderer) override;
   void OnUpdate(float64 dt) override;
+
+  void SetPerspective(const Degree& fovY, int32 width, int32 height, float32 nearClip, float32 farClip);
 	
   Matrix4 GetView() const;
   Matrix4 GetProj() const;
@@ -28,6 +32,11 @@ public:
   void SetNear(float32 near);
   float32 GetFar() const;
   void SetFar(float32 far);
+
+  SceneNodeType GetNodeType() const override;
+
+protected:
+  CameraNode();
 	
 private:
   void UpdateView();

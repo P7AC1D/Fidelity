@@ -15,7 +15,7 @@ struct PerObjectBufferData
 	Matrix4 ModelViewProjection;
 };
 
-class Renderable final : public Component, std::enable_shared_from_this<Renderable>
+class Renderable final : public Component
 {
 	friend class SceneManager;
 

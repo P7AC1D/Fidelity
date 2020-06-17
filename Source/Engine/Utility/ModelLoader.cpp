@@ -197,7 +197,7 @@ std::shared_ptr<SceneNode> BuildModel(const std::string& fileFolder, const aiSce
 		materials[i] = BuildMaterial(fileFolder, scene->mMaterials[i]);		
 	}
   
-  std::shared_ptr<GenericNode> sceneNode(new GenericNode);
+  std::shared_ptr<GenericNode> parentNode(SceneNode::Create<GenericNode>(scene->mRootNode->mName.C_Str()));
   for (uint32 i = 0; i < scene->mNumMeshes; i++)
   {
 		Vector3 offset;
@@ -206,14 +206,15 @@ std::shared_ptr<SceneNode> BuildModel(const std::string& fileFolder, const aiSce
     auto mesh = BuildMesh(fileFolder, aiMesh, reconstructWorldTransforms, offset);
 		mesh->SetMaterial(materials[aiMesh->mMaterialIndex]);
     
-    std::shared_ptr<ActorNode> actor(new ActorNode);
-    sceneNode->AddChild(actor);
+    std::shared_ptr<ActorNode> childNode(SceneNode::Create<ActorNode>(aiMesh->mName.C_Str()));
+  	
+    parentNode->AddChild(childNode);
   	   
     std::shared_ptr<Renderable> renderable(new Renderable());  	
     renderable->SetMesh(mesh);    
-    actor->AddComponent<Renderable>(renderable);
+    childNode->AddComponent(renderable);
   }
-  return sceneNode;
+  return parentNode;
 }
 
 std::shared_ptr<SceneNode> ModelLoader::LoadFromFile(const std::string& filePath, bool reconstructWorldTransforms)

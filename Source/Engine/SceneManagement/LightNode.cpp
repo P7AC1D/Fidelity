@@ -43,3 +43,8 @@ void LightNode::SetLightType(const LightType lightType)
 {
 	_lightType = lightType;
 }
+
+SceneNodeType LightNode::GetNodeType() const
+{
+	return SceneNodeType::Light;
+}
