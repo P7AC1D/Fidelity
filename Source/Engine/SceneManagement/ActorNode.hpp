@@ -20,7 +20,7 @@ public:
 	
 	~ActorNode() = default;
 
-	void OnDrawInspector() override {}
+	void OnDrawInspector() override;
 	void OnDraw(std::shared_ptr<Renderer> renderer) override;
 	void OnUpdate(float64 dt) override;
 

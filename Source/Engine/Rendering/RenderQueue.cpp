@@ -3,7 +3,6 @@
 #include "../Rendering/Material.hpp"
 #include "../Rendering/StaticMesh.h"
 #include "../Rendering/Renderable.hpp"
-#include "../SceneManagement/Camera.hpp"
 #include "../SceneManagement/Transform.h"
 
 void RenderQueue::Push(const std::shared_ptr<Renderable>& renderable, const std::shared_ptr<Transform>& transform, const Aabb& bounds)

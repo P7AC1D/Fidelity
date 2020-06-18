@@ -4,6 +4,8 @@
 #include "../RenderApi/RenderDevice.hpp"
 #include "Renderer.h"
 #include "StaticMesh.h"
+#include "../UI/ImGui/imgui.h"
+#include "Material.hpp"
 
 Renderable::Renderable(): Component()
 {
@@ -12,6 +14,26 @@ Renderable::Renderable(): Component()
 	desc.BufferUsage = BufferUsage::Stream;
 	desc.ByteCount = sizeof(PerObjectBufferData);
 	_perObjectBuffer = Renderer::GetRenderDevice()->CreateGpuBuffer(desc);
+}
+
+void Renderable::DrawInspector()
+{
+	ImGui::Text("Renderable");
+	ImGui::BeginChild("Renderable", ImVec2(0, ImGui::GetFontSize() * 20), true);
+	{
+		std::shared_ptr<Material> material = GetMesh()->GetMaterial();
+
+		{
+			Colour diffuse = material->GetDiffuseColour();
+			float32 rawCol[3] = { diffuse[0], diffuse[1], diffuse[2] };
+			ImGui::ColorEdit3("Diffuse", rawCol);
+			material->SetDiffuseColour(Colour(
+				static_cast<uint8>(rawCol[0] * 255),
+				static_cast<uint8>(rawCol[1] * 255),
+				static_cast<uint8>(rawCol[2] * 255)));
+		}
+	}
+	ImGui::EndChild();
 }
 
 void Renderable::Draw(const std::shared_ptr<Renderer>& renderer)

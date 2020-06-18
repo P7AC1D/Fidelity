@@ -6,7 +6,6 @@
 #include "../Rendering/Renderable.hpp"
 #include "../Rendering/StaticMesh.h"
 #include "../RenderApi/Texture.hpp"
-#include "../SceneManagement/Actor.hpp"
 #include "../SceneManagement/Transform.h"
 #include "ImGui/imgui.h"
 #include "ImGui/imgui_impl_sdl.h"

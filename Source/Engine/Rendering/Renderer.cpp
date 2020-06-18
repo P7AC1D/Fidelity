@@ -13,7 +13,6 @@
 #include "../RenderApi/SamplerState.hpp"
 #include "../RenderApi/ShaderParams.hpp"
 #include "../RenderApi/VertexBuffer.hpp"
-#include "../SceneManagement/Camera.hpp"
 #include "../SceneManagement/Transform.h"
 #include "Material.hpp"
 #include "Renderable.hpp"

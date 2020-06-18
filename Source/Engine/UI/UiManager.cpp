@@ -15,7 +15,6 @@
 #include "../Rendering/Renderer.h"
 #include "../Rendering/Renderable.hpp"
 #include "../Rendering/StaticMesh.h"
-#include "../SceneManagement/Camera.hpp"
 #include "../SceneManagement/SceneNode.hpp"
 #include "../SceneManagement/Transform.h"
 #include "../Utility/String.hpp"

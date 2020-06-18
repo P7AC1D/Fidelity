@@ -1,6 +1,5 @@
 #include "SceneNode.hpp"
 
-#include "Actor.hpp"
 #include "../Maths/Degree.hpp"
 #include "../Rendering/Renderer.h"
 #include "../UI/ImGui/imgui.h"
@@ -19,6 +18,9 @@ void SceneNode::Draw(std::shared_ptr<Renderer> renderer)
 void SceneNode::DrawInspector()
 {
 	ImGui::Separator();
+	ImGui::Text(_name.c_str());
+	ImGui::Separator();
+	
 	ImGui::Text("Transform");
 	{
 		Vector3 position = _transform.GetPosition();

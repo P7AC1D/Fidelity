@@ -15,6 +15,7 @@ public:
 	Component& operator=(Component&& other) noexcept = default;
 	virtual ~Component() = default;
 
+	virtual void DrawInspector() = 0;
 	virtual void Draw(const std::shared_ptr<Renderer>& renderer) = 0;
 	virtual void Update() = 0;
 

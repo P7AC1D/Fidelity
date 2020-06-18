@@ -22,6 +22,7 @@ class Renderable final : public Component
 public:
 	Renderable();
 
+	void DrawInspector() override;
 	void Draw(const std::shared_ptr<Renderer>& renderer) override;
 	void Update() override;
 

@@ -2,6 +2,7 @@
 
 #include "../Maths/Degree.hpp"
 #include "../Rendering/Renderer.h"
+#include "../UI/ImGui/imgui.h"
 
 CameraNode::CameraNode():
 	_width(1280),
@@ -11,6 +12,25 @@ _near(0.1f),
 _far(10000.0f)
 {
 	
+}
+
+void CameraNode::OnDrawInspector()
+{
+	ImGui::Separator();
+	ImGui::Text("Camera");
+	{
+		float32 farClip = _far;
+		float32 nearClip = _near;
+		float32 fovY = _fov.InDegrees();
+
+		ImGui::DragFloat("Near Clip", &nearClip, 1, 0.1f, 100.f);
+		ImGui::DragFloat("Far Clip", &farClip, 1, 0.1f, 10000.f);
+		ImGui::DragFloat("Field-of-view", &fovY, 1, 1.f, 180.f);
+
+		SetFar(farClip);
+		SetNear(nearClip);
+		SetFov(fovY);
+	}
 }
 
 void CameraNode::OnDraw(std::shared_ptr<Renderer> renderer)
