@@ -48,6 +48,7 @@ void SceneNode::DrawInspector()
 
 void SceneNode::Update(float64 dt)
 {
+	UpdateTransform();
 	for (const auto& child : _childNodes)
 	{
 		child->Update(dt);
@@ -73,4 +74,19 @@ Transform& SceneNode::GetTransform()
 void SceneNode::SetTransform(const Transform& transform)
 {
 	_transform = transform;
+}
+
+void SceneNode::UpdateTransform()
+{
+	_transform.Update();
+	if (!_parentNode)
+	{
+		return;
+	}
+	
+	Transform& parentTransform = _parentNode->GetTransform();
+	if (parentTransform.Modified())
+	{
+		_worldTransform = Transform(parentTransform.GetMatrix() * _transform.GetMatrix());
+	}
 }

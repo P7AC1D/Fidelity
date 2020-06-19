@@ -210,7 +210,7 @@ std::shared_ptr<SceneNode> BuildModel(const std::string& fileFolder, const aiSce
   	
     parentNode->AddChild(childNode);
   	   
-    std::shared_ptr<Renderable> renderable(new Renderable());  	
+    std::shared_ptr<Renderable> renderable(new Renderable());
     renderable->SetMesh(mesh);    
     childNode->AddComponent(renderable);
   }

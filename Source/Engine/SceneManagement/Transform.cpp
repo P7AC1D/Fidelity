@@ -9,45 +9,54 @@ Transform::Transform() :
 {
 }
 
+Transform::Transform(const Matrix4& mat) :
+  _scale(Vector3::Identity),
+  _position(Vector3::Zero),
+  _rotation(Quaternion::Identity),
+  _transform(mat),
+  _modified(true)
+{
+}
+
 Transform* Transform::Translate(const Vector3& translation)
 {
   _position += translation;
-  UpdateTransform();
+  _modified = true;
   return this;
 }
 
 Transform* Transform::Rotate(const Quaternion& rotation)
 {
   _rotation = rotation * _rotation;
-  UpdateTransform();
+  _modified = true;
   return this;
 }
 
 Transform* Transform::Scale(const Vector3& scale)
 {
   _scale += scale;
-  UpdateTransform();
+  _modified = true;
   return this;
 }
 
 Transform* Transform::SetRotation(const Quaternion& rotation)
 {
   _rotation = rotation;
-  UpdateTransform();
+  _modified = true;
   return this;
 }
 
 Transform* Transform::SetPosition(const Vector3& position)
 {
   _position = position;
-  UpdateTransform();
+  _modified = true;
   return this;
 }
 
 Transform* Transform::SetScale(const Vector3& scale)
 {
   _scale = Vector3(std::max(scale.X, 0.0f), std::max(scale.Y, 0.0f), std::max(scale.Z, 0.0f));
-  UpdateTransform();
+  _modified = true;
   return this;
 }
 
@@ -74,7 +83,7 @@ Transform* Transform::LookAt(const Vector3& eye, const Vector3& target, const Ve
 
   _position = eye;
   _rotation = view;
-  UpdateTransform();
+  _modified = true;
   return this;
 }
 
@@ -93,12 +102,8 @@ Vector3 Transform::GetScale() const
   return _scale;
 }
 
-Matrix4 Transform::Get()
+Matrix4 Transform::GetMatrix() const
 {
-  if (_modified)
-  {
-    UpdateTransform();
-  }
   return _transform;
 }
 
@@ -115,6 +120,11 @@ Vector3 Transform::GetUp() const
 Vector3 Transform::GetRight() const
 {
   return Vector3(_transform[0][0], _transform[1][0], _transform[2][0]);
+}
+
+void Transform::Update()
+{
+  UpdateTransform();
 }
 
 void Transform::UpdateTransform()

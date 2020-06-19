@@ -39,7 +39,7 @@ void Renderable::DrawInspector()
 void Renderable::Draw(const std::shared_ptr<Renderer>& renderer)
 {
 	PerObjectBufferData perObjectBufferData;
-	perObjectBufferData.Model = GetParent()->GetTransform().Get();
+	perObjectBufferData.Model = GetParent()->GetWorldTransform().GetMatrix();
 	perObjectBufferData.ModelView = renderer->GetBoundCamera()->GetView() * perObjectBufferData.Model;
 	perObjectBufferData.ModelViewProjection = renderer->GetBoundCamera()->GetProj() * perObjectBufferData.ModelView;
 	_perObjectBuffer->WriteData(0, sizeof(PerObjectBufferData), &perObjectBufferData, AccessType::WriteOnlyDiscard);

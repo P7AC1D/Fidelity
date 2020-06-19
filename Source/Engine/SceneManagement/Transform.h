@@ -8,6 +8,7 @@ class Transform
 {
 public:
   Transform();
+  explicit Transform(const Matrix4& mat);
 
   Transform* Translate(const Vector3& translation);
   Transform* Rotate(const Quaternion& rotation);
@@ -21,11 +22,13 @@ public:
   Quaternion GetRotation() const;
   Vector3 GetPosition() const;
   Vector3 GetScale() const;
-  Matrix4 Get();
+  Matrix4 GetMatrix() const;
 
   Vector3 GetForward() const;
   Vector3 GetUp() const;
   Vector3 GetRight() const;
+
+  void Update();
 
 	bool Modified() const { return _modified; }
 

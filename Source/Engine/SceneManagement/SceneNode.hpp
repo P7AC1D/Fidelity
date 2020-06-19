@@ -64,12 +64,18 @@ public:
 	Transform& GetTransform();
 	void SetTransform(const Transform& transform);
 
+	const Transform& GetWorldTransform() const { return _worldTransform; }
+	
 private:
+	void UpdateTransform();
+	
 	static uint64 _id;
 	
 	std::string _name;
 	std::vector<sptr<SceneNode>> _childNodes;
+	sptr<SceneNode> _parentNode;
 	Transform _transform;
+	Transform _worldTransform;
 };
 
 template<typename T>
@@ -93,6 +99,7 @@ template<typename T>
 void SceneNode::AddChild(const sptr<T>& node)
 {
 	static_assert(std::is_base_of<SceneNode, T>::value, "Template type must be a child class of SceneNode");
-	
+
+	node->_parentNode = shared_from_this();
 	_childNodes.push_back(std::static_pointer_cast<SceneNode, T>(node));
 }
