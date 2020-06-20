@@ -17,8 +17,6 @@ struct PerObjectBufferData
 
 class Renderable final : public Component
 {
-	friend class SceneManager;
-
 public:
 	Renderable();
 
@@ -31,7 +29,13 @@ public:
 	std::shared_ptr<StaticMesh> GetMesh() const;
 	std::shared_ptr<GpuBuffer> GetPerObjectBuffer() const;
 
+	void DrawBoundingBox(bool draw) { _drawBoundingBox = draw; }
+	bool ShouldDrawBoundingBox() const { return _drawBoundingBox; }
+
 private:
+	Aabb _boundingBox;
+	bool _drawBoundingBox;
+	
   std::shared_ptr<StaticMesh> _mesh;
 	std::shared_ptr<GpuBuffer> _perObjectBuffer;
 };

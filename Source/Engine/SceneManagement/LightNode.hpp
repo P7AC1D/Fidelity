@@ -17,6 +17,7 @@ class LightNode final : public SceneNode
 public:
 	void OnDraw(std::shared_ptr<Renderer> renderer) override;
 	void OnUpdate(float64 dt) override {}
+	void OnDrawInspector() override;
 	
 	Colour GetColour() const;
 	void SetColour(const Colour& colour);

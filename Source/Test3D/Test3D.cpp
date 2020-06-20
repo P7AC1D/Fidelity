@@ -43,11 +43,17 @@ void Test3D::OnStart()
 	
   _sceneGraph->AddChild(_camera);
 
+  auto light = SceneNode::Create<LightNode>();
+  light->SetColour(Colour(228, 179, 74));
+  light->SetIntensity(0.7f);
+  light->GetTransform().SetRotation(Quaternion(Degree(-120.0f), 30.0f, 6.0f));
+  _sceneGraph->AddChild(light);
+
 	//auto directionalLight = SceneManager::Get()->CreateLight(LightType::Directional, "DirectionLight");
  // directionalLight->SetDirection(Vector3(0.1f, -1.0f, 0.1f));
 	//SceneManager::Get()->SetDirectionLight(directionalLight);
     
-  sptr<SceneNode> sponza(ModelLoader::LoadFromFile("./../../Resources/Models/Sponza/sponza.obj", false));
+  auto sponza(ModelLoader::LoadFromFile("./../../Resources/Models/Sponza/sponza.obj", false));
   _sceneGraph->AddChild(sponza);
 	
 //  auto rootSceneNode = SceneManager::Get()->GetRootSceneNode();

@@ -67,7 +67,7 @@ Renderer::Renderer(const RendererDesc& desc) :
 	_ssaoEnabled(true),
 	_hdrEnabled(true),
 	_shadowResolution(2048),
-  _shadowOrthographicSize(250.0f)
+  _shadowOrthographicSize(2250.f)
 {
   try
   {

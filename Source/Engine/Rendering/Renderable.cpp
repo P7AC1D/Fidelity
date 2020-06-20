@@ -7,7 +7,9 @@
 #include "../UI/ImGui/imgui.h"
 #include "Material.hpp"
 
-Renderable::Renderable(): Component()
+Renderable::Renderable():
+	Component(),
+	_drawBoundingBox(false)
 {
 	GpuBufferDesc desc;
 	desc.BufferType = BufferType::Constant;
