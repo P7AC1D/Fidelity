@@ -3787,7 +3787,7 @@ void ImGui::NewFrame()
         {
             if (g.IO.KeyCtrl && g.IO.FontAllowUserScaling)
             {
-                // Zoom / Scale window
+                // ZoomCamera / Scale window
                 const float new_font_scale = ImClamp(window->FontWindowScale + g.IO.MouseWheel * 0.10f, 0.50f, 2.50f);
                 const float scale = new_font_scale / window->FontWindowScale;
                 window->FontWindowScale = new_font_scale;

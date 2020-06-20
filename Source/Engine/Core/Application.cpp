@@ -1,11 +1,13 @@
 #include "Application.h"
 
 #include <iostream>
+#include <utility>
 #include <SDL.h>
 #include "../Input/EventDispatcher.hpp"
 #include "../Input/InputHandler.hpp"
 #include "../Rendering/Renderer.h"
-#include "../SceneManagement/SceneManager.h"
+#include "../SceneManagement/GenericNode.hpp"
+#include "../SceneManagement/SceneNode.hpp"
 
 Application::~Application() 
 {
@@ -112,7 +114,9 @@ int32 Application::Run()
       }
     }   
 
-		SceneManager::Get()->UpdateScene(dtMs);
+		_sceneGraph->Update(dtMs);
+    _sceneGraph->Draw(_renderer); //TODO Change name to SubmitDraw() or PrepareDraw() or something similar.
+  	
 		_renderer->DrawFrame();
 		_debugUi->Update();		
     SDL_GL_SwapWindow(_window);
@@ -121,11 +125,12 @@ int32 Application::Run()
   return 0;
 }
 
-Application::Application(const ApplicationDesc &desc) :
+Application::Application(ApplicationDesc desc) :
   _eventDispatcher(new EventDispatcher),
   _inputHandler(new InputHandler(*_eventDispatcher.get())),
+  _sceneGraph(SceneNode::Create<GenericNode>()),
   _mouseFocus(true),
-  _desc(desc)
+  _desc(std::move(desc))
 {
 }
 
@@ -191,8 +196,6 @@ bool Application::Initialize()
 		rendererDesc.RenderWidth = _desc.Width;
 		rendererDesc.RenderHeight = _desc.Height;
 		_renderer.reset(new Renderer(rendererDesc));
-
-		SceneManager::Get()->SetRenderer(_renderer);
 	}
 	catch (const std::exception& exception)
 	{
@@ -204,6 +207,7 @@ bool Application::Initialize()
 
   _debugUi.reset(new UiManager(_window, _glContext));
 	_debugUi->SetRenderer(_renderer);
+  _debugUi->SetSceneGraph(_sceneGraph);
   return true;
 }
 

@@ -6,6 +6,8 @@
 #include "../Maths/Colour.hpp"
 #include "../Maths/Matrix4.hpp"
 #include "../Maths/Vector2I.hpp"
+#include "../SceneManagement/CameraNode.hpp"
+#include "../SceneManagement/LightNode.hpp"
 
 class Aabb;
 class GpuBuffer;
@@ -88,7 +90,7 @@ struct RendererDesc
   RenderApi RenderApi = RenderApi::GL41;
   bool FullscreenEnabled = false;
   bool VsyncEnabled = false;
-  Vector2I ShadowRes = Vector2I(512, 512);
+  Vector2I ShadowRes = Vector2I(2048, 2048);
 };
 
 class Renderer
@@ -97,6 +99,7 @@ public:
 	static std::shared_ptr<RenderDevice> GetRenderDevice();
 
   Renderer(const RendererDesc& desc);
+	virtual ~Renderer() = default;
   
   uint32 GetRenderWidth() const { return _desc.RenderWidth; }
   uint32 GetRenderHeight() const { return _desc.RenderHeight; }
@@ -117,7 +120,16 @@ public:
   void Push(const std::shared_ptr<Renderable>& renderable, const std::shared_ptr<Transform>& transform, const Aabb& bounds);
   
   void DrawFrame();
-  
+
+	void BindCamera(std::shared_ptr<CameraNode> camera);
+	sptr<CameraNode> GetBoundCamera() const { return _camera; }
+	
+	void SubmitLight(const sptr<LightNode>& lightNode);
+	void SubmitRenderable(const sptr<Renderable>& renderable);
+
+	float32 GetOrthographicSize() const;
+	void SetOrthographicSize(float32 shadowOrthographicSize);
+	
 private:
   void InitShadowDepthPass();
   void InitDepthRenderTarget();
@@ -190,11 +202,20 @@ private:
 		SsaoDetailsData SsaoDetails;
 		HdrData Hdr;
 	};
-  
+
+public:
+	[[nodiscard]] float32 ShadowOrthographicSize() const
+	{
+		return _shadowOrthographicSize;
+	}
+
+private:
   RendererDesc _desc;
 	DebugDisplayType _debugDisplayType;
 	DirectionalLightData _directionalLightData;
   AmbientLightData _ambientLightData;
+
+	std::shared_ptr<CameraNode> _camera;
 
   std::shared_ptr<GpuBuffer> _frameBuffer;
 	std::shared_ptr<GpuBuffer> _materialBuffer;
@@ -230,4 +251,9 @@ private:
 
 	bool _ssaoEnabled;
 	bool _hdrEnabled;
+
+	uint32 _shadowResolution;
+	float32 _shadowOrthographicSize;
+
+	std::vector<sptr<Renderable>> _renderables;
 };

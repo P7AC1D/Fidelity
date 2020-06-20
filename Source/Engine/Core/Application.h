@@ -36,7 +36,7 @@ public:
   int32 Run();
 
 protected:
-  Application(const ApplicationDesc& desc);
+  Application(ApplicationDesc desc);
 
   float32 GetAverageTickMs(int32 dtMs);
   float32 GetAverageFps(int32 dtMs);
@@ -49,13 +49,14 @@ protected:
   std::unique_ptr<EventDispatcher> _eventDispatcher;
   std::unique_ptr<InputHandler> _inputHandler;
 	std::unique_ptr<UiManager> _debugUi;
+  std::shared_ptr<SceneNode> _sceneGraph;
   std::shared_ptr<Renderer> _renderer;
 
 private:
-  bool _isRunning;
+  bool _isRunning{};
   bool _mouseFocus;
-  SDL_Window* _window;
-  SDL_GLContext _glContext;
+  SDL_Window* _window{};
+  SDL_GLContext _glContext{};
   ApplicationDesc _desc;
   Vector2I _cursorPosition;
 };

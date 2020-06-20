@@ -1,6 +1,7 @@
 #pragma once
 #include <memory>
-#include <vector>
+
+#include "Renderer.h"
 #include "../Maths/Matrix4.hpp"
 #include "../SceneManagement/Component.hpp"
 
@@ -14,22 +15,27 @@ struct PerObjectBufferData
 	Matrix4 ModelViewProjection;
 };
 
-class Renderable : public Component
+class Renderable final : public Component
 {
-	friend class SceneManager;
-
 public:
 	Renderable();
 
+	void DrawInspector() override;
+	void Draw(const std::shared_ptr<Renderer>& renderer) override;
 	void Update() override;
-	void UpdatePerObjectBuffer(const PerObjectBufferData& perObjectData);	
 
 	void SetMesh(const std::shared_ptr<StaticMesh>& mesh);
 
 	std::shared_ptr<StaticMesh> GetMesh() const;
 	std::shared_ptr<GpuBuffer> GetPerObjectBuffer() const;
 
+	void DrawBoundingBox(bool draw) { _drawBoundingBox = draw; }
+	bool ShouldDrawBoundingBox() const { return _drawBoundingBox; }
+
 private:
+	Aabb _boundingBox;
+	bool _drawBoundingBox;
+	
   std::shared_ptr<StaticMesh> _mesh;
 	std::shared_ptr<GpuBuffer> _perObjectBuffer;
 };

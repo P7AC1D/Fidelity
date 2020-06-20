@@ -1,85 +1,92 @@
 #include "SceneNode.hpp"
 
-#include "Actor.hpp"
-#include "Transform.h"
+#include "../Maths/Degree.hpp"
+#include "../Rendering/Renderer.h"
+#include "../UI/ImGui/imgui.h"
 
-SceneNode::SceneNode(const std::string& name) : _name(name), _transform(new Transform())
+uint64 SceneNode::_id = 0;
+
+void SceneNode::Draw(std::shared_ptr<Renderer> renderer)
 {
+	for (const auto& child : _childNodes)
+	{
+		child->Draw(renderer);
+	}
+	OnDraw(renderer);
 }
 
-std::shared_ptr<SceneNode> SceneNode::CreateChildNode(const std::string& name)
+void SceneNode::DrawInspector()
 {
-	std::shared_ptr<SceneNode> childNode(new SceneNode(name));
-	childNode->SetParentNode(shared_from_this());
-	_childNodes.push_back(childNode);
-	return childNode;
+	ImGui::Separator();
+	ImGui::Text(_name.c_str());
+	ImGui::Separator();
+	
+	ImGui::Text("Transform");
+	{
+		Vector3 position = _transform.GetPosition();
+		float32 pos[]{ position.X, position.Y, position.Z };
+		ImGui::DragFloat3("Position", pos, 0.1f);
+		_transform.SetPosition(Vector3(pos[0], pos[1], pos[2]));
+	}
+
+	{
+		Vector3 scale = _transform.GetScale();
+		float32 scl[]{ scale.X, scale.Y, scale.Z };
+		ImGui::DragFloat3("Scale", scl, 0.1f);
+		_transform.SetScale(Vector3(scl[0], scl[1], scl[2]));
+	}
+
+	{
+		Vector3 euler = _transform.GetRotation().ToEuler();
+		float32 angles[3] = { euler.X, euler.Y, euler.Z };
+		ImGui::DragFloat3("Orientation", angles, 1.0f);
+		_transform.SetRotation(Quaternion(Degree(angles[0]), Degree(angles[1]), Degree(angles[2])));
+	}
+
+	OnDrawInspector();
 }
 
-std::shared_ptr<Actor> SceneNode::CreateActor(const std::string& name)
+void SceneNode::Update(float64 dt)
 {
-	std::shared_ptr<Actor> actor(new Actor(name));
-	actor->SetParent(shared_from_this());
-	_actors.push_back(actor);
-	return actor;
+	UpdateTransform();
+	for (const auto& child : _childNodes)
+	{
+		child->Update(dt);
+	}
+	OnUpdate(dt);
 }
 
-void SceneNode::SetTransform(const std::shared_ptr<Transform>& transform)
+std::string SceneNode::GetName() const
+{
+	return _name;
+}
+
+void SceneNode::SetName(const std::string& name)
+{
+	_name = name;
+}
+
+Transform& SceneNode::GetTransform()
+{
+	return _transform;
+}
+
+void SceneNode::SetTransform(const Transform& transform)
 {
 	_transform = transform;
 }
 
-void SceneNode::SetParentNode(const std::shared_ptr<SceneNode>& parent)
+void SceneNode::UpdateTransform()
 {
-	_parentNode = parent;
-}
-
-void SceneNode::AddChildNode(const std::shared_ptr<SceneNode>& child)
-{
-	_childNodes.push_back(child);
-}
-
-void SceneNode::AddActor(const std::shared_ptr<Actor>& actor)
-{
-	_actors.push_back(actor);
-}
-
-void SceneNode::SetPosition(const Vector3& position)
-{
-	_transform->SetPosition(position);
-}
-
-void SceneNode::SetScale(const Vector3& scale)
-{
-	_transform->SetScale(scale);
-}
-
-void SceneNode::SetRotation(const Quaternion& rotation)
-{
-	_transform->SetRotation(rotation);
-}
-
-void SceneNode::Rotate(const Quaternion& rotationDelta)
-{
-	_transform->Rotate(rotationDelta);
-}
-
-std::vector<std::shared_ptr<Actor>> SceneNode::GetActors() const
-{
-	return _actors;
-}
-
-std::vector<std::shared_ptr<SceneNode>> SceneNode::GetChildNodes() const
-{
-	return _childNodes;
-}
-
-std::vector<std::shared_ptr<Actor>> SceneNode::GetAllActors() const
-{
-	std::vector<std::shared_ptr<Actor>> actors(_actors);
-	for (auto childNode : _childNodes)
+	_transform.Update();
+	if (!_parentNode)
 	{
-		auto childNodeActors = childNode->GetAllActors();
-		actors.insert(actors.end(), childNodeActors.begin(), childNodeActors.end());
+		return;
 	}
-	return actors;
+	
+	Transform& parentTransform = _parentNode->GetTransform();
+	if (parentTransform.Modified())
+	{
+		_worldTransform = Transform(parentTransform.GetMatrix() * _transform.GetMatrix());
+	}
 }
