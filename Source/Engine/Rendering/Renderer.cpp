@@ -701,7 +701,7 @@ void Renderer::InitGBufferDebugPass()
 	vsDesc.EntryPoint = "main";
 	vsDesc.ShaderLang = ShaderLang::Glsl;
 	vsDesc.ShaderType = ShaderType::Vertex;
-	vsDesc.Source = String::LoadFromFile("./Shaders/FSPassThrough");
+	vsDesc.Source = String::LoadFromFile("./Shaders/FSPassThrough.vert");
 
 	ShaderDesc psDesc;
 	psDesc.EntryPoint = "main";
