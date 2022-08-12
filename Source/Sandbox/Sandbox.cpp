@@ -37,22 +37,25 @@ Sandbox::Sandbox(const ApplicationDesc& desc):
 
 void Sandbox::OnStart()
 {
-  _camera = SceneNode::Create<CameraNode>();
+  _camera = SceneNode::Create<CameraNode>("main-camera");
   _camera->SetPerspective(Degree(67.67f), GetWidth(), GetHeight(), 0.1f, 10000.0f);
   _camera->GetTransform().LookAt(Vector3(0.0f, 0.0f, 20.0f), _cameraTarget);
 	
   _sceneGraph->AddChild(_camera);
 
-  auto light = SceneNode::Create<LightNode>();
+  auto light = SceneNode::Create<LightNode>("directional-light");
   light->SetColour(Colour(228, 179, 74));
   light->SetIntensity(0.7f);
   light->GetTransform().SetRotation(Quaternion(Degree(-120.0f), 30.0f, 6.0f));
   _sceneGraph->AddChild(light);
   
-  auto actor = SceneNode::Create<ActorNode>();
+  auto actor = SceneNode::Create<ActorNode>("cube");
   _sceneGraph->AddChild(actor);
   auto renderable = ActorNode::CreateComponent<Renderable>();
   actor->AddComponent<Renderable>(renderable);
+  actor->GetTransform()
+    .SetPosition(Vector3(2.0f, 0.0f, 4.5f))
+    .SetRotation(Quaternion(Degree(35.0f), 37.0f, 57.0f));
   auto mesh = MeshFactory::CreateCube();
   renderable->SetMesh(mesh);
   auto material = mesh->GetMaterial();
@@ -64,13 +67,16 @@ void Sandbox::OnStart()
   material->SetNormalTexture(normalTexture);
   material->SetSpecularTexture(specularTexture);
 
-//  auto floor = SceneNode::Create<ActorNode>();
-//  floor->SetPosition(Vector3(0.0f, -10.0f, 0.0f));
-//  floor->SetScale(Vector3(10.0f, 10.0f, 10.0f));
-//  auto renderableFloor = floor->CreateComponent<Renderable>();
-//  auto plane = MeshFactory::CreatePlane();
-//  renderableFloor->SetMesh(plane);
-//  plane->GetMaterial()->SetDiffuseTexture(TextureLoader::LoadFromFile2D("./Textures/177.JPG", true));
+  auto floor = SceneNode::Create<ActorNode>("ground");
+  floor->GetTransform()
+    .SetPosition(Vector3(0.0f, -10.0f, 0.0f))
+    .SetScale(Vector3(25.0f, 25.0f, 25.0f));
+  auto renderableFloor = floor->CreateComponent<Renderable>();
+  auto plane = MeshFactory::CreatePlane();
+  renderableFloor->SetMesh(plane);
+  floor->AddComponent(renderableFloor);
+  plane->GetMaterial()->SetDiffuseTexture(TextureLoader::LoadFromFile2D("./Textures/177.JPG", true));
+  _sceneGraph->AddChild(floor);
 	
   _inputHandler->BindButtonToState("ActivateCameraLook", Button::Button_LMouse);
 	_inputHandler->BindAxisToState("CameraZoom", Axis::MouseScrollXY);

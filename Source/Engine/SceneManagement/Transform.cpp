@@ -18,49 +18,49 @@ Transform::Transform(const Matrix4& mat) :
 {
 }
 
-Transform* Transform::Translate(const Vector3& translation)
+Transform& Transform::Translate(const Vector3& translation)
 {
   _position += translation;
   _modified = true;
-  return this;
+  return *this;
 }
 
-Transform* Transform::Rotate(const Quaternion& rotation)
+Transform& Transform::Rotate(const Quaternion& rotation)
 {
   _rotation = rotation * _rotation;
   _modified = true;
-  return this;
+  return *this;
 }
 
-Transform* Transform::Scale(const Vector3& scale)
+Transform& Transform::Scale(const Vector3& scale)
 {
   _scale += scale;
   _modified = true;
-  return this;
+  return *this;
 }
 
-Transform* Transform::SetRotation(const Quaternion& rotation)
+Transform& Transform::SetRotation(const Quaternion& rotation)
 {
   _rotation = rotation;
   _modified = true;
-  return this;
+  return *this;
 }
 
-Transform* Transform::SetPosition(const Vector3& position)
+Transform& Transform::SetPosition(const Vector3& position)
 {
   _position = position;
   _modified = true;
-  return this;
+  return *this;
 }
 
-Transform* Transform::SetScale(const Vector3& scale)
+Transform& Transform::SetScale(const Vector3& scale)
 {
   _scale = Vector3(std::max(scale.X, 0.0f), std::max(scale.Y, 0.0f), std::max(scale.Z, 0.0f));
   _modified = true;
-  return this;
+  return *this;
 }
 
-Transform* Transform::LookAt(const Vector3& eye, const Vector3& target, const Vector3& up)
+Transform& Transform::LookAt(const Vector3& eye, const Vector3& target, const Vector3& up)
 {
   Vector3 camDir = Vector3::Normalize(target - eye);
   if (std::abs(Vector3::Dot(camDir, up)))
@@ -84,7 +84,7 @@ Transform* Transform::LookAt(const Vector3& eye, const Vector3& target, const Ve
   _position = eye;
   _rotation = view;
   _modified = true;
-  return this;
+  return *this;
 }
 
 Quaternion Transform::GetRotation() const
