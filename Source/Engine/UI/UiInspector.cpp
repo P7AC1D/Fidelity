@@ -8,7 +8,6 @@
 #include "../RenderApi/Texture.hpp"
 #include "../SceneManagement/Transform.h"
 #include "ImGui/imgui.h"
-#include "ImGui/imgui_impl_sdl.h"
 
 void UiInspector::Build(const std::shared_ptr<SceneNode>& node)
 {

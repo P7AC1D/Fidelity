@@ -102,7 +102,7 @@ void GLShader::AttachHeaderFiles()
 			auto splitLine = String::Split(line, '\"');
 			ASSERT_TRUE(splitLine.size() == 3, "#include syntax error");
 
-			auto headerSource = String::LoadFromFile("./../../Resources/Shaders/" + splitLine[1]);
+			auto headerSource = String::LoadFromFile("./Shaders/" + splitLine[1]);
 
 			_desc.Source.erase(iterPos, newLinePos - iterPos);
 			_desc.Source.insert(iterPos, headerSource.c_str());

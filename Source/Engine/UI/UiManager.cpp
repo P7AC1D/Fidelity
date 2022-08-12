@@ -2,7 +2,8 @@
 
 #include <memory>
 #include <sstream>
-#include <SDL.h>
+#include <glad/glad.h> 
+#include <GLFW/glfw3.h>
 
 #include "UiInspector.hpp"
 #include "../Core/Types.hpp"
@@ -19,17 +20,17 @@
 #include "../SceneManagement/Transform.h"
 #include "../Utility/String.hpp"
 #include "ImGui/imgui.h"
-#include "ImGui/imgui_impl_sdl.h"
+#include "ImGui/imgui_impl_glfw.h"
+#include "ImGui/imgui_impl_opengl3.h"
 
 bool show_demo_window = false;
 bool lockCameraToLight = false;
 uint32 selectedActorIndex = -1;
 std::shared_ptr<SceneNode> selectedActor = nullptr;
 
-UiManager::UiManager(SDL_Window* sdlWindow, SDL_GLContext sdlGlContext):
+UiManager::UiManager(GLFWwindow* glfwWindow):
 	_io(nullptr),
-	_sdlWindow(sdlWindow),
-	_sdlGlContext(sdlGlContext),
+	_window(glfwWindow),
 	_vertBuffSize(0),
 	_idxBuffSize(0),
 	_initialized(false)
@@ -39,12 +40,14 @@ UiManager::UiManager(SDL_Window* sdlWindow, SDL_GLContext sdlGlContext):
 	_io = &ImGui::GetIO();
 	ImGui::StyleColorsDark();
 
-	ImGui_ImplSDL2_InitForOpenGL(_sdlWindow, sdlGlContext);
+	ImGui_ImplGlfw_InitForOpenGL(glfwWindow, true);
+	ImGui_ImplOpenGL3_Init();
 }
 
 UiManager::~UiManager()
 {
-	ImGui_ImplSDL2_Shutdown();
+	ImGui_ImplOpenGL3_Shutdown();
+	ImGui_ImplGlfw_Shutdown();
 	ImGui::DestroyContext();
 }
 
@@ -58,13 +61,9 @@ void UiManager::SetSceneGraph(const std::shared_ptr<SceneNode>& sceneGraph)
 	_sceneGraph = sceneGraph;
 }
 
-bool UiManager::ProcessEvents(SDL_Event* sdlEvent)
+bool UiManager::HasMouseCapture() const
 {
-	if (_io->WantCaptureMouse)
-	{
-		return ImGui_ImplSDL2_ProcessEvent(sdlEvent);
-	}
-	return false;
+	return _io->WantCaptureMouse;
 }
 
 void UiManager::Update()
@@ -76,7 +75,8 @@ void UiManager::Update()
 		_initialized = true;
 	}
 
-	ImGui_ImplSDL2_NewFrame(_sdlWindow);
+	ImGui_ImplOpenGL3_NewFrame();
+	ImGui_ImplGlfw_NewFrame();
 	ImGui::NewFrame();
 	{
 		
@@ -162,7 +162,7 @@ void UiManager::Update()
     ImGui::Separator();
     if (ImGui::TreeNode("Scene"))
     {
-      ImGui::BeginChild("SceneGraph", ImVec2(ImGui::GetContentRegionAvailWidth(), 200), false, ImGuiWindowFlags_HorizontalScrollbar);
+      ImGui::BeginChild("SceneGraph", ImVec2(ImGui::GetContentRegionAvail().x, 200), false, ImGuiWindowFlags_HorizontalScrollbar);
 			DrawSceneNode(_sceneGraph);
 			UiInspector::Build(selectedActor);
      
@@ -238,7 +238,6 @@ void UiManager::Update()
 
 	ImGui::EndFrame();
 	ImGui::Render();
-	SDL_GL_MakeCurrent(_sdlWindow, _sdlGlContext);
 	Draw(ImGui::GetDrawData());
 }
 
@@ -357,13 +356,13 @@ void UiManager::SetupRenderer()
 	vsShaderDesc.EntryPoint = "main";
 	vsShaderDesc.ShaderLang = ShaderLang::Glsl;
 	vsShaderDesc.ShaderType = ShaderType::Vertex;
-	vsShaderDesc.Source = String::LoadFromFile("./../../Resources/Shaders/DebugGuiVS.glsl");
+	vsShaderDesc.Source = String::LoadFromFile("./Shaders/DebugGuiVS.glsl");
 
 	ShaderDesc psShaderDesc;
 	psShaderDesc.EntryPoint = "main";
 	psShaderDesc.ShaderLang = ShaderLang::Glsl;
 	psShaderDesc.ShaderType = ShaderType::Pixel;
-	psShaderDesc.Source = String::LoadFromFile("./../../Resources/Shaders/DebugGuiPS.glsl");
+	psShaderDesc.Source = String::LoadFromFile("./Shaders/DebugGuiPS.glsl");
 
 	BlendStateDesc blendStateDesc;
 	blendStateDesc.RTBlendState[0].BlendEnabled = true;

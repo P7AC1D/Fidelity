@@ -6,28 +6,26 @@ class Texture;
 
 struct FrameGraphNodeInputs
 {
-	
 };
 
 class FrameGraphNode
 {
 public:
-	virtual ~FrameGraphNode() {}
-	virtual void Execute(const FrameGraphNodeInputs& inputs) = 0;
+  virtual ~FrameGraphNode() {}
+  virtual void Execute(const FrameGraphNodeInputs &inputs) = 0;
 };
 
 class DepthPrepass : public FrameGraphNode
 {
-	
 };
 
 class GBufferNode : public FrameGraphNode
 {
 public:
-	void Execute(const FrameGraphNodeInputs& inputs) override;
+  void Execute(const FrameGraphNodeInputs &inputs) override;
 
 private:
-	std::shared_ptr<Texture> _positions;
-	std::shared_ptr<Texture> _normals;
-	std::shared_ptr<Texture> _albedoSpec;
+  std::shared_ptr<Texture> _positions;
+  std::shared_ptr<Texture> _normals;
+  std::shared_ptr<Texture> _albedoSpec;
 };

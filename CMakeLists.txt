@@ -1,23 +1,17 @@
-cmake_minimum_required(VERSION 2.8)
+cmake_minimum_required (VERSION 3.8 FATAL_ERROR)
 
 project(Fidelity)
 
-set(CMAKE_PREFIX_PATH ${CMAKE_CURRENT_LIST_DIR})
+set(ENTITYX_BUILD_SHARED FALSE)
 set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_LIST_DIR}")
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_LIST_DIR}/Binaries")
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_LIST_DIR}/Binaries")
-set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_CURRENT_LIST_DIR}/Binaries")
-set(ASSIMP_INCLUDE_DIR "${CMAKE_CURRENT_LIST_DIR}/Externals/assimp-4.1.0/include")
-set(ASSIMP_LIBRARY "${CMAKE_CURRENT_LIST_DIR}/Externals/assimp-4.1.0/lib")
 
-find_package(SDL2 REQUIRED)
 find_package(OpenGL REQUIRED)
+find_package(Vulkan REQUIRED)
 
-IF (WIN32)
-set(GLEW_INCLUDE_DIRS "${CMAKE_CURRENT_LIST_DIR}/Externals/glew-2.1.0/include")
-set(GLEW_LIBRARY "${CMAKE_CURRENT_LIST_DIR}/Externals/glew-2.1.0")
-ENDIF()
+add_subdirectory ("Source/Engine")
+add_subdirectory ("Source/Test3D")
+add_subdirectory ("Source/Tests")
 
-add_subdirectory(Source)
-
+add_subdirectory ("Externals/glfw")
+add_subdirectory ("Externals/assimp")
+add_subdirectory ("Externals/glad")

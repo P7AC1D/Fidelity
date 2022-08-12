@@ -5,7 +5,7 @@
   #include <OpenGL/gl3.h>
 #endif
 #ifdef _WIN32
-  #include <GL/glew.h>
+  #include <glad/glad.h>
 #endif
 
 #include "../../Core/Types.hpp"

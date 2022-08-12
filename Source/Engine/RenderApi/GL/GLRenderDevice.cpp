@@ -112,12 +112,6 @@ GLRenderDevice::GLRenderDevice(const RenderDeviceDesc& desc) :
   _stencilWriteMask(0),
   _shaderPipelineCollection(new GLShaderPipelineCollection)
 {
-#ifdef _WIN32
-  glewExperimental = GL_TRUE;
-  GLenum error = glewInit();
-  ASSERT_TRUE(error == GLEW_OK, "Failed to initialize GLEW");
-#endif
-
 	SetViewport(ViewportDesc{ 0.0f, 0.0f, static_cast<float32>(desc.RenderWidth), static_cast<float32>(desc.RenderHeight), 0.0f, 0.0f });
 	SetScissorDimensions(ScissorDesc{ 0, 0, desc.RenderWidth, desc.RenderHeight });
 }

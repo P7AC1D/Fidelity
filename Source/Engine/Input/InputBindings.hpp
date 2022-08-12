@@ -122,4 +122,5 @@ enum class Axis
   _count
 };
 
-Button SDLToButton(int32 button);
+Button GlfwKeyToButton(int32 button);
+Button GlfwMouseButtonToButton(int32 button);
