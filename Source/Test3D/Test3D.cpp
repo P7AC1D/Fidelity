@@ -56,18 +56,21 @@ void Test3D::OnStart()
   auto sponza(ModelLoader::LoadFromFile("./Models/Sponza/sponza.obj", false));
   _sceneGraph->AddChild(sponza);
 	
-//  auto rootSceneNode = SceneManager::Get()->GetRootSceneNode();
 //  for (int32 i = -30; i < 30; i += 3)
 //  {
 //    for (int32 j = -30; j < 30; j += 3)
 //    {
 //      for (int32 k = -30; k < 30; k += 3)
 //      {
-//        auto actor = rootSceneNode->CreateActor("test_model");
+//        auto actor = SceneNode::Create<ActorNode>();
 //        auto renderable = actor->CreateComponent<Renderable>();
 //        auto mesh = MeshFactory::CreateCube();
 //        renderable->SetMesh(mesh);
-//        actor->GetTransform()->Translate(Vector3(i, j, k));
+//        auto material = mesh->GetMaterial();
+//        auto diffuseTexture = TextureLoader::LoadFromFile2D("./Textures/brick_floor_tileable_Base_Color.jpg", true);
+//        material->SetDiffuseTexture(diffuseTexture);
+//        actor->GetTransform().Translate(Vector3(i, j, k));
+//        _sceneGraph->AddChild(actor);
 //      }
 //    }
 //  }
