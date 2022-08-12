@@ -1,5 +1,50 @@
 #version 410
-#include "Common.glsli"
+const int MaxKernelSize = 64;
+struct DirectionalLightData
+{
+  vec4 Colour;
+  vec3 Direction;
+  float Intensity;
+};
+
+struct AmbientLightData
+{
+  vec4 Colour;
+  float Intensity;
+  float SpecularExponent;
+  bool SsaoEnabled;
+};
+
+struct SsaoDetailsData
+{
+  vec4 Samples[MaxKernelSize];
+  int KernelSize;
+  int QuadWidth;
+  int QuadHeight;
+  float Radius;
+  float Bias;
+  float _paddingA;
+  float _paddingB;
+  float _paddingC;
+};
+
+struct HdrData
+{
+  bool Enabled;
+  float Exposure;
+};
+
+layout(std140) uniform FrameBuffer
+{
+  mat4 Projection;
+  mat4 View;
+  mat4 ViewInvs; 
+  DirectionalLightData DirectionalLight;
+  vec4 ViewPos;
+  AmbientLightData AmbientLight;  
+  SsaoDetailsData SsaoDetails;  
+  HdrData Hdr;
+} Frame;
 
 layout(location = 0) in vec2 TexCoord;
 

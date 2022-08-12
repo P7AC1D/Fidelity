@@ -1,5 +1,27 @@
 #version 410
-#include "Common.glsli"
+struct TextureMapFlags
+{
+  bool Diffuse;
+  bool Normal;
+  bool Specular;
+  bool Depth;
+};
+
+layout(std140) uniform ObjectBuffer
+{
+  mat4 Model;
+  mat4 ModelView;
+  mat4 ModelViewProjection;
+} Object;
+
+layout(std140) uniform MaterialBuffer
+{
+  TextureMapFlags Enabled;
+  vec4 AmbientColour;
+  vec4 DiffuseColour;
+  vec4 SpecularColour;
+  float SpecularExponent;  
+} Material;
 
 struct ShaderInterface
 {

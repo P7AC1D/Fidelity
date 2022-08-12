@@ -356,13 +356,13 @@ void UiManager::SetupRenderer()
 	vsShaderDesc.EntryPoint = "main";
 	vsShaderDesc.ShaderLang = ShaderLang::Glsl;
 	vsShaderDesc.ShaderType = ShaderType::Vertex;
-	vsShaderDesc.Source = String::LoadFromFile("./Shaders/DebugGuiVS.glsl");
+	vsShaderDesc.Source = String::LoadFromFile("./Shaders/DebugGui.vert");
 
 	ShaderDesc psShaderDesc;
 	psShaderDesc.EntryPoint = "main";
 	psShaderDesc.ShaderLang = ShaderLang::Glsl;
 	psShaderDesc.ShaderType = ShaderType::Pixel;
-	psShaderDesc.Source = String::LoadFromFile("./Shaders/DebugGuiPS.glsl");
+	psShaderDesc.Source = String::LoadFromFile("./Shaders/DebugGui.frag");
 
 	BlendStateDesc blendStateDesc;
 	blendStateDesc.RTBlendState[0].BlendEnabled = true;
