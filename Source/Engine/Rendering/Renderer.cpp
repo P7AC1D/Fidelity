@@ -189,13 +189,13 @@ void Renderer::InitShadowDepthPass()
   vsDesc.EntryPoint = "main";
   vsDesc.ShaderLang = ShaderLang::Glsl;
   vsDesc.ShaderType = ShaderType::Vertex;
-  vsDesc.Source = String::LoadFromFile("./../../Resources/Shaders/ShadowDepthVS.glsl");
+  vsDesc.Source = String::LoadFromFile("./Shaders/ShadowDepthVS.glsl");
   
   ShaderDesc psDesc;
   psDesc.EntryPoint = "main";
   psDesc.ShaderLang = ShaderLang::Glsl;
   psDesc.ShaderType = ShaderType::Pixel;
-  psDesc.Source = String::LoadFromFile("./../../Resources/Shaders/ShadowDepthPS.glsl");
+  psDesc.Source = String::LoadFromFile("./Shaders/ShadowDepthPS.glsl");
   
   std::vector<VertexLayoutDesc> vertexLayoutDesc
   {
@@ -275,13 +275,13 @@ void Renderer::InitGeometryPass()
   vsDesc.EntryPoint = "main";
   vsDesc.ShaderLang = ShaderLang::Glsl;
   vsDesc.ShaderType = ShaderType::Vertex;
-  vsDesc.Source = String::LoadFromFile("./../../Resources/Shaders/GeometryPassVS.glsl");
+  vsDesc.Source = String::LoadFromFile("./Shaders/GeometryPassVS.glsl");
   
   ShaderDesc psDesc;
   psDesc.EntryPoint = "main";
   psDesc.ShaderLang = ShaderLang::Glsl;
   psDesc.ShaderType = ShaderType::Pixel;
-  psDesc.Source = String::LoadFromFile("./../../Resources/Shaders/GeometryPassPS.glsl");
+  psDesc.Source = String::LoadFromFile("./Shaders/GeometryPassPS.glsl");
   
   std::vector<VertexLayoutDesc> vertexLayoutDesc
   {
@@ -406,13 +406,13 @@ void Renderer::InitLightingPass()
 	vsDesc.EntryPoint = "main";
 	vsDesc.ShaderLang = ShaderLang::Glsl;
 	vsDesc.ShaderType = ShaderType::Vertex;
-	vsDesc.Source = String::LoadFromFile("./../../Resources/Shaders/FSPassThroughVS.glsl");
+	vsDesc.Source = String::LoadFromFile("./Shaders/FSPassThroughVS.glsl");
 
 	ShaderDesc psDesc;
 	psDesc.EntryPoint = "main";
 	psDesc.ShaderLang = ShaderLang::Glsl;
 	psDesc.ShaderType = ShaderType::Pixel;
-	psDesc.Source = String::LoadFromFile("./../../Resources/Shaders/DeferredLightingPassPS.glsl");
+	psDesc.Source = String::LoadFromFile("./Shaders/DeferredLightingPassPS.glsl");
 
 	std::vector<VertexLayoutDesc> vertexLayoutDesc
 	{
@@ -478,13 +478,13 @@ void Renderer::InitSsaoPass()
     vsDesc.EntryPoint = "main";
     vsDesc.ShaderLang = ShaderLang::Glsl;
     vsDesc.ShaderType = ShaderType::Vertex;
-    vsDesc.Source = String::LoadFromFile("./../../Resources/Shaders/FSPassThroughVS.glsl");
+    vsDesc.Source = String::LoadFromFile("./Shaders/FSPassThroughVS.glsl");
     
     ShaderDesc psDesc;
     psDesc.EntryPoint = "main";
     psDesc.ShaderLang = ShaderLang::Glsl;
     psDesc.ShaderType = ShaderType::Pixel;
-    psDesc.Source = String::LoadFromFile("./../../Resources/Shaders/SsaoPS.glsl");
+    psDesc.Source = String::LoadFromFile("./Shaders/SsaoPS.glsl");
     
     std::vector<VertexLayoutDesc> vertexLayoutDesc
     {
@@ -555,13 +555,13 @@ void Renderer::InitSsaoBlurPass()
 		vsDesc.EntryPoint = "main";
 		vsDesc.ShaderLang = ShaderLang::Glsl;
 		vsDesc.ShaderType = ShaderType::Vertex;
-		vsDesc.Source = String::LoadFromFile("./../../Resources/Shaders/FSPassThroughVS.glsl");
+		vsDesc.Source = String::LoadFromFile("./Shaders/FSPassThroughVS.glsl");
 
 		ShaderDesc psDesc;
 		psDesc.EntryPoint = "main";
 		psDesc.ShaderLang = ShaderLang::Glsl;
 		psDesc.ShaderType = ShaderType::Pixel;
-		psDesc.Source = String::LoadFromFile("./../../Resources/Shaders/SsaoBlurPS.glsl");
+		psDesc.Source = String::LoadFromFile("./Shaders/SsaoBlurPS.glsl");
 
 		std::vector<VertexLayoutDesc> vertexLayoutDesc
 		{
@@ -656,13 +656,13 @@ void Renderer::InitDepthDebugPass()
   vsDesc.EntryPoint = "main";
   vsDesc.ShaderLang = ShaderLang::Glsl;
   vsDesc.ShaderType = ShaderType::Vertex;
-  vsDesc.Source = String::LoadFromFile("./../../Resources/Shaders/FSPassThroughVS.glsl");
+  vsDesc.Source = String::LoadFromFile("./Shaders/FSPassThroughVS.glsl");
   
   ShaderDesc psDesc;
   psDesc.EntryPoint = "main";
   psDesc.ShaderLang = ShaderLang::Glsl;
   psDesc.ShaderType = ShaderType::Pixel;
-  psDesc.Source = String::LoadFromFile("./../../Resources/Shaders/DepthDebugPS.glsl");
+  psDesc.Source = String::LoadFromFile("./Shaders/DepthDebugPS.glsl");
   
   std::vector<VertexLayoutDesc> vertexLayoutDesc
   {
@@ -701,13 +701,13 @@ void Renderer::InitGBufferDebugPass()
 	vsDesc.EntryPoint = "main";
 	vsDesc.ShaderLang = ShaderLang::Glsl;
 	vsDesc.ShaderType = ShaderType::Vertex;
-	vsDesc.Source = String::LoadFromFile("./../../Resources/Shaders/FSPassThroughVS.glsl");
+	vsDesc.Source = String::LoadFromFile("./Shaders/FSPassThroughVS.glsl");
 
 	ShaderDesc psDesc;
 	psDesc.EntryPoint = "main";
 	psDesc.ShaderLang = ShaderLang::Glsl;
 	psDesc.ShaderType = ShaderType::Pixel;
-	psDesc.Source = String::LoadFromFile("./../../Resources/Shaders/FullscreenQuad.glsl");
+	psDesc.Source = String::LoadFromFile("./Shaders/FullscreenQuad.glsl");
 
 	std::vector<VertexLayoutDesc> vertexLayoutDesc
 	{

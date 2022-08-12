@@ -1,108 +1,19 @@
-file(GLOB CoreSrc 
-	${CMAKE_CURRENT_SOURCE_DIR}/Core/*.h 
-	${CMAKE_CURRENT_SOURCE_DIR}/Core/*.hpp
-	${CMAKE_CURRENT_SOURCE_DIR}/Core/*.cpp
-	)
+cmake_minimum_required (VERSION 3.8 FATAL_ERROR)
+PROJECT (engine)
 
-file(GLOB ImageSrc 
-	${CMAKE_CURRENT_SOURCE_DIR}/Image/*.h 
-	${CMAKE_CURRENT_SOURCE_DIR}/Image/*.hpp
-	${CMAKE_CURRENT_SOURCE_DIR}/Image/*.cpp
-	)
-	
-file(GLOB MathsSrc 
-	${CMAKE_CURRENT_SOURCE_DIR}/Maths/*.h 
-	${CMAKE_CURRENT_SOURCE_DIR}/Maths/*.hpp
-	${CMAKE_CURRENT_SOURCE_DIR}/Maths/*.cpp
-	)
-	
-file(GLOB OverlaySrc 
-	${CMAKE_CURRENT_SOURCE_DIR}/Overlay/*.h 
-	${CMAKE_CURRENT_SOURCE_DIR}/Overlay/*.hpp
-	${CMAKE_CURRENT_SOURCE_DIR}/Overlay/*.cpp
-	)
+SET(CMAKE_GENERATOR_PLATFORM x64)
 
-file(GLOB RenderingSrc 
-	${CMAKE_CURRENT_SOURCE_DIR}/Rendering/*.h 
-	${CMAKE_CURRENT_SOURCE_DIR}/Rendering/*.hpp
-	${CMAKE_CURRENT_SOURCE_DIR}/Rendering/*.cpp
-	)
-	
-file(GLOB RenderApiSrc 
-	${CMAKE_CURRENT_SOURCE_DIR}/RenderApi/*.h 
-	${CMAKE_CURRENT_SOURCE_DIR}/RenderApi/*.hpp
-	${CMAKE_CURRENT_SOURCE_DIR}/RenderApi/*.cpp
-	)
-	
-file(GLOB RenderApiGLSrc
-	${CMAKE_CURRENT_SOURCE_DIR}/RenderApi/GL/*.h 
-	${CMAKE_CURRENT_SOURCE_DIR}/RenderApi/GL/*.hpp
-	${CMAKE_CURRENT_SOURCE_DIR}/RenderApi/GL/*.cpp
-	)
-	
-file(GLOB UiSrc
-	${CMAKE_CURRENT_SOURCE_DIR}/UI/*.h 
-	${CMAKE_CURRENT_SOURCE_DIR}/UI/*.hpp
-	${CMAKE_CURRENT_SOURCE_DIR}/UI/*.cpp
-	)
-	
-file(GLOB UiImGuiSrc
-	${CMAKE_CURRENT_SOURCE_DIR}/UI/ImGui/*.h 
-	${CMAKE_CURRENT_SOURCE_DIR}/UI/ImGui/*.hpp
-	${CMAKE_CURRENT_SOURCE_DIR}/UI/ImGui/*.cpp
-)
-	
-file(GLOB GeometrySrc
-	${CMAKE_CURRENT_SOURCE_DIR}/Geometry/*.h 
-	${CMAKE_CURRENT_SOURCE_DIR}/Geometry/*.hpp
-	${CMAKE_CURRENT_SOURCE_DIR}/Geometry/*.cpp
-	)
+file (GLOB_RECURSE EngineSrc ${CMAKE_CURRENT_SOURCE_DIR}/**/*.*)
+add_library (engine STATIC ${EngineSrc})
+set_target_properties(engine PROPERTIES CXX_STANDARD 17 CXX_EXTENSIONS OFF)
+set_target_properties(engine PROPERTIES LINKER_LANGUAGE CXX)
 
-file(GLOB SceneManagementSrc 
-	${CMAKE_CURRENT_SOURCE_DIR}/SceneManagement/*.h 
-	${CMAKE_CURRENT_SOURCE_DIR}/SceneManagement/*.hpp
-	${CMAKE_CURRENT_SOURCE_DIR}/SceneManagement/*.cpp
-	)
-	
-file(GLOB InputSrc 
-	${CMAKE_CURRENT_SOURCE_DIR}/Input/*.h 
-	${CMAKE_CURRENT_SOURCE_DIR}/Input/*.hpp
-	${CMAKE_CURRENT_SOURCE_DIR}/Input/*.cpp
-	)
+target_include_directories(engine PUBLIC "${CMAKE_SOURCE_DIR}/Externals/glfw/include")
+target_include_directories(engine PUBLIC "${CMAKE_SOURCE_DIR}/Externals/assimp/include/")
+target_include_directories(engine PUBLIC "${CMAKE_SOURCE_DIR}/Externals/glad/")
+target_include_directories(engine PUBLIC "${Vulkan_INCLUDE_DIR}")
 
-file(GLOB UtilitySrc 
-	${CMAKE_CURRENT_SOURCE_DIR}/Utility/*.h 
-	${CMAKE_CURRENT_SOURCE_DIR}/Utility/*.hpp
-	${CMAKE_CURRENT_SOURCE_DIR}/Utility/*.cpp
-	)
-
-file(GLOB ShaderSrc 
-	${CMAKE_CURRENT_SOURCE_DIR}/Shaders/*.hpp
-	${CMAKE_CURRENT_SOURCE_DIR}/Shaders/*.cpp
-	${CMAKE_CURRENT_SOURCE_DIR}/Shaders/*.shader
-	)
-
-source_group(Core FILES ${CoreSrc})
-source_group(Images FILES ${ImageSrc})
-source_group(Maths FILES ${MathsSrc})
-source_group(Rendering FILES ${RenderingSrc}) 
-source_group(RenderApi FILES ${RenderApiSrc})
-source_group(RenderApi\\GL FILES ${RenderApiGLSrc})
-source_group(Geometry FILES ${GeometrySrc})
-source_group(SceneManagement FILES ${SceneManagementSrc})
-source_group(Overlay FILES ${OverlaySrc})
-source_group(UI FILES ${UiSrc})
-source_group(UI\\ImGui FILES ${UiImGuiSrc})
-source_group(Utility FILES ${UtilitySrc})
-source_group(Shaders FILES ${ShaderSrc})
-source_group(Input FILES ${InputSrc})
-
-include_directories(${SDL2_INCLUDE_DIR})
-include_directories(${GLEW_INCLUDE_DIRS})
-include_directories(${ASSIMP_INCLUDE_DIR})
-
-IF (APPLE)
-include_directories(${OPENGL_INCLUDE_DIRS})
-ENDIF()
-
-add_library(Engine STATIC ${CoreSrc} ${GeometrySrc} ${ImageSrc} ${MathsSrc} ${OverlaySrc} ${RenderApiSrc} ${RenderApiGLSrc} ${RenderingSrc} ${SceneManagementSrc} ${UiSrc} ${UiImGuiSrc} ${UtilitySrc} ${ShaderSrc} ${InputSrc})
+target_link_libraries (engine glfw)
+target_link_libraries (engine assimp)
+target_link_libraries (engine glad)
+target_link_libraries (engine ${Vulkan_LIBRARIES})

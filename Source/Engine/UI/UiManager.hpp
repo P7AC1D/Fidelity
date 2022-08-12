@@ -14,20 +14,18 @@ class Texture;
 class VertexBuffer;
 struct ImDrawData;
 struct ImGuiIO;
-struct SDL_Window;
-typedef void* SDL_GLContext;
-typedef union SDL_Event;
+struct GLFWwindow;
 
 class UiManager
 {
 public:
-	UiManager(SDL_Window* sdlWindow, SDL_GLContext sdlGlContext);
+	UiManager(GLFWwindow* glfwWindow);
 	~UiManager();
 	
 	void SetRenderer(const std::shared_ptr<Renderer>& renderer);
 	void SetSceneGraph(const std::shared_ptr<SceneNode>& sceneGraph);
 
-	bool ProcessEvents(SDL_Event* sdlEvent);
+	bool HasMouseCapture() const;
 	void Update();
 
 private:
@@ -41,8 +39,7 @@ private:
 
 private:
 	ImGuiIO* _io;
-	SDL_Window* _sdlWindow;
-	SDL_GLContext _sdlGlContext;
+	GLFWwindow* _window;
 	bool _initialized;
 
 	uint64 _vertBuffSize;

@@ -3,6 +3,9 @@
 #include <memory>
 #include <string>
 
+#include <glad/glad.h> 
+#include <GLFW/glfw3.h>
+
 #include "../Core/Types.hpp"
 #include "../Maths/Vector2I.hpp"
 #include "../UI/UiManager.hpp"
@@ -11,9 +14,6 @@ class EventDispatcher;
 class InputHandler;
 class Renderer;
 class SceneManager;
-
-typedef void* SDL_GLContext;
-struct SDL_Window;
 
 struct ApplicationDesc
 {
@@ -47,16 +47,15 @@ private:
 
 protected:
   std::unique_ptr<EventDispatcher> _eventDispatcher;
-  std::unique_ptr<InputHandler> _inputHandler;
-	std::unique_ptr<UiManager> _debugUi;
+  std::shared_ptr<InputHandler> _inputHandler;
+	std::shared_ptr<UiManager> _debugUi;
   std::shared_ptr<SceneNode> _sceneGraph;
   std::shared_ptr<Renderer> _renderer;
 
 private:
   bool _isRunning{};
   bool _mouseFocus;
-  SDL_Window* _window{};
-  SDL_GLContext _glContext{};
   ApplicationDesc _desc;
   Vector2I _cursorPosition;
+  GLFWwindow* _window;
 };

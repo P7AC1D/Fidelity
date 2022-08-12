@@ -2,16 +2,107 @@
 
 #include <iostream>
 #include <utility>
-#include <SDL.h>
 #include "../Input/EventDispatcher.hpp"
 #include "../Input/InputHandler.hpp"
 #include "../Rendering/Renderer.h"
 #include "../SceneManagement/GenericNode.hpp"
 #include "../SceneManagement/SceneNode.hpp"
 
+static std::shared_ptr<InputHandler> INPUT_HANDLER = nullptr;
+static std::shared_ptr<UiManager> DEBUG_UI = nullptr;
+static int32 TICK_DURATION = 0;
+static Vector2I MOUSE_POSITION = Vector2I(0);
+
+void errorCallback(int error, const char* description)
+{
+  std::cerr << "GLFW Error: " << description << std::endl;
+}
+
+void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods)
+{
+  switch (action)
+  {
+  case GLFW_PRESS:
+  {
+    InputEvent inputEvent;
+    inputEvent.Button = GlfwKeyToButton(key);
+    inputEvent.ButtonEvent = ButtonEvent::Pressed;
+    INPUT_HANDLER->Dispatch(inputEvent, TICK_DURATION);
+    break;
+  }
+  case GLFW_RELEASE:
+  {
+    InputEvent inputEvent;
+    inputEvent.Button = GlfwKeyToButton(key);
+    inputEvent.ButtonEvent = ButtonEvent::Released;
+    INPUT_HANDLER->Dispatch(inputEvent, TICK_DURATION);
+    break;
+  }
+  case GLFW_REPEAT:
+  {
+
+  }
+  }
+}
+
+void mouseButtonCallback(GLFWwindow* window, int button, int action, int mods)
+{
+  if (DEBUG_UI->HasMouseCapture())
+  {
+    return;
+  }
+
+  switch (action)
+  {
+  case GLFW_PRESS:
+  {
+    InputEvent inputEvent;
+    inputEvent.AxisPos = MOUSE_POSITION;
+    inputEvent.Button = GlfwMouseButtonToButton(button);
+    inputEvent.ButtonEvent = ButtonEvent::Pressed;
+    INPUT_HANDLER->Dispatch(inputEvent, TICK_DURATION);
+    break;
+  }
+  case GLFW_RELEASE:
+  {   
+    InputEvent inputEvent;
+    inputEvent.AxisPos = MOUSE_POSITION;
+    inputEvent.Button = GlfwMouseButtonToButton(button);
+    inputEvent.ButtonEvent = ButtonEvent::Released;
+    INPUT_HANDLER->Dispatch(inputEvent, TICK_DURATION);
+    break;
+  }
+  }
+}
+
+void cursorPositionCallback(GLFWwindow* window, double xpos, double ypos)
+{
+  InputEvent inputEvent;
+  inputEvent.Axis = Axis::MouseXY;
+  inputEvent.AxisPos = Vector2I(xpos, ypos);
+  inputEvent.AxisPosDelta = MOUSE_POSITION - inputEvent.AxisPos;
+  INPUT_HANDLER->Dispatch(inputEvent, TICK_DURATION);
+
+  MOUSE_POSITION = inputEvent.AxisPos;
+}
+
+void scrollCallback(GLFWwindow* window, double xoffset, double yoffset)
+{
+  if (DEBUG_UI->HasMouseCapture())
+  {
+    return;
+  }
+
+  InputEvent inputEvent;
+  inputEvent.Axis = Axis::MouseScrollXY;
+  inputEvent.AxisPosDelta = Vector2I(xoffset, yoffset);
+  INPUT_HANDLER->Dispatch(inputEvent, TICK_DURATION);
+}
+
 Application::~Application() 
 {
-	SDL_DestroyWindow(_window);
+  glfwDestroyWindow(_window);
+  glfwTerminate();
 }
 
 int32 Application::Run()
@@ -26,92 +117,14 @@ int32 Application::Run()
   while (_isRunning)
   {
     uint32 dtMs = GetTickDuration();
+    TICK_DURATION = dtMs;
+
     OnUpdate(dtMs);
     
-    SDL_Event sdlEvent;
-    while (SDL_PollEvent(&sdlEvent))
+    if (glfwWindowShouldClose(_window))
     {
-			if (_debugUi->ProcessEvents(&sdlEvent))
-			{
-				continue;
-			}
-
-      switch (sdlEvent.type)
-      {
-        case SDL_QUIT:
-          _isRunning = false;
-          break;
-        case SDL_WINDOWEVENT:
-        {
-          switch (sdlEvent.window.event)
-          {
-            case SDL_WINDOWEVENT_ENTER:
-            {
-              _mouseFocus = true;
-              break;
-            }
-            case SDL_WINDOWEVENT_LEAVE:
-            {
-              _mouseFocus = false;
-              break;
-            }
-          }
-        }
-        break;
-        case SDL_KEYUP:
-        {
-          InputEvent inputEvent;
-          inputEvent.Button = SDLToButton(sdlEvent.key.keysym.sym);
-          inputEvent.ButtonEvent = ButtonEvent::Released;
-          _inputHandler->Dispatch(inputEvent, dtMs);
-          break;
-        }
-        case SDL_KEYDOWN:
-        {
-          InputEvent inputEvent;
-          inputEvent.Button = SDLToButton(sdlEvent.key.keysym.sym);
-          inputEvent.ButtonEvent = ButtonEvent::Pressed;
-          _inputHandler->Dispatch(inputEvent, dtMs);
-          break;
-        }          
-        case SDL_MOUSEBUTTONUP:
-        {
-          InputEvent inputEvent;
-          inputEvent.AxisPos = Vector2I(sdlEvent.button.x, sdlEvent.button.y);
-          inputEvent.Button = SDLToButton(sdlEvent.button.button);
-          inputEvent.ButtonEvent = ButtonEvent::Released;
-          _inputHandler->Dispatch(inputEvent, dtMs);
-          break;
-        }
-        case SDL_MOUSEBUTTONDOWN:
-        {
-          InputEvent inputEvent;
-          inputEvent.AxisPos = Vector2I(sdlEvent.button.x, sdlEvent.button.y);
-          inputEvent.Button = SDLToButton(sdlEvent.button.button);
-          inputEvent.ButtonEvent = ButtonEvent::Pressed;
-          _inputHandler->Dispatch(inputEvent, dtMs);
-          break;
-        }
-        case SDL_MOUSEMOTION:
-        {
-          InputEvent inputEvent;
-          inputEvent.Axis = Axis::MouseXY;
-          inputEvent.AxisPos = Vector2I(sdlEvent.motion.x, sdlEvent.motion.y);
-          inputEvent.AxisPosDelta = _cursorPosition - inputEvent.AxisPos;
-          _inputHandler->Dispatch(inputEvent, dtMs);
-
-          _cursorPosition = inputEvent.AxisPos;
-          break;
-        }
-        case SDL_MOUSEWHEEL:
-        {
-          InputEvent inputEvent;
-          inputEvent.Axis = Axis::MouseScrollXY;
-          inputEvent.AxisPosDelta = Vector2I(sdlEvent.wheel.x, sdlEvent.wheel.y);
-          _inputHandler->Dispatch(inputEvent, dtMs);
-          break;
-        }
-      }
+      _isRunning = false;
+      return 0;
     }   
 
 		_sceneGraph->Update(dtMs);
@@ -119,7 +132,8 @@ int32 Application::Run()
   	
 		_renderer->DrawFrame();
 		_debugUi->Update();		
-    SDL_GL_SwapWindow(_window);
+    glfwSwapBuffers(_window);
+    glfwPollEvents();
   }
 
   return 0;
@@ -132,6 +146,7 @@ Application::Application(ApplicationDesc desc) :
   _mouseFocus(true),
   _desc(std::move(desc))
 {
+  INPUT_HANDLER = _inputHandler;
 }
 
 float32 Application::GetAverageTickMs(int32 dtMs)
@@ -161,32 +176,30 @@ float32 Application::GetAverageFps(int32 dtMs)
 
 bool Application::Initialize()
 {
-  if (SDL_Init(SDL_INIT_VIDEO) > 0)
+  if (!glfwInit())
   {
-    std::string errorMessage = "Failed to initialize SDL: " + std::string(SDL_GetError());
-    SDL_ClearError();
     return false;
   }
+  glfwSetErrorCallback(errorCallback);
 
-  SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
-  SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);
-  SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 1);
-  SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
-  SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8);
+  glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
+  glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);
+  glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
-  _window = SDL_CreateWindow(_desc.Name.c_str(), SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, _desc.Width, _desc.Height, SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN);
+  _window = glfwCreateWindow(_desc.Width, _desc.Height, _desc.Name.c_str(), nullptr, nullptr);
   if (!_window)
   {
-    std::string errorMessage = "Failed to create SDL window: " + std::string(SDL_GetError());
-    SDL_ClearError();
     return false;
   }
-  
-  _glContext = SDL_GL_CreateContext(_window);
-  if (!_glContext)
+
+  glfwSetWindowUserPointer(_window, this);
+  glfwMakeContextCurrent(_window);
+  glfwSetCursorPosCallback(_window, cursorPositionCallback);
+  glfwSetMouseButtonCallback(_window, mouseButtonCallback);
+  glfwSetScrollCallback(_window, scrollCallback);
+
+  if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
   {
-    std::string errorMessage = "Failed to create GL context: " + std::string(SDL_GetError());
-    SDL_ClearError();
     return false;
   }
 
@@ -205,18 +218,20 @@ bool Application::Initialize()
 		return false;
 	}
 
-  _debugUi.reset(new UiManager(_window, _glContext));
+  _debugUi.reset(new UiManager(_window));
 	_debugUi->SetRenderer(_renderer);
   _debugUi->SetSceneGraph(_sceneGraph);
+  DEBUG_UI = _debugUi;
   return true;
 }
 
 int32 Application::GetTickDuration()
 {
   static int32 dtMs = 0;
-  static int32 lastTimeInMs = 0;
-  int32 currentTimeInMs = SDL_GetTicks();
-  dtMs = currentTimeInMs - lastTimeInMs;
-  lastTimeInMs = currentTimeInMs;
+  static float64 lastTimeInSeconds = 0;
+  float64 currentTimeInSeconds = glfwGetTime();
+  float64 dt = currentTimeInSeconds - lastTimeInSeconds;
+  lastTimeInSeconds = currentTimeInSeconds;
+  dtMs = dt * 1000; // convert to mili-seconds
   return dtMs;
 }

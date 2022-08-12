@@ -53,7 +53,7 @@ void Test3D::OnStart()
  // directionalLight->SetDirection(Vector3(0.1f, -1.0f, 0.1f));
 	//SceneManager::Get()->SetDirectionLight(directionalLight);
     
-  auto sponza(ModelLoader::LoadFromFile("./../../Resources/Models/Sponza/sponza.obj", false));
+  auto sponza(ModelLoader::LoadFromFile("./Models/Sponza/sponza.obj", false));
   _sceneGraph->AddChild(sponza);
 	
 //  auto rootSceneNode = SceneManager::Get()->GetRootSceneNode();
