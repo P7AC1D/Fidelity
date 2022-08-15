@@ -24,33 +24,31 @@ struct FullscreenQuadVertex
 	Vector2 Position;
 	Vector2 TexCoord;
 
-	FullscreenQuadVertex(const Vector2& position, const Vector2& texCoord) :
-		Position(position), TexCoord(texCoord)
-	{}
+	FullscreenQuadVertex(const Vector2 &position, const Vector2 &texCoord) : Position(position), TexCoord(texCoord)
+	{
+	}
 };
 
-std::vector<FullscreenQuadVertex> FullscreenQuadVertices
-{
-	FullscreenQuadVertex(Vector2(-1.0f, -1.0f), Vector2(0.0f, 0.0f)),
-	FullscreenQuadVertex(Vector2(1.0f, -1.0f), Vector2(1.0f, 0.0f)),
-	FullscreenQuadVertex(Vector2(-1.0f, 1.0f), Vector2(0.0f, 1.0f)),
-	FullscreenQuadVertex(Vector2(1.0f, -1.0f), Vector2(1.0f, 0.0f)),
-	FullscreenQuadVertex(Vector2(1.0f, 1.0f), Vector2(1.0f, 1.0f)),
-	FullscreenQuadVertex(Vector2(-1.0f, 1.0f), Vector2(0.0f, 1.0f))
-};
+std::vector<FullscreenQuadVertex> FullscreenQuadVertices{
+		FullscreenQuadVertex(Vector2(-1.0f, -1.0f), Vector2(0.0f, 0.0f)),
+		FullscreenQuadVertex(Vector2(1.0f, -1.0f), Vector2(1.0f, 0.0f)),
+		FullscreenQuadVertex(Vector2(-1.0f, 1.0f), Vector2(0.0f, 1.0f)),
+		FullscreenQuadVertex(Vector2(1.0f, -1.0f), Vector2(1.0f, 0.0f)),
+		FullscreenQuadVertex(Vector2(1.0f, 1.0f), Vector2(1.0f, 1.0f)),
+		FullscreenQuadVertex(Vector2(-1.0f, 1.0f), Vector2(0.0f, 1.0f))};
 
 struct MaterialBufferData
 {
-  struct TextureMapFlagData
-  {
-    int32 Diffuse = 0;
-    int32 Normal = 0;
-    int32 Specular = 0;
-    int32 Depth = 0;
-  } EnabledTextureMaps;
-  Colour Ambient = Colour::White;
-  Colour Diffuse = Colour::White;
-  Colour Specular = Colour::White;
+	struct TextureMapFlagData
+	{
+		int32 Diffuse = 0;
+		int32 Normal = 0;
+		int32 Specular = 0;
+		int32 Depth = 0;
+	} EnabledTextureMaps;
+	Colour Ambient = Colour::White;
+	Colour Diffuse = Colour::White;
+	Colour Specular = Colour::White;
 };
 
 std::shared_ptr<RenderDevice> Renderer::_renderDevice;
@@ -61,45 +59,44 @@ std::shared_ptr<RenderDevice> Renderer::GetRenderDevice()
 	return _renderDevice;
 }
 
-Renderer::Renderer(const RendererDesc& desc) :
-	_desc(desc),
-	_opaqueQueue(new RenderQueue),
-	_ssaoEnabled(true),
-	_hdrEnabled(true),
-	_shadowResolution(2048),
-  _shadowOrthographicSize(10.0f)
+Renderer::Renderer(const RendererDesc &desc) : _desc(desc),
+																							 _opaqueQueue(new RenderQueue),
+																							 _ssaoEnabled(true),
+																							 _hdrEnabled(true),
+																							 _shadowResolution(2048),
+																							 _shadowOrthographicSize(10.0f)
 {
-  try
-  {
-    ASSERT_TRUE(desc.RenderApi == RenderApi::GL41, "Only OpenGL 4.1 is supported");
-    
-    RenderDeviceDesc renderDeviceDesc;
-    renderDeviceDesc.RenderWidth = _desc.RenderWidth;
-    renderDeviceDesc.RenderHeight = _desc.RenderHeight;
-    _renderDevice.reset(new GLRenderDevice(renderDeviceDesc));
-    
-    GenerateSsaoKernel();
-    
+	try
+	{
+		ASSERT_TRUE(desc.RenderApi == RenderApi::GL41, "Only OpenGL 4.1 is supported");
+
+		RenderDeviceDesc renderDeviceDesc;
+		renderDeviceDesc.RenderWidth = _desc.RenderWidth;
+		renderDeviceDesc.RenderHeight = _desc.RenderHeight;
+		_renderDevice.reset(new GLRenderDevice(renderDeviceDesc));
+
+		GenerateSsaoKernel();
+
 		InitDepthBuffer();
-    InitShadowDepthPass();
-    InitDepthRenderTarget();
-    InitGeometryPass();
-    InitFrameBuffer();
+		InitShadowDepthPass();
+		InitDepthRenderTarget();
+		InitGeometryPass();
+		InitFrameBuffer();
 		InitMaterialBuffer();
 		InitFullscreenQuad();
 		InitLightingPass();
-    InitDepthDebugPass();
+		InitDepthDebugPass();
 		InitGBufferDebugPass();
-    InitSsaoPass();
+		InitSsaoPass();
 		InitSsaoBlurPass();
-  }
-  catch (const std::exception& exception)
-  {
-    throw std::runtime_error(std::string("Could not initialize Renderer\n") + exception.what());
-  }
+	}
+	catch (const std::exception &exception)
+	{
+		throw std::runtime_error(std::string("Could not initialize Renderer\n") + exception.what());
+	}
 }
 
-void Renderer::Push(const std::shared_ptr<Renderable>& renderable, const std::shared_ptr<Transform>& transform, const Aabb& bounds)
+void Renderer::Push(const std::shared_ptr<Renderable> &renderable, const std::shared_ptr<Transform> &transform, const Aabb &bounds)
 {
 }
 
@@ -108,69 +105,71 @@ void Renderer::BindCamera(std::shared_ptr<CameraNode> camera)
 	_camera = camera;
 }
 
-void Renderer::SubmitLight(const sptr<LightNode>& lightNode)
+void Renderer::SubmitLight(const sptr<LightNode> &lightNode)
 {
-	//TODO Multiple light sources and types
+	// TODO Multiple light sources and types
 
-	const Quaternion orientation = lightNode->GetTransform().GetRotation();
-
-	_directionalLightData.Colour = lightNode->GetColour();
-	_directionalLightData.Direction = orientation.Rotate(Vector3::Identity);
-	_directionalLightData.Intensity = lightNode->GetIntensity();
+	if (lightNode->GetLightType() == LightType::Directional)
+	{
+		const Quaternion orientation = lightNode->GetTransform().GetRotation();
+		_directionalLightData.Colour = lightNode->GetColour();
+		_directionalLightData.Direction = orientation.Rotate(Vector3::Identity);
+		_directionalLightData.Intensity = lightNode->GetIntensity();
+	}
 }
 
-void Renderer::SubmitRenderable(const sptr<Renderable>& renderable)
+void Renderer::SubmitRenderable(const sptr<Renderable> &renderable)
 {
-	//TODO Implement RenderQueue
+	// TODO Implement RenderQueue
 
 	_renderables.push_back(renderable);
 }
 
 void Renderer::DrawFrame()
 {
-  auto frameStart = std::chrono::high_resolution_clock::now();
+	auto frameStart = std::chrono::high_resolution_clock::now();
 
-  StartFrame();
-  
-  auto shadowPassStart = std::chrono::high_resolution_clock::now();
-  ShadowDepthPass();
-  auto shadowPassEnd = std::chrono::high_resolution_clock::now();
-  _renderTimings.Shadow = std::chrono::duration_cast<std::chrono::nanoseconds>(shadowPassEnd - shadowPassStart).count();
-  
+	StartFrame();
+
+	auto shadowPassStart = std::chrono::high_resolution_clock::now();
+	ShadowDepthPass();
+	auto shadowPassEnd = std::chrono::high_resolution_clock::now();
+	_renderTimings.Shadow = std::chrono::duration_cast<std::chrono::nanoseconds>(shadowPassEnd - shadowPassStart).count();
+
 	GeometryPass();
 
-  auto ssaoStart = std::chrono::high_resolution_clock::now();
-  SsaoPass();
+	auto ssaoStart = std::chrono::high_resolution_clock::now();
+	SsaoPass();
 	SsaoBlurPass();
-  auto ssaoEnd = std::chrono::high_resolution_clock::now();
-  _renderTimings.Ssao = std::chrono::duration_cast<std::chrono::nanoseconds>(ssaoEnd - ssaoStart).count();
+	auto ssaoEnd = std::chrono::high_resolution_clock::now();
+	_renderTimings.Ssao = std::chrono::duration_cast<std::chrono::nanoseconds>(ssaoEnd - ssaoStart).count();
 
 	switch (_debugDisplayType)
 	{
-		default:
-		case DebugDisplayType::Disabled:
-			LightingPass();
-			break;
-		case DebugDisplayType::ShadowMap:
-			ShadowDepthDebugPass();
-			break;
-		case DebugDisplayType::Position:
-			GBufferDebugPass(0);
-			break;
-		case DebugDisplayType::Normal:
-			GBufferDebugPass(1);
-			break;
-		case DebugDisplayType::Albedo:
-			GBufferDebugPass(2);
-			break;
-	}		
+	default:
+	case DebugDisplayType::Disabled:
+		LightingPass();
+		break;
+	case DebugDisplayType::ShadowMap:
+		ShadowDepthDebugPass();
+		break;
+	case DebugDisplayType::Position:
+		GBufferDebugPass(0);
+		break;
+	case DebugDisplayType::Normal:
+		GBufferDebugPass(1);
+		break;
+	case DebugDisplayType::Albedo:
+		GBufferDebugPass(2);
+		break;
+	}
 	EndFrame();
 
 	_renderables.clear();
 	_opaqueQueue->Clear();
 
-  auto frameEnd = std::chrono::high_resolution_clock::now();
-  _renderTimings.Frame = std::chrono::duration_cast<std::chrono::nanoseconds>(frameEnd - frameStart).count();
+	auto frameEnd = std::chrono::high_resolution_clock::now();
+	_renderTimings.Frame = std::chrono::duration_cast<std::chrono::nanoseconds>(frameEnd - frameStart).count();
 }
 
 float32 Renderer::GetOrthographicSize() const
@@ -185,72 +184,70 @@ void Renderer::SetOrthographicSize(float32 shadowOrthographicSize)
 
 void Renderer::InitShadowDepthPass()
 {
-  ShaderDesc vsDesc;
-  vsDesc.EntryPoint = "main";
-  vsDesc.ShaderLang = ShaderLang::Glsl;
-  vsDesc.ShaderType = ShaderType::Vertex;
-  vsDesc.Source = String::LoadFromFile("./Shaders/ShadowDepth.vert");
-  
-  ShaderDesc psDesc;
-  psDesc.EntryPoint = "main";
-  psDesc.ShaderLang = ShaderLang::Glsl;
-  psDesc.ShaderType = ShaderType::Pixel;
-  psDesc.Source = String::LoadFromFile("./Shaders/ShadowDepth.frag");
-  
-  std::vector<VertexLayoutDesc> vertexLayoutDesc
-  {
-		VertexLayoutDesc(SemanticType::Position, SemanticFormat::Float3),
-		VertexLayoutDesc(SemanticType::Normal, SemanticFormat::Float3),
-		VertexLayoutDesc(SemanticType::TexCoord, SemanticFormat::Float2),
-		VertexLayoutDesc(SemanticType::Tangent, SemanticFormat::Float3),
-		VertexLayoutDesc(SemanticType::Bitangent, SemanticFormat::Float3)
-  };
-  
-  std::shared_ptr<ShaderParams> shaderParams(new ShaderParams());
-  shaderParams->AddParam(ShaderParam("ObjectBuffer", ShaderParamType::ConstBuffer, 0));
-  shaderParams->AddParam(ShaderParam("ShadowBuffer", ShaderParamType::ConstBuffer, 3));
-  
-  try
-  {
-    PipelineStateDesc pipelineDesc;
-    pipelineDesc.VS = _renderDevice->CreateShader(vsDesc);
-    pipelineDesc.PS = _renderDevice->CreateShader(psDesc);
-    pipelineDesc.BlendState = _renderDevice->CreateBlendState(BlendStateDesc());
-    pipelineDesc.RasterizerState = _renderDevice->CreateRasterizerState(RasterizerStateDesc());
-    pipelineDesc.DepthStencilState = _renderDevice->CreateDepthStencilState(DepthStencilStateDesc());
-    pipelineDesc.VertexLayout = _renderDevice->CreateVertexLayout(vertexLayoutDesc);
-    pipelineDesc.ShaderParams = shaderParams;
-    
-    _shadowDepthPso = _renderDevice->CreatePipelineState(pipelineDesc);
-  }
-  catch (const std::exception& exception)
-  {
-    throw std::runtime_error("Unable to initialize shadow-depth pipeline states. " + std::string(exception.what()));
-  }
+	ShaderDesc vsDesc;
+	vsDesc.EntryPoint = "main";
+	vsDesc.ShaderLang = ShaderLang::Glsl;
+	vsDesc.ShaderType = ShaderType::Vertex;
+	vsDesc.Source = String::LoadFromFile("./Shaders/ShadowDepth.vert");
+
+	ShaderDesc psDesc;
+	psDesc.EntryPoint = "main";
+	psDesc.ShaderLang = ShaderLang::Glsl;
+	psDesc.ShaderType = ShaderType::Pixel;
+	psDesc.Source = String::LoadFromFile("./Shaders/ShadowDepth.frag");
+
+	std::vector<VertexLayoutDesc> vertexLayoutDesc{
+			VertexLayoutDesc(SemanticType::Position, SemanticFormat::Float3),
+			VertexLayoutDesc(SemanticType::Normal, SemanticFormat::Float3),
+			VertexLayoutDesc(SemanticType::TexCoord, SemanticFormat::Float2),
+			VertexLayoutDesc(SemanticType::Tangent, SemanticFormat::Float3),
+			VertexLayoutDesc(SemanticType::Bitangent, SemanticFormat::Float3)};
+
+	std::shared_ptr<ShaderParams> shaderParams(new ShaderParams());
+	shaderParams->AddParam(ShaderParam("ObjectBuffer", ShaderParamType::ConstBuffer, 0));
+	shaderParams->AddParam(ShaderParam("ShadowBuffer", ShaderParamType::ConstBuffer, 3));
+
+	try
+	{
+		PipelineStateDesc pipelineDesc;
+		pipelineDesc.VS = _renderDevice->CreateShader(vsDesc);
+		pipelineDesc.PS = _renderDevice->CreateShader(psDesc);
+		pipelineDesc.BlendState = _renderDevice->CreateBlendState(BlendStateDesc());
+		pipelineDesc.RasterizerState = _renderDevice->CreateRasterizerState(RasterizerStateDesc());
+		pipelineDesc.DepthStencilState = _renderDevice->CreateDepthStencilState(DepthStencilStateDesc());
+		pipelineDesc.VertexLayout = _renderDevice->CreateVertexLayout(vertexLayoutDesc);
+		pipelineDesc.ShaderParams = shaderParams;
+
+		_shadowDepthPso = _renderDevice->CreatePipelineState(pipelineDesc);
+	}
+	catch (const std::exception &exception)
+	{
+		throw std::runtime_error("Unable to initialize shadow-depth pipeline states. " + std::string(exception.what()));
+	}
 }
 
 void Renderer::InitDepthRenderTarget()
 {
-  try
-  {
-    TextureDesc depthStencilDesc;
-    depthStencilDesc.Width = _desc.ShadowRes.X;
-    depthStencilDesc.Height = _desc.ShadowRes.Y;
-    depthStencilDesc.Usage = TextureUsage::DepthStencil;
-    depthStencilDesc.Type = TextureType::Texture2D;
-    depthStencilDesc.Format = TextureFormat::D24S8;
-    
-    RenderTargetDesc rtDesc;
-    rtDesc.DepthStencilTarget = _renderDevice->CreateTexture(depthStencilDesc);
-    rtDesc.Height = _desc.ShadowRes.Y;
-    rtDesc.Width = _desc.ShadowRes.X;
-    
-    _depthRenderTarget = _renderDevice->CreateRenderTarget(rtDesc);
-  }
-  catch (const std::exception& ex)
-  {
-    throw std::runtime_error("Unable to initalize shadow depth render targets. " + std::string(ex.what()));
-  }
+	try
+	{
+		TextureDesc depthStencilDesc;
+		depthStencilDesc.Width = _desc.ShadowRes.X;
+		depthStencilDesc.Height = _desc.ShadowRes.Y;
+		depthStencilDesc.Usage = TextureUsage::DepthStencil;
+		depthStencilDesc.Type = TextureType::Texture2D;
+		depthStencilDesc.Format = TextureFormat::D24S8;
+
+		RenderTargetDesc rtDesc;
+		rtDesc.DepthStencilTarget = _renderDevice->CreateTexture(depthStencilDesc);
+		rtDesc.Height = _desc.ShadowRes.Y;
+		rtDesc.Width = _desc.ShadowRes.X;
+
+		_depthRenderTarget = _renderDevice->CreateRenderTarget(rtDesc);
+	}
+	catch (const std::exception &ex)
+	{
+		throw std::runtime_error("Unable to initalize shadow depth render targets. " + std::string(ex.what()));
+	}
 }
 
 void Renderer::InitDepthBuffer()
@@ -263,7 +260,7 @@ void Renderer::InitDepthBuffer()
 		desc.ByteCount = sizeof(FrameBufferData);
 		_depthBuffer = _renderDevice->CreateGpuBuffer(desc);
 	}
-	catch (const std::exception& exception)
+	catch (const std::exception &exception)
 	{
 		throw std::runtime_error(std::string("Could not initialize depth constant buffer\n") + exception.what());
 	}
@@ -271,67 +268,65 @@ void Renderer::InitDepthBuffer()
 
 void Renderer::InitGeometryPass()
 {
-  ShaderDesc vsDesc;
-  vsDesc.EntryPoint = "main";
-  vsDesc.ShaderLang = ShaderLang::Glsl;
-  vsDesc.ShaderType = ShaderType::Vertex;
-  vsDesc.Source = String::LoadFromFile("./Shaders/GeometryPass.vert");
-  
-  ShaderDesc psDesc;
-  psDesc.EntryPoint = "main";
-  psDesc.ShaderLang = ShaderLang::Glsl;
-  psDesc.ShaderType = ShaderType::Pixel;
-  psDesc.Source = String::LoadFromFile("./Shaders/GeometryPass.frag");
-  
-  std::vector<VertexLayoutDesc> vertexLayoutDesc
-  {
-    VertexLayoutDesc(SemanticType::Position, SemanticFormat::Float3),
-		VertexLayoutDesc(SemanticType::Normal, SemanticFormat::Float3),
-		VertexLayoutDesc(SemanticType::TexCoord, SemanticFormat::Float2),
-		VertexLayoutDesc(SemanticType::Tangent, SemanticFormat::Float3),
-		VertexLayoutDesc(SemanticType::Bitangent, SemanticFormat::Float3)
-  };
-  
-  std::shared_ptr<ShaderParams> shaderParams(new ShaderParams());
+	ShaderDesc vsDesc;
+	vsDesc.EntryPoint = "main";
+	vsDesc.ShaderLang = ShaderLang::Glsl;
+	vsDesc.ShaderType = ShaderType::Vertex;
+	vsDesc.Source = String::LoadFromFile("./Shaders/GeometryPass.vert");
+
+	ShaderDesc psDesc;
+	psDesc.EntryPoint = "main";
+	psDesc.ShaderLang = ShaderLang::Glsl;
+	psDesc.ShaderType = ShaderType::Pixel;
+	psDesc.Source = String::LoadFromFile("./Shaders/GeometryPass.frag");
+
+	std::vector<VertexLayoutDesc> vertexLayoutDesc{
+			VertexLayoutDesc(SemanticType::Position, SemanticFormat::Float3),
+			VertexLayoutDesc(SemanticType::Normal, SemanticFormat::Float3),
+			VertexLayoutDesc(SemanticType::TexCoord, SemanticFormat::Float2),
+			VertexLayoutDesc(SemanticType::Tangent, SemanticFormat::Float3),
+			VertexLayoutDesc(SemanticType::Bitangent, SemanticFormat::Float3)};
+
+	std::shared_ptr<ShaderParams> shaderParams(new ShaderParams());
 	shaderParams->AddParam(ShaderParam("ObjectBuffer", ShaderParamType::ConstBuffer, 0));
-  shaderParams->AddParam(ShaderParam("FrameBuffer", ShaderParamType::ConstBuffer, 1));
+	shaderParams->AddParam(ShaderParam("FrameBuffer", ShaderParamType::ConstBuffer, 1));
 	shaderParams->AddParam(ShaderParam("MaterialBuffer", ShaderParamType::ConstBuffer, 2));
 	shaderParams->AddParam(ShaderParam("DiffuseMap", ShaderParamType::Texture, 0));
 	shaderParams->AddParam(ShaderParam("NormalMap", ShaderParamType::Texture, 1));
 	shaderParams->AddParam(ShaderParam("SpecularMap", ShaderParamType::Texture, 2));
 	shaderParams->AddParam(ShaderParam("DepthMap", ShaderParamType::Texture, 3));
-  
+
 	RasterizerStateDesc rasterizerStateDesc;
 	rasterizerStateDesc.CullMode = CullMode::CounterClockwise;
 
-  try
-  {
-    PipelineStateDesc pipelineDesc;
-    pipelineDesc.VS = _renderDevice->CreateShader(vsDesc);
-    pipelineDesc.PS = _renderDevice->CreateShader(psDesc);
-    pipelineDesc.BlendState = _renderDevice->CreateBlendState(BlendStateDesc());
-    pipelineDesc.RasterizerState = _renderDevice->CreateRasterizerState(rasterizerStateDesc);
-    pipelineDesc.DepthStencilState = _renderDevice->CreateDepthStencilState(DepthStencilStateDesc());
-    pipelineDesc.VertexLayout = _renderDevice->CreateVertexLayout(vertexLayoutDesc);
-    pipelineDesc.ShaderParams = shaderParams;
-    
-    _geomPassPso = _renderDevice->CreatePipelineState(pipelineDesc);
-  }
-  catch (const std::exception& exception)
-  {
-    throw std::runtime_error("Unable to initialize pipeline states. " + std::string(exception.what()));
-  }
+	try
+	{
+		PipelineStateDesc pipelineDesc;
+		pipelineDesc.VS = _renderDevice->CreateShader(vsDesc);
+		pipelineDesc.PS = _renderDevice->CreateShader(psDesc);
+		pipelineDesc.BlendState = _renderDevice->CreateBlendState(BlendStateDesc());
+		pipelineDesc.RasterizerState = _renderDevice->CreateRasterizerState(rasterizerStateDesc);
+		pipelineDesc.DepthStencilState = _renderDevice->CreateDepthStencilState(DepthStencilStateDesc());
+		pipelineDesc.VertexLayout = _renderDevice->CreateVertexLayout(vertexLayoutDesc);
+		pipelineDesc.ShaderParams = shaderParams;
+
+		_geomPassPso = _renderDevice->CreatePipelineState(pipelineDesc);
+	}
+	catch (const std::exception &exception)
+	{
+		throw std::runtime_error("Unable to initialize pipeline states. " + std::string(exception.what()));
+	}
 
 	try
 	{
 		SamplerStateDesc desc;
-    desc.AddressingMode = AddressingMode{ TextureAddressMode::Wrap, TextureAddressMode::Wrap, TextureAddressMode::Wrap };
+		desc.AddressingMode = AddressingMode{TextureAddressMode::Wrap, TextureAddressMode::Wrap, TextureAddressMode::Wrap};
 		desc.MinFiltering = TextureFilteringMode::Linear;
 		desc.MinFiltering = TextureFilteringMode::Linear;
 		desc.MipFiltering = TextureFilteringMode::Linear;
 		_basicSamplerState = _renderDevice->CreateSamplerState(desc);
 	}
-	catch (const std::exception& ex)
+	catch (const std::exception &ex)
 	{
 		throw std::runtime_error("Unable to initalize sampler state. " + std::string(ex.what()));
 	}
@@ -362,7 +357,7 @@ void Renderer::InitGeometryPass()
 
 		_gBuffer = _renderDevice->CreateRenderTarget(rtDesc);
 	}
-	catch (const std::exception& ex)
+	catch (const std::exception &ex)
 	{
 		throw std::runtime_error("Unable to initalize render targets. " + std::string(ex.what()));
 	}
@@ -370,18 +365,18 @@ void Renderer::InitGeometryPass()
 
 void Renderer::InitFrameBuffer()
 {
-  try
-  {
-    GpuBufferDesc perShaderBuffDesc;
-    perShaderBuffDesc.BufferType = BufferType::Constant;
-    perShaderBuffDesc.BufferUsage = BufferUsage::Stream;
-    perShaderBuffDesc.ByteCount = sizeof(FrameBufferData);
-    _frameBuffer = _renderDevice->CreateGpuBuffer(perShaderBuffDesc);
-  }
-  catch (const std::exception& exception)
-  {
-    throw std::runtime_error(std::string("Could not initialize camera constant buffer\n") + exception.what());
-  }
+	try
+	{
+		GpuBufferDesc perShaderBuffDesc;
+		perShaderBuffDesc.BufferType = BufferType::Constant;
+		perShaderBuffDesc.BufferUsage = BufferUsage::Stream;
+		perShaderBuffDesc.ByteCount = sizeof(FrameBufferData);
+		_frameBuffer = _renderDevice->CreateGpuBuffer(perShaderBuffDesc);
+	}
+	catch (const std::exception &exception)
+	{
+		throw std::runtime_error(std::string("Could not initialize camera constant buffer\n") + exception.what());
+	}
 }
 
 void Renderer::InitMaterialBuffer()
@@ -394,7 +389,7 @@ void Renderer::InitMaterialBuffer()
 		perShaderBuffDesc.ByteCount = sizeof(MaterialBufferData);
 		_materialBuffer = _renderDevice->CreateGpuBuffer(perShaderBuffDesc);
 	}
-	catch (const std::exception& exception)
+	catch (const std::exception &exception)
 	{
 		throw std::runtime_error(std::string("Could not initialize material constant buffer\n") + exception.what());
 	}
@@ -414,10 +409,9 @@ void Renderer::InitLightingPass()
 	psDesc.ShaderType = ShaderType::Pixel;
 	psDesc.Source = String::LoadFromFile("./Shaders/DeferredLightingPass.frag");
 
-	std::vector<VertexLayoutDesc> vertexLayoutDesc
-	{
-		VertexLayoutDesc(SemanticType::Position, SemanticFormat::Float2),
-		VertexLayoutDesc(SemanticType::TexCoord, SemanticFormat::Float2),
+	std::vector<VertexLayoutDesc> vertexLayoutDesc{
+			VertexLayoutDesc(SemanticType::Position, SemanticFormat::Float2),
+			VertexLayoutDesc(SemanticType::TexCoord, SemanticFormat::Float2),
 	};
 
 	std::shared_ptr<ShaderParams> shaderParams(new ShaderParams());
@@ -425,11 +419,11 @@ void Renderer::InitLightingPass()
 	shaderParams->AddParam(ShaderParam("NormalMap", ShaderParamType::Texture, 1));
 	shaderParams->AddParam(ShaderParam("AlbedoSpecMap", ShaderParamType::Texture, 2));
 	shaderParams->AddParam(ShaderParam("SsaoMap", ShaderParamType::Texture, 3));
-  shaderParams->AddParam(ShaderParam("ShadowMap", ShaderParamType::Texture, 4));
+	shaderParams->AddParam(ShaderParam("ShadowMap", ShaderParamType::Texture, 4));
 	shaderParams->AddParam(ShaderParam("ObjectBuffer", ShaderParamType::ConstBuffer, 0));
 	shaderParams->AddParam(ShaderParam("FrameBuffer", ShaderParamType::ConstBuffer, 1));
-  shaderParams->AddParam(ShaderParam("MaterialBuffer", ShaderParamType::ConstBuffer, 2));
-  shaderParams->AddParam(ShaderParam("ShadowBuffer", ShaderParamType::ConstBuffer, 3));
+	shaderParams->AddParam(ShaderParam("MaterialBuffer", ShaderParamType::ConstBuffer, 2));
+	shaderParams->AddParam(ShaderParam("ShadowBuffer", ShaderParamType::ConstBuffer, 3));
 
 	RasterizerStateDesc rasterizerStateDesc;
 	rasterizerStateDesc.CullMode = CullMode::None;
@@ -447,7 +441,7 @@ void Renderer::InitLightingPass()
 
 		_lightPassPso = _renderDevice->CreatePipelineState(pipelineDesc);
 	}
-	catch (const std::exception& exception)
+	catch (const std::exception &exception)
 	{
 		throw std::runtime_error("Unable to initialize pipeline states. " + std::string(exception.what()));
 	}
@@ -455,96 +449,95 @@ void Renderer::InitLightingPass()
 
 void Renderer::InitSsaoPass()
 {
-  try
-  {
-    TextureDesc noiseTextureDesc;
-    noiseTextureDesc.Format = TextureFormat::RGB8;
-    noiseTextureDesc.Height = 4;
-    noiseTextureDesc.Width = 4;
-    noiseTextureDesc.Type = TextureType::Texture2D;
-    _ssaoNoiseTexture = _renderDevice->CreateTexture(noiseTextureDesc);
-    
-    std::shared_ptr<ImageData> pixelData(new ImageData(4, 4, 1, ImageFormat::RGB8));
-    pixelData->WriteData(reinterpret_cast<ubyte*>(_ssaoNoise.data()));
-    _ssaoNoiseTexture->WriteData(0, 0, pixelData);
-    
-    SamplerStateDesc noiseSamplerStateDesc;
-    noiseSamplerStateDesc.AddressingMode.U = TextureAddressMode::Wrap;
-    noiseSamplerStateDesc.AddressingMode.V = TextureAddressMode::Wrap;
+	try
+	{
+		TextureDesc noiseTextureDesc;
+		noiseTextureDesc.Format = TextureFormat::RGB8;
+		noiseTextureDesc.Height = 4;
+		noiseTextureDesc.Width = 4;
+		noiseTextureDesc.Type = TextureType::Texture2D;
+		_ssaoNoiseTexture = _renderDevice->CreateTexture(noiseTextureDesc);
+
+		std::shared_ptr<ImageData> pixelData(new ImageData(4, 4, 1, ImageFormat::RGB8));
+		pixelData->WriteData(reinterpret_cast<ubyte *>(_ssaoNoise.data()));
+		_ssaoNoiseTexture->WriteData(0, 0, pixelData);
+
+		SamplerStateDesc noiseSamplerStateDesc;
+		noiseSamplerStateDesc.AddressingMode.U = TextureAddressMode::Wrap;
+		noiseSamplerStateDesc.AddressingMode.V = TextureAddressMode::Wrap;
 		noiseSamplerStateDesc.AddressingMode.W = TextureAddressMode::Wrap;
-    _ssaoSamplerState = _renderDevice->CreateSamplerState(noiseSamplerStateDesc);
-    
-    ShaderDesc vsDesc;
-    vsDesc.EntryPoint = "main";
-    vsDesc.ShaderLang = ShaderLang::Glsl;
-    vsDesc.ShaderType = ShaderType::Vertex;
-    vsDesc.Source = String::LoadFromFile("./Shaders/FSPassThrough.vert");
-    
-    ShaderDesc psDesc;
-    psDesc.EntryPoint = "main";
-    psDesc.ShaderLang = ShaderLang::Glsl;
-    psDesc.ShaderType = ShaderType::Pixel;
-    psDesc.Source = String::LoadFromFile("./Shaders/Ssao.frag");
-    
-    std::vector<VertexLayoutDesc> vertexLayoutDesc
-    {
-      VertexLayoutDesc(SemanticType::Position, SemanticFormat::Float2),
-      VertexLayoutDesc(SemanticType::TexCoord, SemanticFormat::Float2),
-    };
-    
-    std::shared_ptr<ShaderParams> shaderParams(new ShaderParams());
-    shaderParams->AddParam(ShaderParam("PositionMap", ShaderParamType::Texture, 0));
-    shaderParams->AddParam(ShaderParam("NormalMap", ShaderParamType::Texture, 1));
-    shaderParams->AddParam(ShaderParam("NoiseMap", ShaderParamType::Texture, 2));
-    shaderParams->AddParam(ShaderParam("FrameBuffer", ShaderParamType::ConstBuffer, 1));
-    shaderParams->AddParam(ShaderParam("SsaoBuffer", ShaderParamType::ConstBuffer, 4));
-    
-    RasterizerStateDesc rasterizerStateDesc;
-    rasterizerStateDesc.CullMode = CullMode::None;
-    
-    PipelineStateDesc pipelineDesc;
-    pipelineDesc.VS = _renderDevice->CreateShader(vsDesc);
-    pipelineDesc.PS = _renderDevice->CreateShader(psDesc);
-    pipelineDesc.BlendState = _renderDevice->CreateBlendState(BlendStateDesc());
-    pipelineDesc.RasterizerState = _renderDevice->CreateRasterizerState(rasterizerStateDesc);
-    pipelineDesc.DepthStencilState = _renderDevice->CreateDepthStencilState(DepthStencilStateDesc());
-    pipelineDesc.VertexLayout = _renderDevice->CreateVertexLayout(vertexLayoutDesc);
-    pipelineDesc.ShaderParams = shaderParams;
-    
-    _ssaoPassPso = _renderDevice->CreatePipelineState(pipelineDesc);
-		
+		_ssaoSamplerState = _renderDevice->CreateSamplerState(noiseSamplerStateDesc);
+
+		ShaderDesc vsDesc;
+		vsDesc.EntryPoint = "main";
+		vsDesc.ShaderLang = ShaderLang::Glsl;
+		vsDesc.ShaderType = ShaderType::Vertex;
+		vsDesc.Source = String::LoadFromFile("./Shaders/FSPassThrough.vert");
+
+		ShaderDesc psDesc;
+		psDesc.EntryPoint = "main";
+		psDesc.ShaderLang = ShaderLang::Glsl;
+		psDesc.ShaderType = ShaderType::Pixel;
+		psDesc.Source = String::LoadFromFile("./Shaders/Ssao.frag");
+
+		std::vector<VertexLayoutDesc> vertexLayoutDesc{
+				VertexLayoutDesc(SemanticType::Position, SemanticFormat::Float2),
+				VertexLayoutDesc(SemanticType::TexCoord, SemanticFormat::Float2),
+		};
+
+		std::shared_ptr<ShaderParams> shaderParams(new ShaderParams());
+		shaderParams->AddParam(ShaderParam("PositionMap", ShaderParamType::Texture, 0));
+		shaderParams->AddParam(ShaderParam("NormalMap", ShaderParamType::Texture, 1));
+		shaderParams->AddParam(ShaderParam("NoiseMap", ShaderParamType::Texture, 2));
+		shaderParams->AddParam(ShaderParam("FrameBuffer", ShaderParamType::ConstBuffer, 1));
+		shaderParams->AddParam(ShaderParam("SsaoBuffer", ShaderParamType::ConstBuffer, 4));
+
+		RasterizerStateDesc rasterizerStateDesc;
+		rasterizerStateDesc.CullMode = CullMode::None;
+
+		PipelineStateDesc pipelineDesc;
+		pipelineDesc.VS = _renderDevice->CreateShader(vsDesc);
+		pipelineDesc.PS = _renderDevice->CreateShader(psDesc);
+		pipelineDesc.BlendState = _renderDevice->CreateBlendState(BlendStateDesc());
+		pipelineDesc.RasterizerState = _renderDevice->CreateRasterizerState(rasterizerStateDesc);
+		pipelineDesc.DepthStencilState = _renderDevice->CreateDepthStencilState(DepthStencilStateDesc());
+		pipelineDesc.VertexLayout = _renderDevice->CreateVertexLayout(vertexLayoutDesc);
+		pipelineDesc.ShaderParams = shaderParams;
+
+		_ssaoPassPso = _renderDevice->CreatePipelineState(pipelineDesc);
+
 		_ssaoDetailsData.QuadHeight = GetRenderHeight();
 		_ssaoDetailsData.QuadWidth = GetRenderWidth();
 		for (uint32 i = 0; i < MaxKernelSize; i++)
 		{
 			_ssaoDetailsData.Samples[i] = Vector4(_ssaoKernel[i], 0.0f);
 		}
-  }
-  catch (const std::exception& exception)
-  {
-    throw std::runtime_error("Unable to initialize SSAO pass. " + std::string(exception.what()));
-  }
-  
-  try
-  {
-    TextureDesc colourTexDesc;
-    colourTexDesc.Width = GetRenderWidth();
-    colourTexDesc.Height = GetRenderHeight();
-    colourTexDesc.Usage = TextureUsage::RenderTarget;
-    colourTexDesc.Type = TextureType::Texture2D;
-    colourTexDesc.Format = TextureFormat::R8;
-    
-    RenderTargetDesc rtDesc;
-    rtDesc.ColourTargets[0] = _renderDevice->CreateTexture(colourTexDesc);
-    rtDesc.Height = GetRenderHeight();
-    rtDesc.Width = GetRenderWidth();
-    
-    _ssaoRT = _renderDevice->CreateRenderTarget(rtDesc);
-  }
-  catch (const std::exception& ex)
-  {
-    throw std::runtime_error("Unable to initalize SSAO render target. " + std::string(ex.what()));
-  }
+	}
+	catch (const std::exception &exception)
+	{
+		throw std::runtime_error("Unable to initialize SSAO pass. " + std::string(exception.what()));
+	}
+
+	try
+	{
+		TextureDesc colourTexDesc;
+		colourTexDesc.Width = GetRenderWidth();
+		colourTexDesc.Height = GetRenderHeight();
+		colourTexDesc.Usage = TextureUsage::RenderTarget;
+		colourTexDesc.Type = TextureType::Texture2D;
+		colourTexDesc.Format = TextureFormat::R8;
+
+		RenderTargetDesc rtDesc;
+		rtDesc.ColourTargets[0] = _renderDevice->CreateTexture(colourTexDesc);
+		rtDesc.Height = GetRenderHeight();
+		rtDesc.Width = GetRenderWidth();
+
+		_ssaoRT = _renderDevice->CreateRenderTarget(rtDesc);
+	}
+	catch (const std::exception &ex)
+	{
+		throw std::runtime_error("Unable to initalize SSAO render target. " + std::string(ex.what()));
+	}
 }
 
 void Renderer::InitSsaoBlurPass()
@@ -563,10 +556,9 @@ void Renderer::InitSsaoBlurPass()
 		psDesc.ShaderType = ShaderType::Pixel;
 		psDesc.Source = String::LoadFromFile("./Shaders/SsaoBlur.frag");
 
-		std::vector<VertexLayoutDesc> vertexLayoutDesc
-		{
-			VertexLayoutDesc(SemanticType::Position, SemanticFormat::Float2),
-			VertexLayoutDesc(SemanticType::TexCoord, SemanticFormat::Float2),
+		std::vector<VertexLayoutDesc> vertexLayoutDesc{
+				VertexLayoutDesc(SemanticType::Position, SemanticFormat::Float2),
+				VertexLayoutDesc(SemanticType::TexCoord, SemanticFormat::Float2),
 		};
 
 		std::shared_ptr<ShaderParams> shaderParams(new ShaderParams());
@@ -586,7 +578,7 @@ void Renderer::InitSsaoBlurPass()
 
 		_ssaoBlurPassPso = _renderDevice->CreatePipelineState(pipelineDesc);
 	}
-	catch (const std::exception& exception)
+	catch (const std::exception &exception)
 	{
 		throw std::runtime_error("Unable to initialize SSAO blur pass. " + std::string(exception.what()));
 	}
@@ -607,7 +599,7 @@ void Renderer::InitSsaoBlurPass()
 
 		_ssaoBlurRT = _renderDevice->CreateRenderTarget(rtDesc);
 	}
-	catch (const std::exception& ex)
+	catch (const std::exception &ex)
 	{
 		throw std::runtime_error("Unable to initalize SSAO render target. " + std::string(ex.what()));
 	}
@@ -626,7 +618,7 @@ void Renderer::InitFullscreenQuad()
 			_fsQuadBuffer = _renderDevice->CreateVertexBuffer(vtxBuffDesc);
 			_fsQuadBuffer->WriteData(0, sizeof(FullscreenQuadVertex) * FullscreenQuadVertices.size(), FullscreenQuadVertices.data(), AccessType::WriteOnlyDiscardRange);
 		}
-		catch (const std::exception& exception)
+		catch (const std::exception &exception)
 		{
 			throw std::runtime_error("Unable to initialize fullscreen Quad vertex buffer. " + std::string(exception.what()));
 		}
@@ -635,7 +627,7 @@ void Renderer::InitFullscreenQuad()
 	if (!_noMipSamplerState)
 	{
 		SamplerStateDesc desc;
-		desc.AddressingMode = AddressingMode{ TextureAddressMode::Wrap, TextureAddressMode::Wrap, TextureAddressMode::Wrap };
+		desc.AddressingMode = AddressingMode{TextureAddressMode::Wrap, TextureAddressMode::Wrap, TextureAddressMode::Wrap};
 		desc.MinFiltering = TextureFilteringMode::None;
 		desc.MinFiltering = TextureFilteringMode::None;
 		desc.MipFiltering = TextureFilteringMode::None;
@@ -643,7 +635,7 @@ void Renderer::InitFullscreenQuad()
 		{
 			_noMipSamplerState = _renderDevice->CreateSamplerState(desc);
 		}
-		catch (const std::exception& exception)
+		catch (const std::exception &exception)
 		{
 			throw std::runtime_error("Unable to initialize fullscreen Quad sampler state. " + std::string(exception.what()));
 		}
@@ -652,47 +644,46 @@ void Renderer::InitFullscreenQuad()
 
 void Renderer::InitDepthDebugPass()
 {
-  ShaderDesc vsDesc;
-  vsDesc.EntryPoint = "main";
-  vsDesc.ShaderLang = ShaderLang::Glsl;
-  vsDesc.ShaderType = ShaderType::Vertex;
-  vsDesc.Source = String::LoadFromFile("./Shaders/FSPassThrough.vert");
-  
-  ShaderDesc psDesc;
-  psDesc.EntryPoint = "main";
-  psDesc.ShaderLang = ShaderLang::Glsl;
-  psDesc.ShaderType = ShaderType::Pixel;
-  psDesc.Source = String::LoadFromFile("./Shaders/DepthDebug.frag");
-  
-  std::vector<VertexLayoutDesc> vertexLayoutDesc
-  {
-    VertexLayoutDesc(SemanticType::Position, SemanticFormat::Float2),
-    VertexLayoutDesc(SemanticType::TexCoord, SemanticFormat::Float2),
-  };
-  
-  std::shared_ptr<ShaderParams> shaderParams(new ShaderParams());
-  shaderParams->AddParam(ShaderParam("QuadTexture", ShaderParamType::Texture, 0));
-  
-  RasterizerStateDesc rasterizerStateDesc;
-  rasterizerStateDesc.CullMode = CullMode::None;
-  
-  try
-  {
-    PipelineStateDesc pipelineDesc;
-    pipelineDesc.VS = _renderDevice->CreateShader(vsDesc);
-    pipelineDesc.PS = _renderDevice->CreateShader(psDesc);
-    pipelineDesc.BlendState = _renderDevice->CreateBlendState(BlendStateDesc());
-    pipelineDesc.RasterizerState = _renderDevice->CreateRasterizerState(rasterizerStateDesc);
-    pipelineDesc.DepthStencilState = _renderDevice->CreateDepthStencilState(DepthStencilStateDesc());
-    pipelineDesc.VertexLayout = _renderDevice->CreateVertexLayout(vertexLayoutDesc);
-    pipelineDesc.ShaderParams = shaderParams;
-    
-    _depthDebugPso = _renderDevice->CreatePipelineState(pipelineDesc);
-  }
-  catch (const std::exception& exception)
-  {
-    throw std::runtime_error("Unable to initialize depth debug pipeline states. " + std::string(exception.what()));
-  }
+	ShaderDesc vsDesc;
+	vsDesc.EntryPoint = "main";
+	vsDesc.ShaderLang = ShaderLang::Glsl;
+	vsDesc.ShaderType = ShaderType::Vertex;
+	vsDesc.Source = String::LoadFromFile("./Shaders/FSPassThrough.vert");
+
+	ShaderDesc psDesc;
+	psDesc.EntryPoint = "main";
+	psDesc.ShaderLang = ShaderLang::Glsl;
+	psDesc.ShaderType = ShaderType::Pixel;
+	psDesc.Source = String::LoadFromFile("./Shaders/DepthDebug.frag");
+
+	std::vector<VertexLayoutDesc> vertexLayoutDesc{
+			VertexLayoutDesc(SemanticType::Position, SemanticFormat::Float2),
+			VertexLayoutDesc(SemanticType::TexCoord, SemanticFormat::Float2),
+	};
+
+	std::shared_ptr<ShaderParams> shaderParams(new ShaderParams());
+	shaderParams->AddParam(ShaderParam("QuadTexture", ShaderParamType::Texture, 0));
+
+	RasterizerStateDesc rasterizerStateDesc;
+	rasterizerStateDesc.CullMode = CullMode::None;
+
+	try
+	{
+		PipelineStateDesc pipelineDesc;
+		pipelineDesc.VS = _renderDevice->CreateShader(vsDesc);
+		pipelineDesc.PS = _renderDevice->CreateShader(psDesc);
+		pipelineDesc.BlendState = _renderDevice->CreateBlendState(BlendStateDesc());
+		pipelineDesc.RasterizerState = _renderDevice->CreateRasterizerState(rasterizerStateDesc);
+		pipelineDesc.DepthStencilState = _renderDevice->CreateDepthStencilState(DepthStencilStateDesc());
+		pipelineDesc.VertexLayout = _renderDevice->CreateVertexLayout(vertexLayoutDesc);
+		pipelineDesc.ShaderParams = shaderParams;
+
+		_depthDebugPso = _renderDevice->CreatePipelineState(pipelineDesc);
+	}
+	catch (const std::exception &exception)
+	{
+		throw std::runtime_error("Unable to initialize depth debug pipeline states. " + std::string(exception.what()));
+	}
 }
 
 void Renderer::InitGBufferDebugPass()
@@ -709,10 +700,9 @@ void Renderer::InitGBufferDebugPass()
 	psDesc.ShaderType = ShaderType::Pixel;
 	psDesc.Source = String::LoadFromFile("./Shaders/FullscreenQuad.frag");
 
-	std::vector<VertexLayoutDesc> vertexLayoutDesc
-	{
-		VertexLayoutDesc(SemanticType::Position, SemanticFormat::Float2),
-		VertexLayoutDesc(SemanticType::TexCoord, SemanticFormat::Float2),
+	std::vector<VertexLayoutDesc> vertexLayoutDesc{
+			VertexLayoutDesc(SemanticType::Position, SemanticFormat::Float2),
+			VertexLayoutDesc(SemanticType::TexCoord, SemanticFormat::Float2),
 	};
 
 	std::shared_ptr<ShaderParams> shaderParams(new ShaderParams());
@@ -734,7 +724,7 @@ void Renderer::InitGBufferDebugPass()
 
 		_gBufferDebugPso = _renderDevice->CreatePipelineState(pipelineDesc);
 	}
-	catch (const std::exception& exception)
+	catch (const std::exception &exception)
 	{
 		throw std::runtime_error("Unable to initialize pipeline states. " + std::string(exception.what()));
 	}
@@ -742,34 +732,34 @@ void Renderer::InitGBufferDebugPass()
 
 void Renderer::GenerateSsaoKernel()
 {
-  auto lerp = [](float32 a, float32 b, float32 f)
-  {
-    return a + f * (b - a);
-  };
-  
-  std::uniform_real_distribution<float> randomFloat(0.0, 1.0);
-  std::default_random_engine generator;
-  
-  for (uint32 i = 0; i < 64; i++)
-  {
-    Vector3 sample(randomFloat(generator) * 2.0f - 1.0f,
-                   randomFloat(generator) * 2.0f - 1.0f,
-                   randomFloat(generator));
-    sample.Normalize();
-    sample *= randomFloat(generator);
-    float32 scale = 1.0f / 64.0f;
-    
-    scale = lerp(0.1f, 1.0f, scale * scale);
-    sample *= scale;
-    _ssaoKernel.push_back(sample);
-  }
-  
-  for (uint32 i = 0; i < 16; i++)
-  {
-    _ssaoNoise.push_back(Vector3(randomFloat(generator) * 2.0f - 1.0f,
-                                 randomFloat(generator) * 2.0f - 1.0f,
-                                 0.0f));
-  }
+	auto lerp = [](float32 a, float32 b, float32 f)
+	{
+		return a + f * (b - a);
+	};
+
+	std::uniform_real_distribution<float> randomFloat(0.0, 1.0);
+	std::default_random_engine generator;
+
+	for (uint32 i = 0; i < 64; i++)
+	{
+		Vector3 sample(randomFloat(generator) * 2.0f - 1.0f,
+									 randomFloat(generator) * 2.0f - 1.0f,
+									 randomFloat(generator));
+		sample.Normalize();
+		sample *= randomFloat(generator);
+		float32 scale = 1.0f / 64.0f;
+
+		scale = lerp(0.1f, 1.0f, scale * scale);
+		sample *= scale;
+		_ssaoKernel.push_back(sample);
+	}
+
+	for (uint32 i = 0; i < 16; i++)
+	{
+		_ssaoNoise.push_back(Vector3(randomFloat(generator) * 2.0f - 1.0f,
+																 randomFloat(generator) * 2.0f - 1.0f,
+																 0.0f));
+	}
 }
 
 void Renderer::StartFrame()
@@ -781,17 +771,17 @@ void Renderer::StartFrame()
 	_ssaoDetailsData.Bias = 0.01f;
 
 	_hdrData.Enabled = _hdrEnabled ? 1 : 0;
-	
-  FrameBufferData framData;
-  framData.Proj = _camera->GetProj();
+
+	FrameBufferData framData;
+	framData.Proj = _camera->GetProj();
 	framData.DirectionalLight = _directionalLightData;
-  framData.AmbientLight = _ambientLightData;
-  framData.View = _camera->GetView();
-  framData.ViewInvs = framData.View.Inverse();
-  framData.ViewPosition = Vector4(_camera->GetTransform().GetPosition(), 1.0f);
+	framData.AmbientLight = _ambientLightData;
+	framData.View = _camera->GetView();
+	framData.ViewInvs = framData.View.Inverse();
+	framData.ViewPosition = Vector4(_camera->GetTransform().GetPosition(), 1.0f);
 	framData.SsaoDetails = _ssaoDetailsData;
 	framData.Hdr = _hdrData;
-  _frameBuffer->WriteData(0, sizeof(FrameBufferData), &framData, AccessType::WriteOnlyDiscard);
+	_frameBuffer->WriteData(0, sizeof(FrameBufferData), &framData, AccessType::WriteOnlyDiscard);
 
 	_renderDevice->ClearBuffers(RTT_Colour | RTT_Depth | RTT_Stencil);
 
@@ -799,7 +789,7 @@ void Renderer::StartFrame()
 	_renderCounts.MaterialCount = 0;
 	_renderCounts.TriangleCount = 0;
 
-  _activeMaterial = nullptr;
+	_activeMaterial = nullptr;
 }
 
 void Renderer::EndFrame()
@@ -808,64 +798,64 @@ void Renderer::EndFrame()
 
 void Renderer::ShadowDepthPass()
 {
-  auto start = std::chrono::high_resolution_clock::now();
-  
-  auto currentViewport = _renderDevice->GetViewport();
-  
-  ViewportDesc newViewport;
-  newViewport.Width = _desc.ShadowRes.X;
-  newViewport.Height = _desc.ShadowRes.Y;
-  _renderDevice->SetViewport(newViewport);
-  
+	auto start = std::chrono::high_resolution_clock::now();
+
+	auto currentViewport = _renderDevice->GetViewport();
+
+	ViewportDesc newViewport;
+	newViewport.Width = _desc.ShadowRes.X;
+	newViewport.Height = _desc.ShadowRes.Y;
+	_renderDevice->SetViewport(newViewport);
+
 	ShadowBufferData data;
 	data.Projection = Matrix4::Orthographic(-_shadowOrthographicSize, _shadowOrthographicSize, -_shadowOrthographicSize, _shadowOrthographicSize, -_shadowOrthographicSize, _shadowOrthographicSize);
 	data.View = Matrix4::LookAt(-_directionalLightData.Direction, Vector3::Zero, Vector3(0.0f, 1.0f, 0.0f));
-  data.TexelDims = Vector2(1.0f / _desc.ShadowRes.X, 1.0f / _desc.ShadowRes.Y);
+	data.TexelDims = Vector2(1.0f / _desc.ShadowRes.X, 1.0f / _desc.ShadowRes.Y);
 	_depthBuffer->WriteData(0, sizeof(ShadowBufferData), &data, AccessType::WriteOnlyDiscard);
-  
-  _renderDevice->SetPipelineState(_shadowDepthPso);
-  _renderDevice->SetRenderTarget(_depthRenderTarget);
+
+	_renderDevice->SetPipelineState(_shadowDepthPso);
+	_renderDevice->SetRenderTarget(_depthRenderTarget);
 	_renderDevice->SetConstantBuffer(3, _depthBuffer);
-  
-  _renderDevice->ClearBuffers(RTT_Depth);	
-  
-  for (auto renderable : _renderables)
-  {
+
+	_renderDevice->ClearBuffers(RTT_Depth);
+
+	for (auto renderable : _renderables)
+	{
 		auto mesh = renderable->GetMesh();
-    _renderDevice->SetConstantBuffer(0, renderable->GetPerObjectBuffer());
-    _renderDevice->SetVertexBuffer(mesh->GetVertexData());
-    
-    if (mesh->IsIndexed())
-    {
-      auto indexCount = mesh->GetIndexCount();
-      _renderDevice->SetIndexBuffer(mesh->GetIndexData());
-      _renderDevice->DrawIndexed(indexCount, 0, 0);
-    }
-    else
-    {
-      _renderDevice->Draw(mesh->GetVertexCount(), 0);
-    }
-  }
-  
-  _renderDevice->SetViewport(currentViewport);
-  
-  auto end = std::chrono::high_resolution_clock::now();
-  _renderTimings.Shadow = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
+		_renderDevice->SetConstantBuffer(0, renderable->GetPerObjectBuffer());
+		_renderDevice->SetVertexBuffer(mesh->GetVertexData());
+
+		if (mesh->IsIndexed())
+		{
+			auto indexCount = mesh->GetIndexCount();
+			_renderDevice->SetIndexBuffer(mesh->GetIndexData());
+			_renderDevice->DrawIndexed(indexCount, 0, 0);
+		}
+		else
+		{
+			_renderDevice->Draw(mesh->GetVertexCount(), 0);
+		}
+	}
+
+	_renderDevice->SetViewport(currentViewport);
+
+	auto end = std::chrono::high_resolution_clock::now();
+	_renderTimings.Shadow = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
 }
 
 void Renderer::GeometryPass()
 {
-  auto start = std::chrono::high_resolution_clock::now();
+	auto start = std::chrono::high_resolution_clock::now();
 
 	_renderDevice->SetPipelineState(_geomPassPso);
 	_renderDevice->SetRenderTarget(_gBuffer);
-	_renderDevice->ClearBuffers(RTT_Colour | RTT_Depth | RTT_Stencil);  
-	
+	_renderDevice->ClearBuffers(RTT_Colour | RTT_Depth | RTT_Stencil);
+
 	_renderDevice->SetConstantBuffer(1, _frameBuffer);
 	_renderDevice->SetConstantBuffer(2, _materialBuffer);
-  
-  _renderDevice->SetSamplerState(0, _basicSamplerState);
-  
+
+	_renderDevice->SetSamplerState(0, _basicSamplerState);
+
 	for (auto renderable : _renderables)
 	{
 		auto mesh = renderable->GetMesh();
@@ -874,7 +864,7 @@ void Renderer::GeometryPass()
 
 		_renderDevice->SetConstantBuffer(0, renderable->GetPerObjectBuffer());
 		_renderDevice->SetVertexBuffer(mesh->GetVertexData());
-				
+
 		if (mesh->IsIndexed())
 		{
 			auto indexCount = mesh->GetIndexCount();
@@ -893,27 +883,27 @@ void Renderer::GeometryPass()
 		_renderCounts.DrawCount++;
 	}
 
-  auto end = std::chrono::high_resolution_clock::now();
-  _renderTimings.GBuffer = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
+	auto end = std::chrono::high_resolution_clock::now();
+	_renderTimings.GBuffer = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
 }
 
 void Renderer::SsaoPass()
 {
-  _renderDevice->SetPipelineState(_ssaoPassPso);
-  _renderDevice->SetRenderTarget(_ssaoRT);
-  
-  _renderDevice->SetTexture(0, _gBuffer->GetColourTarget(0));
-  _renderDevice->SetTexture(1, _gBuffer->GetColourTarget(1));
-  _renderDevice->SetTexture(2, _ssaoNoiseTexture);
+	_renderDevice->SetPipelineState(_ssaoPassPso);
+	_renderDevice->SetRenderTarget(_ssaoRT);
+
+	_renderDevice->SetTexture(0, _gBuffer->GetColourTarget(0));
+	_renderDevice->SetTexture(1, _gBuffer->GetColourTarget(1));
+	_renderDevice->SetTexture(2, _ssaoNoiseTexture);
 
 	_renderDevice->SetSamplerState(0, _ssaoSamplerState);
 	_renderDevice->SetSamplerState(1, _ssaoSamplerState);
 	_renderDevice->SetSamplerState(2, _ssaoSamplerState);
-  
-  _renderDevice->SetConstantBuffer(1, _frameBuffer);
-  
-  _renderDevice->SetVertexBuffer(_fsQuadBuffer);
-  _renderDevice->Draw(6, 0);
+
+	_renderDevice->SetConstantBuffer(1, _frameBuffer);
+
+	_renderDevice->SetVertexBuffer(_fsQuadBuffer);
+	_renderDevice->Draw(6, 0);
 }
 
 void Renderer::SsaoBlurPass()
@@ -931,7 +921,7 @@ void Renderer::SsaoBlurPass()
 
 void Renderer::LightingPass()
 {
-  auto start = std::chrono::high_resolution_clock::now();
+	auto start = std::chrono::high_resolution_clock::now();
 
 	_renderDevice->SetRenderTarget(nullptr);
 	_renderDevice->SetPipelineState(_lightPassPso);
@@ -939,19 +929,19 @@ void Renderer::LightingPass()
 	_renderDevice->SetTexture(1, _gBuffer->GetColourTarget(1));
 	_renderDevice->SetTexture(2, _gBuffer->GetColourTarget(2));
 	_renderDevice->SetTexture(3, _ssaoBlurRT->GetColourTarget(0));
-  _renderDevice->SetTexture(4, _depthRenderTarget->GetDepthStencilTarget());
+	_renderDevice->SetTexture(4, _depthRenderTarget->GetDepthStencilTarget());
 	_renderDevice->SetSamplerState(0, _noMipSamplerState);
 	_renderDevice->SetSamplerState(1, _noMipSamplerState);
 	_renderDevice->SetSamplerState(2, _noMipSamplerState);
 	_renderDevice->SetSamplerState(3, _noMipSamplerState);
-  _renderDevice->SetSamplerState(4, _noMipSamplerState);
+	_renderDevice->SetSamplerState(4, _noMipSamplerState);
 	_renderDevice->SetVertexBuffer(_fsQuadBuffer);
-  _renderDevice->SetConstantBuffer(1, _frameBuffer);
-  _renderDevice->SetConstantBuffer(3, _depthBuffer);
+	_renderDevice->SetConstantBuffer(1, _frameBuffer);
+	_renderDevice->SetConstantBuffer(3, _depthBuffer);
 	_renderDevice->Draw(6, 0);
 
-  auto end = std::chrono::high_resolution_clock::now();
-  _renderTimings.Lighting = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
+	auto end = std::chrono::high_resolution_clock::now();
+	_renderTimings.Lighting = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
 }
 
 void Renderer::ShadowDepthDebugPass()
@@ -974,19 +964,19 @@ void Renderer::GBufferDebugPass(uint32 i)
 	_renderDevice->Draw(6, 0);
 }
 
-void Renderer::SetMaterialData(const std::shared_ptr<Material>& material)
+void Renderer::SetMaterialData(const std::shared_ptr<Material> &material)
 {
-  if (_activeMaterial != nullptr &&
-      material->GetAmbientColour() == _activeMaterial->GetAmbientColour() &&
-      material->GetDiffuseColour() == _activeMaterial->GetDiffuseColour() &&
-      material->GetSpecularColour() == _activeMaterial->GetSpecularColour() &&
-      material->GetDiffuseTexture() == _activeMaterial->GetDiffuseTexture() &&
-      material->GetNormalTexture() == _activeMaterial->GetNormalTexture() &&
-      material->GetSpecularTexture() == _activeMaterial->GetSpecularTexture() &&
-      material->GetDepthTexture() == _activeMaterial->GetDepthTexture())
-  {
-    return;
-  }
+	if (_activeMaterial != nullptr &&
+			material->GetAmbientColour() == _activeMaterial->GetAmbientColour() &&
+			material->GetDiffuseColour() == _activeMaterial->GetDiffuseColour() &&
+			material->GetSpecularColour() == _activeMaterial->GetSpecularColour() &&
+			material->GetDiffuseTexture() == _activeMaterial->GetDiffuseTexture() &&
+			material->GetNormalTexture() == _activeMaterial->GetNormalTexture() &&
+			material->GetSpecularTexture() == _activeMaterial->GetSpecularTexture() &&
+			material->GetDepthTexture() == _activeMaterial->GetDepthTexture())
+	{
+		return;
+	}
 
 	MaterialBufferData matData;
 	matData.Ambient = material->GetAmbientColour();
@@ -1009,21 +999,21 @@ void Renderer::SetMaterialData(const std::shared_ptr<Material>& material)
 		_renderDevice->SetSamplerState(1, _noMipSamplerState);
 	}
 
-  auto specularTexture = material->GetSpecularTexture();
-  if (specularTexture)
-  {
-    matData.EnabledTextureMaps.Specular = 1;
-    _renderDevice->SetTexture(2, specularTexture);
-    _renderDevice->SetSamplerState(2, _noMipSamplerState);
-  }
+	auto specularTexture = material->GetSpecularTexture();
+	if (specularTexture)
+	{
+		matData.EnabledTextureMaps.Specular = 1;
+		_renderDevice->SetTexture(2, specularTexture);
+		_renderDevice->SetSamplerState(2, _noMipSamplerState);
+	}
 
-  auto depthTexture = material->GetDepthTexture();
-  if (depthTexture)
-  {
-    matData.EnabledTextureMaps.Depth = 1;
-    _renderDevice->SetTexture(3, depthTexture);
-    _renderDevice->SetSamplerState(3, _noMipSamplerState);
-  }
+	auto depthTexture = material->GetDepthTexture();
+	if (depthTexture)
+	{
+		matData.EnabledTextureMaps.Depth = 1;
+		_renderDevice->SetTexture(3, depthTexture);
+		_renderDevice->SetSamplerState(3, _noMipSamplerState);
+	}
 
 	_materialBuffer->WriteData(0, sizeof(MaterialBufferData), &matData, AccessType::WriteOnlyDiscard);
 	_activeMaterial = material;

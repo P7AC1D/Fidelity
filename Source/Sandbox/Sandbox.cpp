@@ -29,9 +29,8 @@
 static const float32 CAMERA_ROTATION_FACTOR = 0.005f;
 static const float32 CAMERA_ZOOM_FACTOR = 0.01f;
 
-Sandbox::Sandbox(const ApplicationDesc& desc):
-  Application(desc),
-  _cameraTarget(Vector3::Zero)
+Sandbox::Sandbox(const ApplicationDesc &desc) : Application(desc),
+                                                _cameraTarget(Vector3::Zero)
 {
 }
 
@@ -40,22 +39,24 @@ void Sandbox::OnStart()
   _camera = SceneNode::Create<CameraNode>("main-camera");
   _camera->SetPerspective(Degree(67.67f), GetWidth(), GetHeight(), 0.1f, 10000.0f);
   _camera->GetTransform().LookAt(Vector3(0.0f, 0.0f, 20.0f), _cameraTarget);
-	
+
   _sceneGraph->AddChild(_camera);
 
   auto light = SceneNode::Create<LightNode>("directional-light");
-  light->SetColour(Colour(228, 179, 74));
-  light->SetIntensity(0.7f);
-  light->GetTransform().SetRotation(Quaternion(Degree(-120.0f), 30.0f, 6.0f));
+  light->SetLightType(LightType::Directional)
+      .SetColour(Colour(228, 179, 74))
+      .SetIntensity(0.7f)
+      .GetTransform()
+      .SetRotation(Quaternion(Degree(-120.0f), 30.0f, 6.0f));
   _sceneGraph->AddChild(light);
-  
+
   auto actor = SceneNode::Create<ActorNode>("cube");
   _sceneGraph->AddChild(actor);
   auto renderable = ActorNode::CreateComponent<Renderable>();
   actor->AddComponent<Renderable>(renderable);
   actor->GetTransform()
-    .SetPosition(Vector3(2.0f, 0.0f, 4.5f))
-    .SetRotation(Quaternion(Degree(35.0f), 37.0f, 57.0f));
+      .SetPosition(Vector3(2.0f, 0.0f, 4.5f))
+      .SetRotation(Quaternion(Degree(35.0f), 37.0f, 57.0f));
   auto mesh = MeshFactory::CreateCube();
   renderable->SetMesh(mesh);
   auto material = mesh->GetMaterial();
@@ -69,33 +70,30 @@ void Sandbox::OnStart()
 
   auto floor = SceneNode::Create<ActorNode>("ground");
   floor->GetTransform()
-    .SetPosition(Vector3(0.0f, -10.0f, 0.0f))
-    .SetScale(Vector3(25.0f, 25.0f, 25.0f));
+      .SetPosition(Vector3(0.0f, -10.0f, 0.0f))
+      .SetScale(Vector3(25.0f, 25.0f, 25.0f));
   auto renderableFloor = floor->CreateComponent<Renderable>();
   auto plane = MeshFactory::CreatePlane();
   renderableFloor->SetMesh(plane);
   floor->AddComponent(renderableFloor);
   plane->GetMaterial()->SetDiffuseTexture(TextureLoader::LoadFromFile2D("./Textures/177.JPG", true));
   _sceneGraph->AddChild(floor);
-	
+
   _inputHandler->BindButtonToState("ActivateCameraLook", Button::Button_LMouse);
-	_inputHandler->BindAxisToState("CameraZoom", Axis::MouseScrollXY);
+  _inputHandler->BindAxisToState("CameraZoom", Axis::MouseScrollXY);
   _inputHandler->BindAxisToState("CameraLook", Axis::MouseXY);
 
-	_eventDispatcher->Register("CameraZoom", [&](const InputEvent& inputEvent, int32 dt)
-	{
-		ZoomCamera(static_cast<float32>(inputEvent.AxisPosDelta[1]), dt);
-	});
+  _eventDispatcher->Register("CameraZoom", [&](const InputEvent &inputEvent, int32 dt)
+                             { ZoomCamera(static_cast<float32>(inputEvent.AxisPosDelta[1]), dt); });
 
-  _eventDispatcher->Register("CameraLook", [&](const InputEvent& inputEvent, int32 dt)
-  {
+  _eventDispatcher->Register("CameraLook", [&](const InputEvent &inputEvent, int32 dt)
+                             {
     if (_inputHandler->IsButtonStateActive("ActivateCameraLook"))
     {
       Radian yaw(static_cast<float32>(-inputEvent.AxisPosDelta[1]));
       Radian pitch(static_cast<float32>(-inputEvent.AxisPosDelta[0]));
       RotateCamera(yaw, pitch, dt);
-    }
-  });
+    } });
 }
 
 void Sandbox::OnUpdate(uint32 dtMs)
@@ -105,9 +103,9 @@ void Sandbox::OnUpdate(uint32 dtMs)
   ss << GetAverageFps(dtMs) << " FPS " << GetAverageTickMs(dtMs) << " ms";
 }
 
-void Sandbox::RotateCamera(const Degree& deltaX, const Degree& deltaY, int32 dtMs) const
+void Sandbox::RotateCamera(const Degree &deltaX, const Degree &deltaY, int32 dtMs) const
 {
-  Transform& cameraTransform = _camera->GetTransform();	
+  Transform &cameraTransform = _camera->GetTransform();
   float32 velocity(CAMERA_ROTATION_FACTOR * static_cast<float32>(dtMs));
   Quaternion pitch(cameraTransform.GetRight(), velocity * deltaX.InRadians());
   Quaternion yaw(cameraTransform.GetUp(), velocity * deltaY.InRadians());
@@ -118,10 +116,10 @@ void Sandbox::RotateCamera(const Degree& deltaX, const Degree& deltaY, int32 dtM
 
 void Sandbox::ZoomCamera(float32 delta, int32 dtMs) const
 {
-  Transform& cameraTransform = _camera->GetTransform();
+  Transform &cameraTransform = _camera->GetTransform();
   Vector3 cameraForward = cameraTransform.GetForward();
   Vector3 cameraPostion = cameraTransform.GetPosition();
-	
+
   float32 distanceToTarget = Vector3::Length(cameraPostion - _cameraTarget);
   float32 velocity(CAMERA_ZOOM_FACTOR * distanceToTarget * static_cast<float32>(dtMs));
   Vector3 newPosition(cameraPostion + cameraForward * velocity * -delta);
