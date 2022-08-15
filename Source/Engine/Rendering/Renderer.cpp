@@ -4,6 +4,7 @@
 #include <random>
 #include <stdexcept>
 
+#include "../Geometry/MeshFactory.h"
 #include "../Maths/AABB.hpp"
 #include "../Utility/Assert.hpp"
 #include "../Utility/String.hpp"
@@ -84,6 +85,7 @@ Renderer::Renderer(const RendererDesc &desc) : _desc(desc),
 		InitFrameBuffer();
 		InitMaterialBuffer();
 		InitFullscreenQuad();
+		InitPointLightMesh();
 		InitLightingPass();
 		InitDepthDebugPass();
 		InitGBufferDebugPass();
@@ -115,6 +117,10 @@ void Renderer::SubmitLight(const sptr<LightNode> &lightNode)
 		_directionalLightData.Colour = lightNode->GetColour();
 		_directionalLightData.Direction = orientation.Rotate(Vector3::Identity);
 		_directionalLightData.Intensity = lightNode->GetIntensity();
+	}
+	else if (lightNode->GetLightType() == LightType::Point)
+	{
+		_pointLights.push_back(lightNode);
 	}
 }
 
@@ -642,6 +648,22 @@ void Renderer::InitFullscreenQuad()
 	}
 }
 
+void Renderer::InitPointLightMesh()
+{
+	if (_pointLightMesh)
+	{
+		return;
+	}
+
+	_pointLightMesh = MeshFactory::CreateUvSphere();
+
+	GpuBufferDesc desc;
+	desc.BufferType = BufferType::Constant;
+	desc.BufferUsage = BufferUsage::Stream;
+	desc.ByteCount = sizeof(PerObjectBufferData);
+	_lightObjectBuffer = Renderer::GetRenderDevice()->CreateGpuBuffer(desc);
+}
+
 void Renderer::InitDepthDebugPass()
 {
 	ShaderDesc vsDesc;
@@ -881,6 +903,20 @@ void Renderer::GeometryPass()
 			_renderCounts.TriangleCount += (vertexCount * 3);
 		}
 		_renderCounts.DrawCount++;
+	}
+
+	for (auto pointLight : _pointLights)
+	{
+		PerObjectBufferData perObjectBufferData;
+		perObjectBufferData.Model = pointLight->GetWorldTransform().GetMatrix();
+		perObjectBufferData.ModelView = GetBoundCamera()->GetView() * perObjectBufferData.Model;
+		perObjectBufferData.ModelViewProjection = GetBoundCamera()->GetProj() * perObjectBufferData.ModelView;
+		_lightObjectBuffer->WriteData(0, sizeof(PerObjectBufferData), &perObjectBufferData, AccessType::WriteOnlyDiscard);
+
+		_renderDevice->SetConstantBuffer(0, _lightObjectBuffer);
+		_renderDevice->SetVertexBuffer(_pointLightMesh->GetVertexData());
+		_renderDevice->SetIndexBuffer(_pointLightMesh->GetIndexData());
+		_renderDevice->DrawIndexed(_pointLightMesh->GetIndexCount(), 0, 0);
 	}
 
 	auto end = std::chrono::high_resolution_clock::now();
