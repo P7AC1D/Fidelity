@@ -28,16 +28,19 @@ void LightNode::OnDrawInspector()
 LightNode &LightNode::SetColour(const Colour &colour)
 {
 	_colour = colour;
+	return *this;
 }
 
-LightNode &LightNode::SetIntensity(const float32 intensity)
+LightNode &LightNode::SetIntensity(float32 intensity)
 {
 	_intensity = intensity;
+	return *this;
 }
 
-LightNode &LightNode::SetLightType(const LightType lightType)
+LightNode &LightNode::SetLightType(LightType lightType)
 {
 	_lightType = lightType;
+	return *this;
 }
 
 SceneNodeType LightNode::GetNodeType() const

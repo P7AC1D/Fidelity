@@ -20,8 +20,8 @@ public:
 	void OnDrawInspector() override;
 
 	LightNode &SetColour(const Colour &colour);
-	LightNode &SetIntensity(const float32 intensity);
-	LightNode &SetLightType(const LightType lightType);
+	LightNode &SetIntensity(float32 intensity);
+	LightNode &SetLightType(LightType lightType);
 
 	Colour GetColour() const { return _colour; }
 	float32 GetIntensity() const { return _intensity; }

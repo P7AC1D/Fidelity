@@ -2,17 +2,17 @@
 
 #include "Vector3.hpp"
 
-float32 Math::Sin(const Radian& angle)
+float32 Math::Sin(const Radian &angle)
 {
   return std::sinf(angle.InRadians());
 }
 
-float32 Math::Cos(const Radian& angle)
+float32 Math::Cos(const Radian &angle)
 {
   return std::cosf(angle.InRadians());
 }
 
-float32 Math::Tan(const Radian& angle)
+float32 Math::Tan(const Radian &angle)
 {
   return std::tanf(angle.InRadians());
 }
@@ -32,9 +32,15 @@ Radian Math::ATan(float32 value)
   return Radian(std::atanf(value));
 }
 
+Radian Math::ATan2(float32 x, float32 y)
+{
+  return Radian(std::atan2f(x, y));
+}
+
 float32 Math::Clamp(float32 value, float32 min, float32 max)
 {
-  return value < min ? min : value > max ? max : value;
+  return value < min ? min : value > max ? max
+                                         : value;
 }
 
 float32 Math::Abs(float32 value)
@@ -44,15 +50,15 @@ float32 Math::Abs(float32 value)
 
 Vector3 Math::Min(Vector3 a, Vector3 b)
 {
-	return Vector3(std::fmin(a.X, b.X), std::fmin(a.Y, b.Y), std::fmin(a.Z, b.Z));
+  return Vector3(std::fmin(a.X, b.X), std::fmin(a.Y, b.Y), std::fmin(a.Z, b.Z));
 }
 
 Vector3 Math::Max(Vector3 a, Vector3 b)
 {
-	return Vector3(std::fmax(a.X, b.X), std::fmax(a.Y, b.Y), std::fmax(a.Z, b.Z));
+  return Vector3(std::fmax(a.X, b.X), std::fmax(a.Y, b.Y), std::fmax(a.Z, b.Z));
 }
 
 Vector3 Math::Abs(Vector3 a)
 {
-	return Vector3(std::fabs(a.X), std::fabs(a.Y), std::fabs(a.Z));
+  return Vector3(std::fabs(a.X), std::fabs(a.Y), std::fabs(a.Z));
 }
