@@ -32,6 +32,8 @@ struct HdrData
 {
   bool Enabled;
   float Exposure;
+  float _paddingA;
+  float _paddingB;
 };
 
 struct TextureMapFlags
@@ -59,6 +61,8 @@ layout(std140) uniform FrameBuffer
   AmbientLightData AmbientLight;  
   SsaoDetailsData SsaoDetails;  
   HdrData Hdr;
+  float nearClip;
+	float farClip;
 } Frame;
 
 layout(std140) uniform MaterialBuffer

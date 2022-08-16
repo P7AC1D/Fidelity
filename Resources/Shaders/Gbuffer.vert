@@ -51,6 +51,8 @@ struct HdrData
 {
   bool Enabled;
   float Exposure;
+  float _paddingA;
+  float _paddingB;
 };
 
 layout(std140) uniform ObjectBuffer
@@ -70,6 +72,8 @@ layout(std140) uniform FrameBuffer
   AmbientLightData AmbientLight;  
   SsaoDetailsData SsaoDetails;  
   HdrData Hdr;
+  float nearClip;
+	float farClip;
 } Frame;
 
 mat3 CalcTbnMatrix(vec3 normal, vec3 tangent, vec3 bitangent, mat4 modelView)

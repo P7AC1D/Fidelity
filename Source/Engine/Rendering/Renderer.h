@@ -192,6 +192,8 @@ private:
 	{
 		int Enabled = 1;
 		float32 Exposure = 1.0f;
+		float32 _paddingA;
+		float32 _paddingB;
 	} _hdrData;
 
 	struct FrameBufferData
@@ -204,6 +206,8 @@ private:
 		AmbientLightData AmbientLight;
 		SsaoDetailsData SsaoDetails;
 		HdrData Hdr;
+		float32 nearClip;
+		float32 farClip;
 	};
 
 public:

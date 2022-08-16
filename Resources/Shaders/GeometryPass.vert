@@ -32,6 +32,8 @@ struct HdrData
 {
   bool Enabled;
   float Exposure;
+  float _paddingA;
+  float _paddingB;
 };
 
 layout(std140) uniform ObjectBuffer
@@ -51,6 +53,8 @@ layout(std140) uniform FrameBuffer
   AmbientLightData AmbientLight;  
   SsaoDetailsData SsaoDetails;  
   HdrData Hdr;
+  float nearClip;
+	float farClip;
 } Frame;
 
 layout(location = 0) in vec3 aPosition;

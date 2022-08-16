@@ -4,19 +4,69 @@ uniform sampler2D QuadTexture;
 
 layout(location = 0) in vec2 TexCoord;
 
-out vec4 FinalColour;
+layout(location = 0) out vec4 FinalColour;
 
-float near = 0.1; 
-float far  = 100.0; 
-  
-float LinearizeDepth(float depth) 
+const int MaxKernelSize = 64;
+struct DirectionalLightData
 {
-    float z = depth * 2.0 - 1.0; // back to NDC 
-    return (2.0 * near * far) / (far + near - z * (far - near));	
+  vec4 Colour;
+  vec3 Direction;
+  float Intensity;
+};
+
+struct AmbientLightData
+{
+  vec4 Colour;
+  float Intensity;
+  float SpecularExponent;
+  bool SsaoEnabled;
+};
+
+struct SsaoDetailsData
+{
+  vec4 Samples[MaxKernelSize];
+  int KernelSize;
+  int QuadWidth;
+  int QuadHeight;
+  float Radius;
+  float Bias;
+  float _paddingA;
+  float _paddingB;
+  float _paddingC;
+};
+
+struct HdrData
+{
+  bool Enabled;
+  float Exposure;
+  float _paddingA;
+  float _paddingB;
+};
+
+layout(std140) uniform FrameBuffer
+{
+  mat4 Projection;
+  mat4 View;
+  mat4 ViewInvs; 
+  DirectionalLightData DirectionalLight;
+  vec4 ViewPos;
+  AmbientLightData AmbientLight;  
+  SsaoDetailsData SsaoDetails;  
+  HdrData Hdr;
+  float nearClip;
+	float farClip;
+} Frame;
+
+float LinearizeDepth(in vec2 uv)
+{
+    float zNear = Frame.nearClip;
+    float zFar  = Frame.farClip;
+    float depth = texture2D(QuadTexture, uv).x;
+    return (2.0 * zNear) / (zFar + zNear - depth * (zFar - zNear));
 }
 
 void main()
 {             
-    float depth = LinearizeDepth(gl_FragCoord.z) / far; // divide by far for demonstration
-    FinalColour = vec4(vec3(depth), 1.0);
+	float depth = LinearizeDepth(TexCoord);
+	FinalColour = vec4(depth, depth, depth, 1.0f);
 }

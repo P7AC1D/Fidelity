@@ -688,6 +688,7 @@ void Renderer::InitDepthDebugPass()
 
 	std::shared_ptr<ShaderParams> shaderParams(new ShaderParams());
 	shaderParams->AddParam(ShaderParam("QuadTexture", ShaderParamType::Texture, 0));
+	shaderParams->AddParam(ShaderParam("FrameBuffer", ShaderParamType::ConstBuffer, 1));
 
 	RasterizerStateDesc rasterizerStateDesc;
 	rasterizerStateDesc.CullMode = CullMode::None;
@@ -806,6 +807,8 @@ void Renderer::StartFrame()
 	framData.ViewPosition = Vector4(_camera->GetTransform().GetPosition(), 1.0f);
 	framData.SsaoDetails = _ssaoDetailsData;
 	framData.Hdr = _hdrData;
+	framData.nearClip = _camera->GetNear();
+	framData.farClip = _camera->GetFar();
 	_frameBuffer->WriteData(0, sizeof(FrameBufferData), &framData, AccessType::WriteOnlyDiscard);
 
 	_renderDevice->ClearBuffers(RTT_Colour | RTT_Depth | RTT_Stencil);
