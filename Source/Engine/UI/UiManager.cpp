@@ -2,7 +2,7 @@
 
 #include <memory>
 #include <sstream>
-#include <glad/glad.h> 
+#include <glad/glad.h>
 #include <GLFW/glfw3.h>
 
 #include "UiInspector.hpp"
@@ -28,12 +28,11 @@ bool lockCameraToLight = false;
 uint32 selectedActorIndex = -1;
 std::shared_ptr<SceneNode> selectedActor = nullptr;
 
-UiManager::UiManager(GLFWwindow* glfwWindow):
-	_io(nullptr),
-	_window(glfwWindow),
-	_vertBuffSize(0),
-	_idxBuffSize(0),
-	_initialized(false)
+UiManager::UiManager(GLFWwindow *glfwWindow) : _io(nullptr),
+																							 _window(glfwWindow),
+																							 _vertBuffSize(0),
+																							 _idxBuffSize(0),
+																							 _initialized(false)
 {
 	IMGUI_CHECKVERSION();
 	ImGui::CreateContext();
@@ -51,12 +50,12 @@ UiManager::~UiManager()
 	ImGui::DestroyContext();
 }
 
-void UiManager::SetRenderer(const std::shared_ptr<Renderer>& renderer)
+void UiManager::SetRenderer(const std::shared_ptr<Renderer> &renderer)
 {
 	_renderer = renderer;
 }
 
-void UiManager::SetSceneGraph(const std::shared_ptr<SceneNode>& sceneGraph)
+void UiManager::SetSceneGraph(const std::shared_ptr<SceneNode> &sceneGraph)
 {
 	_sceneGraph = sceneGraph;
 }
@@ -79,20 +78,16 @@ void UiManager::Update()
 	ImGui_ImplGlfw_NewFrame();
 	ImGui::NewFrame();
 	{
-		
 
 		bool displayDebugWindow = true;
 		ImGui::SetNextWindowPos(ImVec2(0, 0));
-		if (!ImGui::Begin("Debug", &displayDebugWindow, ImGuiWindowFlags_AlwaysAutoResize | 
-																										ImGuiWindowFlags_NoResize |
-																										ImGuiWindowFlags_NoSavedSettings |
-																										ImGuiWindowFlags_NoMove))
+		if (!ImGui::Begin("Debug", &displayDebugWindow, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoMove))
 		{
 			ImGui::End();
 			return;
-		}		
+		}
 
-		//if (ImGui::TreeNode("Camera"))
+		// if (ImGui::TreeNode("Camera"))
 		//{
 		//	Transform& cameraTransform = _renderer->GetBoundCamera()->GetTransform();
 
@@ -111,21 +106,21 @@ void UiManager::Update()
 		//	ImGui::TreePop();
 		//}
 
-   // if (ImGui::TreeNode("Ambient Light"))
-   // {
-   //   auto colour = sceneManager->GetAmbientLightColour();
-   //   float32 col[3] = { colour[0], colour[1], colour[2] };
-   //   ImGui::ColorEdit3("Colour", col);
-			//sceneManager->SetAmbientLightColour(Colour(col[0] * 255, col[1] * 255, col[2] * 255));
+		// if (ImGui::TreeNode("Ambient Light"))
+		// {
+		//   auto colour = sceneManager->GetAmbientLightColour();
+		//   float32 col[3] = { colour[0], colour[1], colour[2] };
+		//   ImGui::ColorEdit3("Colour", col);
+		// sceneManager->SetAmbientLightColour(Colour(col[0] * 255, col[1] * 255, col[2] * 255));
 
-   //   auto intensity = sceneManager->GetAmbientLightIntensity();
-   //   ImGui::SliderFloat("Intensity", &intensity, 0.0f, 10.0f);
-			//sceneManager->SetAmbientLightIntensity(intensity);
+		//   auto intensity = sceneManager->GetAmbientLightIntensity();
+		//   ImGui::SliderFloat("Intensity", &intensity, 0.0f, 10.0f);
+		// sceneManager->SetAmbientLightIntensity(intensity);
 
-   //   ImGui::TreePop();
-   // }
+		//   ImGui::TreePop();
+		// }
 
-		//if (ImGui::TreeNode("Directional Light"))
+		// if (ImGui::TreeNode("Directional Light"))
 		//{
 		//	auto dirLight = sceneManager->GetDirectionalLight();
 
@@ -158,22 +153,22 @@ void UiManager::Update()
 
 		//	ImGui::TreePop();
 		//}
-    
-    ImGui::Separator();
-    if (ImGui::TreeNode("Scene"))
-    {
-      ImGui::BeginChild("SceneGraph", ImVec2(ImGui::GetContentRegionAvail().x, 200), false, ImGuiWindowFlags_HorizontalScrollbar);
+
+		ImGui::Separator();
+		if (ImGui::TreeNode("Scene"))
+		{
+			ImGui::BeginChild("SceneGraph", ImVec2(ImGui::GetContentRegionAvail().x, 200), false, ImGuiWindowFlags_HorizontalScrollbar);
 			DrawSceneNode(_sceneGraph);
 			UiInspector::Build(selectedActor);
-     
-      ImGui::EndChild();
-      ImGui::TreePop();
-    }
 
-    ImGui::Separator();
-    {
-      ImGui::Checkbox("Demo Window", &show_demo_window);
-    }
+			ImGui::EndChild();
+			ImGui::TreePop();
+		}
+
+		ImGui::Separator();
+		{
+			ImGui::Checkbox("Demo Window", &show_demo_window);
+		}
 
 		ImGui::Separator();
 		{
@@ -190,9 +185,9 @@ void UiManager::Update()
 		}
 
 		{
-			const char* debugRenderingItems[] = { "Disabled", "ShadowMap", "Position", "Normal", "Albedo" };
+			std::vector<const char *> debugRenderingItems = {"Disabled", "ShadowMap", "Position", "Normal", "Albedo", "Depth"};
 			static int debugRenderingCurrentItem = 0;
-			ImGui::Combo("Debug Rendering", &debugRenderingCurrentItem, debugRenderingItems, 5);
+			ImGui::Combo("Debug Rendering", &debugRenderingCurrentItem, debugRenderingItems.data(), debugRenderingItems.size());
 			_renderer->EnableDebugPass(static_cast<DebugDisplayType>(debugRenderingCurrentItem));
 			ImGui::Separator();
 		}
@@ -206,23 +201,25 @@ void UiManager::Update()
 			_renderer->SetOrthographicSize(currentSize);
 		}
 
-    {
-      auto frameTimings = _renderer->GetFrameRenderTimings();
+		{
+			auto frameTimings = _renderer->GetFrameRenderTimings();
 			ImGui::Text("Render Pass");
-      ImGui::BulletText("All %.3f ms", static_cast<float32>(frameTimings.Frame * 1e-6f));
+			ImGui::BulletText("All %.3f ms", static_cast<float32>(frameTimings.Frame * 1e-6f));
 			ImGui::BulletText("Shadow %.3f ms", static_cast<float32>(frameTimings.Shadow * 1e-6f));
-      ImGui::BulletText("G-Buffer %.3f ms", static_cast<float32>(frameTimings.GBuffer * 1e-6f));
-      ImGui::BulletText("SSAO %.3f ms", static_cast<float32>(frameTimings.Ssao * 1e-6f));
-      ImGui::BulletText("Lighting %.3f ms", static_cast<float32>(frameTimings.Lighting * 1e-6f));
-    }
+			ImGui::BulletText("G-Buffer %.3f ms", static_cast<float32>(frameTimings.GBuffer * 1e-6f));
+			ImGui::BulletText("SSAO %.3f ms", static_cast<float32>(frameTimings.Ssao * 1e-6f));
+			ImGui::BulletText("Lighting %.3f ms", static_cast<float32>(frameTimings.Lighting * 1e-6f));
+		}
 
 		ImGui::Separator();
 		{
 			std::stringstream drawCounts;
 			auto frameCounts = _renderer->GetFrameRenderCounts();
-			drawCounts << frameCounts.DrawCount << " draw calls\n" << frameCounts.TriangleCount << " triangles\n" << frameCounts.MaterialCount << " materials\n";
+			drawCounts << frameCounts.DrawCount << " draw calls\n"
+								 << frameCounts.TriangleCount << " triangles\n"
+								 << frameCounts.MaterialCount << " materials\n";
 			ImGui::Text(drawCounts.str().c_str());
-			
+
 			ImGui::Text("%.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
 		}
 
@@ -235,13 +232,12 @@ void UiManager::Update()
 		ImGui::ShowDemoWindow(&show_demo_window);
 	}
 
-
 	ImGui::EndFrame();
 	ImGui::Render();
 	Draw(ImGui::GetDrawData());
 }
 
-void UiManager::Draw(ImDrawData* drawData)
+void UiManager::Draw(ImDrawData *drawData)
 {
 	auto renderDevice = Renderer::GetRenderDevice();
 	auto currentScissorDim = renderDevice->GetScissorDimensions();
@@ -260,7 +256,7 @@ void UiManager::Draw(ImDrawData* drawData)
 	float32 T = drawData->DisplayPos.y;
 	float32 B = drawData->DisplayPos.y + drawData->DisplaySize.y;
 	auto orthProj = Matrix4::Orthographic(L, R, B, T, -1.0f, 1.0f);
-		
+
 	ViewportDesc newViewport;
 	newViewport.TopLeftX = 0;
 	newViewport.TopLeftY = 0;
@@ -294,14 +290,14 @@ void UiManager::Draw(ImDrawData* drawData)
 		idxBufferDesc.BufferUsage = BufferUsage::Default;
 		idxBufferDesc.IndexCount = _idxBuffSize;
 		idxBufferDesc.IndexType = sizeof(ImDrawIdx) == 2 ? IndexType::UInt16 : IndexType::UInt32;
-		_idxBuffer = renderDevice->CreateIndexBuffer(idxBufferDesc);		
+		_idxBuffer = renderDevice->CreateIndexBuffer(idxBufferDesc);
 	}
 
 	uint64 vertByteOffset = 0;
 	uint64 idxByteOffset = 0;
 	for (int32 n = 0; n < drawData->CmdListsCount; n++)
 	{
-		const ImDrawList* cmdList = drawData->CmdLists[n];
+		const ImDrawList *cmdList = drawData->CmdLists[n];
 		uint64 vertByteCount = cmdList->VtxBuffer.Size * sizeof(ImDrawVert);
 		uint32 idxByteCount = cmdList->IdxBuffer.Size * sizeof(ImDrawIdx);
 
@@ -311,17 +307,17 @@ void UiManager::Draw(ImDrawData* drawData)
 		vertByteOffset += vertByteCount;
 		idxByteOffset += idxByteCount;
 	}
-	
+
 	uint64 vertOffset = 0;
 	uint64 idxOffset = 0;
 	ImVec2 pos = drawData->DisplayPos;
 	for (int32 n = 0; n < drawData->CmdListsCount; n++)
 	{
-		const ImDrawList* cmdList = drawData->CmdLists[n];		
+		const ImDrawList *cmdList = drawData->CmdLists[n];
 		for (int32 i = 0; i < cmdList->CmdBuffer.size(); i++)
 		{
-			const ImDrawCmd* pCmd = &cmdList->CmdBuffer[i];
-			ImVec4 clipRect(pCmd->ClipRect.x - pos.x, pCmd->ClipRect.y - pos.y, pCmd->ClipRect.z - pos.x, pCmd->ClipRect.w - pos.y);			
+			const ImDrawCmd *pCmd = &cmdList->CmdBuffer[i];
+			ImVec4 clipRect(pCmd->ClipRect.x - pos.x, pCmd->ClipRect.y - pos.y, pCmd->ClipRect.z - pos.x, pCmd->ClipRect.w - pos.y);
 
 			ScissorDesc newScissorDim;
 			newScissorDim.X = clipRect.x;
@@ -330,10 +326,8 @@ void UiManager::Draw(ImDrawData* drawData)
 			newScissorDim.H = clipRect.w - clipRect.y;
 			renderDevice->SetScissorDimensions(newScissorDim);
 
- 
-
 			renderDevice->SetTexture(0, _textureAtlas);
-			renderDevice->SetPipelineState(_pipelineState);  
+			renderDevice->SetPipelineState(_pipelineState);
 			renderDevice->SetSamplerState(0, _samplerState);
 
 			renderDevice->SetVertexBuffer(_vertBuffer);
@@ -342,7 +336,7 @@ void UiManager::Draw(ImDrawData* drawData)
 
 			renderDevice->DrawIndexed(pCmd->ElemCount, idxOffset, vertOffset);
 			idxOffset += pCmd->ElemCount;
-		}		
+		}
 		vertOffset += cmdList->VtxBuffer.Size;
 	}
 
@@ -376,12 +370,10 @@ void UiManager::SetupRenderer()
 	rasterizerStateDesc.ScissorEnabled = true;
 	rasterizerStateDesc.FillMode = FillMode::Solid;
 
-	std::vector<VertexLayoutDesc> vertexLayoutDesc
-	{
-		VertexLayoutDesc(SemanticType::Position, SemanticFormat::Float2),
-		VertexLayoutDesc(SemanticType::TexCoord, SemanticFormat::Float2),
-		VertexLayoutDesc(SemanticType::Colour, SemanticFormat::Ubyte4, true)
-	};
+	std::vector<VertexLayoutDesc> vertexLayoutDesc{
+			VertexLayoutDesc(SemanticType::Position, SemanticFormat::Float2),
+			VertexLayoutDesc(SemanticType::TexCoord, SemanticFormat::Float2),
+			VertexLayoutDesc(SemanticType::Colour, SemanticFormat::Ubyte4, true)};
 
 	std::shared_ptr<ShaderParams> shaderParams(new ShaderParams());
 	shaderParams->AddParam(ShaderParam("Constants", ShaderParamType::ConstBuffer, 0));
@@ -389,7 +381,7 @@ void UiManager::SetupRenderer()
 
 	auto renderDevice = Renderer::GetRenderDevice();
 	try
-	{		
+	{
 		PipelineStateDesc pStateDesc;
 		pStateDesc.BlendState = renderDevice->CreateBlendState(blendStateDesc);
 		pStateDesc.DepthStencilState = renderDevice->CreateDepthStencilState(depthStencilStateDesc);
@@ -401,7 +393,7 @@ void UiManager::SetupRenderer()
 
 		_pipelineState = renderDevice->CreatePipelineState(pStateDesc);
 	}
-	catch (const std::exception& exception)
+	catch (const std::exception &exception)
 	{
 		throw std::runtime_error("Unable to initialize debug UI pipeline state. " + std::string(exception.what()));
 	}
@@ -414,29 +406,29 @@ void UiManager::SetupRenderer()
 		samplerStateDesc.MipFiltering = TextureFilteringMode::Linear;
 		_samplerState = renderDevice->CreateSamplerState(samplerStateDesc);
 	}
-	catch (const std::exception& exception)
+	catch (const std::exception &exception)
 	{
 		throw std::runtime_error("Unable to initialize UI sampler state. " + std::string(exception.what()));
 	}
 
-  SamplerStateDesc desc;
-  desc.AddressingMode = AddressingMode{ TextureAddressMode::Wrap, TextureAddressMode::Wrap, TextureAddressMode::Wrap };
-  desc.MinFiltering = TextureFilteringMode::None;
-  desc.MinFiltering = TextureFilteringMode::None;
-  desc.MipFiltering = TextureFilteringMode::None;
-  try
-  {
-    _noMipSamplerState = renderDevice->CreateSamplerState(desc);
-  }
-  catch (const std::exception& exception)
-  {
-    throw std::runtime_error("Unable to initialize UI sampler state. " + std::string(exception.what()));
-  }
+	SamplerStateDesc desc;
+	desc.AddressingMode = AddressingMode{TextureAddressMode::Wrap, TextureAddressMode::Wrap, TextureAddressMode::Wrap};
+	desc.MinFiltering = TextureFilteringMode::None;
+	desc.MinFiltering = TextureFilteringMode::None;
+	desc.MipFiltering = TextureFilteringMode::None;
+	try
+	{
+		_noMipSamplerState = renderDevice->CreateSamplerState(desc);
+	}
+	catch (const std::exception &exception)
+	{
+		throw std::runtime_error("Unable to initialize UI sampler state. " + std::string(exception.what()));
+	}
 }
 
 void UiManager::SetupFontAtlas()
 {
-	ubyte* pixels = nullptr;
+	ubyte *pixels = nullptr;
 	int32 width = 0;
 	int32 height = 0;
 	_io->Fonts->GetTexDataAsRGBA32(&pixels, &width, &height);
@@ -458,7 +450,7 @@ void UiManager::SetupFontAtlas()
 	_io->Fonts->TexID = &_textureAtlas;
 }
 
-void UiManager::DrawSceneNode(const sptr<SceneNode>& parentNode)
+void UiManager::DrawSceneNode(const sptr<SceneNode> &parentNode)
 {
 	auto childNodes = parentNode->GetAllChildNodes();
 	ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick | (selectedActor == parentNode ? ImGuiTreeNodeFlags_Selected : 0);

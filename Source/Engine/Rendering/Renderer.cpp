@@ -157,7 +157,7 @@ void Renderer::DrawFrame()
 		LightingPass();
 		break;
 	case DebugDisplayType::ShadowMap:
-		ShadowDepthDebugPass();
+		DepthDebugPass(_depthRenderTarget->GetDepthStencilTarget());
 		break;
 	case DebugDisplayType::Position:
 		GBufferDebugPass(0);
@@ -167,6 +167,9 @@ void Renderer::DrawFrame()
 		break;
 	case DebugDisplayType::Albedo:
 		GBufferDebugPass(2);
+		break;
+	case DebugDisplayType::Depth:
+		DepthDebugPass(_gBuffer->GetDepthStencilTarget());
 		break;
 	}
 	EndFrame();
@@ -349,9 +352,9 @@ void Renderer::InitGeometryPass()
 		TextureDesc depthStencilDesc;
 		depthStencilDesc.Width = GetRenderWidth();
 		depthStencilDesc.Height = GetRenderHeight();
-		depthStencilDesc.Usage = TextureUsage::DepthStencil;
+		depthStencilDesc.Usage = TextureUsage::Depth;
 		depthStencilDesc.Type = TextureType::Texture2D;
-		depthStencilDesc.Format = TextureFormat::D24S8;
+		depthStencilDesc.Format = TextureFormat::D24;
 
 		RenderTargetDesc rtDesc;
 		rtDesc.ColourTargets[0] = _renderDevice->CreateTexture(colourTexDesc);
@@ -980,11 +983,11 @@ void Renderer::LightingPass()
 	_renderTimings.Lighting = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
 }
 
-void Renderer::ShadowDepthDebugPass()
+void Renderer::DepthDebugPass(const std::shared_ptr<Texture> &depthTexture)
 {
 	_renderDevice->SetRenderTarget(nullptr);
 	_renderDevice->SetPipelineState(_depthDebugPso);
-	_renderDevice->SetTexture(0, _depthRenderTarget->GetDepthStencilTarget());
+	_renderDevice->SetTexture(0, depthTexture);
 	_renderDevice->SetSamplerState(0, _noMipSamplerState);
 	_renderDevice->SetVertexBuffer(_fsQuadBuffer);
 	_renderDevice->Draw(6, 0);

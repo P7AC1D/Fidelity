@@ -64,7 +64,8 @@ enum class DebugDisplayType
 	ShadowMap,
 	Position,
 	Normal,
-	Albedo
+	Albedo,
+	Depth
 };
 
 // In nano-seconds
@@ -157,7 +158,7 @@ private:
 	void SsaoPass();
 	void SsaoBlurPass();
 
-	void ShadowDepthDebugPass();
+	void DepthDebugPass(const std::shared_ptr<Texture> &depthTexture);
 	void GBufferDebugPass(uint32 i);
 
 	void SetMaterialData(const std::shared_ptr<Material> &material);

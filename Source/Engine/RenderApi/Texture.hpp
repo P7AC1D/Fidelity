@@ -19,7 +19,9 @@ enum class TextureFormat
   /// 32-bit depth channel stored as unsigned bytes.
   D32,
   /// 24-bit depth channel with an 8 bit stencil channel stored as unsigned bytes.
-  D24S8
+  D24S8,
+  /// 24-bit depth channel stored as unsigned bytes.
+  D24
 };
 
 enum class TextureUsage
@@ -55,21 +57,21 @@ struct TextureDesc
 class Texture
 {
 public:
-  Texture(const TextureDesc& desc, bool gammaCorrected): _desc(desc), _gammaCorrected(gammaCorrected), _isInitialized(false) {}
-  
+  Texture(const TextureDesc &desc, bool gammaCorrected) : _desc(desc), _gammaCorrected(gammaCorrected), _isInitialized(false) {}
+
   TextureType GetTextureType() const { return _desc.Type; }
   uint32 GetWidth() const { return _desc.Width; }
   uint32 GetHeight() const { return _desc.Height; }
   uint32 GetDepth() const { return _desc.Depth; }
 
-  const TextureDesc& GetDesc() const { return _desc; }
+  const TextureDesc &GetDesc() const { return _desc; }
   bool IsInitialized() const { return _isInitialized; }
-  
-  virtual void WriteData(uint32 mipLevel, uint32 face, const std::shared_ptr<ImageData>& data) = 0;
+
+  virtual void WriteData(uint32 mipLevel, uint32 face, const std::shared_ptr<ImageData> &data) = 0;
   virtual void GenerateMips() = 0;
-  
+
 protected:
   TextureDesc _desc;
-	bool _gammaCorrected;
+  bool _gammaCorrected;
   bool _isInitialized;
 };
