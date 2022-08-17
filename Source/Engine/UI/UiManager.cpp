@@ -185,7 +185,7 @@ void UiManager::Update()
 		}
 
 		{
-			std::vector<const char *> debugRenderingItems = {"Disabled", "ShadowMap", "Position", "Normal", "Albedo", "Depth"};
+			std::vector<const char *> debugRenderingItems = {"Disabled", "Diffuse", "Normal", "Depth", "Emissive", "Specular"};
 			static int debugRenderingCurrentItem = 0;
 			ImGui::Combo("Debug Rendering", &debugRenderingCurrentItem, debugRenderingItems.data(), debugRenderingItems.size());
 			_renderer->EnableDebugPass(static_cast<DebugDisplayType>(debugRenderingCurrentItem));

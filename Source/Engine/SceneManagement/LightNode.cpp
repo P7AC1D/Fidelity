@@ -4,13 +4,14 @@
 #include "../UI/ImGui/imgui.h"
 
 LightNode::LightNode() : _colour(Colour::White),
-												 _intensity(1.0f),
+												 _radius(10.0f),
 												 _lightType(LightType::Point)
 {
 }
 
 void LightNode::OnDraw(std::shared_ptr<Renderer> renderer)
 {
+	GetTransform().SetScale(Vector3(_radius));
 	renderer->SubmitLight(std::static_pointer_cast<LightNode>(shared_from_this()));
 }
 
@@ -23,7 +24,7 @@ void LightNode::OnDrawInspector()
 	ImGui::ColorEdit3("Colour", rawCol);
 	SetColour(Colour(rawCol[0] * 255, rawCol[1] * 255, rawCol[2] * 255));
 
-	ImGui::DragFloat("Intensity", &_intensity, 0.01f, 0.0f, 1.0f);
+	ImGui::DragFloat("Radius", &_radius, 0.1f, 0.0f, 1000.0f);
 }
 LightNode &LightNode::SetColour(const Colour &colour)
 {
@@ -31,9 +32,9 @@ LightNode &LightNode::SetColour(const Colour &colour)
 	return *this;
 }
 
-LightNode &LightNode::SetIntensity(float32 intensity)
+LightNode &LightNode::SetRadius(float32 radius)
 {
-	_intensity = intensity;
+	_radius = radius;
 	return *this;
 }
 

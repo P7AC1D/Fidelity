@@ -20,11 +20,11 @@ public:
 	void OnDrawInspector() override;
 
 	LightNode &SetColour(const Colour &colour);
-	LightNode &SetIntensity(float32 intensity);
+	LightNode &SetRadius(float32 radius);
 	LightNode &SetLightType(LightType lightType);
 
 	Colour GetColour() const { return _colour; }
-	float32 GetIntensity() const { return _intensity; }
+	float32 GetRadius() const { return _radius; }
 	LightType GetLightType() const { return _lightType; }
 
 	SceneNodeType GetNodeType() const override;
@@ -34,6 +34,6 @@ protected:
 
 private:
 	Colour _colour;
-	float32 _intensity;
+	float32 _radius;
 	LightType _lightType;
 };

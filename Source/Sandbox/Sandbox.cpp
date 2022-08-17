@@ -42,27 +42,49 @@ void Sandbox::OnStart()
 
   _sceneGraph->AddChild(_camera);
 
-  auto light = SceneNode::Create<LightNode>("directional-light");
-  light->SetLightType(LightType::Directional)
-      .SetColour(Colour(228, 179, 74))
-      .SetIntensity(0.7f)
-      .GetTransform()
-      .SetRotation(Quaternion(Degree(-120.0f), 30.0f, 6.0f));
-  _sceneGraph->AddChild(light);
+  auto sponza(ModelLoader::LoadFromFile("./Models/Container/container.obj", false));
+  _sceneGraph->AddChild(sponza);
 
-  auto pointLight = SceneNode::Create<LightNode>("point-light");
-  light->SetLightType(LightType::Point);
-  _sceneGraph->AddChild(pointLight);
+  {
+    auto light = SceneNode::Create<LightNode>();
+    light->SetColour(Colour(150, 25, 25));
+    light->SetRadius(300.0f);
+    light->GetTransform()
+      .SetPosition(Vector3(0.0f, 100.0f, 0.0f));
+    _sceneGraph->AddChild(light);
+  }
 
-  // auto sphere = SceneNode::Create<ActorNode>("sphere");
-  // _sceneGraph->AddChild(sphere);
-  // auto renderable = ActorNode::CreateComponent<Renderable>();
-  // sphere->AddComponent<Renderable>(renderable);
-  // auto mesh = MeshFactory::CreateUvSphere(100, 100);
-  // auto material = mesh->GetMaterial();
-  // renderable->SetMesh(mesh);
-  // auto diffuseTexture = TextureLoader::LoadFromFile2D("./Textures/brick_floor_tileable_Base_Color.jpg", true);
-  // material->SetDiffuseTexture(diffuseTexture);
+  {
+    auto light = SceneNode::Create<LightNode>();
+    light->SetColour(Colour(25, 150, 25));
+    light->SetRadius(300.0f);
+    light->GetTransform()
+      .SetPosition(Vector3(-150.0f, 100.0f, -100.0f));
+    _sceneGraph->AddChild(light);
+  }
+
+  {
+    auto light = SceneNode::Create<LightNode>();
+    light->SetColour(Colour(25, 25, 100));
+    light->SetRadius(300.0f);
+    light->GetTransform()
+      .SetPosition(Vector3(-150.0f, 100.0f, 100.0f));
+    _sceneGraph->AddChild(light);
+  }
+
+  // auto pointLight = SceneNode::Create<LightNode>("point-light");
+  // light->SetLightType(LightType::Point);
+  //_sceneGraph->AddChild(pointLight);
+
+  //auto sphere = SceneNode::Create<ActorNode>("sphere");
+  //_sceneGraph->AddChild(sphere);
+  //auto renderable = ActorNode::CreateComponent<Renderable>();
+  //sphere->AddComponent<Renderable>(renderable);
+  //auto mesh = MeshFactory::CreateUvSphere(100, 100);
+  //auto material = mesh->GetMaterial();
+  //renderable->SetMesh(mesh);
+  //auto diffuseTexture = TextureLoader::LoadFromFile2D("./Textures/brick_floor_tileable_Base_Color.jpg", true);
+  //material->SetDiffuseTexture(diffuseTexture);
 
   // auto actor = SceneNode::Create<ActorNode>("cube");
   // _sceneGraph->AddChild(actor);
@@ -82,16 +104,16 @@ void Sandbox::OnStart()
   // material->SetNormalTexture(normalTexture);
   // material->SetSpecularTexture(specularTexture);
 
-  auto floor = SceneNode::Create<ActorNode>("ground");
-  floor->GetTransform()
-      .SetPosition(Vector3(0.0f, -10.0f, 0.0f))
-      .SetScale(Vector3(25.0f, 25.0f, 25.0f));
-  auto renderableFloor = floor->CreateComponent<Renderable>();
-  auto plane = MeshFactory::CreatePlane();
-  renderableFloor->SetMesh(plane);
-  floor->AddComponent(renderableFloor);
-  plane->GetMaterial()->SetDiffuseTexture(TextureLoader::LoadFromFile2D("./Textures/177.JPG", true));
-  _sceneGraph->AddChild(floor);
+  //auto floor = SceneNode::Create<ActorNode>("ground");
+  //floor->GetTransform()
+  //    .SetPosition(Vector3(0.0f, -10.0f, 0.0f))
+  //    .SetScale(Vector3(25.0f, 25.0f, 25.0f));
+  //auto renderableFloor = floor->CreateComponent<Renderable>();
+  //auto plane = MeshFactory::CreatePlane();
+  //renderableFloor->SetMesh(plane);
+  //floor->AddComponent(renderableFloor);
+  //plane->GetMaterial()->SetDiffuseTexture(TextureLoader::LoadFromFile2D("./Textures/177.JPG", true));
+  //_sceneGraph->AddChild(floor);
 
   _inputHandler->BindButtonToState("ActivateCameraLook", Button::Button_LMouse);
   _inputHandler->BindAxisToState("CameraZoom", Axis::MouseScrollXY);

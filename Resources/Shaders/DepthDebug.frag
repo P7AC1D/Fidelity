@@ -46,6 +46,7 @@ struct HdrData
 layout(std140) uniform FrameBuffer
 {
   mat4 Projection;
+  mat4 ProjViewInv;
   mat4 View;
   mat4 ViewInvs; 
   DirectionalLightData DirectionalLight;

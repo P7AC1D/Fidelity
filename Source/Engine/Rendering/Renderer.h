@@ -61,11 +61,11 @@ enum class RenderApi
 enum class DebugDisplayType
 {
 	Disabled,
-	ShadowMap,
-	Position,
+	Diffuse,
 	Normal,
-	Albedo,
-	Depth
+	Depth,
+	Emissive,
+	Specular
 };
 
 // In nano-seconds
@@ -136,10 +136,8 @@ private:
 	void InitShadowDepthPass();
 	void InitDepthRenderTarget();
 	void InitDepthBuffer();
-	void InitGeometryPass();
 	void InitFrameBuffer();
 	void InitMaterialBuffer();
-	void InitLightingPass();
 	void InitSsaoPass();
 	void InitSsaoBlurPass();
 	void InitFullscreenQuad();
@@ -147,19 +145,28 @@ private:
 	void InitDepthDebugPass();
 	void InitGBufferDebugPass();
 
+	void InitGBufferPass();
+	void InitPointLightPass();
+	void InitMergePass();
+
+	void InitPointLightConstantsBuffer();
+	void InitPointLightBuffer();
+
 	void GenerateSsaoKernel();
 
 	void StartFrame();
 	void EndFrame();
 
 	void ShadowDepthPass();
-	void GeometryPass();
-	void LightingPass();
 	void SsaoPass();
 	void SsaoBlurPass();
 
+	void GBufferFillPass();
+	void PointLightPass();
+	void MergePass();
+
 	void DepthDebugPass(const std::shared_ptr<Texture> &depthTexture);
-	void GBufferDebugPass(uint32 i);
+	void RTOTextureDebugPass(const std::shared_ptr<Texture> &texture);
 
 	void SetMaterialData(const std::shared_ptr<Material> &material);
 
@@ -199,6 +206,7 @@ private:
 	struct FrameBufferData
 	{
 		Matrix4 Proj;
+		Matrix4 ProjViewInvs;
 		Matrix4 View;
 		Matrix4 ViewInvs;
 		DirectionalLightData DirectionalLight;
@@ -208,6 +216,21 @@ private:
 		HdrData Hdr;
 		float32 nearClip;
 		float32 farClip;
+	};
+
+	struct PointLightConstantsBuffer
+	{
+		Matrix4 ProjViewInvs;
+		Vector3 CameraPosition;
+		float32 _padding;
+		Vector2 PixelSize;
+	};
+
+	struct PointLightBuffer
+	{
+		Vector4 Colour;
+		Vector3 Position;
+		float32 Radius;
 	};
 
 public:
@@ -228,6 +251,9 @@ private:
 	std::shared_ptr<GpuBuffer> _materialBuffer;
 	std::shared_ptr<GpuBuffer> _depthBuffer;
 
+	std::shared_ptr<GpuBuffer> _pointLightConstantsBuffer;
+	std::shared_ptr<GpuBuffer> _pointLightBuffer;
+
 	std::shared_ptr<PipelineState> _shadowDepthPso;
 	std::shared_ptr<PipelineState> _geomPassPso;
 	std::shared_ptr<PipelineState> _lightPassPso;
@@ -235,6 +261,11 @@ private:
 	std::shared_ptr<PipelineState> _ssaoBlurPassPso;
 	std::shared_ptr<PipelineState> _gBufferDebugPso;
 	std::shared_ptr<PipelineState> _depthDebugPso;
+
+	std::shared_ptr<PipelineState> _gBufferPso;
+	std::shared_ptr<PipelineState> _pointLightCWPso;
+	std::shared_ptr<PipelineState> _pointLightCCWPso;
+	std::shared_ptr<PipelineState> _mergePso;
 
 	std::shared_ptr<SamplerState> _basicSamplerState;
 	std::shared_ptr<SamplerState> _noMipSamplerState;
@@ -244,6 +275,9 @@ private:
 	std::shared_ptr<RenderTarget> _gBuffer;
 	std::shared_ptr<RenderTarget> _ssaoRT;
 	std::shared_ptr<RenderTarget> _ssaoBlurRT;
+
+	std::shared_ptr<RenderTarget> _gBufferRto;
+	std::shared_ptr<RenderTarget> _pointLightRto;
 
 	std::shared_ptr<VertexBuffer> _fsQuadBuffer;
 	std::shared_ptr<Material> _activeMaterial;
