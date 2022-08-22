@@ -1,5 +1,6 @@
 #pragma once
 #include <memory>
+#include <unordered_map>
 #include <vector>
 #include "../Core/Types.hpp"
 
@@ -19,6 +20,8 @@ struct GLFWwindow;
 class UiManager
 {
 public:
+	static void AddTexture(uint64 id, const std::shared_ptr<Texture>& texture);
+
 	UiManager(GLFWwindow* glfwWindow);
 	~UiManager();
 	
@@ -38,6 +41,8 @@ private:
 	void DrawSceneNode(const sptr<SceneNode>& node);
 
 private:
+	static std::unordered_map<uint64, std::shared_ptr<Texture>> TEXTURE_MAP;
+
 	ImGuiIO* _io;
 	GLFWwindow* _window;
 	bool _initialized;

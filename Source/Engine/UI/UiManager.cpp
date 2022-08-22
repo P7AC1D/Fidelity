@@ -28,6 +28,13 @@ bool lockCameraToLight = false;
 uint32 selectedActorIndex = -1;
 std::shared_ptr<SceneNode> selectedActor = nullptr;
 
+std::unordered_map<uint64, std::shared_ptr<Texture>> UiManager::TEXTURE_MAP;
+
+void UiManager::AddTexture(uint64 id, const std::shared_ptr<Texture> &texture)
+{
+	TEXTURE_MAP[id] = texture;
+}
+
 UiManager::UiManager(GLFWwindow *glfwWindow) : _io(nullptr),
 																							 _window(glfwWindow),
 																							 _vertBuffSize(0),
@@ -87,73 +94,6 @@ void UiManager::Update()
 			return;
 		}
 
-		// if (ImGui::TreeNode("Camera"))
-		//{
-		//	Transform& cameraTransform = _renderer->GetBoundCamera()->GetTransform();
-
-		//	auto position = cameraTransform.GetPosition();
-		//	float32 camPos[3] = { position.X, position.Y, position.Z };
-		//	ImGui::InputFloat3("Position", camPos, 3, ImGuiInputTextFlags_ReadOnly);
-
-		//	auto orientation = cameraTransform.GetTarget();
-		//	float32 camTar[3] = { target.X, target.Y, target.Z };
-		//	ImGui::InputFloat3("Target", camTar, 3, ImGuiInputTextFlags_ReadOnly);
-
-		//	Vector3 euler = cameraTransform.GetOrientation().ToEuler();
-		//	float32 angles[3] = { euler.X, euler.Y, euler.Z };
-		//	ImGui::InputFloat3("Orientation", angles, 1, ImGuiInputTextFlags_ReadOnly);
-
-		//	ImGui::TreePop();
-		//}
-
-		// if (ImGui::TreeNode("Ambient Light"))
-		// {
-		//   auto colour = sceneManager->GetAmbientLightColour();
-		//   float32 col[3] = { colour[0], colour[1], colour[2] };
-		//   ImGui::ColorEdit3("Colour", col);
-		// sceneManager->SetAmbientLightColour(Colour(col[0] * 255, col[1] * 255, col[2] * 255));
-
-		//   auto intensity = sceneManager->GetAmbientLightIntensity();
-		//   ImGui::SliderFloat("Intensity", &intensity, 0.0f, 10.0f);
-		// sceneManager->SetAmbientLightIntensity(intensity);
-
-		//   ImGui::TreePop();
-		// }
-
-		// if (ImGui::TreeNode("Directional Light"))
-		//{
-		//	auto dirLight = sceneManager->GetDirectionalLight();
-
-		//	auto colour = dirLight->GetColour();
-		//	float32 col[3] = { colour[0], colour[1], colour[2] };
-		//	ImGui::ColorEdit3("Colour", col);
-		//	dirLight->SetColour(Colour(col[0] * 255, col[1] * 255, col[2] * 255));
-
-		//	auto position = dirLight->GetPosition();
-		//	float32 pos[3] = { position[0], position[1], position[2] };
-		//	ImGui::DragFloat3("Position", pos, 0.1f);
-		//	dirLight->SetPosition(Vector3(pos[0], pos[1], pos[2]));
-
-		//	auto direction = dirLight->GetDirection();
-		//	float32 dir[3] = { direction[0], direction[1], direction[2] };
-		//	ImGui::SliderFloat3("Direction", dir, -1.0f, 1.0f);
-		//	dirLight->SetDirection(Vector3(dir[0], dir[1], dir[2]));
-
-		//	auto intensity = dirLight->GetIntensity();
-		//	ImGui::SliderFloat("Intensity", &intensity, 0.0f, 10.0f);
-		//	dirLight->SetIntensity(intensity);
-
-		//	ImGui::Checkbox("Lock Camera", &lockCameraToLight);
-
-		//	if (lockCameraToLight)
-		//	{
-		//		auto camera = sceneManager->GetCamera();
-		//		camera->LookAt(dirLight->GetPosition(), dirLight->GetDirection());
-		//	}
-
-		//	ImGui::TreePop();
-		//}
-
 		ImGui::Separator();
 		if (ImGui::TreeNode("Scene"))
 		{
@@ -207,8 +147,8 @@ void UiManager::Update()
 			ImGui::BulletText("All %.3f ms", static_cast<float32>(frameTimings.Frame * 1e-6f));
 			ImGui::BulletText("Shadow %.3f ms", static_cast<float32>(frameTimings.Shadow * 1e-6f));
 			ImGui::BulletText("G-Buffer %.3f ms", static_cast<float32>(frameTimings.GBuffer * 1e-6f));
-			ImGui::BulletText("SSAO %.3f ms", static_cast<float32>(frameTimings.Ssao * 1e-6f));
 			ImGui::BulletText("Lighting %.3f ms", static_cast<float32>(frameTimings.Lighting * 1e-6f));
+			ImGui::BulletText("SSAO %.3f ms", static_cast<float32>(frameTimings.Ssao * 1e-6f));
 		}
 
 		ImGui::Separator();
@@ -326,9 +266,18 @@ void UiManager::Draw(ImDrawData *drawData)
 			newScissorDim.H = clipRect.w - clipRect.y;
 			renderDevice->SetScissorDimensions(newScissorDim);
 
-			renderDevice->SetTexture(0, _textureAtlas);
+			auto texture = TEXTURE_MAP[reinterpret_cast<uint64>(pCmd->TextureId)];
+			if (texture)
+			{
+				renderDevice->SetTexture(0, texture);
+			}
+			else
+			{
+				renderDevice->SetTexture(0, _textureAtlas);
+			}
+
 			renderDevice->SetPipelineState(_pipelineState);
-			renderDevice->SetSamplerState(0, _samplerState);
+			renderDevice->SetSamplerState(0, _noMipSamplerState);
 
 			renderDevice->SetVertexBuffer(_vertBuffer);
 			renderDevice->SetIndexBuffer(_idxBuffer);
@@ -446,6 +395,7 @@ void UiManager::SetupFontAtlas()
 	imageData->WriteData(pixels);
 	_textureAtlas->WriteData(0, 0, imageData);
 	_textureAtlas->GenerateMips();
+	AddTexture(reinterpret_cast<uint64>(&_textureAtlas), _textureAtlas);
 
 	_io->Fonts->TexID = &_textureAtlas;
 }

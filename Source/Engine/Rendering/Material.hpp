@@ -17,6 +17,7 @@ public:
   void SetDiffuseTexture(const std::shared_ptr<Texture> &diffuseTexture);
   void SetNormalTexture(const std::shared_ptr<Texture> &normalTexture);
   void SetSpecularTexture(const std::shared_ptr<Texture> &specularTexture);
+  void SetOpacityTexture(const std::shared_ptr<Texture> &opacityTexture);
   void SetDepthTexture(const std::shared_ptr<Texture> &depthTexture);
 
   uint32 GetId() const;
@@ -28,6 +29,7 @@ public:
   std::shared_ptr<Texture> GetDiffuseTexture() const;
   std::shared_ptr<Texture> GetNormalTexture() const;
   std::shared_ptr<Texture> GetSpecularTexture() const;
+  std::shared_ptr<Texture> GetOpacityTexture() const;
   std::shared_ptr<Texture> GetDepthTexture() const;
 
   bool HasDiffuseTexture() const;
@@ -48,5 +50,6 @@ private:
   std::shared_ptr<Texture> _diffuseTexture;
   std::shared_ptr<Texture> _normalTexture;
   std::shared_ptr<Texture> _specularTexture;
+  std::shared_ptr<Texture> _opacityTexture;
   std::shared_ptr<Texture> _depthTexture;
 };

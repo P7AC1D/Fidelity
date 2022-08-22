@@ -1,7 +1,8 @@
 #version 410
 
 uniform sampler2D DepthMap;
-uniform sampler2D BumpMap;
+uniform sampler2D NormalMap;
+uniform sampler2D SpecularMap;
 
 layout(std140) uniform PointLightPassConstants
 {
@@ -27,7 +28,7 @@ void main()
   vec3 position = vec3((gl_FragCoord.x * Constants.PixelSize.x), (gl_FragCoord.y * Constants.PixelSize.y), 0.0f);
   position.z = texture(DepthMap, position.xy).r;
 
-  vec3 normal = normalize(texture(BumpMap, position.xy).xyz * 2.0f - 1.0f);
+  vec3 normal = normalize(texture(NormalMap, position.xy).xyz * 2.0f - 1.0f);
 
   vec4 clip = Constants.ProjViewInv * vec4(position * 2.0f - 1.0f, 1.0f);
   position = clip.xyz / clip.w;
@@ -36,7 +37,7 @@ void main()
   float distance = length(PointLight.Position - position);
   float attenuation = 1.0f - clamp(distance / PointLight.Radius, 0.0f, 1.0f);
 
-  if (attenuation == 0.0f) 
+  if (attenuation == 0.0f)
   {
     discard;
   }
@@ -44,11 +45,13 @@ void main()
   vec3 incident = normalize(PointLight.Position - position);
   vec3 viewDir = normalize(Constants.CameraPosition - position);
   vec3 halfDir = normalize(incident + viewDir);
+  
+  vec4 specularSampler = texture(SpecularMap, position.xy);
 
   float lambert = clamp(dot(incident, normal), 0.0f, 1.0f);
   float rFactor = clamp(dot(halfDir, normal), 0.0f, 1.0f);
-  float sFactor = pow(rFactor, 33.0f);
+  float sFactor = pow(rFactor, specularSampler.a * 250.0f);
 
   Emissive = vec4(PointLight.Colour.xyz * lambert * attenuation, 1.0f);
-  Specular = vec4(PointLight.Colour.xyz * sFactor * attenuation * 0.33f, 1.0f);
+  Specular = vec4(PointLight.Colour.xyz * sFactor * attenuation * specularSampler.rgb, 1.0f);
 }

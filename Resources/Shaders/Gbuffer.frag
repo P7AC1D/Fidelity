@@ -5,7 +5,7 @@ struct TextureMapFlags
   bool Diffuse;
   bool Normal;
   bool Specular;
-  bool Depth;
+  bool Opacity;
 };
 
 layout(std140) uniform MaterialBuffer
@@ -14,7 +14,7 @@ layout(std140) uniform MaterialBuffer
   vec4 AmbientColour;
   vec4 DiffuseColour;
   vec4 SpecularColour;
-  float SpecularExponent;  
+  float SpecularExponent;
 } Material;
 
 struct Input
@@ -30,9 +30,12 @@ layout(location = 0) in Input fsIn;
 
 uniform sampler2D DiffuseMap;
 uniform sampler2D NormalMap;
+uniform sampler2D SpecularMap;
+uniform sampler2D OpacityMap;
 
 layout(location = 0) out vec4 Diffuse;
-layout(location = 1) out vec4 Bump;
+layout(location = 1) out vec4 Normal;
+layout(location = 2) out vec4 Specular;
 
 vec4 CalculateDiffuse(vec4 diffuseSample, vec4 materialColour, bool isDiffuseMapEnabled)
 {
@@ -53,11 +56,35 @@ vec4 CalculateNormal(vec4 normalSample, vec4 normal, bool isNormalMapEnabled)
   return normalize(normal);
 }
 
+vec4 CalculateSpecular(vec4 specularSample, bool isSpecularEnabled)
+{
+  if (isSpecularEnabled)
+  {
+    return vec4(specularSample.r) * Material.SpecularColour;
+  }
+  return Material.SpecularColour;
+}
+
+float CalculateOpacity(float opacitySample, bool isOpacityMapEnabled)
+{
+  if (isOpacityMapEnabled)
+  {
+    return opacitySample;
+  }
+  return 1.0f;
+}
+
 void main()
 {
   vec4 diffuseSample = texture(DiffuseMap, fsIn.TexCoord);  
   vec4 normalSample = texture(NormalMap, fsIn.TexCoord);
+  vec4 opacitySample = texture(OpacityMap, fsIn.TexCoord);
+  vec4 specularSample = texture(SpecularMap, fsIn.TexCoord);
 
-  Diffuse = diffuseSample;
-  Bump = vec4(CalculateNormal(normalSample, vec4(fsIn.Normal, 0.0f), Material.Enabled.Normal).xyz * 0.5f + 0.5f, 1.0f);
+  float opacityFactor = CalculateOpacity(opacitySample.r, Material.Enabled.Opacity);
+  Diffuse.rgb = Material.DiffuseColour.rgb * diffuseSample.rgb;
+  Diffuse.a = opacityFactor;
+  Specular = CalculateSpecular(specularSample, Material.Enabled.Specular);
+  Specular.a = Material.SpecularExponent / 250.0f;
+  Normal = vec4(CalculateNormal(normalSample, vec4(fsIn.Normal, 0.0f), Material.Enabled.Normal).xyz * 0.5f + 0.5f, 1.0f);
 }

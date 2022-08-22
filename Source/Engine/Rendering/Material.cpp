@@ -37,6 +37,11 @@ void Material::SetSpecularTexture(const std::shared_ptr<Texture> &specularTextur
   _specularTexture = specularTexture;
 }
 
+void Material::SetOpacityTexture(const std::shared_ptr<Texture> &opacityTexture)
+{
+  _opacityTexture = opacityTexture;
+}
+
 void Material::SetDepthTexture(const std::shared_ptr<Texture> &depthTexture)
 {
   _depthTexture = depthTexture;
@@ -80,6 +85,11 @@ std::shared_ptr<Texture> Material::GetNormalTexture() const
 std::shared_ptr<Texture> Material::GetSpecularTexture() const
 {
   return _specularTexture;
+}
+
+std::shared_ptr<Texture> Material::GetOpacityTexture() const
+{
+  return _opacityTexture;
 }
 
 std::shared_ptr<Texture> Material::GetDepthTexture() const

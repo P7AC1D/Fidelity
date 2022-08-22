@@ -103,29 +103,60 @@ std::shared_ptr<Material> BuildMaterial(const std::string& filePath, const aiMat
   aiMaterial->Get(AI_MATKEY_SHININESS, specularShininess);
   material->SetSpecularExponent(specularShininess);
   
-  aiString diffuseTexturePath;
-  aiMaterial->Get(AI_MATKEY_TEXTURE(aiTextureType_DIFFUSE, 0), diffuseTexturePath);
-  if (diffuseTexturePath.length != 0)
+
+  if (aiMaterial->GetTextureCount(aiTextureType_DIFFUSE) > 0)
   {
-    auto diffuseTexture = TextureLoader::LoadFromFile2D(filePath + diffuseTexturePath.C_Str(), true);
-    material->SetDiffuseTexture(diffuseTexture);
+    aiString diffuseTexturePath;
+    aiMaterial->GetTexture(aiTextureType_DIFFUSE, 0, &diffuseTexturePath);
+    if (diffuseTexturePath.length != 0)
+    {
+      auto diffuseTexture = TextureLoader::LoadFromFile2D(filePath + diffuseTexturePath.C_Str(), true);
+      material->SetDiffuseTexture(diffuseTexture);
+    }
   }
-  
-  // Assimp for some reason loads normal maps as aiTextureType_HEIGHT - this is probably a bug.
-  aiString normalTexturePath;
-  aiMaterial->Get(AI_MATKEY_TEXTURE(aiTextureType_HEIGHT, 0), normalTexturePath);
-  if (normalTexturePath.length != 0)
+
+  if (aiMaterial->GetTextureCount(aiTextureType_NORMALS) > 0)
   {
-    auto normalTexture = TextureLoader::LoadFromFile2D(filePath + normalTexturePath.C_Str());
-    material->SetNormalTexture(normalTexture);
+    aiString normalTexturePath;
+    aiMaterial->GetTexture(aiTextureType_NORMALS, 0, &normalTexturePath);
+    if (normalTexturePath.length != 0)
+    {
+      auto normalTexture = TextureLoader::LoadFromFile2D(filePath + normalTexturePath.C_Str());
+      material->SetNormalTexture(normalTexture);
+    }
   }
-  
-  aiString specularTexturePath;
-  aiMaterial->Get(AI_MATKEY_TEXTURE(aiTextureType_SPECULAR, 0), specularTexturePath);
-  if (specularTexturePath.length != 0)
+
+  if (aiMaterial->GetTextureCount(aiTextureType_HEIGHT) > 0)
   {
-    auto specularTexture = TextureLoader::LoadFromFile2D(filePath + specularTexturePath.C_Str());
-    material->SetSpecularTexture(specularTexture);
+    aiString normalTexturePath;
+    aiMaterial->GetTexture(aiTextureType_HEIGHT, 0, &normalTexturePath);
+    if (normalTexturePath.length != 0)
+    {
+      auto normalTexture = TextureLoader::LoadFromFile2D(filePath + normalTexturePath.C_Str());
+      material->SetNormalTexture(normalTexture);
+    }
+  }
+
+  if (aiMaterial->GetTextureCount(aiTextureType_SPECULAR) > 0)
+  {
+    aiString specularTexturePath;
+    aiMaterial->GetTexture(aiTextureType_SPECULAR, 0, &specularTexturePath);
+    if (specularTexturePath.length != 0)
+    {
+      auto specularTexture = TextureLoader::LoadFromFile2D(filePath + specularTexturePath.C_Str());
+      material->SetSpecularTexture(specularTexture);
+    }
+  }
+
+  if (aiMaterial->GetTextureCount(aiTextureType_OPACITY) > 0)
+  {
+    aiString opacityTexturePath;
+    aiMaterial->GetTexture(aiTextureType_OPACITY, 0, &opacityTexturePath);
+    if (opacityTexturePath.length != 0)
+    {
+      auto opacityTexture = TextureLoader::LoadFromFile2D(filePath + opacityTexturePath.C_Str());
+      material->SetOpacityTexture(opacityTexture);
+    }
   }
 	return material;
 }

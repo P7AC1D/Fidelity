@@ -65,7 +65,7 @@ void Test3D::OnStart()
     light->SetColour(Colour(25, 25, 100));
     light->SetRadius(300.0f);
     light->GetTransform()
-      .SetPosition(Vector3(-150.0f, 100.0f, 100.0f));
+        .SetPosition(Vector3(-150.0f, 100.0f, 100.0f));
     _sceneGraph->AddChild(light);
   }
 

@@ -45,11 +45,13 @@ struct MaterialBufferData
 		int32 Diffuse = 0;
 		int32 Normal = 0;
 		int32 Specular = 0;
-		int32 Depth = 0;
+		int32 Opacity = 0;
 	} EnabledTextureMaps;
 	Colour Ambient = Colour::White;
 	Colour Diffuse = Colour::White;
 	Colour Specular = Colour::White;
+	float32 Exponent = 1.0f;
+	int32 GreyscaleSpecular = 1;
 };
 
 std::shared_ptr<RenderDevice> Renderer::_renderDevice;
@@ -142,19 +144,6 @@ void Renderer::DrawFrame()
 	StartFrame();
 
 	GBufferFillPass();
-
-	// auto shadowPassStart = std::chrono::high_resolution_clock::now();
-	// ShadowDepthPass();
-	// auto shadowPassEnd = std::chrono::high_resolution_clock::now();
-	// _renderTimings.Shadow = std::chrono::duration_cast<std::chrono::nanoseconds>(shadowPassEnd - shadowPassStart).count();
-
-	// GeometryPass();
-
-	// auto ssaoStart = std::chrono::high_resolution_clock::now();
-	// SsaoPass();
-	// SsaoBlurPass();
-	// auto ssaoEnd = std::chrono::high_resolution_clock::now();
-	// _renderTimings.Ssao = std::chrono::duration_cast<std::chrono::nanoseconds>(ssaoEnd - ssaoStart).count();
 
 	switch (_debugDisplayType)
 	{
@@ -312,17 +301,21 @@ void Renderer::InitGBufferPass()
 	shaderParams->AddParam(ShaderParam("DiffuseMap", ShaderParamType::Texture, 0));
 	shaderParams->AddParam(ShaderParam("NormalMap", ShaderParamType::Texture, 1));
 	shaderParams->AddParam(ShaderParam("SpecularMap", ShaderParamType::Texture, 2));
-	shaderParams->AddParam(ShaderParam("DepthMap", ShaderParamType::Texture, 3));
+	shaderParams->AddParam(ShaderParam("OpacityMap", ShaderParamType::Texture, 3));
 
 	RasterizerStateDesc rasterizerStateDesc;
 	rasterizerStateDesc.CullMode = CullMode::CounterClockwise;
+
+	BlendStateDesc blendStateDesc{};
+	blendStateDesc.RTBlendState[0].BlendEnabled = true;
+	blendStateDesc.RTBlendState[0].BlendAlpha = BlendDesc(BlendFactor::SrcAlpha, BlendFactor::InvSrcAlpha, BlendOperation::Add);
 
 	try
 	{
 		PipelineStateDesc pipelineDesc;
 		pipelineDesc.VS = _renderDevice->CreateShader(vsDesc);
 		pipelineDesc.PS = _renderDevice->CreateShader(psDesc);
-		pipelineDesc.BlendState = _renderDevice->CreateBlendState(BlendStateDesc());
+		pipelineDesc.BlendState = _renderDevice->CreateBlendState(blendStateDesc);
 		pipelineDesc.RasterizerState = _renderDevice->CreateRasterizerState(rasterizerStateDesc);
 		pipelineDesc.DepthStencilState = _renderDevice->CreateDepthStencilState(DepthStencilStateDesc());
 		pipelineDesc.VertexLayout = _renderDevice->CreateVertexLayout(vertexLayoutDesc);
@@ -356,7 +349,7 @@ void Renderer::InitGBufferPass()
 		colourTexDesc.Height = GetRenderHeight();
 		colourTexDesc.Usage = TextureUsage::RenderTarget;
 		colourTexDesc.Type = TextureType::Texture2D;
-		colourTexDesc.Format = TextureFormat::RGB16F;
+		colourTexDesc.Format = TextureFormat::RGBA8;
 
 		TextureDesc depthStencilDesc;
 		depthStencilDesc.Width = GetRenderWidth();
@@ -368,6 +361,7 @@ void Renderer::InitGBufferPass()
 		RenderTargetDesc rtDesc;
 		rtDesc.ColourTargets[0] = _renderDevice->CreateTexture(colourTexDesc);
 		rtDesc.ColourTargets[1] = _renderDevice->CreateTexture(colourTexDesc);
+		rtDesc.ColourTargets[2] = _renderDevice->CreateTexture(colourTexDesc);
 		rtDesc.DepthStencilTarget = _renderDevice->CreateTexture(depthStencilDesc);
 		rtDesc.Height = GetRenderHeight();
 		rtDesc.Width = GetRenderWidth();
@@ -406,7 +400,8 @@ void Renderer::InitPointLightPass()
 	shaderParams->AddParam(ShaderParam("PointLightPassConstants", ShaderParamType::ConstBuffer, 1));
 	shaderParams->AddParam(ShaderParam("PointLightBuffer", ShaderParamType::ConstBuffer, 2));
 	shaderParams->AddParam(ShaderParam("DepthMap", ShaderParamType::Texture, 0));
-	shaderParams->AddParam(ShaderParam("BumpMap", ShaderParamType::Texture, 1));
+	shaderParams->AddParam(ShaderParam("NormalMap", ShaderParamType::Texture, 1));
+	shaderParams->AddParam(ShaderParam("SpecularMap", ShaderParamType::Texture, 2));
 
 	RasterizerStateDesc rasterizerStateDesc{};
 	rasterizerStateDesc.CullMode = CullMode::Clockwise;
@@ -448,7 +443,7 @@ void Renderer::InitPointLightPass()
 		colourTexDesc.Height = GetRenderHeight();
 		colourTexDesc.Usage = TextureUsage::RenderTarget;
 		colourTexDesc.Type = TextureType::Texture2D;
-		colourTexDesc.Format = TextureFormat::RGB16F;
+		colourTexDesc.Format = TextureFormat::RGB8;
 
 		RenderTargetDesc rtDesc;
 		rtDesc.ColourTargets[0] = _renderDevice->CreateTexture(colourTexDesc);
@@ -930,6 +925,12 @@ void Renderer::StartFrame()
 	_renderCounts.TriangleCount = 0;
 
 	_activeMaterial = nullptr;
+
+	_renderTimings.Frame = 0;
+	_renderTimings.GBuffer = 0;
+	_renderTimings.Lighting = 0;
+	_renderTimings.Shadow = 0;
+	_renderTimings.Ssao = 0;
 }
 
 void Renderer::EndFrame()
@@ -985,6 +986,8 @@ void Renderer::ShadowDepthPass()
 
 void Renderer::SsaoPass()
 {
+	auto start = std::chrono::high_resolution_clock::now();
+
 	_renderDevice->SetPipelineState(_ssaoPassPso);
 	_renderDevice->SetRenderTarget(_ssaoRT);
 
@@ -1000,6 +1003,9 @@ void Renderer::SsaoPass()
 
 	_renderDevice->SetVertexBuffer(_fsQuadBuffer);
 	_renderDevice->Draw(6, 0);
+
+	auto end = std::chrono::high_resolution_clock::now();
+	_renderTimings.Ssao = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
 }
 
 void Renderer::GBufferFillPass()
@@ -1040,7 +1046,7 @@ void Renderer::GBufferFillPass()
 	}
 
 	auto end = std::chrono::high_resolution_clock::now();
-	//_renderTimings.GBuffer = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
+	_renderTimings.GBuffer = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
 }
 
 void Renderer::PointLightPass()
@@ -1051,8 +1057,10 @@ void Renderer::PointLightPass()
 	_renderDevice->ClearBuffers(RTT_Colour);
 	_renderDevice->SetTexture(0, _gBufferRto->GetDepthStencilTarget());
 	_renderDevice->SetTexture(1, _gBufferRto->GetColourTarget(1));
+	_renderDevice->SetTexture(2, _gBufferRto->GetColourTarget(2));
 	_renderDevice->SetSamplerState(0, _noMipSamplerState);
 	_renderDevice->SetSamplerState(1, _noMipSamplerState);
+	_renderDevice->SetSamplerState(2, _noMipSamplerState);
 	_renderDevice->SetConstantBuffer(1, _pointLightConstantsBuffer);
 	_renderDevice->SetConstantBuffer(2, _pointLightBuffer);
 
@@ -1094,13 +1102,11 @@ void Renderer::PointLightPass()
 	}
 
 	auto end = std::chrono::high_resolution_clock::now();
-	//_renderTimings.Lighting = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
+	_renderTimings.Lighting = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
 }
 
 void Renderer::MergePass()
 {
-	auto start = std::chrono::high_resolution_clock::now();
-
 	_renderDevice->SetRenderTarget(nullptr);
 	_renderDevice->SetPipelineState(_mergePso);
 	_renderDevice->SetTexture(0, _gBufferRto->GetColourTarget(0));
@@ -1113,7 +1119,6 @@ void Renderer::MergePass()
 	_renderDevice->Draw(6, 0);
 
 	auto end = std::chrono::high_resolution_clock::now();
-	//_renderTimings.Lighting = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
 }
 
 void Renderer::SsaoBlurPass()
@@ -1159,7 +1164,7 @@ void Renderer::SetMaterialData(const std::shared_ptr<Material> &material)
 			material->GetDiffuseTexture() == _activeMaterial->GetDiffuseTexture() &&
 			material->GetNormalTexture() == _activeMaterial->GetNormalTexture() &&
 			material->GetSpecularTexture() == _activeMaterial->GetSpecularTexture() &&
-			material->GetDepthTexture() == _activeMaterial->GetDepthTexture())
+			material->GetOpacityTexture() == _activeMaterial->GetOpacityTexture())
 	{
 		return;
 	}
@@ -1168,6 +1173,7 @@ void Renderer::SetMaterialData(const std::shared_ptr<Material> &material)
 	matData.Ambient = material->GetAmbientColour();
 	matData.Diffuse = material->GetDiffuseColour();
 	matData.Specular = material->GetSpecularColour();
+	matData.Exponent = material->GetSpecularExponent();
 
 	auto diffuseTexture = material->GetDiffuseTexture();
 	if (diffuseTexture)
@@ -1193,11 +1199,11 @@ void Renderer::SetMaterialData(const std::shared_ptr<Material> &material)
 		_renderDevice->SetSamplerState(2, _noMipSamplerState);
 	}
 
-	auto depthTexture = material->GetDepthTexture();
-	if (depthTexture)
+	auto opacityTexture = material->GetOpacityTexture();
+	if (opacityTexture)
 	{
-		matData.EnabledTextureMaps.Depth = 1;
-		_renderDevice->SetTexture(3, depthTexture);
+		matData.EnabledTextureMaps.Opacity = 1;
+		_renderDevice->SetTexture(3, opacityTexture);
 		_renderDevice->SetSamplerState(3, _noMipSamplerState);
 	}
 
