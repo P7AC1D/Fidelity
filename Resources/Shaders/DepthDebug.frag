@@ -62,7 +62,7 @@ float LinearizeDepth(in vec2 uv)
 {
     float zNear = Frame.nearClip;
     float zFar  = Frame.farClip;
-    float depth = texture2D(QuadTexture, uv).x;
+    float depth = texture(QuadTexture, uv).x;
     return (2.0 * zNear) / (zFar + zNear - depth * (zFar - zNear));
 }
 
