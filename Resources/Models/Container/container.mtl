@@ -11,5 +11,5 @@ Ni 1.000000
 d 1.000000
 illum 2
 map_Kd crate0_diffuse.png
-map_bump crate0_normal.png
-bump crate0_normal.png
+norm crate0_normal.png
+map_Ks crate0_bump.png

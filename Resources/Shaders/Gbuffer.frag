@@ -60,18 +60,9 @@ vec4 CalculateSpecular(vec4 specularSample, bool isSpecularEnabled)
 {
   if (isSpecularEnabled)
   {
-    return vec4(specularSample.r) * Material.SpecularColour;
+    return vec4(specularSample.r);
   }
-  return Material.SpecularColour;
-}
-
-float CalculateOpacity(float opacitySample, bool isOpacityMapEnabled)
-{
-  if (isOpacityMapEnabled)
-  {
-    return opacitySample;
-  }
-  return 1.0f;
+  return vec4(1.0f);
 }
 
 void main()
@@ -81,10 +72,9 @@ void main()
   vec4 opacitySample = texture(OpacityMap, fsIn.TexCoord);
   vec4 specularSample = texture(SpecularMap, fsIn.TexCoord);
 
-  float opacityFactor = CalculateOpacity(opacitySample.r, Material.Enabled.Opacity);
   Diffuse.rgb = Material.DiffuseColour.rgb * diffuseSample.rgb;
-  Diffuse.a = opacityFactor;
+  Diffuse.a = diffuseSample.a;
   Specular = CalculateSpecular(specularSample, Material.Enabled.Specular);
-  Specular.a = Material.SpecularExponent / 250.0f;
+  Specular.a = Material.SpecularExponent / 255.0f;
   Normal = vec4(CalculateNormal(normalSample, vec4(fsIn.Normal, 0.0f), Material.Enabled.Normal).xyz * 0.5f + 0.5f, 1.0f);
 }

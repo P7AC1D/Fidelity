@@ -27,6 +27,7 @@ void main()
   // Rebuild world position of fragment from frag-coord and depth texture
   vec3 position = vec3((gl_FragCoord.x * Constants.PixelSize.x), (gl_FragCoord.y * Constants.PixelSize.y), 0.0f);
   position.z = texture(DepthMap, position.xy).r;
+  vec4 specularSampler = texture(SpecularMap, position.xy);
 
   vec3 normal = normalize(texture(NormalMap, position.xy).xyz * 2.0f - 1.0f);
 
@@ -42,16 +43,14 @@ void main()
     discard;
   }
 
-  vec3 incident = normalize(PointLight.Position - position);
+  vec3 lightDir = normalize(PointLight.Position - position);
   vec3 viewDir = normalize(Constants.CameraPosition - position);
-  vec3 halfDir = normalize(incident + viewDir);
-  
-  vec4 specularSampler = texture(SpecularMap, position.xy);
+  vec3 halfDir = normalize(lightDir + viewDir);
 
-  float lambert = clamp(dot(incident, normal), 0.0f, 1.0f);
-  float rFactor = clamp(dot(halfDir, normal), 0.0f, 1.0f);
-  float sFactor = pow(rFactor, specularSampler.a * 250.0f);
+  float lambert = clamp(dot(lightDir, normal), 0.0f, 1.0f);
+
+  float specularFactor = pow(max(dot(normal, halfDir), 0.0), specularSampler.a * 255.0f);
 
   Emissive = vec4(PointLight.Colour.xyz * lambert * attenuation, 1.0f);
-  Specular = vec4(PointLight.Colour.xyz * sFactor * attenuation * specularSampler.rgb, 1.0f);
+  Specular = vec4(PointLight.Colour.xyz * specularFactor * attenuation * specularSampler.rgb, 1.0f);
 }

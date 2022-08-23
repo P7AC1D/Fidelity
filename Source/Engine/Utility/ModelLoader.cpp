@@ -126,17 +126,6 @@ std::shared_ptr<Material> BuildMaterial(const std::string& filePath, const aiMat
     }
   }
 
-  if (aiMaterial->GetTextureCount(aiTextureType_HEIGHT) > 0)
-  {
-    aiString normalTexturePath;
-    aiMaterial->GetTexture(aiTextureType_HEIGHT, 0, &normalTexturePath);
-    if (normalTexturePath.length != 0)
-    {
-      auto normalTexture = TextureLoader::LoadFromFile2D(filePath + normalTexturePath.C_Str());
-      material->SetNormalTexture(normalTexture);
-    }
-  }
-
   if (aiMaterial->GetTextureCount(aiTextureType_SPECULAR) > 0)
   {
     aiString specularTexturePath;
@@ -145,17 +134,6 @@ std::shared_ptr<Material> BuildMaterial(const std::string& filePath, const aiMat
     {
       auto specularTexture = TextureLoader::LoadFromFile2D(filePath + specularTexturePath.C_Str());
       material->SetSpecularTexture(specularTexture);
-    }
-  }
-
-  if (aiMaterial->GetTextureCount(aiTextureType_OPACITY) > 0)
-  {
-    aiString opacityTexturePath;
-    aiMaterial->GetTexture(aiTextureType_OPACITY, 0, &opacityTexturePath);
-    if (opacityTexturePath.length != 0)
-    {
-      auto opacityTexture = TextureLoader::LoadFromFile2D(filePath + opacityTexturePath.C_Str());
-      material->SetOpacityTexture(opacityTexture);
     }
   }
 	return material;
