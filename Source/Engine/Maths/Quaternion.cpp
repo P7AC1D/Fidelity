@@ -106,6 +106,11 @@ Quaternion Quaternion::operator*(float32 rhs) const
   return Quaternion(W * rhs, X * rhs, Y * rhs, Z * rhs);
 }
 
+Quaternion Quaternion::operator/(float32 rhs) const
+{
+  return Quaternion(W / rhs, X / rhs, Y / rhs, Z / rhs);
+}
+
 Quaternion Quaternion::operator+(const Quaternion &rhs) const
 {
   return Quaternion(W + rhs.W, X + rhs.X, Y + rhs.Y, Z + rhs.Z);
@@ -199,6 +204,16 @@ void Quaternion::Normalize()
   Y *= normInv;
   Z *= normInv;
   W *= normInv;
+}
+
+Quaternion Quaternion::Conjugate() const
+{
+  return Quaternion(W, -X, -Y, -Z);
+}
+
+Quaternion Quaternion::Inverse() const
+{
+  return Conjugate() / Dot(Quaternion(*this), Quaternion(*this));
 }
 
 Vector3 Quaternion::Rotate(const Vector3& vec) const

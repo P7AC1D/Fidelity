@@ -92,6 +92,11 @@ Matrix4 Matrix4::Orthographic(float32 left, float32 right, float32 bottom, float
   return result;
 }
 
+Matrix3 Matrix4::ToMatrix3(const Matrix4& mat)
+{
+  return Matrix3(mat);
+}
+
 Matrix4::Matrix4()
 {
 }

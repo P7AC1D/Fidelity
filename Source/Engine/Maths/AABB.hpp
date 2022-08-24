@@ -11,6 +11,8 @@ public:
 	Vector3 GetCenter() const;
 	Vector3 GetSize() const;
 	Vector3 GetHalfSize() const;
+	Vector3 GetPosBounds() const { return _posBounds; }
+	Vector3 GetNegBounds() const { return _negBounds; }
 
 	float32 GetRadius() const;
 

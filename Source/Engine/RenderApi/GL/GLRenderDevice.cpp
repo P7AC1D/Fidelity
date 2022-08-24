@@ -32,7 +32,7 @@ GLenum GetPrimitiveTopology(PrimitiveTopology topology)
   switch (topology)
   {
     case PrimitiveTopology::PointList: return GL_POINTS;
-    case PrimitiveTopology::LineList: return GL_LINE;
+    case PrimitiveTopology::LineList: return GL_LINES;
     case PrimitiveTopology::TriangleList: return GL_TRIANGLES;
     case PrimitiveTopology::TriangleStrip: return GL_TRIANGLE_STRIP;
     case PrimitiveTopology::PatchList: return GL_PATCHES;
@@ -172,6 +172,7 @@ void GLRenderDevice::SetViewport(const ViewportDesc& viewport)
 
 void GLRenderDevice::SetPipelineState(const std::shared_ptr<PipelineState>& pipelineState)
 {
+  SetPrimitiveTopology(pipelineState->GetPrimitiveTopology());
   SetRasterizerState(pipelineState->GetRasterizerState());
   SetDepthStencilState(pipelineState->GetDepthStencilState());
 	SetBlendState(pipelineState->GetBlendState());

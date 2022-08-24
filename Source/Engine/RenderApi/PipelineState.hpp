@@ -20,15 +20,6 @@ enum class PrimitiveTopology
   PatchList
 };
 
-enum class PrimitiveTopologyType
-{
-  Undefined,
-  Point,
-  Line,
-  Triangle,
-  Patch
-};
-
 struct PipelineStateDesc
 {
   std::shared_ptr<Shader> VS;
@@ -41,7 +32,7 @@ struct PipelineStateDesc
   std::shared_ptr<DepthStencilState> DepthStencilState;
   std::shared_ptr<VertexLayout> VertexLayout;
   std::shared_ptr<ShaderParams> ShaderParams;
-  PrimitiveTopologyType Topology = PrimitiveTopologyType::Triangle;
+  PrimitiveTopology Topology = PrimitiveTopology::TriangleList;
 };
 
 class PipelineState
@@ -59,7 +50,7 @@ public:
   const std::shared_ptr<DepthStencilState>& GetDepthStencilState() const { return _desc.DepthStencilState; }
   const std::shared_ptr<VertexLayout>& GetVertexLayout() const { return _desc.VertexLayout; }
   const std::shared_ptr<ShaderParams> GetShaderParams() const { return _desc.ShaderParams; }
-  PrimitiveTopologyType GetPrimitiveTopology() const { return _desc.Topology; }
+  PrimitiveTopology GetPrimitiveTopology() const { return _desc.Topology; }
 
 protected:
   PipelineState(const PipelineStateDesc& desc): _desc(desc) {}

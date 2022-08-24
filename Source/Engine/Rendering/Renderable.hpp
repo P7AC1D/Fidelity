@@ -32,9 +32,16 @@ public:
 	void DrawBoundingBox(bool draw) { _drawBoundingBox = draw; }
 	bool ShouldDrawBoundingBox() const { return _drawBoundingBox; }
 
+	Aabb GetAabb() const { return _currAabb; }
+
 private:
-	Aabb _boundingBox;
+	void UpdateAabb(Vector3 scalingDelta, Quaternion rotationDelta);
+
+	Aabb _initAabb, _currAabb;
 	bool _drawBoundingBox;
+
+	Vector3 _currentRotationEuler;
+	Vector3 _currentScale;
 	
   std::shared_ptr<StaticMesh> _mesh;
 	std::shared_ptr<GpuBuffer> _perObjectBuffer;

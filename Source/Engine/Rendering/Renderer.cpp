@@ -52,7 +52,7 @@ std::vector<Vector3> AabbCoords =
 				Vector3(1.0, 1.0, -1.0), Vector3(1.0, -1.0, -1.0),
 				Vector3(1.0, -1.0, -1.0), Vector3(1.0, -1.0, 1.0),
 
-				Vector3(-1.0, -1.0, -1.0), Vector3(-1.0, -1.0, -1.0),
+				Vector3(-1.0, 1.0, -1.0), Vector3(-1.0, -1.0, -1.0),
 				Vector3(-1.0, -1.0, -1.0), Vector3(-1.0, -1.0, 1.0),
 
 				Vector3(-1.0, -1.0, -1.0), Vector3(1.0, -1.0, -1.0)};
@@ -110,6 +110,7 @@ Renderer::Renderer(const RendererDesc &desc) : _desc(desc),
 		InitGBufferDebugPass();
 		InitSsaoPass();
 		InitSsaoBlurPass();
+		InitAabbPass();
 
 		InitPointLightBuffer();
 		InitPointLightConstantsBuffer();
@@ -189,6 +190,8 @@ void Renderer::DrawFrame()
 		RTOTextureDebugPass(_pointLightRto->GetColourTarget(1));
 		break;
 	}
+
+	DrawAabbPass();
 	EndFrame();
 
 	_renderables.clear();
@@ -920,7 +923,7 @@ void Renderer::InitAabbPass()
 		pipelineDesc.DepthStencilState = _renderDevice->CreateDepthStencilState(depthStencilStateDesc);
 		pipelineDesc.VertexLayout = _renderDevice->CreateVertexLayout(vertexLayoutDesc);
 		pipelineDesc.ShaderParams = shaderParams;
-		pipelineDesc.Topology = PrimitiveTopologyType::Line;
+		pipelineDesc.Topology = PrimitiveTopology::LineList;
 
 		_drawAabbPso = _renderDevice->CreatePipelineState(pipelineDesc);
 	}
@@ -1214,15 +1217,24 @@ void Renderer::DrawAabbPass()
 	_renderDevice->SetRenderTarget(nullptr);
 	_renderDevice->SetPipelineState(_drawAabbPso);
 
-	PerObjectBufferData perObjectBufferData;
-	perObjectBufferData.Model = Matrix4::Identity;
-	perObjectBufferData.ModelView = GetBoundCamera()->GetView() * perObjectBufferData.Model;
-	perObjectBufferData.ModelViewProjection = GetBoundCamera()->GetProj() * perObjectBufferData.ModelView;
-	_aabbBuffer->WriteData(0, sizeof(PerObjectBufferData), &perObjectBufferData, AccessType::WriteOnlyDiscard);
-
 	for (auto renderable : _renderables)
 	{
-		_renderDevice->SetConstantBuffer(0, renderable->GetPerObjectBuffer());
+		if (!renderable->GetParent()->IsSelected())
+		{
+			continue;
+		}
+
+		auto transform = renderable->GetParent()->GetTransform();
+		auto translation = Matrix4::Translation(transform.GetPosition());
+		Aabb aabb = renderable->GetAabb();
+
+		PerObjectBufferData perObjectBufferData;
+		perObjectBufferData.Model = translation * Matrix4::Scaling(aabb.GetHalfSize());
+		perObjectBufferData.ModelView = GetBoundCamera()->GetView() * perObjectBufferData.Model;
+		perObjectBufferData.ModelViewProjection = GetBoundCamera()->GetProj() * perObjectBufferData.ModelView;
+		_aabbBuffer->WriteData(0, sizeof(PerObjectBufferData), &perObjectBufferData, AccessType::WriteOnlyDiscard);
+
+		_renderDevice->SetConstantBuffer(0, _aabbBuffer);
 		_renderDevice->SetVertexBuffer(_aabbVertexBuffer);
 		_renderDevice->Draw(AabbCoords.size(), 0);
 	}

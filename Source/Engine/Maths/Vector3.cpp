@@ -146,6 +146,14 @@ Vector3 Vector3::operator*(const Vector3& rhs) const
   return Vector3(x, y, z);
 }
 
+Vector3 Vector3::operator/(const Vector3& rhs) const
+{
+  float32 x = X / rhs[0];
+  float32 y = Y / rhs[0];
+  float32 z = Z / rhs[0];
+  return Vector3(x, y, z);
+}
+
 Vector3& Vector3::operator+=(const Vector3& rhs)
 {
   X += rhs.X;

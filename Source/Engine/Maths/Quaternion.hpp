@@ -32,6 +32,7 @@ public:
   Quaternion operator+(float32 rhs) const;
   Quaternion operator-(float32 rhs) const;
   Quaternion operator*(float32 rhs) const;
+  Quaternion operator/(float32 rhs) const;
   Quaternion operator+(const Quaternion& rhs) const;
   Quaternion operator-(const Quaternion& rhs) const;
   Quaternion operator*(const Quaternion& rhs) const;
@@ -48,6 +49,8 @@ public:
   
   float32 Norm() const;
   void Normalize();
+  Quaternion Conjugate() const;
+  Quaternion Inverse() const;
 
   Vector3 Rotate(const Vector3& vec) const;
   

@@ -33,7 +33,7 @@ public:
 	template <typename T>
 	static std::shared_ptr<T> Create(const std::string& name = "");
 	
-	SceneNode() = default;
+	SceneNode() : _selectedInEditor(false) {}
 	SceneNode(const SceneNode& other) = default;
 	SceneNode(SceneNode&& other) noexcept = default;
 	SceneNode& operator=(const SceneNode& other) = default;
@@ -65,12 +65,16 @@ public:
 	void SetTransform(const Transform& transform);
 
 	const Transform& GetWorldTransform() const { return _worldTransform; }
+
+	bool IsSelected() const { return _selectedInEditor; }
+	void SetSelected(bool selected) { _selectedInEditor = selected; }
 	
 private:
 	void UpdateTransform();
 	
 	static uint64 _id;
 	
+	bool _selectedInEditor;
 	std::string _name;
 	std::vector<sptr<SceneNode>> _childNodes;
 	sptr<SceneNode> _parentNode;

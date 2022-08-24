@@ -411,7 +411,12 @@ void UiManager::DrawSceneNode(const sptr<SceneNode> &parentNode)
 		ImGui::TreeNodeEx(parentNode->GetName().c_str(), flags);
 		if (ImGui::IsItemClicked())
 		{
+			if (selectedActor != nullptr)
+			{
+				selectedActor->SetSelected(false);
+			}
 			selectedActor = parentNode;
+			selectedActor->SetSelected(true);
 		}
 	}
 	else
@@ -419,7 +424,12 @@ void UiManager::DrawSceneNode(const sptr<SceneNode> &parentNode)
 		bool open = ImGui::TreeNodeEx(parentNode->GetName().c_str(), flags);
 		if (ImGui::IsItemClicked())
 		{
+			if (selectedActor != nullptr)
+			{
+				selectedActor->SetSelected(false);
+			}
 			selectedActor = parentNode;
+			selectedActor->SetSelected(true);
 		}
 		if (open)
 		{

@@ -18,6 +18,7 @@ public:
   static Matrix4 LookAt(const Vector3& eye, const Vector3& center, const Vector3& up);
   static Matrix4 Perspective(const Radian& yFov, float32 aspect, float32 zNear, float32 zFar);
   static Matrix4 Orthographic(float32 left, float32 right, float32 bottom, float32 top, float32 zNear, float32 zFar);
+  static Matrix3 ToMatrix3(const Matrix4& mat);
   
   Matrix4();
   Matrix4(const Matrix4& mat);

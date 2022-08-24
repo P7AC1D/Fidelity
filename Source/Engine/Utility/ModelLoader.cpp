@@ -18,6 +18,11 @@
 #include "TextureLoader.hpp"
 #include "../SceneManagement/GenericNode.hpp"
 
+Vector3 toVector3(aiVector3D input)
+{
+  return Vector3(input.x, input.y, input.z);
+}
+
 void OffsetVertices(std::vector<Vector3>& vertices, const Vector3& midPoint)
 {
 	for (uint32 i = 0; i < vertices.size(); i++)
@@ -53,25 +58,21 @@ void BuildTexCoordData(const aiVector3D* texCoords, uint32 texCoordCount, std::v
 
 Vector3 BuildVertexData(const aiVector3D* vertices, uint32 verexCount, std::vector<Vector3>& verticesOut)
 {
-	Vector3 min(std::numeric_limits<float32>::max());
-	Vector3 max(std::numeric_limits<float32>::min());
+	Vector3 avg(0);
 
   verticesOut.reserve(verexCount);
   for (uint32 i = 0; i < verexCount; i++)
   {
 		Vector3 vertex(vertices[i].x, vertices[i].y, vertices[i].z);
 
-		min = Math::Min(min, vertex);
-		max = Math::Max(max, vertex);
+    avg.X = (avg.X + vertices[i].x) / 2.0f;
+    avg.Y = (avg.Y + vertices[i].y) / 2.0f;
+    avg.Z = (avg.Z + vertices[i].z) / 2.0f;
 
     verticesOut.push_back(vertex);
   }
 
-	Vector3 midPoint;
-	midPoint.X = (max.X + min.X) / 2.0f;
-	midPoint.Y = (max.Y + min.Y) / 2.0f;
-	midPoint.Z = (max.Z + min.Z) / 2.0f;
-	return midPoint;
+	return avg;
 }
 
 void BuildNormalData(const aiVector3D* normals, uint32 normalCount, std::vector<Vector3>& normalsOut)
@@ -139,22 +140,43 @@ std::shared_ptr<Material> BuildMaterial(const std::string& filePath, const aiMat
 	return material;
 }
 
+Vector3 CalculateCentroid(const aiMesh* mesh)
+{
+  float32 areaSum = 0.0f;
+  Vector3 centroid = Vector3::Zero;
+  for (int i = 0; i < mesh->mNumFaces; i++)
+  {
+    auto face = mesh->mFaces[i];
+    auto p0 = toVector3(mesh->mVertices[face.mIndices[0]]);
+    auto p1 = toVector3(mesh->mVertices[face.mIndices[1]]);
+    auto p2 = toVector3(mesh->mVertices[face.mIndices[2]]);
+
+    Vector3 center = (p0 + p1 + p2) / 3.0f;
+    float32 area = 0.5f * Vector3::Cross(p1 - p0, p2 - p0).Length();
+    centroid += area * center;
+    areaSum += area;
+  }
+  return centroid / areaSum;
+}
+
 std::shared_ptr<StaticMesh> BuildMesh(const std::string& filePath, const aiMesh* aiMesh, bool reconstructWorldTransforms, Vector3& offset)
 {
   if (!aiMesh->HasPositions() || !aiMesh->HasNormals())
   {
     return nullptr;
   }
+
+  Vector3 centroid = CalculateCentroid(aiMesh);
   
   std::shared_ptr<StaticMesh> mesh(new StaticMesh());
   auto material = mesh->GetMaterial();
   
   std::vector<Vector3> vertices;
-  Vector3 midPoint = BuildVertexData(aiMesh->mVertices, aiMesh->mNumVertices, vertices);
+  BuildVertexData(aiMesh->mVertices, aiMesh->mNumVertices, vertices);
 	if (reconstructWorldTransforms)
 	{
-		offset = midPoint;
-		OffsetVertices(vertices, midPoint);
+		offset = centroid;
+		OffsetVertices(vertices, centroid);
 	}
   mesh->SetPositionVertexData(vertices);
   
@@ -216,6 +238,7 @@ std::shared_ptr<SceneNode> BuildModel(const std::string& fileFolder, const aiSce
 		mesh->SetMaterial(materials[aiMesh->mMaterialIndex]);
     
     std::shared_ptr<ActorNode> childNode(SceneNode::Create<ActorNode>(aiMesh->mName.C_Str()));
+    childNode->GetTransform().SetPosition(offset);
   	
     parentNode->AddChild(childNode);
   	   

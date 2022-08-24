@@ -28,6 +28,7 @@ public:
   Vector3 operator+(const Vector3& rhs) const;
   Vector3 operator-(const Vector3& rhs) const;
   Vector3 operator*(const Vector3& rhs) const;
+  Vector3 operator/(const Vector3& rhs) const;
   
   Vector3 operator+(float32 rhs) const;
   Vector3 operator-(float32 rhs) const;
