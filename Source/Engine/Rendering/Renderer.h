@@ -144,6 +144,7 @@ private:
 	void InitPointLightMesh();
 	void InitDepthDebugPass();
 	void InitGBufferDebugPass();
+	void InitAabbPass();
 
 	void InitGBufferPass();
 	void InitPointLightPass();
@@ -164,6 +165,8 @@ private:
 	void GBufferFillPass();
 	void PointLightPass();
 	void MergePass();
+
+	void DrawAabbPass();
 
 	void DepthDebugPass(const std::shared_ptr<Texture> &depthTexture);
 	void RTOTextureDebugPass(const std::shared_ptr<Texture> &texture);
@@ -253,6 +256,9 @@ private:
 
 	std::shared_ptr<GpuBuffer> _pointLightConstantsBuffer;
 	std::shared_ptr<GpuBuffer> _pointLightBuffer;
+	std::shared_ptr<GpuBuffer> _aabbBuffer;
+
+	std::shared_ptr<PipelineState> _drawAabbPso;
 
 	std::shared_ptr<PipelineState> _shadowDepthPso;
 	std::shared_ptr<PipelineState> _geomPassPso;
@@ -280,6 +286,7 @@ private:
 	std::shared_ptr<RenderTarget> _pointLightRto;
 
 	std::shared_ptr<VertexBuffer> _fsQuadBuffer;
+	std::shared_ptr<VertexBuffer> _aabbVertexBuffer;
 	std::shared_ptr<Material> _activeMaterial;
 	std::shared_ptr<RenderQueue> _opaqueQueue;
 	std::shared_ptr<Texture> _ssaoNoiseTexture;

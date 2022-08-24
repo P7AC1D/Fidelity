@@ -80,12 +80,12 @@ void Renderable::DrawInspector()
 
 				UiManager::AddTexture(reinterpret_cast<uint64>(&opacityTexture), opacityTexture);
 				ImGui::Image(
-					&opacityTexture,
-					ImVec2(200, 200),
-					ImVec2(0.0f, 0.0f),
-					ImVec2(1.0f, 1.0f),
-					ImVec4(1.0f, 1.0f, 1.0f, 1.0f),
-					ImVec4(1.0f, 1.0f, 1.0f, 0.5f));
+						&opacityTexture,
+						ImVec2(200, 200),
+						ImVec2(0.0f, 0.0f),
+						ImVec2(1.0f, 1.0f),
+						ImVec4(1.0f, 1.0f, 1.0f, 1.0f),
+						ImVec4(1.0f, 1.0f, 1.0f, 0.5f));
 			}
 			else if (debugRenderingCurrentItem == 2)
 			{
@@ -143,6 +143,21 @@ void Renderable::Update()
 void Renderable::SetMesh(const std::shared_ptr<StaticMesh> &mesh)
 {
 	_mesh = mesh;
+
+	Vector3 max, min;
+	auto positionData = mesh->GetPositionVertexData();
+	for (auto position : positionData)
+	{
+		max.X = std::fmaxf(max.X, position.X);
+		max.Y = std::fmaxf(max.Y, position.Y);
+		max.Z = std::fmaxf(max.Z, position.Z);
+
+		min.X = std::fminf(min.X, position.X);
+		min.Y = std::fminf(min.Y, position.Y);
+		min.Z = std::fminf(min.Z, position.Z);
+	}
+
+	_boundingBox = Aabb(max, min);
 }
 
 std::shared_ptr<StaticMesh> Renderable::GetMesh() const

@@ -38,6 +38,25 @@ std::vector<FullscreenQuadVertex> FullscreenQuadVertices{
 		FullscreenQuadVertex(Vector2(1.0f, 1.0f), Vector2(1.0f, 1.0f)),
 		FullscreenQuadVertex(Vector2(-1.0f, 1.0f), Vector2(0.0f, 1.0f))};
 
+std::vector<Vector3> AabbCoords =
+		{
+				Vector3(-1.0, 1.0, 1.0), Vector3(1.0, 1.0, 1.0),
+				Vector3(1.0, 1.0, 1.0), Vector3(1.0, -1.0, 1.0),
+				Vector3(1.0, -1.0, 1.0), Vector3(-1.0, -1.0, 1.0),
+				Vector3(-1.0, -1.0, 1.0), Vector3(-1.0, 1.0, 1.0),
+
+				Vector3(-1.0, 1.0, 1.0), Vector3(-1.0, 1.0, -1.0),
+				Vector3(-1.0, 1.0, -1.0), Vector3(1.0, 1.0, -1.0),
+				Vector3(1.0, 1.0, -1.0), Vector3(1.0, 1.0, 1.0),
+
+				Vector3(1.0, 1.0, -1.0), Vector3(1.0, -1.0, -1.0),
+				Vector3(1.0, -1.0, -1.0), Vector3(1.0, -1.0, 1.0),
+
+				Vector3(-1.0, -1.0, -1.0), Vector3(-1.0, -1.0, -1.0),
+				Vector3(-1.0, -1.0, -1.0), Vector3(-1.0, -1.0, 1.0),
+
+				Vector3(-1.0, -1.0, -1.0), Vector3(1.0, -1.0, -1.0)};
+
 struct MaterialBufferData
 {
 	struct TextureMapFlagData
@@ -862,6 +881,75 @@ void Renderer::InitGBufferDebugPass()
 	}
 }
 
+void Renderer::InitAabbPass()
+{
+	ShaderDesc vsDesc;
+	vsDesc.EntryPoint = "main";
+	vsDesc.ShaderLang = ShaderLang::Glsl;
+	vsDesc.ShaderType = ShaderType::Vertex;
+	vsDesc.Source = String::LoadFromFile("./Shaders/PointLights.vert");
+
+	ShaderDesc psDesc;
+	psDesc.EntryPoint = "main";
+	psDesc.ShaderLang = ShaderLang::Glsl;
+	psDesc.ShaderType = ShaderType::Pixel;
+	psDesc.Source = String::LoadFromFile("./Shaders/Empty.frag");
+
+	std::vector<VertexLayoutDesc> vertexLayoutDesc{
+			VertexLayoutDesc(SemanticType::Position, SemanticFormat::Float3)};
+
+	std::shared_ptr<ShaderParams> shaderParams(new ShaderParams());
+	shaderParams->AddParam(ShaderParam("ObjectBuffer", ShaderParamType::ConstBuffer, 0));
+
+	RasterizerStateDesc rasterizerStateDesc{};
+	rasterizerStateDesc.FillMode = FillMode::WireFrame;
+	rasterizerStateDesc.CullMode = CullMode::None;
+
+	DepthStencilStateDesc depthStencilStateDesc{};
+	depthStencilStateDesc.DepthReadEnabled = false;
+	depthStencilStateDesc.DepthWriteEnabled = false;
+
+	BlendStateDesc blendStateDesc{};
+	try
+	{
+		PipelineStateDesc pipelineDesc;
+		pipelineDesc.VS = _renderDevice->CreateShader(vsDesc);
+		pipelineDesc.PS = _renderDevice->CreateShader(psDesc);
+		pipelineDesc.BlendState = _renderDevice->CreateBlendState(blendStateDesc);
+		pipelineDesc.RasterizerState = _renderDevice->CreateRasterizerState(rasterizerStateDesc);
+		pipelineDesc.DepthStencilState = _renderDevice->CreateDepthStencilState(depthStencilStateDesc);
+		pipelineDesc.VertexLayout = _renderDevice->CreateVertexLayout(vertexLayoutDesc);
+		pipelineDesc.ShaderParams = shaderParams;
+		pipelineDesc.Topology = PrimitiveTopologyType::Line;
+
+		_drawAabbPso = _renderDevice->CreatePipelineState(pipelineDesc);
+	}
+	catch (const std::exception &exception)
+	{
+		throw std::runtime_error("Unable to initialize pipeline states. " + std::string(exception.what()));
+	}
+
+	GpuBufferDesc desc;
+	desc.BufferType = BufferType::Constant;
+	desc.BufferUsage = BufferUsage::Stream;
+	desc.ByteCount = sizeof(PerObjectBufferData);
+	_aabbBuffer = Renderer::GetRenderDevice()->CreateGpuBuffer(desc);
+
+	VertexBufferDesc vtxBuffDesc;
+	vtxBuffDesc.BufferUsage = BufferUsage::Default;
+	vtxBuffDesc.VertexCount = AabbCoords.size();
+	vtxBuffDesc.VertexSizeBytes = sizeof(Vector3) * AabbCoords.size();
+	try
+	{
+		_aabbVertexBuffer = _renderDevice->CreateVertexBuffer(vtxBuffDesc);
+		_aabbVertexBuffer->WriteData(0, sizeof(Vector3) * AabbCoords.size(), AabbCoords.data(), AccessType::WriteOnlyDiscardRange);
+	}
+	catch (const std::exception &exception)
+	{
+		throw std::runtime_error("Unable to initialize fullscreen AABB vertex buffer. " + std::string(exception.what()));
+	}
+}
+
 void Renderer::GenerateSsaoKernel()
 {
 	auto lerp = [](float32 a, float32 b, float32 f)
@@ -1119,6 +1207,25 @@ void Renderer::MergePass()
 	_renderDevice->Draw(6, 0);
 
 	auto end = std::chrono::high_resolution_clock::now();
+}
+
+void Renderer::DrawAabbPass()
+{
+	_renderDevice->SetRenderTarget(nullptr);
+	_renderDevice->SetPipelineState(_drawAabbPso);
+
+	PerObjectBufferData perObjectBufferData;
+	perObjectBufferData.Model = Matrix4::Identity;
+	perObjectBufferData.ModelView = GetBoundCamera()->GetView() * perObjectBufferData.Model;
+	perObjectBufferData.ModelViewProjection = GetBoundCamera()->GetProj() * perObjectBufferData.ModelView;
+	_aabbBuffer->WriteData(0, sizeof(PerObjectBufferData), &perObjectBufferData, AccessType::WriteOnlyDiscard);
+
+	for (auto renderable : _renderables)
+	{
+		_renderDevice->SetConstantBuffer(0, renderable->GetPerObjectBuffer());
+		_renderDevice->SetVertexBuffer(_aabbVertexBuffer);
+		_renderDevice->Draw(AabbCoords.size(), 0);
+	}
 }
 
 void Renderer::SsaoBlurPass()
