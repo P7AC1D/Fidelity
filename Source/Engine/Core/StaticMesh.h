@@ -1,0 +1,71 @@
+#pragma once
+#include <memory>
+#include <vector>
+
+#include "../Maths/Vector2.hpp"
+#include "../Maths/Vector3.hpp"
+#include "Types.hpp"
+
+class IndexBuffer;
+class Material;
+class VertexBuffer;
+
+class StaticMesh
+{
+public:
+  StaticMesh();
+
+  void SetPositionVertexData(const std::vector<Vector3> &positionData);
+  void SetNormalVertexData(const std::vector<Vector3> &normalData);
+  void SetTextureVertexData(const std::vector<Vector2> &textureData);
+  void SetTangentVertexData(const std::vector<Vector3> &tangentData);
+  void SetBitangentVertexData(const std::vector<Vector3> &bitangentData);
+  void SetIndexData(const std::vector<uint32> &indexData);
+
+  uint32 GetVertexCount() const { return _vertexCount; }
+  uint32 GetIndexCount() const { return _indexCount; }
+
+  void CalculateTangents(const std::vector<Vector3> &positionData, const std::vector<Vector2> &textureData);
+  void GenerateTangents();
+  void GenerateNormals();
+
+  std::shared_ptr<VertexBuffer> GetVertexData();
+  std::shared_ptr<IndexBuffer> GetIndexData();
+
+  bool IsInitialized() const { return _verticesNeedUpdate && _indicesNeedUpdate; }
+  bool IsIndexed() const { return _indexed; }
+
+private:
+  std::vector<float32> CreateRestructuredVertexDataArray(int32 &stride) const;
+  std::vector<float32> CreateVertexDataArray() const;
+  void UploadVertexData();
+  void UploadIndexData();
+
+private:
+  enum VertexDataFormat : int32
+  {
+    Position = 1 << 0,
+    Normal = 1 << 1,
+    Uv = 1 << 2,
+    Tangent = 1 << 3,
+    Bitanget = 1 << 4
+  };
+
+  std::shared_ptr<IndexBuffer> _indexBuffer;
+  std::shared_ptr<VertexBuffer> _vertexBuffer;
+
+  std::vector<Vector3> _positionData;
+  std::vector<Vector3> _normalData;
+  std::vector<Vector3> _tangentData;
+  std::vector<Vector3> _bitangentData;
+  std::vector<Vector2> _textureData;
+  std::vector<uint32> _indexData;
+
+  int32 _vertexDataFormat;
+  int32 _vertexCount;
+  int32 _indexCount;
+
+  bool _verticesNeedUpdate;
+  bool _indicesNeedUpdate;
+  bool _indexed;
+};
