@@ -7,17 +7,12 @@
 
 #include "UiInspector.hpp"
 #include "../Core/Types.hpp"
+#include "../Core/Scene.h"
 #include "../Image/ImageData.hpp"
 #include "../Maths/Matrix4.hpp"
 #include "../Maths/Radian.hpp"
 #include "../RenderApi/GL/GLTexture.hpp"
 #include "../RenderApi/RenderDevice.hpp"
-#include "../Rendering/Material.hpp"
-#include "../Rendering/Renderer.h"
-#include "../Rendering/Renderable.hpp"
-#include "../Rendering/StaticMesh.h"
-#include "../SceneManagement/SceneNode.hpp"
-#include "../SceneManagement/Transform.h"
 #include "../Utility/String.hpp"
 #include "ImGui/imgui.h"
 #include "ImGui/imgui_impl_glfw.h"
@@ -25,8 +20,8 @@
 
 bool show_demo_window = false;
 bool lockCameraToLight = false;
-uint32 selectedActorIndex = -1;
-std::shared_ptr<SceneNode> selectedActor = nullptr;
+uint32 electedDrawableIndex = -1;
+Drawable &selectedDrawable;
 
 std::unordered_map<uint64, std::shared_ptr<Texture>> UiManager::TEXTURE_MAP;
 
@@ -57,35 +52,17 @@ UiManager::~UiManager()
 	ImGui::DestroyContext();
 }
 
-void UiManager::SetRenderer(const std::shared_ptr<Renderer> &renderer)
-{
-	_renderer = renderer;
-}
-
-void UiManager::SetSceneGraph(const std::shared_ptr<SceneNode> &sceneGraph)
-{
-	_sceneGraph = sceneGraph;
-}
-
 bool UiManager::HasMouseCapture() const
 {
 	return _io->WantCaptureMouse;
 }
 
-void UiManager::Update()
+void UiManager::Update(Scene &scene)
 {
-	if (!_initialized)
-	{
-		SetupRenderer();
-		SetupFontAtlas();
-		_initialized = true;
-	}
-
 	ImGui_ImplOpenGL3_NewFrame();
 	ImGui_ImplGlfw_NewFrame();
 	ImGui::NewFrame();
 	{
-
 		bool displayDebugWindow = true;
 		ImGui::SetNextWindowPos(ImVec2(0, 0));
 		if (!ImGui::Begin("Debug", &displayDebugWindow, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoMove))
@@ -98,7 +75,7 @@ void UiManager::Update()
 		if (ImGui::TreeNode("Scene"))
 		{
 			ImGui::BeginChild("SceneGraph", ImVec2(ImGui::GetContentRegionAvail().x, 200), false, ImGuiWindowFlags_HorizontalScrollbar);
-			DrawSceneNode(_sceneGraph);
+			DrawDrawables(scene.getDrawables());
 			UiInspector::Build(selectedActor);
 
 			ImGui::EndChild();
@@ -110,56 +87,16 @@ void UiManager::Update()
 			ImGui::Checkbox("Demo Window", &show_demo_window);
 		}
 
-		ImGui::Separator();
-		{
-			ImGui::Text("Post Processing");
-
-			bool hdrEnabled = _renderer->IsHdrEnabled();
-			bool ssaoEnabled = _renderer->IsSsaoEnabled();
-
-			ImGui::Checkbox("HDR", &hdrEnabled);
-			ImGui::Checkbox("SSAO", &ssaoEnabled);
-
-			_renderer->EnableHdr(hdrEnabled);
-			_renderer->EnableSsao(ssaoEnabled);
-		}
-
 		{
 			std::vector<const char *> debugRenderingItems = {"Disabled", "Diffuse", "Normal", "Depth", "Emissive", "Specular"};
 			static int debugRenderingCurrentItem = 0;
 			ImGui::Combo("Debug Rendering", &debugRenderingCurrentItem, debugRenderingItems.data(), debugRenderingItems.size());
-			_renderer->EnableDebugPass(static_cast<DebugDisplayType>(debugRenderingCurrentItem));
+			scene.setDebugDisplayType(static_cast<DebugDisplayType>(debugRenderingCurrentItem));
 			ImGui::Separator();
 		}
 
 		ImGui::Separator();
 		{
-			ImGui::Text("Renderer Settings");
-
-			float32 currentSize = _renderer->GetOrthographicSize();
-			ImGui::DragFloat("Shadow Projection Size", &currentSize);
-			_renderer->SetOrthographicSize(currentSize);
-		}
-
-		{
-			auto frameTimings = _renderer->GetFrameRenderTimings();
-			ImGui::Text("Render Pass");
-			ImGui::BulletText("All %.3f ms", static_cast<float32>(frameTimings.Frame * 1e-6f));
-			ImGui::BulletText("Shadow %.3f ms", static_cast<float32>(frameTimings.Shadow * 1e-6f));
-			ImGui::BulletText("G-Buffer %.3f ms", static_cast<float32>(frameTimings.GBuffer * 1e-6f));
-			ImGui::BulletText("Lighting %.3f ms", static_cast<float32>(frameTimings.Lighting * 1e-6f));
-			ImGui::BulletText("SSAO %.3f ms", static_cast<float32>(frameTimings.Ssao * 1e-6f));
-		}
-
-		ImGui::Separator();
-		{
-			std::stringstream drawCounts;
-			auto frameCounts = _renderer->GetFrameRenderCounts();
-			drawCounts << frameCounts.DrawCount << " draw calls\n"
-								 << frameCounts.TriangleCount << " triangles\n"
-								 << frameCounts.MaterialCount << " materials\n";
-			ImGui::Text(drawCounts.str().c_str());
-
 			ImGui::Text("%.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
 		}
 
@@ -179,9 +116,8 @@ void UiManager::Update()
 
 void UiManager::Draw(ImDrawData *drawData)
 {
-	auto renderDevice = Renderer::GetRenderDevice();
-	auto currentScissorDim = renderDevice->GetScissorDimensions();
-	auto currentViewport = renderDevice->GetViewport();
+	auto currentScissorDim = _renderDevice->GetScissorDimensions();
+	auto currentViewport = _renderDevice->GetViewport();
 
 	int32 fbWidth = (int32)(drawData->DisplaySize.x * _io->DisplayFramebufferScale.x);
 	int32 fbHeight = (int32)(drawData->DisplaySize.y * _io->DisplayFramebufferScale.y);
@@ -202,13 +138,13 @@ void UiManager::Draw(ImDrawData *drawData)
 	newViewport.TopLeftY = 0;
 	newViewport.Width = fbWidth;
 	newViewport.Height = fbHeight;
-	renderDevice->SetViewport(newViewport);
+	_renderDevice->SetViewport(newViewport);
 
 	GpuBufferDesc constBufferDesc;
 	constBufferDesc.BufferType = BufferType::Constant;
 	constBufferDesc.BufferUsage = BufferUsage::Dynamic;
 	constBufferDesc.ByteCount = sizeof(Matrix4);
-	_constBuffer = renderDevice->CreateGpuBuffer(constBufferDesc);
+	_constBuffer = _renderDevice->CreateGpuBuffer(constBufferDesc);
 	_constBuffer->WriteData(0, constBufferDesc.ByteCount, &orthProj[0][0], AccessType::WriteOnlyDiscardRange);
 
 	if (!_vertBuffer || _vertBuffSize < drawData->TotalVtxCount)
@@ -219,7 +155,7 @@ void UiManager::Draw(ImDrawData *drawData)
 		vertBufferDesc.BufferUsage = BufferUsage::Dynamic;
 		vertBufferDesc.VertexCount = _vertBuffSize;
 		vertBufferDesc.VertexSizeBytes = sizeof(ImDrawVert);
-		_vertBuffer = renderDevice->CreateVertexBuffer(vertBufferDesc);
+		_vertBuffer = _renderDevice->CreateVertexBuffer(vertBufferDesc);
 	}
 
 	if (!_idxBuffer || _idxBuffSize < drawData->TotalIdxCount)
@@ -230,7 +166,7 @@ void UiManager::Draw(ImDrawData *drawData)
 		idxBufferDesc.BufferUsage = BufferUsage::Default;
 		idxBufferDesc.IndexCount = _idxBuffSize;
 		idxBufferDesc.IndexType = sizeof(ImDrawIdx) == 2 ? IndexType::UInt16 : IndexType::UInt32;
-		_idxBuffer = renderDevice->CreateIndexBuffer(idxBufferDesc);
+		_idxBuffer = _renderDevice->CreateIndexBuffer(idxBufferDesc);
 	}
 
 	uint64 vertByteOffset = 0;
@@ -261,40 +197,53 @@ void UiManager::Draw(ImDrawData *drawData)
 
 			ScissorDesc newScissorDim;
 			newScissorDim.X = clipRect.x;
-			newScissorDim.Y = renderDevice->GetRenderHeight() - clipRect.w;
+			newScissorDim.Y = _renderDevice->GetRenderHeight() - clipRect.w;
 			newScissorDim.W = clipRect.z - clipRect.x;
 			newScissorDim.H = clipRect.w - clipRect.y;
-			renderDevice->SetScissorDimensions(newScissorDim);
+			_renderDevice->SetScissorDimensions(newScissorDim);
 
 			auto texture = TEXTURE_MAP[reinterpret_cast<uint64>(pCmd->TextureId)];
 			if (texture)
 			{
-				renderDevice->SetTexture(0, texture);
+				_renderDevice->SetTexture(0, texture);
 			}
 			else
 			{
-				renderDevice->SetTexture(0, _textureAtlas);
+				_renderDevice->SetTexture(0, _textureAtlas);
 			}
 
-			renderDevice->SetPipelineState(_pipelineState);
-			renderDevice->SetSamplerState(0, _noMipSamplerState);
+			_renderDevice->SetPipelineState(_pipelineState);
+			_renderDevice->SetSamplerState(0, _noMipSamplerState);
 
-			renderDevice->SetVertexBuffer(_vertBuffer);
-			renderDevice->SetIndexBuffer(_idxBuffer);
-			renderDevice->SetConstantBuffer(0, _constBuffer);
+			_renderDevice->SetVertexBuffer(_vertBuffer);
+			_renderDevice->SetIndexBuffer(_idxBuffer);
+			_renderDevice->SetConstantBuffer(0, _constBuffer);
 
-			renderDevice->DrawIndexed(pCmd->ElemCount, idxOffset, vertOffset);
+			_renderDevice->DrawIndexed(pCmd->ElemCount, idxOffset, vertOffset);
 			idxOffset += pCmd->ElemCount;
 		}
 		vertOffset += cmdList->VtxBuffer.Size;
 	}
 
-	renderDevice->SetScissorDimensions(currentScissorDim);
-	renderDevice->SetViewport(currentViewport);
+	_renderDevice->SetScissorDimensions(currentScissorDim);
+	_renderDevice->SetViewport(currentViewport);
+}
+
+void UiManager::Initialize(std::shared_ptr<RenderDevice> renderDevice)
+{
+	if (!_initialized)
+	{
+		_renderDevice = renderDevice;
+
+		SetupRenderer();
+		SetupFontAtlas();
+		_initialized = true;
+	}
 }
 
 void UiManager::SetupRenderer()
 {
+
 	ShaderDesc vsShaderDesc;
 	vsShaderDesc.EntryPoint = "main";
 	vsShaderDesc.ShaderLang = ShaderLang::Glsl;
@@ -328,19 +277,18 @@ void UiManager::SetupRenderer()
 	shaderParams->AddParam(ShaderParam("Constants", ShaderParamType::ConstBuffer, 0));
 	shaderParams->AddParam(ShaderParam("DiffuseMap", ShaderParamType::Texture, 0));
 
-	auto renderDevice = Renderer::GetRenderDevice();
 	try
 	{
 		PipelineStateDesc pStateDesc;
-		pStateDesc.BlendState = renderDevice->CreateBlendState(blendStateDesc);
-		pStateDesc.DepthStencilState = renderDevice->CreateDepthStencilState(depthStencilStateDesc);
-		pStateDesc.RasterizerState = renderDevice->CreateRasterizerState(rasterizerStateDesc);
-		pStateDesc.VS = renderDevice->CreateShader(vsShaderDesc);
-		pStateDesc.PS = renderDevice->CreateShader(psShaderDesc);
-		pStateDesc.VertexLayout = renderDevice->CreateVertexLayout(vertexLayoutDesc);
+		pStateDesc.BlendState = _renderDevice->CreateBlendState(blendStateDesc);
+		pStateDesc.DepthStencilState = _renderDevice->CreateDepthStencilState(depthStencilStateDesc);
+		pStateDesc.RasterizerState = _renderDevice->CreateRasterizerState(rasterizerStateDesc);
+		pStateDesc.VS = _renderDevice->CreateShader(vsShaderDesc);
+		pStateDesc.PS = _renderDevice->CreateShader(psShaderDesc);
+		pStateDesc.VertexLayout = _renderDevice->CreateVertexLayout(vertexLayoutDesc);
 		pStateDesc.ShaderParams = shaderParams;
 
-		_pipelineState = renderDevice->CreatePipelineState(pStateDesc);
+		_pipelineState = _renderDevice->CreatePipelineState(pStateDesc);
 	}
 	catch (const std::exception &exception)
 	{
@@ -353,7 +301,7 @@ void UiManager::SetupRenderer()
 		samplerStateDesc.MinFiltering = TextureFilteringMode::Linear;
 		samplerStateDesc.MaxFiltering = TextureFilteringMode::Linear;
 		samplerStateDesc.MipFiltering = TextureFilteringMode::Linear;
-		_samplerState = renderDevice->CreateSamplerState(samplerStateDesc);
+		_samplerState = _renderDevice->CreateSamplerState(samplerStateDesc);
 	}
 	catch (const std::exception &exception)
 	{
@@ -367,7 +315,7 @@ void UiManager::SetupRenderer()
 	desc.MipFiltering = TextureFilteringMode::None;
 	try
 	{
-		_noMipSamplerState = renderDevice->CreateSamplerState(desc);
+		_noMipSamplerState = _renderDevice->CreateSamplerState(desc);
 	}
 	catch (const std::exception &exception)
 	{
@@ -388,8 +336,7 @@ void UiManager::SetupFontAtlas()
 	desc.Width = static_cast<uint32>(width);
 	desc.Height = static_cast<uint32>(height);
 
-	auto renderDevice = Renderer::GetRenderDevice();
-	_textureAtlas = renderDevice->CreateTexture(desc);
+	_textureAtlas = _renderDevice->CreateTexture(desc);
 
 	std::shared_ptr<ImageData> imageData(new ImageData(desc.Width, desc.Height, 1, ImageFormat::RGBA8));
 	imageData->WriteData(pixels);
@@ -398,6 +345,10 @@ void UiManager::SetupFontAtlas()
 	AddTexture(reinterpret_cast<uint64>(&_textureAtlas), _textureAtlas);
 
 	_io->Fonts->TexID = &_textureAtlas;
+}
+
+void UiManager::DrawDrawables(const std::vector<Drawable> &drawables)
+{
 }
 
 void UiManager::DrawSceneNode(const sptr<SceneNode> &parentNode)

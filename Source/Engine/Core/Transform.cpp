@@ -16,6 +16,15 @@ Transform::Transform(const Matrix4 &mat) : _scale(Vector3::Identity),
 {
 }
 
+void Transform::update(float32 dt)
+{
+  if (_modified)
+  {
+    updateTransform();
+    _modified = false;
+  }
+}
+
 Transform &Transform::translate(const Vector3 &translation)
 {
   _position += translation;
@@ -60,100 +69,11 @@ Transform &Transform::setScale(const Vector3 &scale)
 
 Transform &Transform::lookAt(const Vector3 &eye, const Vector3 &target, const Vector3 &up)
 {
-  Vector3 camDir = Vector3::Normalize(target - eye);
-  if (std::abs(Vector3::Dot(camDir, up)))
-  {
-    camDir += 0.00001f;
-  }
-  Vector3 camRight = Vector3::Normalize(Vector3::Cross(camDir, up));
-  Vector3 camUp = Vector3::Normalize(Vector3::Cross(camRight, camDir));
-
-  Matrix3 view(Matrix3::Identity);
-  view[0][0] = camRight.X;
-  view[1][0] = camRight.Y;
-  view[2][0] = camRight.Z;
-  view[0][1] = camUp.X;
-  view[1][1] = camUp.Y;
-  view[2][1] = camUp.Z;
-  view[0][2] = -camDir.X;
-  view[1][2] = -camDir.Y;
-  view[2][2] = -camDir.Z;
-
+  Matrix3 view(Matrix3::LookAt(eye, target, up));
   _position = eye;
   _rotation = view;
   _modified = true;
   return *this;
-}
-
-Quaternion Transform::getRotation()
-{
-  if (_modified)
-  {
-    updateTransform();
-    _modified = false;
-  }
-
-  return _rotation;
-}
-
-Vector3 Transform::getPosition()
-{
-  if (_modified)
-  {
-    updateTransform();
-    _modified = false;
-  }
-  return _position;
-}
-
-Vector3 Transform::getScale()
-{
-  if (_modified)
-  {
-    updateTransform();
-    _modified = false;
-  }
-  return _scale;
-}
-
-Matrix4 Transform::getMatrix()
-{
-  if (_modified)
-  {
-    updateTransform();
-    _modified = false;
-  }
-  return _transform;
-}
-
-Vector3 Transform::getForward()
-{
-  if (_modified)
-  {
-    updateTransform();
-    _modified = false;
-  }
-  return Vector3(_transform[0][2], _transform[1][2], _transform[2][2]);
-}
-
-Vector3 Transform::getUp()
-{
-  if (_modified)
-  {
-    updateTransform();
-    _modified = false;
-  }
-  return Vector3(_transform[0][1], _transform[1][1], _transform[2][1]);
-}
-
-Vector3 Transform::getRight()
-{
-  if (_modified)
-  {
-    updateTransform();
-    _modified = false;
-  }
-  return Vector3(_transform[0][0], _transform[1][0], _transform[2][0]);
 }
 
 void Transform::updateTransform()

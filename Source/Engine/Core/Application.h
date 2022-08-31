@@ -3,17 +3,17 @@
 #include <memory>
 #include <string>
 
-#include <glad/glad.h> 
+#include <glad/glad.h>
 #include <GLFW/glfw3.h>
 
 #include "../Core/Types.hpp"
-#include "../Maths/Vector2I.hpp"
 #include "../UI/UiManager.hpp"
+#include "Scene.h"
+#include "Maths.h"
 
 class EventDispatcher;
 class InputHandler;
 class Renderer;
-class SceneManager;
 
 struct ApplicationDesc
 {
@@ -25,7 +25,7 @@ struct ApplicationDesc
 class Application
 {
 public:
-	virtual ~Application();
+  virtual ~Application();
   virtual void OnStart() {}
   virtual void OnUpdate(uint32 dtMs) {}
 
@@ -48,14 +48,14 @@ private:
 protected:
   std::unique_ptr<EventDispatcher> _eventDispatcher;
   std::shared_ptr<InputHandler> _inputHandler;
-	std::shared_ptr<UiManager> _debugUi;
-  std::shared_ptr<SceneNode> _sceneGraph;
+  std::shared_ptr<UiManager> _debugUi;
   std::shared_ptr<Renderer> _renderer;
+  Scene _scene;
 
 private:
   bool _isRunning{};
   bool _mouseFocus;
   ApplicationDesc _desc;
   Vector2I _cursorPosition;
-  GLFWwindow* _window;
+  GLFWwindow *_window;
 };

@@ -1,0 +1,67 @@
+#include "Scene.h"
+
+#include <iostream>
+#include <set>
+#include <vector>
+
+#include "../Rendering/DeferredRenderer.h"
+#include "../RenderApi/RenderDevice.hpp"
+#include "Drawable.h"
+
+bool Scene::init(const Vector2I &windowDims, std::shared_ptr<RenderDevice> renderDevice)
+{
+  _renderDevice = renderDevice;
+  _deferredRenderer.reset(new DeferredRenderer(windowDims));
+  return _deferredRenderer->init(_renderDevice);
+}
+
+void Scene::update(float64 dt)
+{
+  _camera.update(dt);
+
+  for (auto &drawable : _drawables)
+  {
+    drawable.update(dt);
+  }
+}
+
+void Scene::drawFrame() const
+{
+  if (_renderDevice == nullptr || _deferredRenderer == nullptr)
+  {
+    std::cerr << "Renderer not initialized." << std::endl;
+    return;
+  }
+
+  auto compare = [](DrawableSortMap a, DrawableSortMap b)
+  { return a.DistanceToCamera < b.DistanceToCamera; };
+  std::multiset<DrawableSortMap, decltype(compare)> culledDrawables(compare);
+
+  std::vector<uint64> aabbDrawableIndices;
+  for (uint64 i = 0; i < _drawables.size(); i++)
+  {
+    auto &drawable = _drawables[i];
+    if (_camera.intersectsFrustrum(drawable))
+    {
+      culledDrawables.insert(DrawableSortMap(_camera.distanceFrom(drawable), i));
+      if (drawable.shouldDrawAabb())
+      {
+        aabbDrawableIndices.push_back(i);
+      }
+    }
+  }
+
+  std::vector<uint64> culledDrawableIndices;
+  culledDrawableIndices.reserve(culledDrawables.size());
+  for (auto &culledDrawable : culledDrawables)
+  {
+    culledDrawableIndices.push_back(culledDrawable.Index);
+  }
+
+  _deferredRenderer->drawFrame(_renderDevice, culledDrawableIndices, aabbDrawableIndices, _drawables, _lights, _camera);
+}
+
+void Scene::setDebugDisplayType(DebugDisplayType debugDisplayType)
+{
+  _deferredRenderer->setDebugDisplayType(debugDisplayType);
+}

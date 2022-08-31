@@ -16,32 +16,67 @@ Matrix3 Matrix3::Identity = Matrix3(1.0f, 0.0f, 0.0f,
                                     0.0f, 1.0f, 0.0f,
                                     0.0f, 0.0f, 1.0f);
 
+Matrix3 Matrix3::LookAt(const Vector3 &eye, const Vector3 &target, const Vector3 &up)
+{
+  Vector3 camDir = Vector3::Normalize(target - eye);
+  if (std::abs(Vector3::Dot(camDir, up)))
+  {
+    camDir += 0.00001f;
+  }
+  Vector3 camRight = Vector3::Normalize(Vector3::Cross(camDir, up));
+  Vector3 camUp = Vector3::Normalize(Vector3::Cross(camRight, camDir));
+
+  Matrix3 view(Matrix3::Identity);
+  view[0][0] = camRight.X;
+  view[1][0] = camRight.Y;
+  view[2][0] = camRight.Z;
+  view[0][1] = camUp.X;
+  view[1][1] = camUp.Y;
+  view[2][1] = camUp.Z;
+  view[0][2] = -camDir.X;
+  view[1][2] = -camDir.Y;
+  view[2][2] = -camDir.Z;
+  return view;
+}
+
 Matrix3::Matrix3()
 {
 }
 
-Matrix3::Matrix3(const Matrix3& mat)
+Matrix3::Matrix3(const Matrix3 &mat)
 {
   std::memcpy(_m, mat._m, 9 * sizeof(float32));
 }
 
-Matrix3::Matrix3(const Matrix4& mat)
+Matrix3::Matrix3(const Matrix4 &mat)
 {
-	_m[0][0] = mat[0][0]; _m[0][1] = mat[0][1]; _m[0][2] = mat[0][2];
-	_m[1][0] = mat[1][0]; _m[1][1] = mat[1][1]; _m[1][2] = mat[1][2];
-	_m[2][0] = mat[2][0]; _m[2][1] = mat[2][1]; _m[2][2] = mat[2][2];
+  _m[0][0] = mat[0][0];
+  _m[0][1] = mat[0][1];
+  _m[0][2] = mat[0][2];
+  _m[1][0] = mat[1][0];
+  _m[1][1] = mat[1][1];
+  _m[1][2] = mat[1][2];
+  _m[2][0] = mat[2][0];
+  _m[2][1] = mat[2][1];
+  _m[2][2] = mat[2][2];
 }
 
 Matrix3::Matrix3(float32 a, float32 b, float32 c,
                  float32 d, float32 e, float32 f,
                  float32 g, float32 h, float32 i)
 {
-  _m[0][0] = a; _m[0][1] = b; _m[0][2] = c;
-  _m[1][0] = d; _m[1][1] = e; _m[1][2] = f;
-  _m[2][0] = g; _m[2][1] = h; _m[2][2] = i;
+  _m[0][0] = a;
+  _m[0][1] = b;
+  _m[0][2] = c;
+  _m[1][0] = d;
+  _m[1][1] = e;
+  _m[1][2] = f;
+  _m[2][0] = g;
+  _m[2][1] = h;
+  _m[2][2] = i;
 }
 
-Matrix3::Matrix3(const Quaternion& q)
+Matrix3::Matrix3(const Quaternion &q)
 {
   Matrix3 result(Matrix3::Identity);
   float32 qxx(q.X * q.X);
@@ -89,31 +124,31 @@ Matrix3 Matrix3::operator*(float32 rhs) const
                  _m[2][0] * rhs, _m[2][1] * rhs, _m[2][2] * rhs);
 }
 
-Matrix3 Matrix3::operator+(const Matrix3& rhs) const
+Matrix3 Matrix3::operator+(const Matrix3 &rhs) const
 {
   return Matrix3(_m[0][0] + rhs._m[0][0], _m[0][1] + rhs._m[0][1], _m[0][2] + rhs._m[0][2],
                  _m[1][0] + rhs._m[1][0], _m[1][1] + rhs._m[1][1], _m[1][2] + rhs._m[1][2],
                  _m[2][0] + rhs._m[2][0], _m[2][1] + rhs._m[2][1], _m[2][2] + rhs._m[2][2]);
 }
 
-Matrix3 Matrix3::operator-(const Matrix3& rhs) const
+Matrix3 Matrix3::operator-(const Matrix3 &rhs) const
 {
   return Matrix3(_m[0][0] - rhs._m[0][0], _m[0][1] - rhs._m[0][1], _m[0][2] - rhs._m[0][2],
                  _m[1][0] - rhs._m[1][0], _m[1][1] - rhs._m[1][1], _m[1][2] - rhs._m[1][2],
                  _m[2][0] - rhs._m[2][0], _m[2][1] - rhs._m[2][1], _m[2][2] - rhs._m[2][2]);
 }
 
-Matrix3 Matrix3::operator*(const Matrix3& rhs) const
+Matrix3 Matrix3::operator*(const Matrix3 &rhs) const
 {
-  //Matrix3 result;
-  //for (uint32 row = 0; row < 3; ++row)
+  // Matrix3 result;
+  // for (uint32 row = 0; row < 3; ++row)
   //{
-  //  for (uint32 col = 0; col < 3; ++col)
-  //  {
-  //    result._m[row][col] = _m[row][0] * rhs._m[0][col] + _m[row][1] * rhs._m[1][col] + _m[row][2] * rhs._m[2][col];
-  //  }
-  //}
-  //return result;
+  //   for (uint32 col = 0; col < 3; ++col)
+  //   {
+  //     result._m[row][col] = _m[row][0] * rhs._m[0][col] + _m[row][1] * rhs._m[1][col] + _m[row][2] * rhs._m[2][col];
+  //   }
+  // }
+  // return result;
 
   Matrix3 result;
   result[0][0] = _m[0][0] * rhs._m[0][0] + _m[1][0] * rhs._m[0][1] + _m[2][0] * rhs._m[0][2];
@@ -128,14 +163,14 @@ Matrix3 Matrix3::operator*(const Matrix3& rhs) const
   return result;
 }
 
-Vector3 Matrix3::operator*(const Vector3& rhs) const
+Vector3 Matrix3::operator*(const Vector3 &rhs) const
 {
   return Vector3(rhs[0] * _m[0][0] + rhs[1] * _m[0][1] + rhs[2] * _m[0][2],
                  rhs[0] * _m[1][0] + rhs[1] * _m[1][1] + rhs[2] * _m[1][2],
                  rhs[0] * _m[2][0] + rhs[1] * _m[2][1] + rhs[2] * _m[2][2]);
 }
 
-Matrix3& Matrix3::operator+=(float32 rhs)
+Matrix3 &Matrix3::operator+=(float32 rhs)
 {
   _m[0][0] += rhs;
   _m[0][1] += rhs;
@@ -149,7 +184,7 @@ Matrix3& Matrix3::operator+=(float32 rhs)
   return *this;
 }
 
-Matrix3& Matrix3::operator-=(float32 rhs)
+Matrix3 &Matrix3::operator-=(float32 rhs)
 {
   _m[0][0] -= rhs;
   _m[0][1] -= rhs;
@@ -163,7 +198,7 @@ Matrix3& Matrix3::operator-=(float32 rhs)
   return *this;
 }
 
-Matrix3& Matrix3::operator*=(float32 rhs)
+Matrix3 &Matrix3::operator*=(float32 rhs)
 {
   _m[0][0] *= rhs;
   _m[0][1] *= rhs;
@@ -177,7 +212,7 @@ Matrix3& Matrix3::operator*=(float32 rhs)
   return *this;
 }
 
-bool Matrix3::operator==(const Matrix3& rhs) const
+bool Matrix3::operator==(const Matrix3 &rhs) const
 {
   for (uint32 row = 0; row < 3; ++row)
   {
@@ -192,7 +227,7 @@ bool Matrix3::operator==(const Matrix3& rhs) const
   return true;
 }
 
-bool Matrix3::operator!=(const Matrix3& rhs) const
+bool Matrix3::operator!=(const Matrix3 &rhs) const
 {
   uint32 equalityCount = 0;
   for (uint32 row = 0; row < 3; ++row)
@@ -208,16 +243,16 @@ bool Matrix3::operator!=(const Matrix3& rhs) const
   return equalityCount < 9;
 }
 
-Vector3& Matrix3::operator[](uint32 row)
+Vector3 &Matrix3::operator[](uint32 row)
 {
   assert(row < 3);
-  return *(Vector3*)_m[row];
+  return *(Vector3 *)_m[row];
 }
 
-const Vector3& Matrix3::operator[](uint32 row) const
+const Vector3 &Matrix3::operator[](uint32 row) const
 {
   assert(row < 3);
-  return *(Vector3*)_m[row];
+  return *(Vector3 *)_m[row];
 }
 
 float32 Matrix3::Determinate() const
@@ -225,7 +260,7 @@ float32 Matrix3::Determinate() const
   float32 cofactor00 = _m[1][1] * _m[2][2] - _m[1][2] * _m[2][1];
   float32 cofactor10 = _m[1][2] * _m[2][0] - _m[1][0] * _m[2][2];
   float32 cofactor20 = _m[1][0] * _m[2][1] - _m[1][1] * _m[2][0];
-  
+
   return _m[0][0] * cofactor00 + _m[0][1] * cofactor10 + _m[0][2] * cofactor20;
 }
 
@@ -241,13 +276,13 @@ Matrix3 Matrix3::Inverse() const
   invMat._m[2][0] = _m[1][0] * _m[2][1] - _m[1][1] * _m[2][0];
   invMat._m[2][1] = _m[0][1] * _m[2][0] - _m[0][0] * _m[2][1];
   invMat._m[2][2] = _m[0][0] * _m[1][1] - _m[0][1] * _m[1][0];
-  
+
   float32 det = _m[0][0] * invMat._m[0][0] + _m[0][1] * invMat._m[1][0] + _m[0][2] * invMat._m[2][0];
   if (std::abs(det) <= 1e-06f)
   {
     return Matrix3::Zero;
   }
-  
+
   float32 invDet = 1.0f / det;
   for (uint32 row = 0; row < 3; ++row)
   {
@@ -266,21 +301,21 @@ Matrix3 Matrix3::Transpose() const
                  _m[0][2], _m[1][2], _m[2][2]);
 }
 
-Matrix3 operator+(float32 lhs, const Matrix3& rhs)
+Matrix3 operator+(float32 lhs, const Matrix3 &rhs)
 {
   return Matrix3(lhs + rhs._m[0][0], lhs + rhs._m[0][1], lhs + rhs._m[0][2],
                  lhs + rhs._m[1][0], lhs + rhs._m[1][1], lhs + rhs._m[1][2],
                  lhs + rhs._m[2][0], lhs + rhs._m[2][1], lhs + rhs._m[2][2]);
 }
 
-Matrix3 operator-(float32 lhs, const Matrix3& rhs)
+Matrix3 operator-(float32 lhs, const Matrix3 &rhs)
 {
   return Matrix3(lhs - rhs._m[0][0], lhs - rhs._m[0][1], lhs - rhs._m[0][2],
                  lhs - rhs._m[1][0], lhs - rhs._m[1][1], lhs - rhs._m[1][2],
                  lhs - rhs._m[2][0], lhs - rhs._m[2][1], lhs - rhs._m[2][2]);
 }
 
-Matrix3 operator*(float32 lhs, const Matrix3& rhs)
+Matrix3 operator*(float32 lhs, const Matrix3 &rhs)
 {
   return Matrix3(lhs * rhs._m[0][0], lhs * rhs._m[0][1], lhs * rhs._m[0][2],
                  lhs * rhs._m[1][0], lhs * rhs._m[1][1], lhs * rhs._m[1][2],

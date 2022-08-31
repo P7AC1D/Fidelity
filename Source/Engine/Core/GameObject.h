@@ -2,20 +2,18 @@
 #include <string>
 
 #include "Transform.h"
-#include "Types.h"
+#include "Types.hpp"
 
-class GameObject
+class GameObject : public Transform
 {
 public:
   virtual void update(float32 dt);
   virtual void drawInspector();
 
   std::string getName() const { return _name; }
-  Transform &getTransform() const { return _transform; }
 
   void setName(const std::string &name) { _name = name; }
 
-private:
+protected:
   std::string _name;
-  Transform _transform;
 };

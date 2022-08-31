@@ -2,6 +2,7 @@
 #include <memory>
 #include <vector>
 
+#include "../Maths/AABB.hpp"
 #include "../Maths/Vector2.hpp"
 #include "../Maths/Vector3.hpp"
 #include "Types.hpp"
@@ -15,31 +16,27 @@ class StaticMesh
 public:
   StaticMesh();
 
-  void SetPositionVertexData(const std::vector<Vector3> &positionData);
-  void SetNormalVertexData(const std::vector<Vector3> &normalData);
-  void SetTextureVertexData(const std::vector<Vector2> &textureData);
-  void SetTangentVertexData(const std::vector<Vector3> &tangentData);
-  void SetBitangentVertexData(const std::vector<Vector3> &bitangentData);
-  void SetIndexData(const std::vector<uint32> &indexData);
+  void setPositionVertexData(const std::vector<Vector3> &positionData);
+  void setNormalVertexData(const std::vector<Vector3> &normalData);
+  void setTextureVertexData(const std::vector<Vector2> &textureData);
+  void setTangentVertexData(const std::vector<Vector3> &tangentData);
+  void setBitangentVertexData(const std::vector<Vector3> &bitangentData);
+  void setIndexData(const std::vector<uint32> &indexData);
 
-  uint32 GetVertexCount() const { return _vertexCount; }
-  uint32 GetIndexCount() const { return _indexCount; }
+  Aabb getAabb();
 
-  void CalculateTangents(const std::vector<Vector3> &positionData, const std::vector<Vector2> &textureData);
-  void GenerateTangents();
-  void GenerateNormals();
+  uint32 getVertexCount() const { return _vertexCount; }
+  uint32 getIndexCount() const { return _indexCount; }
 
-  std::shared_ptr<VertexBuffer> GetVertexData();
-  std::shared_ptr<IndexBuffer> GetIndexData();
+  void calculateTangents(const std::vector<Vector3> &positionData, const std::vector<Vector2> &textureData);
+  void generateTangents();
+  void generateNormals();
 
-  bool IsInitialized() const { return _verticesNeedUpdate && _indicesNeedUpdate; }
-  bool IsIndexed() const { return _indexed; }
+  std::shared_ptr<VertexBuffer> getVertexData();
+  std::shared_ptr<IndexBuffer> getIndexData();
 
-private:
-  std::vector<float32> CreateRestructuredVertexDataArray(int32 &stride) const;
-  std::vector<float32> CreateVertexDataArray() const;
-  void UploadVertexData();
-  void UploadIndexData();
+  bool isInitialized() const { return _verticesNeedUpdate && _indicesNeedUpdate; }
+  bool isIndexed() const { return _indexed; }
 
 private:
   enum VertexDataFormat : int32
@@ -50,6 +47,13 @@ private:
     Tangent = 1 << 3,
     Bitanget = 1 << 4
   };
+
+  void calculateAabb();
+
+  std::vector<float32> createRestructuredVertexDataArray(int32 &stride) const;
+  std::vector<float32> createVertexDataArray() const;
+  void uploadVertexData();
+  void uploadIndexData();
 
   std::shared_ptr<IndexBuffer> _indexBuffer;
   std::shared_ptr<VertexBuffer> _vertexBuffer;
@@ -68,4 +72,6 @@ private:
   bool _verticesNeedUpdate;
   bool _indicesNeedUpdate;
   bool _indexed;
+
+  Aabb _aabb;
 };
