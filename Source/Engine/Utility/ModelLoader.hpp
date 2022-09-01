@@ -4,10 +4,8 @@
 
 #include "../Core/Scene.h"
 
-class SceneNode;
-
 class ModelLoader
 {
 public:
-  static void LoadFromFile(Scene &scene, const std::string &filePath, bool reconstructWorldTransforms);
+  static void FromFile(Scene &scene, const std::string &filePath, bool reconstructWorldTransforms);
 };

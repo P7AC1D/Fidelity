@@ -12,7 +12,7 @@ public:
   Drawable();
 
   void update(float32 dt) override;
-  void drawInspector() override;
+  void drawInspector() override {}
 
   Drawable &setMesh(std::shared_ptr<StaticMesh> mesh);
   Drawable &setMaterial(std::shared_ptr<Material> material);

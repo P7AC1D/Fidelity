@@ -14,8 +14,13 @@ Drawable::Drawable() : _currentScale(Vector3::Identity),
 
 void Drawable::update(float32 dt)
 {
-  auto newRotation = getTransform().getRotation();
-  auto newScale = getTransform().getScale();
+  if (Transform::modified())
+  {
+    Transform::update(dt);
+  }  
+
+  auto newRotation = getRotation();
+  auto newScale = getScale();
   if (_currentRotationEuler != newRotation.ToEuler() || _currentScale != newScale)
   {
     updateAabb(newScale, newRotation);
@@ -29,11 +34,13 @@ Drawable &Drawable::setMesh(std::shared_ptr<StaticMesh> mesh)
   _mesh = mesh;
   _initAabb = mesh->getAabb();
   _currAabb = _initAabb;
+  return *this;
 }
 
-Drawable &setMaterial(std::shared_ptr<Material> material)
+Drawable &Drawable::setMaterial(std::shared_ptr<Material> material)
 {
   _material = material;
+  return *this;
 }
 
 void Drawable::updateAabb(Vector3 scalingDelta, Quaternion rotationDelta)

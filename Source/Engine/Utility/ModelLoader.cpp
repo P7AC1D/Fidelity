@@ -11,6 +11,7 @@
 #include "../Core/Drawable.h"
 #include "../Core/StaticMesh.h"
 #include "../Core/Transform.h"
+#include "../RenderApi/RenderDevice.hpp"
 #include "Assert.hpp"
 #include "String.hpp"
 #include "TextureLoader.hpp"
@@ -81,7 +82,7 @@ void BuildNormalData(const aiVector3D *normals, uint32 normalCount, std::vector<
   }
 }
 
-std::shared_ptr<Material> BuildMaterial(const std::string &filePath, const aiMaterial *aiMaterial)
+std::shared_ptr<Material> BuildMaterial(std::shared_ptr<RenderDevice> renderDevice, const std::string &filePath, const aiMaterial *aiMaterial)
 {
   std::shared_ptr<Material> material(new Material());
 
@@ -107,7 +108,7 @@ std::shared_ptr<Material> BuildMaterial(const std::string &filePath, const aiMat
     aiMaterial->GetTexture(aiTextureType_DIFFUSE, 0, &diffuseTexturePath);
     if (diffuseTexturePath.length != 0)
     {
-      auto diffuseTexture = TextureLoader::LoadFromFile2D(filePath + diffuseTexturePath.C_Str(), true);
+      auto diffuseTexture = TextureLoader::LoadFromFile2D(renderDevice, filePath + diffuseTexturePath.C_Str(), true);
       material->setDiffuseTexture(diffuseTexture);
     }
   }
@@ -118,7 +119,7 @@ std::shared_ptr<Material> BuildMaterial(const std::string &filePath, const aiMat
     aiMaterial->GetTexture(aiTextureType_NORMALS, 0, &normalTexturePath);
     if (normalTexturePath.length != 0)
     {
-      auto normalTexture = TextureLoader::LoadFromFile2D(filePath + normalTexturePath.C_Str());
+      auto normalTexture = TextureLoader::LoadFromFile2D(renderDevice, filePath + normalTexturePath.C_Str());
       material->setNormalTexture(normalTexture);
     }
   }
@@ -129,7 +130,7 @@ std::shared_ptr<Material> BuildMaterial(const std::string &filePath, const aiMat
     aiMaterial->GetTexture(aiTextureType_SPECULAR, 0, &specularTexturePath);
     if (specularTexturePath.length != 0)
     {
-      auto specularTexture = TextureLoader::LoadFromFile2D(filePath + specularTexturePath.C_Str());
+      auto specularTexture = TextureLoader::LoadFromFile2D(renderDevice, filePath + specularTexturePath.C_Str());
       material->setSpecularTexture(specularTexture);
     }
   }
@@ -210,28 +211,22 @@ std::shared_ptr<StaticMesh> BuildMesh(const std::string &filePath, const aiMesh 
   return mesh;
 }
 
-std::shared_ptr<SceneNode> BuildModel(Scene &scene, const std::string &fileFolder, const aiScene *aiScene, bool reconstructWorldTransforms)
+void BuildModel(Scene &scene, const std::string &fileFolder, const aiScene *aiScene, bool reconstructWorldTransforms)
 {
-  if (!aiScene->HasMeshes() || !aiScene->HasMaterials())
-  {
-    return nullptr;
-  }
-
-  Drawable &drawable = scene.createDrawable();
+  
 
   std::vector<std::shared_ptr<Material>> materials(aiScene->mNumMaterials);
   for (uint32 i = 0; i < aiScene->mNumMaterials; i++)
   {
-    materials[i] = BuildMaterial(fileFolder, aiScene->mMaterials[i]);
+    materials[i] = BuildMaterial(scene.getRenderDevice(), fileFolder, aiScene->mMaterials[i]);
   }
 
   for (uint32 i = 0; i < aiScene->mNumMeshes; i++)
   {
-    Vector3 offset;
-
     auto aiMesh = aiScene->mMeshes[i];
 
     Vector3 offset;
+    Drawable& drawable = scene.createDrawable();
     drawable.setMaterial(materials[aiMesh->mMaterialIndex]);
     drawable.setMesh(BuildMesh(fileFolder, aiMesh, reconstructWorldTransforms, offset));
     drawable.setPosition(offset);
@@ -242,7 +237,7 @@ void ModelLoader::FromFile(Scene &scene, const std::string &filePath, bool recon
 {
   Assimp::Importer importer;
   auto aiScene = importer.ReadFile(filePath, aiProcess_Triangulate | aiProcess_GenNormals | aiProcess_GenUVCoords);
-  ASSERT_TRUE(scene, "failed to load mode from " + filePath);
+  ASSERT_TRUE(aiScene, "failed to load mode from " + filePath);
 
   auto splitPath = String::Split(filePath, '/');
   splitPath.pop_back();

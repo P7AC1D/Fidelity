@@ -116,8 +116,6 @@ int32 Application::Run()
     uint32 dtMs = GetTickDuration();
     TICK_DURATION = dtMs;
 
-    OnUpdate(dtMs);
-
     if (glfwWindowShouldClose(_window))
     {
       _isRunning = false;
@@ -126,7 +124,10 @@ int32 Application::Run()
 
     _scene.update(dtMs);
     _scene.drawFrame();
-    _debugUi->Update();
+    _debugUi->Update(_scene);
+
+    OnUpdate(dtMs);
+
     glfwSwapBuffers(_window);
     glfwPollEvents();
   }
@@ -209,15 +210,14 @@ bool Application::Initialize()
     return false;
   }
 
-  if (_scene.init(Vector2I(_desc.Width, _desc.Height), _renderDevice))
+  if (!_scene.init(Vector2I(_desc.Width, _desc.Height), _renderDevice))
   {
     std::cerr << "Failed to initialize scene." << std::endl;
     return false;
   }
 
   _debugUi.reset(new UiManager(_window));
-  _debugUi->SetRenderer(_renderer);
-  _debugUi->SetSceneGraph(_sceneGraph);
+  _debugUi->Initialize(_renderDevice);
   DEBUG_UI = _debugUi;
   return true;
 }

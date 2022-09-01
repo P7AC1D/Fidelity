@@ -3,13 +3,12 @@
 #include <string>
 #include <vector>
 
-#include "../Rendering/DeferredRenderer.h"
 #include "Camera.h"
+#include "Drawable.h"
 #include "Maths.h"
 #include "Types.hpp"
+#include "Light.h"
 
-class Drawable;
-class Light;
 class DeferredRenderer;
 class RenderDevice;
 
@@ -24,10 +23,11 @@ public:
   void update(float64 dt);
   void drawFrame() const;
 
-  void setDebugDisplayType(DebugDisplayType debugDisplayType);
-
   Camera &getCamera() { return _camera; }
   const std::vector<Drawable> &getDrawables() const { return _drawables; }
+
+  // TODO Remove this and better abstract dependencies
+  std::shared_ptr<RenderDevice> getRenderDevice() { return _renderDevice; }
 
 private:
   struct DrawableSortMap
@@ -46,6 +46,6 @@ private:
   std::vector<Light> _lights;
   Camera _camera;
 
-  std::unique_ptr<DeferredRenderer> _deferredRenderer;
+  std::shared_ptr<DeferredRenderer> _deferredRenderer;
   std::shared_ptr<RenderDevice> _renderDevice;
 };

@@ -49,15 +49,6 @@ struct GpuBufferDesc
   BufferUsage BufferUsage = BufferUsage::Default;
   uint32 CpuAccessFlags = 0;
   uint32 ResourceMiscFlags = 0;
-
-  GpuBufferDesc(BufferType bufferType, BufferUsage bufferUsage, uint64 byteCount, uint32 cpuAccessFlags = 0, uint32 miscFlags = 0)
-  {
-    BufferType = bufferType;
-    BufferUsage = bufferUsage;
-    ByteCount = ByteCount;
-    CpuAccessFlags = cpuAccessFlags;
-    ResourceMiscFlags = miscFlags;
-  };
 };
 
 class GpuBuffer

@@ -1,15 +1,20 @@
 #pragma once
 #include <memory>
+#include <vector>
 
 #include "../Core/Maths.h"
-#include "../Core/Light.h"
 
+class Camera;
+class Drawable;
 class GpuBuffer;
+class Material;
+class Light;
 class PipelineState;
 class RenderDevice;
 class RenderTarget;
 class SamplerState;
 class StaticMesh;
+class Texture;
 class VertexBuffer;
 
 enum class DebugDisplayType

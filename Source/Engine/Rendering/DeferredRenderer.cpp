@@ -5,6 +5,7 @@
 #include "../Core/Camera.h"
 #include "../Core/Drawable.h"
 #include "../Core/Material.h"
+#include "../Core/Light.h"
 #include "../Core/StaticMesh.h"
 #include "../Geometry/MeshFactory.h"
 #include "../RenderApi/BlendState.hpp"
@@ -16,6 +17,7 @@
 #include "../RenderApi/RenderDevice.hpp"
 #include "../RenderApi/SamplerState.hpp"
 #include "../RenderApi/ShaderParams.hpp"
+#include "../RenderApi/Texture.hpp"
 #include "../RenderApi/VertexBuffer.hpp"
 #include "../RenderApi/VertexLayout.hpp"
 #include "../Utility/String.hpp"
@@ -103,7 +105,7 @@ std::vector<Vector3> AabbCoords = {
 
     Vector3(-1.0, -1.0, -1.0), Vector3(1.0, -1.0, -1.0)};
 
-DeferredRenderer::DeferredRenderer(const Vector2I &windowDims) : _windowDims(windowDims)
+DeferredRenderer::DeferredRenderer(const Vector2I &windowDims) : _windowDims(windowDims), _debugDisplayType(DebugDisplayType::Disabled)
 {
 }
 
@@ -287,6 +289,12 @@ bool DeferredRenderer::init(std::shared_ptr<RenderDevice> device)
     pointLightConstantsBufferDesc.ByteCount = sizeof(PointLightConstantsBuffer);
     _pointLightConstantsBuffer = device->CreateGpuBuffer(pointLightConstantsBufferDesc);
 
+    GpuBufferDesc pointLightBufferDesc;
+    pointLightBufferDesc.BufferType = BufferType::Constant;
+    pointLightBufferDesc.BufferUsage = BufferUsage::Stream;
+    pointLightBufferDesc.ByteCount = sizeof(PointLightBuffer);
+    _pointLightBuffer = device->CreateGpuBuffer(pointLightBufferDesc);
+
     _pointLightMesh = MeshFactory::CreateUvSphere();
 
     VertexBufferDesc vtxBuffDesc;
@@ -428,6 +436,44 @@ bool DeferredRenderer::init(std::shared_ptr<RenderDevice> device)
     aabbVertexBuffDesc.VertexSizeBytes = sizeof(Vector3) * AabbCoords.size();
     _aabbVertexBuffer = device->CreateVertexBuffer(aabbVertexBuffDesc);
     _aabbVertexBuffer->WriteData(0, sizeof(Vector3) * AabbCoords.size(), AabbCoords.data(), AccessType::WriteOnlyDiscardRange);
+
+    {
+      ShaderDesc vsDesc;
+      vsDesc.EntryPoint = "main";
+      vsDesc.ShaderLang = ShaderLang::Glsl;
+      vsDesc.ShaderType = ShaderType::Vertex;
+      vsDesc.Source = String::LoadFromFile("./Shaders/FSPassThrough.vert");
+
+      ShaderDesc psDesc;
+      psDesc.EntryPoint = "main";
+      psDesc.ShaderLang = ShaderLang::Glsl;
+      psDesc.ShaderType = ShaderType::Pixel;
+      psDesc.Source = String::LoadFromFile("./Shaders/Merge.frag");
+
+      std::vector<VertexLayoutDesc> vertexLayoutDesc{
+          VertexLayoutDesc(SemanticType::Position, SemanticFormat::Float2),
+          VertexLayoutDesc(SemanticType::TexCoord, SemanticFormat::Float2),
+      };
+
+      std::shared_ptr<ShaderParams> shaderParams(new ShaderParams());
+      shaderParams->AddParam(ShaderParam("DiffuseMap", ShaderParamType::Texture, 0));
+      shaderParams->AddParam(ShaderParam("EmissiveMap", ShaderParamType::Texture, 1));
+      shaderParams->AddParam(ShaderParam("SpecularMap", ShaderParamType::Texture, 2));
+
+      RasterizerStateDesc rasterizerStateDesc;
+      rasterizerStateDesc.CullMode = CullMode::None;
+
+      PipelineStateDesc pipelineDesc;
+      pipelineDesc.VS = device->CreateShader(vsDesc);
+      pipelineDesc.PS = device->CreateShader(psDesc);
+      pipelineDesc.BlendState = device->CreateBlendState(BlendStateDesc());
+      pipelineDesc.RasterizerState = device->CreateRasterizerState(rasterizerStateDesc);
+      pipelineDesc.DepthStencilState = device->CreateDepthStencilState(DepthStencilStateDesc());
+      pipelineDesc.VertexLayout = device->CreateVertexLayout(vertexLayoutDesc);
+      pipelineDesc.ShaderParams = shaderParams;
+
+      _mergePso = device->CreatePipelineState(pipelineDesc);
+    }
   }
   catch (const std::exception &e)
   {
@@ -444,6 +490,8 @@ void DeferredRenderer::drawFrame(std::shared_ptr<RenderDevice> renderDevice,
                                  const std::vector<Light> &lights,
                                  const Camera &camera)
 {
+  renderDevice->ClearBuffers(RTT_Colour | RTT_Depth | RTT_Stencil);
+
   gbufferPass(renderDevice, sortedDrawableIndices, allDrawables, camera);
   lightPrePass(renderDevice, lights, camera);
 
@@ -481,7 +529,7 @@ void DeferredRenderer::drawFrame(std::shared_ptr<RenderDevice> renderDevice,
   }
   }
 
-  drawAabb(renderDevice, aabbDrawableIndices, allDrawables, camera);
+  //drawAabb(renderDevice, aabbDrawableIndices, allDrawables, camera);
 }
 
 void DeferredRenderer::gbufferPass(std::shared_ptr<RenderDevice> device,
@@ -489,14 +537,14 @@ void DeferredRenderer::gbufferPass(std::shared_ptr<RenderDevice> device,
                                    const std::vector<Drawable> &allDrawables,
                                    const Camera &camera)
 {
-
   device->SetPipelineState(_gBufferPso);
   device->SetRenderTarget(_gBufferRto);
   device->ClearBuffers(RTT_Colour | RTT_Depth | RTT_Stencil);
 
-  for (auto index : sortedDrawableIndices)
+  //for (auto index : sortedDrawableIndices)
+  for (auto& drawable : allDrawables)
   {
-    auto &drawable = allDrawables[index];
+    //auto &drawable = allDrawables[index];
     writeMaterialConstantData(device, drawable.getMaterial());
     writeObjectConstantData(drawable, camera);
 
@@ -504,12 +552,12 @@ void DeferredRenderer::gbufferPass(std::shared_ptr<RenderDevice> device,
     device->SetConstantBuffer(2, _materialBuffer);
 
     auto mesh = drawable.getMesh();
-    device->SetVertexBuffer(mesh->getVertexData());
+    device->SetVertexBuffer(mesh->getVertexData(device));
 
     if (mesh->isIndexed())
     {
       auto indexCount = mesh->getIndexCount();
-      device->SetIndexBuffer(mesh->getIndexData());
+      device->SetIndexBuffer(mesh->getIndexData(device));
       device->DrawIndexed(indexCount, 0, 0);
     }
     else
@@ -562,8 +610,8 @@ void DeferredRenderer::lightPrePass(std::shared_ptr<RenderDevice> renderDevice,
     _pointLightBuffer->WriteData(0, sizeof(PointLightBuffer), &pointLightBuffer, AccessType::WriteOnlyDiscard);
 
     renderDevice->SetConstantBuffer(0, _pointLightBuffer);
-    renderDevice->SetVertexBuffer(_pointLightMesh->getVertexData());
-    renderDevice->SetIndexBuffer(_pointLightMesh->getIndexData());
+    renderDevice->SetVertexBuffer(_pointLightMesh->getVertexData(renderDevice));
+    renderDevice->SetIndexBuffer(_pointLightMesh->getIndexData(renderDevice));
     renderDevice->DrawIndexed(_pointLightMesh->getIndexCount(), 0, 0);
   }
 }
@@ -675,5 +723,5 @@ void DeferredRenderer::writeObjectConstantData(const Drawable &drawable, const C
   objectBufferData.Model = drawable.getMatrix();
   objectBufferData.ModelView = camera.getView() * objectBufferData.Model;
   objectBufferData.ModelViewProjection = camera.getProj() * objectBufferData.ModelView;
-  _objectBuffer->WriteData(0, sizeof(MaterialBufferData), &objectBufferData, AccessType::WriteOnlyDiscard);
+  _objectBuffer->WriteData(0, sizeof(ObjectBuffer), &objectBufferData, AccessType::WriteOnlyDiscard);
 }

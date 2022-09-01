@@ -3,11 +3,9 @@
 #include <unordered_map>
 #include <vector>
 
-#include "../Maths/Vector2.hpp"
-#include "../Maths/Vector3.hpp"
-#include "../Rendering/Material.hpp"
-#include "../Rendering/MaterialFactory.hpp"
-#include "../Rendering/StaticMesh.h"
+#include "../Core/Maths.h"
+#include "../Core/Material.h"
+#include "../Core/StaticMesh.h"
 #include "Cube.hpp"
 #include "UvSphere.hpp"
 #include "Icosphere.hpp"
@@ -16,11 +14,11 @@ std::shared_ptr<StaticMesh> MeshFactory::CreateCube()
 {
   Cube cube;
   auto mesh = std::make_shared<StaticMesh>();
-  mesh->SetPositionVertexData(cube.GetPositions());
-  mesh->SetTextureVertexData(cube.GetTexCoords());
-  mesh->SetIndexData(cube.GetIndices());
-  mesh->GenerateNormals();
-  mesh->GenerateTangents();
+  mesh->setPositionVertexData(cube.GetPositions());
+  mesh->setTextureVertexData(cube.GetTexCoords());
+  mesh->setIndexData(cube.GetIndices());
+  mesh->generateNormals();
+  mesh->generateTangents();
   return mesh;
 }
 
@@ -72,11 +70,11 @@ std::shared_ptr<StaticMesh> MeshFactory::CreatePlane(uint32 density)
   }
 
   auto mesh = std::make_shared<StaticMesh>();
-  mesh->SetPositionVertexData(positions);
-  mesh->SetTextureVertexData(texCoords);
-  mesh->SetIndexData(indices);
-  mesh->GenerateNormals();
-  mesh->GenerateTangents();
+  mesh->setPositionVertexData(positions);
+  mesh->setTextureVertexData(texCoords);
+  mesh->setIndexData(indices);
+  mesh->generateNormals();
+  mesh->generateTangents();
   return mesh;
 }
 
@@ -84,11 +82,11 @@ std::shared_ptr<StaticMesh> MeshFactory::CreateUvSphere(uint32 verticals, uint32
 {
   UvSphere usSphere(verticals, horizontals);
   auto mesh = std::make_shared<StaticMesh>();
-  mesh->SetPositionVertexData(usSphere.GetPositions());
-  mesh->SetTextureVertexData(usSphere.GetTexCoords());
-  mesh->SetIndexData(usSphere.GetIndices());
-  mesh->GenerateNormals();
-  mesh->GenerateTangents();
+  mesh->setPositionVertexData(usSphere.GetPositions());
+  mesh->setTextureVertexData(usSphere.GetTexCoords());
+  mesh->setIndexData(usSphere.GetIndices());
+  mesh->generateNormals();
+  mesh->generateTangents();
   return mesh;
 }
 
@@ -96,10 +94,10 @@ std::shared_ptr<StaticMesh> MeshFactory::CreateIcosphere(uint32 recursionCount)
 {
   Icosphere icosphere(recursionCount);
   auto mesh = std::make_shared<StaticMesh>();
-  mesh->SetPositionVertexData(icosphere.GetPositions());
-  mesh->SetTextureVertexData(icosphere.GetTexCoords());
-  mesh->SetIndexData(icosphere.GetIndices());
-  mesh->GenerateNormals();
-  mesh->GenerateTangents();
+  mesh->setPositionVertexData(icosphere.GetPositions());
+  mesh->setTextureVertexData(icosphere.GetTexCoords());
+  mesh->setIndexData(icosphere.GetIndices());
+  mesh->generateNormals();
+  mesh->generateTangents();
   return mesh;
 }

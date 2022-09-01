@@ -4,15 +4,27 @@
 #include <set>
 #include <vector>
 
+#include "../Utility/ModelLoader.hpp"
 #include "../Rendering/DeferredRenderer.h"
 #include "../RenderApi/RenderDevice.hpp"
-#include "Drawable.h"
 
 bool Scene::init(const Vector2I &windowDims, std::shared_ptr<RenderDevice> renderDevice)
 {
   _renderDevice = renderDevice;
   _deferredRenderer.reset(new DeferredRenderer(windowDims));
   return _deferredRenderer->init(_renderDevice);
+}
+
+Drawable &Scene::createDrawable()
+{
+  _drawables.push_back(Drawable());
+  return _drawables[_drawables.size() - 1];
+}
+
+Light &Scene::createLight()
+{
+  _lights.push_back(Light());
+  return _lights[_lights.size() - 1];
 }
 
 void Scene::update(float64 dt)
@@ -22,6 +34,11 @@ void Scene::update(float64 dt)
   for (auto &drawable : _drawables)
   {
     drawable.update(dt);
+  }
+
+  for (auto& light : _lights)
+  {
+    light.update(dt);
   }
 }
 
@@ -59,9 +76,4 @@ void Scene::drawFrame() const
   }
 
   _deferredRenderer->drawFrame(_renderDevice, culledDrawableIndices, aabbDrawableIndices, _drawables, _lights, _camera);
-}
-
-void Scene::setDebugDisplayType(DebugDisplayType debugDisplayType)
-{
-  _deferredRenderer->setDebugDisplayType(debugDisplayType);
 }

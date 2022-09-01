@@ -30,36 +30,30 @@ void Camera::drawInspector()
 		setNear(nearClip);
 		setFov(fovY);
 
-		float32 pos[]{_position.X, _position.Y, _position.Z};
+		Vector3 position(getPosition());
+		float32 pos[]{ position.X, position.Y, position.Z};
 		ImGui::DragFloat3("Position", pos, 0.1f);
-		_transform.SetPosition(Vector3(pos[0], pos[1], pos[2]));
+		setPosition(Vector3(pos[0], pos[1], pos[2]));
 
-		Vector3 euler = _rotation.ToEuler();
+		Vector3 euler = getRotation().ToEuler();
 		float32 angles[3] = {euler.X, euler.Y, euler.Z};
 		ImGui::DragFloat3("Orientation", angles, 1.0f);
-		_transform.SetRotation(Quaternion(Degree(angles[0]), Degree(angles[1]), Degree(angles[2])));
+		setRotation(Quaternion(Degree(angles[0]), Degree(angles[1]), Degree(angles[2])));
 	}
 }
 
 void Camera::update(float64 dt)
 {
-	if (_modified)
+	if (_modified || Transform::modified())
 	{
+		Transform::update(dt);
 		updateView();
 		updateProjection();
 		_modified = false;
 	}
 }
 
-void Camera::lookAt(const Vector3 &eye, const Vector3 &target, const Vector3 &up)
-{
-	Matrix3 view(Matrix3::LookAt(eye, target, up));
-	_position = eye;
-	_rotation = view;
-	_modified = true;
-}
-
-void Camera::setPerspective(const Degree &fovY, int32 width, int32 height, float32 nearClip, float32 farClip)
+Camera &Camera::setPerspective(const Degree &fovY, int32 width, int32 height, float32 nearClip, float32 farClip)
 {
 	setWidth(width);
 	setHeight(height);
@@ -67,42 +61,48 @@ void Camera::setPerspective(const Degree &fovY, int32 width, int32 height, float
 	setNear(nearClip);
 	setFar(farClip);
 	_modified = true;
+	return *this;
 }
 
-void Camera::setHeight(int32 height)
+Camera &Camera::setHeight(int32 height)
 {
 	_height = height;
 	_modified = true;
+	return *this;
 }
 
-void Camera::setWidth(int32 width)
+Camera &Camera::setWidth(int32 width)
 {
 	_width = width;
 	_modified = true;
+	return *this;
 }
 
-void Camera::setFov(const Degree &fov)
+Camera &Camera::setFov(const Degree &fov)
 {
 	_fov = Radian(fov);
 	_modified = true;
+	return *this;
 }
 
-void Camera::setNear(float32 near)
+Camera &Camera::setNear(float32 near)
 {
 	_near = near;
 	_modified = true;
+	return *this;
 }
 
-void Camera::setFar(float32 far)
+Camera &Camera::setFar(float32 far)
 {
 	_far = far;
 	_modified = true;
+	return *this;
 }
 
 void Camera::updateView()
 {
-	Matrix4 rotation(_rotation);
-	Matrix4 translation(Matrix4::Translation(_position));
+	Matrix4 rotation(getRotation());
+	Matrix4 translation(Matrix4::Translation(getPosition()));
 	translation[3][0] = -translation[3][0];
 	translation[3][1] = -translation[3][1];
 	translation[3][2] = -translation[3][2];
@@ -121,7 +121,7 @@ bool Camera::intersectsFrustrum(const Drawable &drawable) const
 	return _frustrum.Intersects(drawable.getAabb());
 }
 
-uint32 Camera::distanceFrom(const Drawable &drawable) const
+float32 Camera::distanceFrom(const Drawable &drawable) const
 {
-	return (_position - drawable.getPosition()).Length();
+	return (getPosition() - drawable.getPosition()).Length();
 }

@@ -9,8 +9,7 @@ StaticMesh::StaticMesh() : _vertexDataFormat(0),
                            _vertexCount(0),
                            _verticesNeedUpdate(true),
                            _indicesNeedUpdate(true),
-                           _indexed(false),
-                           _material(MaterialFactory::Create())
+                           _indexed(false)
 {
 }
 
@@ -200,7 +199,7 @@ void StaticMesh::calculateTangents(const std::vector<Vector3> &positionData, con
   _verticesNeedUpdate = true;
 }
 
-Aabb StaticMesh::getAabb() const
+Aabb StaticMesh::getAabb()
 {
   if (_verticesNeedUpdate)
   {
@@ -252,26 +251,21 @@ void StaticMesh::generateNormals()
   setNormalVertexData(normals);
 }
 
-std::shared_ptr<Material> StaticMesh::getMaterial()
-{
-  return _material;
-}
-
-std::shared_ptr<VertexBuffer> StaticMesh::getVertexData()
+std::shared_ptr<VertexBuffer> StaticMesh::getVertexData(std::shared_ptr<RenderDevice> renderDevice)
 {
   if (_verticesNeedUpdate)
   {
-    uploadVertexData();
+    uploadVertexData(renderDevice);
     _verticesNeedUpdate = false;
   }
   return _vertexBuffer;
 }
 
-std::shared_ptr<IndexBuffer> StaticMesh::getIndexData()
+std::shared_ptr<IndexBuffer> StaticMesh::getIndexData(std::shared_ptr<RenderDevice> renderDevice)
 {
   if (_indicesNeedUpdate)
   {
-    uploadIndexData();
+    uploadIndexData(renderDevice);
     _indicesNeedUpdate = false;
   }
   return _indexBuffer;
@@ -378,7 +372,7 @@ std::vector<float32> StaticMesh::createVertexDataArray() const
   return vertexDataArray;
 }
 
-void StaticMesh::uploadVertexData()
+void StaticMesh::uploadVertexData(std::shared_ptr<RenderDevice> renderDevice)
 {
   int32 stride = 0;
   auto dataToUpload = createRestructuredVertexDataArray(stride);
@@ -387,16 +381,16 @@ void StaticMesh::uploadVertexData()
   desc.BufferUsage = BufferUsage::Default;
   desc.VertexCount = _vertexCount;
   desc.VertexSizeBytes = stride;
-  _vertexBuffer = Renderer::GetRenderDevice()->CreateVertexBuffer(desc);
+  _vertexBuffer = renderDevice->CreateVertexBuffer(desc);
   _vertexBuffer->WriteData(0, dataToUpload.size() * sizeof(float32), dataToUpload.data(), AccessType::WriteOnlyDiscard);
 }
 
-void StaticMesh::uploadIndexData()
+void StaticMesh::uploadIndexData(std::shared_ptr<RenderDevice> renderDevice)
 {
   IndexBufferDesc desc;
   desc.BufferUsage = BufferUsage::Default;
   desc.IndexCount = static_cast<uint32>(_indexData.size());
   desc.IndexType = IndexType::UInt32;
-  _indexBuffer = Renderer::GetRenderDevice()->CreateIndexBuffer(desc);
+  _indexBuffer = renderDevice->CreateIndexBuffer(desc);
   _indexBuffer->WriteData(0, _indexData.size() * IndexBuffer::GetBytesPerIndex(desc.IndexType), _indexData.data(), AccessType::WriteOnlyDiscard);
 }

@@ -15,14 +15,12 @@ public:
 
   void update(float64 dt);
 
-  void lookAt(const Vector3 &eye, const Vector3 &target, const Vector3 &up = Vector3(0.0f, 1.0f, 0.0f));
-
-  void setPerspective(const Degree &fovY, int32 width, int32 height, float32 nearClip, float32 farClip);
-  void setHeight(int32 height);
-  void setWidth(int32 width);
-  void setFov(const Degree &fov);
-  void setNear(float32 near);
-  void setFar(float32 far);
+  Camera &setPerspective(const Degree &fovY, int32 width, int32 height, float32 nearClip, float32 farClip);
+  Camera &setHeight(int32 height);
+  Camera &setWidth(int32 width);
+  Camera &setFov(const Degree &fov);
+  Camera &setNear(float32 near);
+  Camera &setFar(float32 far);
 
   Matrix4 getView() const { return _view; }
   Matrix4 getProj() const { return _proj; }
@@ -33,7 +31,7 @@ public:
   float32 getFar() const { return _far; }
 
   bool intersectsFrustrum(const Drawable &drawable) const;
-  uint32 distanceFrom(const Drawable &drawable) const;
+  float32 distanceFrom(const Drawable &drawable) const;
 
 private:
   void updateView();
@@ -49,9 +47,6 @@ private:
 
   Matrix4 _view;
   Matrix4 _proj;
-
-  Vector3 _position;
-  Quaternion _rotation;
 
   Frustrum _frustrum;
 };

@@ -7,8 +7,8 @@
 class GameObject : public Transform
 {
 public:
-  virtual void update(float32 dt);
-  virtual void drawInspector();
+  virtual void update(float32 dt) = 0;
+  virtual void drawInspector() = 0;
 
   std::string getName() const { return _name; }
 

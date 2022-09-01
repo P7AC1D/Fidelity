@@ -5,7 +5,6 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 
-#include "UiInspector.hpp"
 #include "../Core/Types.hpp"
 #include "../Core/Scene.h"
 #include "../Image/ImageData.hpp"
@@ -20,8 +19,6 @@
 
 bool show_demo_window = false;
 bool lockCameraToLight = false;
-uint32 electedDrawableIndex = -1;
-Drawable &selectedDrawable;
 
 std::unordered_map<uint64, std::shared_ptr<Texture>> UiManager::TEXTURE_MAP;
 
@@ -76,7 +73,6 @@ void UiManager::Update(Scene &scene)
 		{
 			ImGui::BeginChild("SceneGraph", ImVec2(ImGui::GetContentRegionAvail().x, 200), false, ImGuiWindowFlags_HorizontalScrollbar);
 			DrawDrawables(scene.getDrawables());
-			UiInspector::Build(selectedActor);
 
 			ImGui::EndChild();
 			ImGui::TreePop();
@@ -91,7 +87,7 @@ void UiManager::Update(Scene &scene)
 			std::vector<const char *> debugRenderingItems = {"Disabled", "Diffuse", "Normal", "Depth", "Emissive", "Specular"};
 			static int debugRenderingCurrentItem = 0;
 			ImGui::Combo("Debug Rendering", &debugRenderingCurrentItem, debugRenderingItems.data(), debugRenderingItems.size());
-			scene.setDebugDisplayType(static_cast<DebugDisplayType>(debugRenderingCurrentItem));
+			// scene.setDebugDisplayType(static_cast<DebugDisplayType>(debugRenderingCurrentItem));
 			ImGui::Separator();
 		}
 
@@ -349,46 +345,4 @@ void UiManager::SetupFontAtlas()
 
 void UiManager::DrawDrawables(const std::vector<Drawable> &drawables)
 {
-}
-
-void UiManager::DrawSceneNode(const sptr<SceneNode> &parentNode)
-{
-	auto childNodes = parentNode->GetAllChildNodes();
-	ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick | (selectedActor == parentNode ? ImGuiTreeNodeFlags_Selected : 0);
-
-	if (childNodes.empty())
-	{
-		flags |= ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen;
-		ImGui::TreeNodeEx(parentNode->GetName().c_str(), flags);
-		if (ImGui::IsItemClicked())
-		{
-			if (selectedActor != nullptr)
-			{
-				selectedActor->SetSelected(false);
-			}
-			selectedActor = parentNode;
-			selectedActor->SetSelected(true);
-		}
-	}
-	else
-	{
-		bool open = ImGui::TreeNodeEx(parentNode->GetName().c_str(), flags);
-		if (ImGui::IsItemClicked())
-		{
-			if (selectedActor != nullptr)
-			{
-				selectedActor->SetSelected(false);
-			}
-			selectedActor = parentNode;
-			selectedActor->SetSelected(true);
-		}
-		if (open)
-		{
-			for (auto childNode : childNodes)
-			{
-				DrawSceneNode(childNode);
-			}
-			ImGui::TreePop();
-		}
-	}
 }

@@ -2,14 +2,13 @@
 #include <memory>
 #include <vector>
 
-#include "../Maths/AABB.hpp"
-#include "../Maths/Vector2.hpp"
-#include "../Maths/Vector3.hpp"
+#include "Maths.h"
 #include "Types.hpp"
 
 class IndexBuffer;
 class Material;
 class VertexBuffer;
+class RenderDevice;
 
 class StaticMesh
 {
@@ -32,8 +31,8 @@ public:
   void generateTangents();
   void generateNormals();
 
-  std::shared_ptr<VertexBuffer> getVertexData();
-  std::shared_ptr<IndexBuffer> getIndexData();
+  std::shared_ptr<VertexBuffer> getVertexData(std::shared_ptr<RenderDevice> renderDevice);
+  std::shared_ptr<IndexBuffer> getIndexData(std::shared_ptr<RenderDevice> renderDevice);
 
   bool isInitialized() const { return _verticesNeedUpdate && _indicesNeedUpdate; }
   bool isIndexed() const { return _indexed; }
@@ -52,8 +51,8 @@ private:
 
   std::vector<float32> createRestructuredVertexDataArray(int32 &stride) const;
   std::vector<float32> createVertexDataArray() const;
-  void uploadVertexData();
-  void uploadIndexData();
+  void uploadVertexData(std::shared_ptr<RenderDevice> renderDevice);
+  void uploadIndexData(std::shared_ptr<RenderDevice> renderDevice);
 
   std::shared_ptr<IndexBuffer> _indexBuffer;
   std::shared_ptr<VertexBuffer> _vertexBuffer;

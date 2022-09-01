@@ -14,6 +14,7 @@
 class EventDispatcher;
 class InputHandler;
 class Renderer;
+class RenderDevice;
 
 struct ApplicationDesc
 {
@@ -58,4 +59,5 @@ private:
   ApplicationDesc _desc;
   Vector2I _cursorPosition;
   GLFWwindow *_window;
+  std::shared_ptr<RenderDevice> _renderDevice;
 };
