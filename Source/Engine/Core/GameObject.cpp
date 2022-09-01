@@ -10,5 +10,21 @@ void GameObject::update(float32 dt)
   {
     _transform.update(dt);
   }
+
   onUpdate(dt);
+
+  for (auto child : _children)
+  {
+    child->update(dt);
+  }
+}
+
+void GameObject::setParent(const GameObject &parent)
+{
+  _parent = &parent;
+}
+
+void GameObject::addChild(GameObject &child)
+{
+  _children.push_back(&child);
 }

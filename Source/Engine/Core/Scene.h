@@ -8,6 +8,7 @@
 #include "Maths.h"
 #include "Types.hpp"
 
+class GameObject;
 class DeferredRenderer;
 class RenderDevice;
 
@@ -16,6 +17,7 @@ class Scene
 public:
   bool init(const Vector2I &windowDims, std::shared_ptr<RenderDevice> renderDevice);
 
+  GameObject &createGameObject();
   Drawable &createDrawable();
   Light &createLight();
 
@@ -41,6 +43,7 @@ private:
     }
   };
 
+  std::vector<GameObject> _gameObject;
   std::vector<Drawable> _drawables;
   std::vector<Light> _lights;
   Camera _camera;
