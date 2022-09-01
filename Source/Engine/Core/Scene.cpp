@@ -2,6 +2,7 @@
 
 #include <iostream>
 #include <set>
+#include <string>
 #include <vector>
 
 #include "../Utility/ModelLoader.hpp"
@@ -17,13 +18,14 @@ bool Scene::init(const Vector2I &windowDims, std::shared_ptr<RenderDevice> rende
 
 Drawable &Scene::createDrawable()
 {
-  _drawables.push_back(Drawable());
+  _drawables.push_back(Drawable(std::string()));
   return _drawables[_drawables.size() - 1];
 }
 
 Light &Scene::createLight()
 {
   _lights.push_back(Light());
+
   return _lights[_lights.size() - 1];
 }
 
@@ -36,7 +38,7 @@ void Scene::update(float64 dt)
     drawable.update(dt);
   }
 
-  for (auto& light : _lights)
+  for (auto &light : _lights)
   {
     light.update(dt);
   }

@@ -4,16 +4,19 @@
 #include "Transform.h"
 #include "Types.hpp"
 
-class GameObject : public Transform
+class GameObject
 {
 public:
-  virtual void update(float32 dt) = 0;
-  virtual void drawInspector() = 0;
+  virtual void onUpdate(float32 dt) = 0;
 
-  std::string getName() const { return _name; }
+  void update(float32 dt);
 
-  void setName(const std::string &name) { _name = name; }
+  Transform &transform() { return _transform; }
+  const Transform &getTransform() const { return _transform; }
 
 protected:
+  GameObject(const std::string &name);
+
+  Transform _transform;
   std::string _name;
 };

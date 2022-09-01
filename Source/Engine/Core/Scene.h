@@ -1,13 +1,12 @@
 #pragma once
 #include <memory>
-#include <string>
 #include <vector>
 
 #include "../Rendering/Drawable.h"
-#include "Camera.h"
+#include "../Rendering/Camera.h"
+#include "../Rendering/Light.h"
 #include "Maths.h"
 #include "Types.hpp"
-#include "Light.h"
 
 class DeferredRenderer;
 class RenderDevice;

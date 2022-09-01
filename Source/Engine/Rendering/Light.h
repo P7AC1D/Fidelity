@@ -1,5 +1,5 @@
 #pragma once
-#include "Maths.h"
+#include "../Core/Maths.h"
 
 enum class LightType
 {

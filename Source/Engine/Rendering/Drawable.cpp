@@ -6,21 +6,17 @@
 #include "StaticMesh.h"
 #include "Material.h"
 
-Drawable::Drawable() : _currentScale(Vector3::Identity),
-                       _currentRotationEuler(Vector3::Zero),
-                       _drawAabb(false)
+Drawable::Drawable(const std::string &drawableName) : GameObject(drawableName),
+                                                      _currentScale(Vector3::Identity),
+                                                      _currentRotationEuler(Vector3::Zero),
+                                                      _drawAabb(false)
 {
 }
 
-void Drawable::update(float32 dt)
+void Drawable::onUpdate(float32 dt)
 {
-  if (Transform::modified())
-  {
-    Transform::update(dt);
-  }  
-
-  auto newRotation = getRotation();
-  auto newScale = getScale();
+  auto newRotation = _transform.getRotation();
+  auto newScale = _transform.getScale();
   if (_currentRotationEuler != newRotation.ToEuler() || _currentScale != newScale)
   {
     updateAabb(newScale, newRotation);

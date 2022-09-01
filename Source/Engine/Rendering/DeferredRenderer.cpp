@@ -2,8 +2,6 @@
 
 #include <iostream>
 
-#include "../Core/Camera.h"
-#include "../Core/Light.h"
 #include "../Geometry/MeshFactory.h"
 #include "../RenderApi/BlendState.hpp"
 #include "../RenderApi/DepthStencilState.hpp"
@@ -18,7 +16,9 @@
 #include "../RenderApi/VertexBuffer.hpp"
 #include "../RenderApi/VertexLayout.hpp"
 #include "../Utility/String.hpp"
+#include "Camera.h"
 #include "Drawable.h"
+#include "Light.h"
 #include "Material.h"
 #include "StaticMesh.h"
 
@@ -529,7 +529,7 @@ void DeferredRenderer::drawFrame(std::shared_ptr<RenderDevice> renderDevice,
   }
   }
 
-  //drawAabb(renderDevice, aabbDrawableIndices, allDrawables, camera);
+  // drawAabb(renderDevice, aabbDrawableIndices, allDrawables, camera);
 }
 
 void DeferredRenderer::gbufferPass(std::shared_ptr<RenderDevice> device,
@@ -541,10 +541,10 @@ void DeferredRenderer::gbufferPass(std::shared_ptr<RenderDevice> device,
   device->SetRenderTarget(_gBufferRto);
   device->ClearBuffers(RTT_Colour | RTT_Depth | RTT_Stencil);
 
-  //for (auto index : sortedDrawableIndices)
-  for (auto& drawable : allDrawables)
+  // for (auto index : sortedDrawableIndices)
+  for (auto &drawable : allDrawables)
   {
-    //auto &drawable = allDrawables[index];
+    // auto &drawable = allDrawables[index];
     writeMaterialConstantData(device, drawable.getMaterial());
     writeObjectConstantData(drawable, camera);
 
@@ -672,7 +672,7 @@ void DeferredRenderer::drawAabb(std::shared_ptr<RenderDevice> renderDevice,
     auto aabb = drawable.getAabb();
 
     ObjectBuffer objectBufferData;
-    objectBufferData.Model = Matrix4::Translation(drawable.getPosition()) * Matrix4::Scaling(aabb.GetHalfSize());
+    objectBufferData.Model = Matrix4::Translation(drawable.getTransform().getPosition()) * Matrix4::Scaling(aabb.GetHalfSize());
     objectBufferData.ModelView = camera.getView() * objectBufferData.Model;
     objectBufferData.ModelViewProjection = camera.getProj() * objectBufferData.ModelView;
     _aabbBuffer->WriteData(0, sizeof(ObjectBuffer), &objectBufferData, AccessType::WriteOnlyDiscard);
@@ -721,7 +721,7 @@ void DeferredRenderer::writeMaterialConstantData(std::shared_ptr<RenderDevice> r
 void DeferredRenderer::writeObjectConstantData(const Drawable &drawable, const Camera &camera) const
 {
   ObjectBuffer objectBufferData;
-  objectBufferData.Model = drawable.getMatrix();
+  objectBufferData.Model = drawable.getTransform().getMatrix();
   objectBufferData.ModelView = camera.getView() * objectBufferData.Model;
   objectBufferData.ModelViewProjection = camera.getProj() * objectBufferData.ModelView;
   _objectBuffer->WriteData(0, sizeof(ObjectBuffer), &objectBufferData, AccessType::WriteOnlyDiscard);

@@ -213,7 +213,6 @@ std::shared_ptr<StaticMesh> BuildMesh(const std::string &filePath, const aiMesh 
 
 void BuildModel(Scene &scene, const std::string &fileFolder, const aiScene *aiScene, bool reconstructWorldTransforms)
 {
-  
 
   std::vector<std::shared_ptr<Material>> materials(aiScene->mNumMaterials);
   for (uint32 i = 0; i < aiScene->mNumMaterials; i++)
@@ -226,10 +225,10 @@ void BuildModel(Scene &scene, const std::string &fileFolder, const aiScene *aiSc
     auto aiMesh = aiScene->mMeshes[i];
 
     Vector3 offset;
-    Drawable& drawable = scene.createDrawable();
+    Drawable &drawable = scene.createDrawable();
     drawable.setMaterial(materials[aiMesh->mMaterialIndex]);
     drawable.setMesh(BuildMesh(fileFolder, aiMesh, reconstructWorldTransforms, offset));
-    drawable.setPosition(offset);
+    drawable.transform().setPosition(offset);
   }
 }
 

@@ -1,7 +1,7 @@
 #include "Camera.h"
 
-#include "../Rendering/Drawable.h"
 #include "../UI/ImGui/imgui.h"
+#include "Drawable.h"
 
 Camera::Camera() : _width(1280),
 									 _height(768),
@@ -29,9 +29,9 @@ void Camera::drawInspector()
 		setFar(farClip);
 		setNear(nearClip);
 		setFov(fovY);
-				
+
 		Vector3 position(_transform.getPosition());
-		float32 pos[]{ position.X, position.Y, position.Z};
+		float32 pos[]{position.X, position.Y, position.Z};
 		ImGui::DragFloat3("Position", pos, 0.1f);
 		_transform.setPosition(Vector3(pos[0], pos[1], pos[2]));
 
@@ -123,5 +123,5 @@ bool Camera::intersectsFrustrum(const Drawable &drawable) const
 
 float32 Camera::distanceFrom(const Drawable &drawable) const
 {
-	return (_transform.getPosition() - drawable.getPosition()).Length();
+	return (_transform.getPosition() - drawable.getTransform().getPosition()).Length();
 }

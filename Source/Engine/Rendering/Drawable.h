@@ -1,4 +1,5 @@
 #pragma once
+#include <string>
 #include <memory>
 
 #include "../Core/GameObject.h"
@@ -10,10 +11,9 @@ class Material;
 class Drawable : public GameObject
 {
 public:
-  Drawable();
+  Drawable(const std::string &drawableName);
 
-  void update(float32 dt) override;
-  void drawInspector() override {}
+  void onUpdate(float32 dt) override;
 
   Drawable &setMesh(std::shared_ptr<StaticMesh> mesh);
   Drawable &setMaterial(std::shared_ptr<Material> material);

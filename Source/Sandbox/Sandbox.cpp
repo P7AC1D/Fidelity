@@ -3,29 +3,6 @@
 #include <iomanip>
 #include <sstream>
 
-#include "../Engine/Geometry/MeshFactory.h"
-#include "../Engine/Input/InputHandler.hpp"
-#include "../Engine/Input/EventDispatcher.hpp"
-#include "../Engine/Maths/Degree.hpp"
-#include "../Engine/Maths/Math.hpp"
-#include "../Engine/Maths/Quaternion.hpp"
-#include "../Engine/Maths/Radian.hpp"
-#include "../Engine/Maths/Vector2.hpp"
-#include "../Engine/Maths/Vector3.hpp"
-#include "../Engine/Utility/TextureLoader.hpp"
-#include "../Engine/Rendering/Material.hpp"
-#include "../Engine/Rendering/Renderable.hpp"
-#include "../Engine/Rendering/Renderer.h"
-#include "../Engine/Rendering/StaticMesh.h"
-#include "../Engine/RenderApi/Texture.hpp"
-#include "../Engine/SceneManagement/Component.hpp"
-#include "../Engine/SceneManagement/ActorNode.hpp"
-#include "../Engine/SceneManagement/CameraNode.hpp"
-#include "../Engine/SceneManagement/GenericNode.hpp"
-#include "../Engine/SceneManagement/SceneNode.hpp"
-#include "../Engine/SceneManagement/Transform.h"
-#include "../Engine/Utility/ModelLoader.hpp"
-
 static const float32 CAMERA_ROTATION_FACTOR = 0.005f;
 static const float32 CAMERA_ZOOM_FACTOR = 0.01f;
 

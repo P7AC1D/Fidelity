@@ -1,7 +1,6 @@
 #include "Light.h"
 
 #include "../UI/ImGui/imgui.h"
-#include "../Maths/Degree.hpp"
 
 Light::Light() : _colour(Colour::White),
 								 _radius(10.0f),
