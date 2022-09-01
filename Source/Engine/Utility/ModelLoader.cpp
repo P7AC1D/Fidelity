@@ -7,11 +7,11 @@
 #include <assimp/postprocess.h>
 
 #include "../Maths/Math.hpp"
-#include "../Core/Material.h"
-#include "../Core/Drawable.h"
-#include "../Core/StaticMesh.h"
 #include "../Core/Transform.h"
 #include "../RenderApi/RenderDevice.hpp"
+#include "../Rendering/Drawable.h"
+#include "../Rendering/Material.h"
+#include "../Rendering/StaticMesh.h"
 #include "Assert.hpp"
 #include "String.hpp"
 #include "TextureLoader.hpp"

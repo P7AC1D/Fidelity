@@ -3,7 +3,6 @@
 #include "../RenderApi/IndexBuffer.hpp"
 #include "../RenderApi/RenderDevice.hpp"
 #include "../RenderApi/VertexBuffer.hpp"
-#include "Material.h"
 
 StaticMesh::StaticMesh() : _vertexDataFormat(0),
                            _vertexCount(0),

@@ -2,8 +2,8 @@
 #include <memory>
 #include <vector>
 
-#include "Maths.h"
-#include "Types.hpp"
+#include "../Core/Maths.h"
+#include "../Core/Types.hpp"
 
 class IndexBuffer;
 class Material;

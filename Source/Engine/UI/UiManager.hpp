@@ -3,7 +3,7 @@
 #include <unordered_map>
 #include <vector>
 
-#include "../Core/Drawable.h"
+#include "../Rendering/Drawable.h"
 #include "../Core/Types.hpp"
 #include "../Core/Scene.h"
 

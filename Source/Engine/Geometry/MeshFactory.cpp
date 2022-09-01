@@ -4,8 +4,8 @@
 #include <vector>
 
 #include "../Core/Maths.h"
-#include "../Core/Material.h"
-#include "../Core/StaticMesh.h"
+#include "../Rendering/Material.h"
+#include "../Rendering/StaticMesh.h"
 #include "Cube.hpp"
 #include "UvSphere.hpp"
 #include "Icosphere.hpp"

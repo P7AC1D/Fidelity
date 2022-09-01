@@ -2,7 +2,7 @@
 
 #include <cmath>
 
-#include "../Maths/Math.hpp"
+#include "../Core/Maths.h"
 #include "StaticMesh.h"
 #include "Material.h"
 

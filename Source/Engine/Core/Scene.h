@@ -3,8 +3,8 @@
 #include <string>
 #include <vector>
 
+#include "../Rendering/Drawable.h"
 #include "Camera.h"
-#include "Drawable.h"
 #include "Maths.h"
 #include "Types.hpp"
 #include "Light.h"

@@ -3,10 +3,7 @@
 #include <iostream>
 
 #include "../Core/Camera.h"
-#include "../Core/Drawable.h"
-#include "../Core/Material.h"
 #include "../Core/Light.h"
-#include "../Core/StaticMesh.h"
 #include "../Geometry/MeshFactory.h"
 #include "../RenderApi/BlendState.hpp"
 #include "../RenderApi/DepthStencilState.hpp"
@@ -21,6 +18,9 @@
 #include "../RenderApi/VertexBuffer.hpp"
 #include "../RenderApi/VertexLayout.hpp"
 #include "../Utility/String.hpp"
+#include "Drawable.h"
+#include "Material.h"
+#include "StaticMesh.h"
 
 struct MaterialBufferData
 {
@@ -582,15 +582,16 @@ void DeferredRenderer::lightPrePass(std::shared_ptr<RenderDevice> renderDevice,
   renderDevice->SetConstantBuffer(1, _pointLightConstantsBuffer);
   renderDevice->SetConstantBuffer(2, _pointLightBuffer);
 
+  Transform cameraTransform(camera.getTransformCopy());
   PointLightConstantsBuffer pointLightConstantsBuffer;
   pointLightConstantsBuffer.ProjViewInvs = (camera.getProj() * camera.getView()).Inverse();
-  pointLightConstantsBuffer.CameraPosition = camera.getPosition();
+  pointLightConstantsBuffer.CameraPosition = cameraTransform.getPosition();
   pointLightConstantsBuffer.PixelSize = Vector2(1.0f / _windowDims.X, 1.0f / _windowDims.Y);
   _pointLightConstantsBuffer->WriteData(0, sizeof(PointLightConstantsBuffer), &pointLightConstantsBuffer, AccessType::WriteOnlyDiscard);
 
   for (auto &light : lights)
   {
-    float32 distToLight = (light.getPosition() - camera.getPosition()).Length();
+    float32 distToLight = (light.getPosition() - cameraTransform.getPosition()).Length();
     if (distToLight < light.getRadius())
     {
       renderDevice->SetPipelineState(_lightPrePassCWPto);

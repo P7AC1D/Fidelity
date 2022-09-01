@@ -1,6 +1,6 @@
 #pragma once
 #include <memory>
-#include "../Maths/Colour.hpp"
+#include "../Core/Maths.h"
 
 class Texture;
 

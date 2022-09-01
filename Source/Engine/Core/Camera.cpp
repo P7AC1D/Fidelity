@@ -1,7 +1,7 @@
 #include "Camera.h"
 
+#include "../Rendering/Drawable.h"
 #include "../UI/ImGui/imgui.h"
-#include "Drawable.h"
 
 Camera::Camera() : _width(1280),
 									 _height(768),
@@ -29,24 +29,24 @@ void Camera::drawInspector()
 		setFar(farClip);
 		setNear(nearClip);
 		setFov(fovY);
-
-		Vector3 position(getPosition());
+				
+		Vector3 position(_transform.getPosition());
 		float32 pos[]{ position.X, position.Y, position.Z};
 		ImGui::DragFloat3("Position", pos, 0.1f);
-		setPosition(Vector3(pos[0], pos[1], pos[2]));
+		_transform.setPosition(Vector3(pos[0], pos[1], pos[2]));
 
-		Vector3 euler = getRotation().ToEuler();
+		Vector3 euler = _transform.getRotation().ToEuler();
 		float32 angles[3] = {euler.X, euler.Y, euler.Z};
 		ImGui::DragFloat3("Orientation", angles, 1.0f);
-		setRotation(Quaternion(Degree(angles[0]), Degree(angles[1]), Degree(angles[2])));
+		_transform.setRotation(Quaternion(Degree(angles[0]), Degree(angles[1]), Degree(angles[2])));
 	}
 }
 
 void Camera::update(float64 dt)
 {
-	if (_modified || Transform::modified())
+	if (_modified || _transform.modified())
 	{
-		Transform::update(dt);
+		_transform.update(dt);
 		updateView();
 		updateProjection();
 		_modified = false;
@@ -101,8 +101,8 @@ Camera &Camera::setFar(float32 far)
 
 void Camera::updateView()
 {
-	Matrix4 rotation(getRotation());
-	Matrix4 translation(Matrix4::Translation(getPosition()));
+	Matrix4 rotation(_transform.getRotation());
+	Matrix4 translation(Matrix4::Translation(_transform.getPosition()));
 	translation[3][0] = -translation[3][0];
 	translation[3][1] = -translation[3][1];
 	translation[3][2] = -translation[3][2];
@@ -123,5 +123,5 @@ bool Camera::intersectsFrustrum(const Drawable &drawable) const
 
 float32 Camera::distanceFrom(const Drawable &drawable) const
 {
-	return (getPosition() - drawable.getPosition()).Length();
+	return (_transform.getPosition() - drawable.getPosition()).Length();
 }

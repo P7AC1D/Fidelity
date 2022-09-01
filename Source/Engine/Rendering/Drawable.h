@@ -1,7 +1,8 @@
 #pragma once
 #include <memory>
-#include "GameObject.h"
-#include "Maths.h"
+
+#include "../Core/GameObject.h"
+#include "../Core/Maths.h"
 
 class StaticMesh;
 class Material;

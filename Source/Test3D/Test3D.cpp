@@ -15,6 +15,7 @@ void Test3D::OnStart()
 {
   _scene.getCamera()
       .setPerspective(Degree(67.67f), GetWidth(), GetHeight(), 0.1f, 10000.0f)
+      .getTransform()
       .lookAt(Vector3(-400.0f, 500.0f, 20.0f), _cameraTarget);
 
   _scene.createLight()
@@ -60,20 +61,20 @@ void Test3D::OnUpdate(uint32 dtMs)
 
 void Test3D::RotateCamera(const Degree &deltaX, const Degree &deltaY, int32 dtMs)
 {
-  Camera &camera = _scene.getCamera();
+  Transform &cameraTransform = _scene.getCamera().getTransform();
   float32 velocity(CAMERA_ROTATION_FACTOR * static_cast<float32>(dtMs));
-  Quaternion pitch(camera.getRight(), velocity * deltaX.InRadians());
-  Quaternion yaw(camera.getUp(), velocity * deltaY.InRadians());
+  Quaternion pitch(cameraTransform.getRight(), velocity * deltaX.InRadians());
+  Quaternion yaw(cameraTransform.getUp(), velocity * deltaY.InRadians());
   Quaternion rotation(pitch * yaw);
-  Vector3 newPosition(rotation.Rotate(camera.getPosition()));
-  camera.lookAt(newPosition, _cameraTarget);
+  Vector3 newPosition(rotation.Rotate(cameraTransform.getPosition()));
+  cameraTransform.lookAt(newPosition, _cameraTarget);
 }
 
 void Test3D::ZoomCamera(float32 delta, int32 dtMs)
 {
-  Camera &camera = _scene.getCamera();
-  Vector3 cameraForward = camera.getForward();
-  Vector3 cameraPostion = camera.getPosition();
+  Transform& cameraTransform = _scene.getCamera().getTransform();
+  Vector3 cameraForward = cameraTransform.getForward();
+  Vector3 cameraPostion = cameraTransform.getPosition();
 
   float32 distanceToTarget = Vector3::Length(cameraPostion - _cameraTarget);
   float32 velocity(CAMERA_ZOOM_FACTOR * distanceToTarget * static_cast<float32>(dtMs));
@@ -85,5 +86,5 @@ void Test3D::ZoomCamera(float32 delta, int32 dtMs)
   {
     newPosition = _cameraTarget + cameraForward * 0.1f;
   }
-  camera.lookAt(newPosition, _cameraTarget);
+  cameraTransform.lookAt(newPosition, _cameraTarget);
 }
