@@ -4,8 +4,10 @@
 
 #include "../Core/Scene.h"
 
+class GameObject;
+
 class ModelLoader
 {
 public:
-  static void FromFile(Scene &scene, const std::string &filePath, bool reconstructWorldTransforms);
+  static GameObject &FromFile(Scene &scene, const std::string &filePath, bool reconstructWorldTransforms);
 };

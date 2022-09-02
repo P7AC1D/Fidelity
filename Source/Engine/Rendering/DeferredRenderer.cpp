@@ -602,7 +602,7 @@ void DeferredRenderer::lightPrePass(std::shared_ptr<RenderDevice> renderDevice,
     }
 
     PointLightBuffer pointLightBuffer;
-    pointLightBuffer.Model = light.getTransform();
+    pointLightBuffer.Model = light.getMatrix();
     pointLightBuffer.ModelView = camera.getView() * pointLightBuffer.Model;
     pointLightBuffer.ModelViewProjection = camera.getProj() * pointLightBuffer.ModelView;
     pointLightBuffer.Colour = light.getColour().ToVec3();
@@ -672,7 +672,7 @@ void DeferredRenderer::drawAabb(std::shared_ptr<RenderDevice> renderDevice,
     auto aabb = drawable.getAabb();
 
     ObjectBuffer objectBufferData;
-    objectBufferData.Model = Matrix4::Translation(drawable.getTransform().getPosition()) * Matrix4::Scaling(aabb.GetHalfSize());
+    objectBufferData.Model = Matrix4::Translation(drawable.getPosition()) * Matrix4::Scaling(aabb.GetHalfSize());
     objectBufferData.ModelView = camera.getView() * objectBufferData.Model;
     objectBufferData.ModelViewProjection = camera.getProj() * objectBufferData.ModelView;
     _aabbBuffer->WriteData(0, sizeof(ObjectBuffer), &objectBufferData, AccessType::WriteOnlyDiscard);
@@ -721,7 +721,7 @@ void DeferredRenderer::writeMaterialConstantData(std::shared_ptr<RenderDevice> r
 void DeferredRenderer::writeObjectConstantData(const Drawable &drawable, const Camera &camera) const
 {
   ObjectBuffer objectBufferData;
-  objectBufferData.Model = drawable.getTransform().getMatrix();
+  objectBufferData.Model = drawable.getMatrix();
   objectBufferData.ModelView = camera.getView() * objectBufferData.Model;
   objectBufferData.ModelViewProjection = camera.getProj() * objectBufferData.ModelView;
   _objectBuffer->WriteData(0, sizeof(ObjectBuffer), &objectBufferData, AccessType::WriteOnlyDiscard);

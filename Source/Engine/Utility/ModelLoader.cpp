@@ -7,7 +7,9 @@
 #include <assimp/postprocess.h>
 
 #include "../Maths/Math.hpp"
+#include "../Core/Component.h"
 #include "../Core/Transform.h"
+#include "../Core/GameObject.h"
 #include "../RenderApi/RenderDevice.hpp"
 #include "../Rendering/Drawable.h"
 #include "../Rendering/Material.h"
@@ -211,8 +213,9 @@ std::shared_ptr<StaticMesh> BuildMesh(const std::string &filePath, const aiMesh 
   return mesh;
 }
 
-void BuildModel(Scene &scene, const std::string &fileFolder, const aiScene *aiScene, bool reconstructWorldTransforms)
+GameObject &BuildModel(Scene &scene, const std::string &fileFolder, const aiScene *aiScene, bool reconstructWorldTransforms)
 {
+  GameObject &root = scene.createGameObject(aiScene->mName.C_Str());
 
   std::vector<std::shared_ptr<Material>> materials(aiScene->mNumMaterials);
   for (uint32 i = 0; i < aiScene->mNumMaterials; i++)
@@ -224,15 +227,20 @@ void BuildModel(Scene &scene, const std::string &fileFolder, const aiScene *aiSc
   {
     auto aiMesh = aiScene->mMeshes[i];
 
+    GameObject &currentObject = scene.createGameObject(aiMesh->mName.C_Str());
+    Drawable &drawable = scene.createComponent<Drawable>();
+
+    currentObject.addComponent(drawable);
+    root.addChild(currentObject);
+
     Vector3 offset;
-    Drawable &drawable = scene.createDrawable();
     drawable.setMaterial(materials[aiMesh->mMaterialIndex]);
     drawable.setMesh(BuildMesh(fileFolder, aiMesh, reconstructWorldTransforms, offset));
-    drawable.transform().setPosition(offset);
+    currentObject.transform().setPosition(offset);
   }
 }
 
-void ModelLoader::FromFile(Scene &scene, const std::string &filePath, bool reconstructWorldTransforms)
+GameObject &ModelLoader::FromFile(Scene &scene, const std::string &filePath, bool reconstructWorldTransforms)
 {
   Assimp::Importer importer;
   auto aiScene = importer.ReadFile(filePath, aiProcess_Triangulate | aiProcess_GenNormals | aiProcess_GenUVCoords);
@@ -241,5 +249,5 @@ void ModelLoader::FromFile(Scene &scene, const std::string &filePath, bool recon
   auto splitPath = String::Split(filePath, '/');
   splitPath.pop_back();
   auto fileFolder = String::Join(splitPath, '/');
-  BuildModel(scene, fileFolder, aiScene, reconstructWorldTransforms);
+  return BuildModel(scene, fileFolder, aiScene, reconstructWorldTransforms);
 }

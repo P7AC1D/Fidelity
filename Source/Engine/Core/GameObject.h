@@ -1,19 +1,20 @@
 #pragma once
-#include <list>
 #include <string>
+#include <vector>
 
 #include "Transform.h"
 #include "Types.hpp"
 
+class Component;
+
 class GameObject
 {
 public:
-  virtual void onUpdate(float32 dt) = 0;
-
   void update(float32 dt);
 
-  void setParent(const GameObject &parent);
-  void addChild(GameObject &child);
+  GameObject &setParent(const GameObject &parent);
+  GameObject &addChild(GameObject &child);
+  GameObject &addComponent(Component &component);
 
   Transform &transform() { return _transform; }
   const Transform &getTransform() const { return _transform; }
@@ -27,6 +28,11 @@ protected:
   std::string _name;
 
 private:
+  virtual void onUpdate(float32 dt) = 0;
+
+  void notifyComponents() const;
+
   const GameObject *_parent;
-  std::list<GameObject *> _children;
+  std::vector<GameObject *> _children;
+  std::vector<Component *> _components;
 };

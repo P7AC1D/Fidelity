@@ -6,23 +6,14 @@
 #include "StaticMesh.h"
 #include "Material.h"
 
-Drawable::Drawable(const std::string &drawableName) : GameObject(drawableName),
-                                                      _currentScale(Vector3::Identity),
-                                                      _currentRotationEuler(Vector3::Zero),
-                                                      _drawAabb(false)
-{
-}
+static const std::string COMPONENT_NAME = "Drawable";
 
-void Drawable::onUpdate(float32 dt)
+Drawable::Drawable() : Component(COMPONENT_NAME),
+                       _currentScale(Vector3::Identity),
+                       _currentRotationEuler(Vector3::Zero),
+                       _drawAabb(false),
+                       _modified(true)
 {
-  auto newRotation = _transform.getRotation();
-  auto newScale = _transform.getScale();
-  if (_currentRotationEuler != newRotation.ToEuler() || _currentScale != newScale)
-  {
-    updateAabb(newScale, newRotation);
-    _currentScale = newScale;
-    _currentRotationEuler = newRotation.ToEuler();
-  }
 }
 
 Drawable &Drawable::setMesh(std::shared_ptr<StaticMesh> mesh)
@@ -30,6 +21,7 @@ Drawable &Drawable::setMesh(std::shared_ptr<StaticMesh> mesh)
   _mesh = mesh;
   _initAabb = mesh->getAabb();
   _currAabb = _initAabb;
+  _modified = true;
   return *this;
 }
 
@@ -37,6 +29,35 @@ Drawable &Drawable::setMaterial(std::shared_ptr<Material> material)
 {
   _material = material;
   return *this;
+}
+
+void Drawable::onUpdate(float32 dt)
+{
+  if (_modified)
+  {
+    if (_currentRotationEuler != _rotation.ToEuler() || _currentScale != _scale)
+    {
+      updateAabb(_scale, _rotation);
+      _currentScale = _scale;
+      _currentRotationEuler = _rotation.ToEuler();
+    }
+
+    Matrix4 translation = Matrix4::Translation(_position);
+    Matrix4 scale = Matrix4::Scaling(_scale);
+    Matrix4 rotation = Matrix4::Rotation(_rotation);
+    _transform = translation * scale * rotation;
+
+    _modified = true;
+  }
+}
+
+void Drawable::onNotify(const GameObject &gameObject)
+{
+  Transform transform(gameObject.getTransform());
+  _scale = transform.getScale();
+  _rotation = transform.getRotation();
+  _position = transform.getPosition();
+  _modified = true;
 }
 
 void Drawable::updateAabb(Vector3 scalingDelta, Quaternion rotationDelta)

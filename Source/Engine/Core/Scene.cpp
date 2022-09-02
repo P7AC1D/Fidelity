@@ -16,17 +16,10 @@ bool Scene::init(const Vector2I &windowDims, std::shared_ptr<RenderDevice> rende
   return _deferredRenderer->init(_renderDevice);
 }
 
-Drawable &Scene::createDrawable()
+GameObject &Scene::createGameObject(const std::string &name)
 {
-  _drawables.push_back(Drawable(std::string()));
-  return _drawables[_drawables.size() - 1];
-}
-
-Light &Scene::createLight()
-{
-  _lights.push_back(Light());
-
-  return _lights[_lights.size() - 1];
+  _gameObject.emplace_back(name);
+  return _gameObject[_gameObject.size() - 1];
 }
 
 void Scene::update(float64 dt)
@@ -41,6 +34,11 @@ void Scene::update(float64 dt)
   for (auto &light : _lights)
   {
     light.update(dt);
+  }
+
+  for (auto &gameObject : _gameObject)
+  {
+    gameObject.update(dt);
   }
 }
 

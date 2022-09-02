@@ -123,5 +123,5 @@ bool Camera::intersectsFrustrum(const Drawable &drawable) const
 
 float32 Camera::distanceFrom(const Drawable &drawable) const
 {
-	return (_transform.getPosition() - drawable.getTransform().getPosition()).Length();
+	return (_transform.getPosition() - drawable.getPosition()).Length();
 }
