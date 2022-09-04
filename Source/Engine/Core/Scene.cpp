@@ -82,9 +82,9 @@ void Scene::drawFrame() const
   }
 
   std::vector<std::shared_ptr<Drawable>> drawables;
-  for (auto culledDrawable : culledDrawables)
+  for (auto culledDrawable : _components.find(ComponentType::Drawable)->second)
   {
-    drawables.push_back(std::dynamic_pointer_cast<Drawable>(culledDrawable.ComponentPtr));
+    drawables.push_back(std::dynamic_pointer_cast<Drawable>(culledDrawable));
   }
 
   _deferredRenderer->drawFrame(_renderDevice, aabbDrawables, drawables, lights, _camera);
