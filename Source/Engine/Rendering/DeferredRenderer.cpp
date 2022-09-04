@@ -484,15 +484,14 @@ bool DeferredRenderer::init(std::shared_ptr<RenderDevice> device)
 }
 
 void DeferredRenderer::drawFrame(std::shared_ptr<RenderDevice> renderDevice,
-                                 const std::vector<uint64> &sortedDrawableIndices,
-                                 const std::vector<uint64> &aabbDrawableIndices,
-                                 const std::vector<Drawable> &allDrawables,
-                                 const std::vector<Light> &lights,
+                                 const std::vector<std::shared_ptr<Drawable>> &aabbDrawables,
+                                 const std::vector<std::shared_ptr<Drawable>> &drawables,
+                                 const std::vector<std::shared_ptr<Light>> &lights,
                                  const Camera &camera)
 {
   renderDevice->ClearBuffers(RTT_Colour | RTT_Depth | RTT_Stencil);
 
-  gbufferPass(renderDevice, sortedDrawableIndices, allDrawables, camera);
+  gbufferPass(renderDevice, drawables, camera);
   lightPrePass(renderDevice, lights, camera);
 
   switch (_debugDisplayType)
@@ -533,25 +532,22 @@ void DeferredRenderer::drawFrame(std::shared_ptr<RenderDevice> renderDevice,
 }
 
 void DeferredRenderer::gbufferPass(std::shared_ptr<RenderDevice> device,
-                                   const std::vector<uint64> &sortedDrawableIndices,
-                                   const std::vector<Drawable> &allDrawables,
+                                   const std::vector<std::shared_ptr<Drawable>> &drawables,
                                    const Camera &camera)
 {
   device->SetPipelineState(_gBufferPso);
   device->SetRenderTarget(_gBufferRto);
   device->ClearBuffers(RTT_Colour | RTT_Depth | RTT_Stencil);
 
-  // for (auto index : sortedDrawableIndices)
-  for (auto &drawable : allDrawables)
+  for (auto drawable : drawables)
   {
-    // auto &drawable = allDrawables[index];
-    writeMaterialConstantData(device, drawable.getMaterial());
+    writeMaterialConstantData(device, drawable->getMaterial());
     writeObjectConstantData(drawable, camera);
 
     device->SetConstantBuffer(0, _objectBuffer);
     device->SetConstantBuffer(2, _materialBuffer);
 
-    auto mesh = drawable.getMesh();
+    auto mesh = drawable->getMesh();
     device->SetVertexBuffer(mesh->getVertexData(device));
 
     if (mesh->isIndexed())
@@ -568,7 +564,7 @@ void DeferredRenderer::gbufferPass(std::shared_ptr<RenderDevice> device,
 }
 
 void DeferredRenderer::lightPrePass(std::shared_ptr<RenderDevice> renderDevice,
-                                    const std::vector<Light> &lights,
+                                    const std::vector<std::shared_ptr<Light>> &lights,
                                     const Camera &camera)
 {
   renderDevice->SetRenderTarget(_lightPrePassRto);
@@ -589,10 +585,10 @@ void DeferredRenderer::lightPrePass(std::shared_ptr<RenderDevice> renderDevice,
   pointLightConstantsBuffer.PixelSize = Vector2(1.0f / _windowDims.X, 1.0f / _windowDims.Y);
   _pointLightConstantsBuffer->WriteData(0, sizeof(PointLightConstantsBuffer), &pointLightConstantsBuffer, AccessType::WriteOnlyDiscard);
 
-  for (auto &light : lights)
+  for (auto light : lights)
   {
-    float32 distToLight = (light.getPosition() - cameraTransform.getPosition()).Length();
-    if (distToLight < light.getRadius())
+    float32 distToLight = (light->getPosition() - cameraTransform.getPosition()).Length();
+    if (distToLight < light->getRadius())
     {
       renderDevice->SetPipelineState(_lightPrePassCWPto);
     }
@@ -602,12 +598,12 @@ void DeferredRenderer::lightPrePass(std::shared_ptr<RenderDevice> renderDevice,
     }
 
     PointLightBuffer pointLightBuffer;
-    pointLightBuffer.Model = light.getMatrix();
+    pointLightBuffer.Model = light->getMatrix();
     pointLightBuffer.ModelView = camera.getView() * pointLightBuffer.Model;
     pointLightBuffer.ModelViewProjection = camera.getProj() * pointLightBuffer.ModelView;
-    pointLightBuffer.Colour = light.getColour().ToVec3();
-    pointLightBuffer.Position = light.getPosition();
-    pointLightBuffer.Radius = light.getRadius();
+    pointLightBuffer.Colour = light->getColour().ToVec3();
+    pointLightBuffer.Position = light->getPosition();
+    pointLightBuffer.Radius = light->getRadius();
     _pointLightBuffer->WriteData(0, sizeof(PointLightBuffer), &pointLightBuffer, AccessType::WriteOnlyDiscard);
 
     renderDevice->SetConstantBuffer(0, _pointLightBuffer);
@@ -662,17 +658,15 @@ void DeferredRenderer::drawRenderTarget(std::shared_ptr<RenderDevice> renderDevi
 }
 
 void DeferredRenderer::drawAabb(std::shared_ptr<RenderDevice> renderDevice,
-                                const std::vector<uint64> &aabbDrawableIndices,
-                                const std::vector<Drawable> &allDrawables,
+                                const std::vector<std::shared_ptr<Drawable>> &aabbDrawables,
                                 const Camera &camera)
 {
-  for (auto drawableIndex : aabbDrawableIndices)
+  for (auto drawable : aabbDrawables)
   {
-    auto &drawable = allDrawables[drawableIndex];
-    auto aabb = drawable.getAabb();
+    auto aabb = drawable->getAabb();
 
     ObjectBuffer objectBufferData;
-    objectBufferData.Model = Matrix4::Translation(drawable.getPosition()) * Matrix4::Scaling(aabb.GetHalfSize());
+    objectBufferData.Model = Matrix4::Translation(drawable->getPosition()) * Matrix4::Scaling(aabb.GetHalfSize());
     objectBufferData.ModelView = camera.getView() * objectBufferData.Model;
     objectBufferData.ModelViewProjection = camera.getProj() * objectBufferData.ModelView;
     _aabbBuffer->WriteData(0, sizeof(ObjectBuffer), &objectBufferData, AccessType::WriteOnlyDiscard);
@@ -718,10 +712,10 @@ void DeferredRenderer::writeMaterialConstantData(std::shared_ptr<RenderDevice> r
   _materialBuffer->WriteData(0, sizeof(MaterialBufferData), &matData, AccessType::WriteOnlyDiscard);
 }
 
-void DeferredRenderer::writeObjectConstantData(const Drawable &drawable, const Camera &camera) const
+void DeferredRenderer::writeObjectConstantData(std::shared_ptr<Drawable> drawable, const Camera &camera) const
 {
   ObjectBuffer objectBufferData;
-  objectBufferData.Model = drawable.getMatrix();
+  objectBufferData.Model = drawable->getMatrix();
   objectBufferData.ModelView = camera.getView() * objectBufferData.Model;
   objectBufferData.ModelViewProjection = camera.getProj() * objectBufferData.ModelView;
   _objectBuffer->WriteData(0, sizeof(ObjectBuffer), &objectBufferData, AccessType::WriteOnlyDiscard);

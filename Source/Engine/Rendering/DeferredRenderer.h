@@ -35,22 +35,20 @@ public:
   bool init(std::shared_ptr<RenderDevice> renderDevice);
 
   void drawFrame(std::shared_ptr<RenderDevice> renderDevice,
-                 const std::vector<uint64> &sortedDrawableIndices,
-                 const std::vector<uint64> &aabbDrawableIndices,
-                 const std::vector<Drawable> &allDrawables,
-                 const std::vector<Light> &lights,
+                 const std::vector<std::shared_ptr<Drawable>> &aabbDrawables,
+                 const std::vector<std::shared_ptr<Drawable>> &drawables,
+                 const std::vector<std::shared_ptr<Light>> &lights,
                  const Camera &camera);
 
   void setDebugDisplayType(DebugDisplayType debugDisplayType) { _debugDisplayType = debugDisplayType; }
 
 private:
   void gbufferPass(std::shared_ptr<RenderDevice> renderDevice,
-                   const std::vector<uint64> &sortedDrawableIndices,
-                   const std::vector<Drawable> &allDrawables,
+                   const std::vector<std::shared_ptr<Drawable>> &drawables,
                    const Camera &camera);
 
   void lightPrePass(std::shared_ptr<RenderDevice> renderDevice,
-                    const std::vector<Light> &lights,
+                    const std::vector<std::shared_ptr<Light>> &lights,
                     const Camera &camera);
 
   void mergePass(std::shared_ptr<RenderDevice> renderDevice);
@@ -60,13 +58,12 @@ private:
                         const Camera &camera);
 
   void drawAabb(std::shared_ptr<RenderDevice> renderDevice,
-                const std::vector<uint64> &drawableIndices,
-                const std::vector<Drawable> &allDrawables,
+                const std::vector<std::shared_ptr<Drawable>> &aabbDrawables,
                 const Camera &camera);
 
   void writeMaterialConstantData(std::shared_ptr<RenderDevice> renderDevice,
                                  std::shared_ptr<Material> material) const;
-  void writeObjectConstantData(const Drawable &drawable, const Camera &camera) const;
+  void writeObjectConstantData(std::shared_ptr<Drawable> drawable, const Camera &camera) const;
 
   Vector2I _windowDims;
   DebugDisplayType _debugDisplayType;

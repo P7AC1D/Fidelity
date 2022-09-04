@@ -3,7 +3,7 @@
 #include "../UI/ImGui/imgui.h"
 #include "../Core/GameObject.h"
 
-Light::Light() : Component(std::string()),
+Light::Light() : Component(ComponentType::Light),
 								 _colour(Colour::White),
 								 _radius(10.0f),
 								 _lightType(LightType::Point),

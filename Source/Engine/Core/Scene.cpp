@@ -8,6 +8,7 @@
 #include "../Utility/ModelLoader.hpp"
 #include "../Rendering/DeferredRenderer.h"
 #include "../RenderApi/RenderDevice.hpp"
+#include "GameObject.h"
 
 bool Scene::init(const Vector2I &windowDims, std::shared_ptr<RenderDevice> renderDevice)
 {
@@ -18,27 +19,26 @@ bool Scene::init(const Vector2I &windowDims, std::shared_ptr<RenderDevice> rende
 
 GameObject &Scene::createGameObject(const std::string &name)
 {
-  _gameObject.emplace_back(name);
-  return _gameObject[_gameObject.size() - 1];
+  auto gameObject = std::make_shared<GameObject>(name);
+  _gameObject.push_back(gameObject);
+  return *gameObject.get();
 }
 
 void Scene::update(float64 dt)
 {
   _camera.update(dt);
 
-  for (auto &drawable : _drawables)
+  for (auto componentType : _components)
   {
-    drawable.update(dt);
+    for (auto component : _components[componentType.first])
+    {
+      component->update(dt);
+    }
   }
 
-  for (auto &light : _lights)
+  for (auto gameObject : _gameObject)
   {
-    light.update(dt);
-  }
-
-  for (auto &gameObject : _gameObject)
-  {
-    gameObject.update(dt);
+    gameObject->update(dt);
   }
 }
 
@@ -54,26 +54,38 @@ void Scene::drawFrame() const
   { return a.DistanceToCamera < b.DistanceToCamera; };
   std::multiset<DrawableSortMap, decltype(compare)> culledDrawables(compare);
 
-  std::vector<uint64> aabbDrawableIndices;
-  for (uint64 i = 0; i < _drawables.size(); i++)
+  auto findIter = _components.find(ComponentType::Drawable);
+  if (findIter == _components.end())
   {
-    auto &drawable = _drawables[i];
-    if (_camera.intersectsFrustrum(drawable))
+    return;
+  }
+
+  std::vector<std::shared_ptr<Drawable>> aabbDrawables;
+  for (auto component : findIter->second)
+  {
+    auto drawable = std::dynamic_pointer_cast<Drawable>(component);
+    if (_camera.intersectsFrustrum(drawable->getAabb()))
     {
-      culledDrawables.insert(DrawableSortMap(_camera.distanceFrom(drawable), i));
-      if (drawable.shouldDrawAabb())
+      culledDrawables.insert(DrawableSortMap(_camera.distanceFrom(drawable->getPosition()), drawable));
+      if (drawable->shouldDrawAabb())
       {
-        aabbDrawableIndices.push_back(i);
+        aabbDrawables.push_back(drawable);
       }
     }
   }
 
-  std::vector<uint64> culledDrawableIndices;
-  culledDrawableIndices.reserve(culledDrawables.size());
-  for (auto &culledDrawable : culledDrawables)
+  std::vector<std::shared_ptr<Light>> lights;
+  for (auto component : _components.find(ComponentType::Light)->second)
   {
-    culledDrawableIndices.push_back(culledDrawable.Index);
+    auto light = std::dynamic_pointer_cast<Light>(component);
+    lights.push_back(light);
   }
 
-  _deferredRenderer->drawFrame(_renderDevice, culledDrawableIndices, aabbDrawableIndices, _drawables, _lights, _camera);
+  std::vector<std::shared_ptr<Drawable>> drawables;
+  for (auto culledDrawable : culledDrawables)
+  {
+    drawables.push_back(std::dynamic_pointer_cast<Drawable>(culledDrawable.ComponentPtr));
+  }
+
+  _deferredRenderer->drawFrame(_renderDevice, aabbDrawables, drawables, lights, _camera);
 }

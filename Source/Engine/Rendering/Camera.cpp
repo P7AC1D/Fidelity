@@ -116,12 +116,12 @@ void Camera::updateProjection()
 	_frustrum = Frustrum(_proj);
 }
 
-bool Camera::intersectsFrustrum(const Drawable &drawable) const
+bool Camera::intersectsFrustrum(const Aabb &aabb) const
 {
-	return _frustrum.Intersects(drawable.getAabb());
+	return _frustrum.Intersects(aabb);
 }
 
-float32 Camera::distanceFrom(const Drawable &drawable) const
+float32 Camera::distanceFrom(const Vector3 &position) const
 {
-	return (_transform.getPosition() - drawable.getPosition()).Length();
+	return (_transform.getPosition() - position).Length();
 }

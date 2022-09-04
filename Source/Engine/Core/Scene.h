@@ -1,6 +1,7 @@
 #pragma once
 #include <memory>
 #include <type_traits>
+#include <unordered_map>
 #include <vector>
 
 #include "../Rendering/Drawable.h"
@@ -28,7 +29,6 @@ public:
   void drawFrame() const;
 
   Camera &getCamera() { return _camera; }
-  const std::vector<Drawable> &getDrawables() const { return _drawables; }
 
   // TODO Remove this and better abstract dependenciexc
   std::shared_ptr<RenderDevice> getRenderDevice() { return _renderDevice; }
@@ -37,19 +37,16 @@ private:
   struct DrawableSortMap
   {
     float32 DistanceToCamera;
-    uint64 Index;
+    std::shared_ptr<Component> ComponentPtr;
 
-    DrawableSortMap(float32 distance, uint64 index)
+    DrawableSortMap(float32 distance, std::shared_ptr<Component> component) : DistanceToCamera(distance),
+                                                                              ComponentPtr(component)
     {
-      DistanceToCamera = distance;
-      Index = index;
     }
   };
 
-  std::vector<GameObject> _gameObject;
-  std::vector<Drawable> _drawables;
-  std::vector<Light> _lights;
-  std::vector<Component> _generalComponents;
+  std::unordered_map<ComponentType, std::vector<std::shared_ptr<Component>>> _components;
+  std::vector<std::shared_ptr<GameObject>> _gameObject;
   Camera _camera;
 
   std::shared_ptr<DeferredRenderer> _deferredRenderer;
@@ -61,18 +58,7 @@ T &Scene::createComponent(Args... args)
 {
   static_assert(std::is_base_of<Component, T>::value, "Type is not derived from Component.");
 
-  if (std::is_base_of<Drawable, T>::value)
-  {
-    _drawables.emplace_back(args...);
-    return dynamic_cast<T &>(_drawables[_drawables.size() - 1]);
-  }
-
-  if (std::is_base_of<Light, T>::value)
-  {
-    _lights.emplace_back(args...);
-    return dynamic_cast<T &>(_lights[_lights.size() - 1]);
-  }
-
-  _generalComponents.emplace_back(args...);
-  return dynamic_cast<T &>(_generalComponents[_generalComponents.size() - 1]);
+  auto component = std::make_shared<T>(args...);
+  _components[component->getType()].push_back(component);
+  return *component.get();
 }

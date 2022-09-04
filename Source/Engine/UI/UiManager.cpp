@@ -72,7 +72,6 @@ void UiManager::Update(Scene &scene)
 		if (ImGui::TreeNode("Scene"))
 		{
 			ImGui::BeginChild("SceneGraph", ImVec2(ImGui::GetContentRegionAvail().x, 200), false, ImGuiWindowFlags_HorizontalScrollbar);
-			DrawDrawables(scene.getDrawables());
 
 			ImGui::EndChild();
 			ImGui::TreePop();

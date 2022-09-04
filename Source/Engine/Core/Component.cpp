@@ -12,6 +12,6 @@ void Component::notify(const GameObject &gameObject)
   onNotify(gameObject);
 }
 
-Component::Component(const std::string &name) : _name(name)
+Component::Component(ComponentType componentType) : _componentType(componentType)
 {
 }

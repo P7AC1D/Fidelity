@@ -10,6 +10,8 @@ class Component;
 class GameObject
 {
 public:
+  GameObject(const std::string &name);
+
   void update(float32 dt);
 
   GameObject &setParent(const GameObject &parent);
@@ -22,14 +24,10 @@ public:
   std::string getName() const { return _name; }
 
 protected:
-  GameObject(const std::string &name);
-
   Transform _transform;
   std::string _name;
 
 private:
-  virtual void onUpdate(float32 dt) = 0;
-
   void notifyComponents() const;
 
   const GameObject *_parent;

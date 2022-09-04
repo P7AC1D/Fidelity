@@ -6,9 +6,7 @@
 #include "StaticMesh.h"
 #include "Material.h"
 
-static const std::string COMPONENT_NAME = "Drawable";
-
-Drawable::Drawable() : Component(COMPONENT_NAME),
+Drawable::Drawable() : Component(ComponentType::Drawable),
                        _currentScale(Vector3::Identity),
                        _currentRotationEuler(Vector3::Zero),
                        _drawAabb(false),

@@ -33,9 +33,10 @@ public:
 
   Transform &getTransform() { return _transform; }
   Transform getTransformCopy() const { return _transform; }
+  const Frustrum &getFustrum() const { return _frustrum; }
 
-  bool intersectsFrustrum(const Drawable &drawable) const;
-  float32 distanceFrom(const Drawable &drawable) const;
+  bool intersectsFrustrum(const Aabb &aabb) const;
+  float32 distanceFrom(const Vector3 &position) const;
 
 private:
   void updateView();

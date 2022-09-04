@@ -5,6 +5,13 @@
 
 class GameObject;
 
+enum class ComponentType
+{
+  Drawable,
+  Light,
+  Generic
+};
+
 class Component
 {
 public:
@@ -12,13 +19,13 @@ public:
 
   void notify(const GameObject &gameObject);
 
-  std::string getName() const { return _name; }
+  ComponentType getType() const { return _componentType; }
 
 protected:
-  Component(const std::string &name);
+  Component(ComponentType componentType);
 
   virtual void onUpdate(float32 dt) = 0;
   virtual void onNotify(const GameObject &gameObject) = 0;
 
-  std::string _name;
+  ComponentType _componentType;
 };
