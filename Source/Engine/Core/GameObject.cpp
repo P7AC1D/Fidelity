@@ -15,21 +15,15 @@ void GameObject::update(float32 dt)
   }
 }
 
-GameObject &GameObject::setParent(const GameObject &parent)
+GameObject &GameObject::addChild(std::shared_ptr<GameObject> child)
 {
-  _parent = &parent;
+  _children.push_back(child);
   return *this;
 }
 
-GameObject &GameObject::addChild(GameObject &child)
+GameObject &GameObject::addComponent(std::shared_ptr<Component> component)
 {
-  _children.push_back(&child);
-  return *this;
-}
-
-GameObject &GameObject::addComponent(Component &component)
-{
-  _components.push_back(&component);
+  _components.push_back(component);
   return *this;
 }
 

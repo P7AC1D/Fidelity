@@ -19,23 +19,23 @@ void Test3D::OnStart()
       .lookAt(Vector3(-400.0f, 500.0f, 20.0f), _cameraTarget);
 
   _scene.createGameObject("light1")
-      .addComponent(_scene.createComponent<Light>()
-                        .setColour(Colour(150, 25, 25))
-                        .setRadius(300.0f))
+      ->addComponent(_scene.createComponent<Light>()
+                         ->setColour(Colour(150, 25, 25))
+                         .setRadius(300.0f))
       .transform()
       .setPosition(Vector3(0.0f, 100.0f, 0.0f));
 
   _scene.createGameObject("light2")
-      .addComponent(_scene.createComponent<Light>()
-                        .setColour(Colour(25, 150, 25))
-                        .setRadius(300.0f))
+      ->addComponent(_scene.createComponent<Light>()
+                         ->setColour(Colour(25, 150, 25))
+                         .setRadius(300.0f))
       .transform()
       .setPosition(Vector3(-150.0f, 100.0f, -100.0f));
 
   _scene.createGameObject("light3")
-      .addComponent(_scene.createComponent<Light>()
-                        .setColour(Colour(25, 25, 100))
-                        .setRadius(300.0f))
+      ->addComponent(_scene.createComponent<Light>()
+                         ->setColour(Colour(25, 25, 100))
+                         .setRadius(300.0f))
       .transform()
       .setPosition(Vector3(-150.0f, 100.0f, 100.0f));
 

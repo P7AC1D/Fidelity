@@ -14,9 +14,8 @@ public:
 
   void update(float32 dt);
 
-  GameObject &setParent(const GameObject &parent);
-  GameObject &addChild(GameObject &child);
-  GameObject &addComponent(Component &component);
+  GameObject &addChild(std::shared_ptr<GameObject> child);
+  GameObject &addComponent(std::shared_ptr<Component> component);
 
   Transform &transform() { return _transform; }
   const Transform &getTransform() const { return _transform; }
@@ -30,7 +29,6 @@ protected:
 private:
   void notifyComponents() const;
 
-  const GameObject *_parent;
-  std::vector<GameObject *> _children;
-  std::vector<Component *> _components;
+  std::vector<std::shared_ptr<GameObject>> _children;
+  std::vector<std::shared_ptr<Component>> _components;
 };

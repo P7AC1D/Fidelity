@@ -21,9 +21,9 @@ public:
   bool init(const Vector2I &windowDims, std::shared_ptr<RenderDevice> renderDevice);
 
   template <typename T, typename... Args>
-  T &createComponent(Args... args);
+  std::shared_ptr<T> createComponent(Args... args);
 
-  GameObject &createGameObject(const std::string &name);
+  std::shared_ptr<GameObject> createGameObject(const std::string &name);
 
   void update(float64 dt);
   void drawFrame() const;
@@ -54,11 +54,11 @@ private:
 };
 
 template <typename T, typename... Args>
-T &Scene::createComponent(Args... args)
+std::shared_ptr<T> Scene::createComponent(Args... args)
 {
   static_assert(std::is_base_of<Component, T>::value, "Type is not derived from Component.");
 
   auto component = std::make_shared<T>(args...);
   _components[component->getType()].push_back(component);
-  return *component.get();
+  return component;
 }

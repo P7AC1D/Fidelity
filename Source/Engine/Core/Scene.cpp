@@ -17,11 +17,11 @@ bool Scene::init(const Vector2I &windowDims, std::shared_ptr<RenderDevice> rende
   return _deferredRenderer->init(_renderDevice);
 }
 
-GameObject &Scene::createGameObject(const std::string &name)
+std::shared_ptr<GameObject> Scene::createGameObject(const std::string &name)
 {
   auto gameObject = std::make_shared<GameObject>(name);
   _gameObject.push_back(gameObject);
-  return *gameObject.get();
+  return gameObject;
 }
 
 void Scene::update(float64 dt)
