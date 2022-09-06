@@ -7,6 +7,7 @@
 #include "../Utility/ModelLoader.hpp"
 #include "Application.h"
 #include "GameObject.h"
+#include "GameObjectBuilder.h"
 #include "Maths.h"
 #include "Scene.h"
 #include "Transform.h"

@@ -14,7 +14,7 @@ public:
   GameObject(const std::string &name);
 
   void update(float32 dt);
-  void updateInspector();
+  void updateInspector() {}
 
   GameObject &addChild(GameObject &child);
   GameObject &addComponent(Component &component);
