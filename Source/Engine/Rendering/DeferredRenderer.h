@@ -34,6 +34,7 @@ public:
 
   bool init(std::shared_ptr<RenderDevice> renderDevice);
 
+  // TODO: Removed shared_ptr here as params as there is no ownership occuring internally. Objects are expected to live for the duration of the call.
   void drawFrame(std::shared_ptr<RenderDevice> renderDevice,
                  const std::vector<std::shared_ptr<Drawable>> &aabbDrawables,
                  const std::vector<std::shared_ptr<Drawable>> &drawables,
