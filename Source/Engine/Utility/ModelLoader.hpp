@@ -9,5 +9,5 @@ class GameObject;
 class ModelLoader
 {
 public:
-  static std::shared_ptr<GameObject> FromFile(Scene &scene, const std::string &filePath, bool reconstructWorldTransforms);
+  static GameObject& FromFile(Scene &scene, const std::string &filePath, bool reconstructWorldTransforms);
 };

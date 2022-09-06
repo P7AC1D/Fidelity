@@ -213,9 +213,9 @@ std::shared_ptr<StaticMesh> BuildMesh(const std::string &filePath, const aiMesh 
   return mesh;
 }
 
-std::shared_ptr<GameObject> BuildModel(Scene &scene, const std::string &fileFolder, const aiScene *aiScene, bool reconstructWorldTransforms)
+GameObject& BuildModel(Scene &scene, const std::string &fileFolder, const aiScene *aiScene, bool reconstructWorldTransforms)
 {
-  std::shared_ptr<GameObject> root = scene.createGameObject(aiScene->mName.C_Str());
+  GameObject& root = scene.createGameObject(aiScene->mName.C_Str());
 
   std::vector<std::shared_ptr<Material>> materials(aiScene->mNumMaterials);
   for (uint32 i = 0; i < aiScene->mNumMaterials; i++)
@@ -227,20 +227,22 @@ std::shared_ptr<GameObject> BuildModel(Scene &scene, const std::string &fileFold
   {
     auto aiMesh = aiScene->mMeshes[i];
 
-    std::shared_ptr<GameObject> currentObject = scene.createGameObject(aiMesh->mName.C_Str());
-    std::shared_ptr<Drawable> drawable = scene.createComponent<Drawable>();
+    GameObject& currentObject = scene.createGameObject(aiMesh->mName.C_Str());
+    Drawable& drawable = scene.createComponent<Drawable>();
 
-    currentObject->addComponent(drawable);
-    root->addChild(currentObject);
+    currentObject.addComponent(drawable);
+    root.addChild(currentObject);
 
     Vector3 offset;
-    drawable->setMaterial(materials[aiMesh->mMaterialIndex]);
-    drawable->setMesh(BuildMesh(fileFolder, aiMesh, reconstructWorldTransforms, offset));
-    currentObject->transform().setPosition(offset);
+    drawable.setMaterial(materials[aiMesh->mMaterialIndex]);
+    drawable.setMesh(BuildMesh(fileFolder, aiMesh, reconstructWorldTransforms, offset));
+    currentObject.transform().setPosition(offset);
   }
+
+  return root;
 }
 
-std::shared_ptr<GameObject> ModelLoader::FromFile(Scene &scene, const std::string &filePath, bool reconstructWorldTransforms)
+GameObject& ModelLoader::FromFile(Scene &scene, const std::string &filePath, bool reconstructWorldTransforms)
 {
   Assimp::Importer importer;
   auto aiScene = importer.ReadFile(filePath, aiProcess_Triangulate | aiProcess_GenNormals | aiProcess_GenUVCoords);

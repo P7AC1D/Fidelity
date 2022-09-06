@@ -1,4 +1,5 @@
 #pragma once
+#include <functional>
 #include <string>
 #include <vector>
 
@@ -14,8 +15,8 @@ public:
 
   void update(float32 dt);
 
-  GameObject &addChild(std::shared_ptr<GameObject> child);
-  GameObject &addComponent(std::shared_ptr<Component> component);
+  GameObject &addChild(GameObject& child);
+  GameObject &addComponent(Component& component);
 
   Transform &transform() { return _transform; }
   const Transform &getTransform() const { return _transform; }
@@ -29,6 +30,6 @@ protected:
 private:
   void notifyComponents() const;
 
-  std::vector<std::shared_ptr<GameObject>> _children;
-  std::vector<std::shared_ptr<Component>> _components;
+  std::vector<std::reference_wrapper<GameObject>> _children;
+  std::vector<std::reference_wrapper<Component>> _components;
 };

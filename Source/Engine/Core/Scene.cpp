@@ -7,6 +7,8 @@
 
 #include "../Utility/ModelLoader.hpp"
 #include "../Rendering/DeferredRenderer.h"
+#include "../Rendering/Drawable.h"
+#include "../Rendering/Light.h"
 #include "../RenderApi/RenderDevice.hpp"
 #include "GameObject.h"
 
@@ -17,11 +19,11 @@ bool Scene::init(const Vector2I &windowDims, std::shared_ptr<RenderDevice> rende
   return _deferredRenderer->init(_renderDevice);
 }
 
-std::shared_ptr<GameObject> Scene::createGameObject(const std::string &name)
+GameObject& Scene::createGameObject(const std::string &name)
 {
-  auto gameObject = std::make_shared<GameObject>(name);
-  _gameObject.push_back(gameObject);
-  return gameObject;
+  auto gameObject = std::shared_ptr<GameObject>(new GameObject(name));
+  _gameObjects.push_back(gameObject);
+  return *(_gameObjects.back().get());
 }
 
 void Scene::update(float64 dt)
@@ -30,13 +32,13 @@ void Scene::update(float64 dt)
 
   for (auto componentType : _components)
   {
-    for (auto component : _components[componentType.first])
+    for (auto& component : _components[componentType.first])
     {
       component->update(dt);
     }
   }
 
-  for (auto gameObject : _gameObject)
+  for (auto& gameObject : _gameObjects)
   {
     gameObject->update(dt);
   }

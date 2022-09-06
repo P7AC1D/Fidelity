@@ -15,13 +15,13 @@ void GameObject::update(float32 dt)
   }
 }
 
-GameObject &GameObject::addChild(std::shared_ptr<GameObject> child)
+GameObject &GameObject::addChild(GameObject& child)
 {
   _children.push_back(child);
   return *this;
 }
 
-GameObject &GameObject::addComponent(std::shared_ptr<Component> component)
+GameObject &GameObject::addComponent(Component& component)
 {
   _components.push_back(component);
   return *this;
@@ -31,6 +31,6 @@ void GameObject::notifyComponents() const
 {
   for (auto component : _components)
   {
-    component->notify(*this);
+    component.get().notify(*this);
   }
 }
