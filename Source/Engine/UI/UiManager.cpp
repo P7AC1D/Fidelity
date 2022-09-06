@@ -28,7 +28,6 @@ void UiManager::AddTexture(uint64 id, const std::shared_ptr<Texture> &texture)
 }
 
 UiManager::UiManager(GLFWwindow *glfwWindow) : _io(nullptr),
-																							 _window(glfwWindow),
 																							 _vertBuffSize(0),
 																							 _idxBuffSize(0),
 																							 _initialized(false)
@@ -62,20 +61,13 @@ void UiManager::Update(Scene &scene)
 	{
 		bool displayDebugWindow = true;
 		ImGui::SetNextWindowPos(ImVec2(0, 0));
-		if (!ImGui::Begin("Debug", &displayDebugWindow, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoMove))
+		if (!ImGui::Begin("Inspector", &displayDebugWindow, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoMove))
 		{
 			ImGui::End();
 			return;
 		}
 
-		ImGui::Separator();
-		if (ImGui::TreeNode("Scene"))
-		{
-			ImGui::BeginChild("SceneGraph", ImVec2(ImGui::GetContentRegionAvail().x, 200), false, ImGuiWindowFlags_HorizontalScrollbar);
-
-			ImGui::EndChild();
-			ImGui::TreePop();
-		}
+		scene.updateInspector();
 
 		ImGui::Separator();
 		{

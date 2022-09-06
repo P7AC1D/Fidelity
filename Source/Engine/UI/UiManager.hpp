@@ -42,7 +42,6 @@ private:
 	static std::unordered_map<uint64, std::shared_ptr<Texture>> TEXTURE_MAP;
 
 	ImGuiIO *_io;
-	GLFWwindow *_window;
 	bool _initialized;
 
 	uint64 _vertBuffSize;

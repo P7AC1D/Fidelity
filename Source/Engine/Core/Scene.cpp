@@ -5,6 +5,7 @@
 #include <string>
 #include <vector>
 
+#include "../UI/ImGui/imgui.h"
 #include "../Utility/ModelLoader.hpp"
 #include "../Rendering/DeferredRenderer.h"
 #include "../Rendering/Drawable.h"
@@ -14,12 +15,14 @@
 
 bool Scene::init(const Vector2I &windowDims, std::shared_ptr<RenderDevice> renderDevice)
 {
+  createGameObject("root");
+
   _renderDevice = renderDevice;
   _deferredRenderer.reset(new DeferredRenderer(windowDims));
   return _deferredRenderer->init(_renderDevice);
 }
 
-GameObject& Scene::createGameObject(const std::string &name)
+GameObject &Scene::createGameObject(const std::string &name)
 {
   auto gameObject = std::shared_ptr<GameObject>(new GameObject(name));
   _gameObjects.push_back(gameObject);
@@ -32,13 +35,13 @@ void Scene::update(float64 dt)
 
   for (auto componentType : _components)
   {
-    for (auto& component : _components[componentType.first])
+    for (auto &component : _components[componentType.first])
     {
       component->update(dt);
     }
   }
 
-  for (auto& gameObject : _gameObjects)
+  for (auto &gameObject : _gameObjects)
   {
     gameObject->update(dt);
   }
@@ -90,4 +93,20 @@ void Scene::drawFrame() const
   }
 
   _deferredRenderer->drawFrame(_renderDevice, aabbDrawables, drawables, lights, _camera);
+}
+
+void Scene::updateInspector()
+{
+  ImGui::Separator();
+  if (ImGui::TreeNode("Scene"))
+  {
+    ImGui::BeginChild("SceneGraph", ImVec2(ImGui::GetContentRegionAvail().x, 200), false, ImGuiWindowFlags_HorizontalScrollbar);
+    for (auto gameObject : _gameObjects)
+    {
+      gameObject->updateInspector();
+    }
+
+    ImGui::EndChild();
+    ImGui::TreePop();
+  }
 }

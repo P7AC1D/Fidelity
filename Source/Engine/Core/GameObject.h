@@ -14,9 +14,10 @@ public:
   GameObject(const std::string &name);
 
   void update(float32 dt);
+  void updateInspector();
 
-  GameObject &addChild(GameObject& child);
-  GameObject &addComponent(Component& component);
+  GameObject &addChild(GameObject &child);
+  GameObject &addComponent(Component &component);
 
   Transform &transform() { return _transform; }
   const Transform &getTransform() const { return _transform; }

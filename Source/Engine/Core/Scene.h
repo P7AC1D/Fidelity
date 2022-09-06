@@ -20,16 +20,18 @@ public:
   bool init(const Vector2I &windowDims, std::shared_ptr<RenderDevice> renderDevice);
 
   template <typename T>
-  T& createComponent();
+  T &createComponent();
   template <typename T, typename... Args>
-  T& createComponent(Args... args);
+  T &createComponent(Args... args);
 
-  GameObject& createGameObject(const std::string &name);
+  GameObject &createGameObject(const std::string &name);
 
   void update(float64 dt);
   void drawFrame() const;
+  void updateInspector();
 
   Camera &getCamera() { return _camera; }
+  GameObject &getRootGameObject() { return *(_gameObjects[0].get()); }
 
   // TODO Remove this and better abstract dependenciexc
   std::shared_ptr<RenderDevice> getRenderDevice() { return _renderDevice; }
@@ -55,7 +57,7 @@ private:
 };
 
 template <typename T>
-T& Scene::createComponent()
+T &Scene::createComponent()
 {
   static_assert(std::is_base_of<Component, T>::value, "Type is not derived from Component.");
 
@@ -67,7 +69,7 @@ T& Scene::createComponent()
 }
 
 template <typename T, typename... Args>
-T& Scene::createComponent(Args... args)
+T &Scene::createComponent(Args... args)
 {
   static_assert(std::is_base_of<Component, T>::value, "Type is not derived from Component.");
 

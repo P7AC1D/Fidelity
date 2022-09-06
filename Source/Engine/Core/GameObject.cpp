@@ -15,13 +15,13 @@ void GameObject::update(float32 dt)
   }
 }
 
-GameObject &GameObject::addChild(GameObject& child)
+GameObject &GameObject::addChild(GameObject &child)
 {
   _children.push_back(child);
   return *this;
 }
 
-GameObject &GameObject::addComponent(Component& component)
+GameObject &GameObject::addComponent(Component &component)
 {
   _components.push_back(component);
   return *this;
