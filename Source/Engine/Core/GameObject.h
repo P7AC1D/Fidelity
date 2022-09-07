@@ -11,12 +11,11 @@ class Component;
 class GameObject
 {
 public:
-  GameObject(const std::string &name);
+  GameObject(const std::string &name, uint64 index);
 
   void update(float32 dt);
   void updateInspector() {}
 
-  GameObject &addChild(GameObject &child);
   GameObject &addComponent(Component &component);
 
   Transform &transform() { return _transform; }
@@ -24,13 +23,15 @@ public:
 
   std::string getName() const { return _name; }
 
+  uint64 getIndex() { return _index; }
+
 protected:
   Transform _transform;
   std::string _name;
+  uint64 _index;
 
 private:
   void notifyComponents() const;
 
-  std::vector<std::reference_wrapper<GameObject>> _children;
   std::vector<std::reference_wrapper<Component>> _components;
 };

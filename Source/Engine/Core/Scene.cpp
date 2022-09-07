@@ -24,9 +24,27 @@ bool Scene::init(const Vector2I &windowDims, std::shared_ptr<RenderDevice> rende
 
 GameObject &Scene::createGameObject(const std::string &name)
 {
-  auto gameObject = std::shared_ptr<GameObject>(new GameObject(name));
+  _sceneGraph.push_back(Hierarchy{ _sceneGraph.size(), -1, -1});
+  auto gameObject = std::shared_ptr<GameObject>(new GameObject(name, _sceneGraph.size() - 1));
   _gameObjects.push_back(gameObject);
   return *(_gameObjects.back().get());
+}
+
+void Scene::addChildToNode(GameObject &parent, GameObject &child)
+{
+  int64 index = _sceneGraph[parent.getIndex()].Child;
+  if (index == -1)
+  {
+    _sceneGraph[parent.getIndex()].Child = child.getIndex();
+    return;
+  }
+
+  while (_sceneGraph[index].Sibling != -1)
+  {
+    index = _sceneGraph[index].Sibling;
+  }
+
+  _sceneGraph[index].Sibling = child.getIndex();
 }
 
 void Scene::update(float64 dt)
@@ -97,16 +115,32 @@ void Scene::drawFrame() const
 
 void Scene::updateInspector()
 {
+  ImGui::BeginChild("SceneGraph", ImVec2(ImGui::GetContentRegionAvail().x, 200), false, ImGuiWindowFlags_HorizontalScrollbar);
+
+  ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick /* | (selectedActor == parentNode ? ImGuiTreeNodeFlags_Selected : 0)*/;
   ImGui::Separator();
   if (ImGui::TreeNode("Scene"))
   {
-    ImGui::BeginChild("SceneGraph", ImVec2(ImGui::GetContentRegionAvail().x, 200), false, ImGuiWindowFlags_HorizontalScrollbar);
-    for (auto gameObject : _gameObjects)
+    
+
+    Hierarchy& node(_sceneGraph.front());
+
+    auto gameObject = _gameObjects.front();
+    bool open = ImGui::TreeNodeEx(gameObject->getName().c_str(), flags);
+    if (open)
     {
-      gameObject->updateInspector();
+      while (node.Child != -1)
+      {
+        node = _sceneGraph[node.Child];
+        ImGui::TreeNodeEx(gameObject->getName().c_str(), flags);
+
+        ImGui::TreePop();
+      }
     }
 
-    ImGui::EndChild();
+    
     ImGui::TreePop();
   }
+
+  ImGui::EndChild();
 }

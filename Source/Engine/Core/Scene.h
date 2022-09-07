@@ -26,12 +26,14 @@ public:
 
   GameObject &createGameObject(const std::string &name);
 
+  void addChildToNode(GameObject &parent, GameObject &child);
+
   void update(float64 dt);
   void drawFrame() const;
   void updateInspector();
 
   Camera &getCamera() { return _camera; }
-  GameObject &getRootGameObject() { return *(_gameObjects[0].get()); }
+  GameObject &getRoot() { return *(_gameObjects[0].get()); }
 
   // TODO Remove this and better abstract dependenciexc
   std::shared_ptr<RenderDevice> getRenderDevice() { return _renderDevice; }
@@ -48,7 +50,17 @@ private:
     }
   };
 
-  std::unordered_map<ComponentType, std::vector<std::shared_ptr<Component>>> _components;
+  struct Hierarchy
+  {
+    uint64 Index = 0;
+    int32 Sibling = -1;
+    int32 Child = -1;
+  };
+
+  std::vector<Hierarchy> _sceneGraph;
+
+  std::unordered_map<ComponentType, std::vector<std::shared_ptr<Component>>>
+      _components;
   std::vector<std::shared_ptr<GameObject>> _gameObjects;
   Camera _camera;
 

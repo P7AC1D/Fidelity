@@ -18,29 +18,29 @@ void Test3D::OnStart()
       .getTransform()
       .lookAt(Vector3(-400.0f, 500.0f, 20.0f), _cameraTarget);
 
-  _scene.getRootGameObject()
-      .addChild(GameObjectBuilder(_scene)
-                    .withName("light1")
-                    .withComponent(_scene.createComponent<Light>()
-                                       .setColour(Colour(150, 25, 25))
-                                       .setRadius(300.0f))
-                    .withPosition(Vector3(0.0f, 100.0f, 0.0f))
-                    .build())
-      .addChild(GameObjectBuilder(_scene)
-                    .withName("light2")
-                    .withComponent(_scene.createComponent<Light>()
-                                       .setColour(Colour(25, 150, 25))
-                                       .setRadius(300.0f))
-                    .withPosition(Vector3(-150.0f, 100.0f, -100.0f))
-                    .build())
-      .addChild(GameObjectBuilder(_scene)
-                    .withName("light3")
-                    .withComponent(_scene.createComponent<Light>()
-                                       .setColour(Colour(25, 25, 100))
-                                       .setRadius(300.0f))
-                    .withPosition(Vector3(-150.0f, 100.0f, 100.0f))
-                    .build())
-      .addChild(ModelLoader::FromFile(_scene, "./Models/Sponza/sponza.obj", true));
+  GameObject &root = _scene.getRoot();
+  _scene.addChildToNode(root, GameObjectBuilder(_scene)
+                                  .withName("light1")
+                                  .withComponent(_scene.createComponent<Light>()
+                                                     .setColour(Colour(150, 25, 25))
+                                                     .setRadius(300.0f))
+                                  .withPosition(Vector3(0.0f, 100.0f, 0.0f))
+                                  .build());
+  _scene.addChildToNode(root, GameObjectBuilder(_scene)
+                                  .withName("light2")
+                                  .withComponent(_scene.createComponent<Light>()
+                                                     .setColour(Colour(25, 150, 25))
+                                                     .setRadius(300.0f))
+                                  .withPosition(Vector3(-150.0f, 100.0f, -100.0f))
+                                  .build());
+  _scene.addChildToNode(root, GameObjectBuilder(_scene)
+                                  .withName("light3")
+                                  .withComponent(_scene.createComponent<Light>()
+                                                     .setColour(Colour(25, 25, 100))
+                                                     .setRadius(300.0f))
+                                  .withPosition(Vector3(-150.0f, 100.0f, 100.0f))
+                                  .build());
+  _scene.addChildToNode(root, ModelLoader::FromFile(_scene, "./Models/Sponza/sponza.obj", true));
 
   _inputHandler->BindButtonToState("ActivateCameraLook", Button::Button_LMouse);
   _inputHandler->BindAxisToState("CameraZoom", Axis::MouseScrollXY);

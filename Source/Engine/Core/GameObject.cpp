@@ -2,7 +2,7 @@
 
 #include "Component.h"
 
-GameObject::GameObject(const std::string &name) : _name(name)
+GameObject::GameObject(const std::string &name, uint64 index) : _name(name), _index(index)
 {
 }
 
@@ -13,12 +13,6 @@ void GameObject::update(float32 dt)
     _transform.update(dt);
     notifyComponents();
   }
-}
-
-GameObject &GameObject::addChild(GameObject &child)
-{
-  _children.push_back(child);
-  return *this;
 }
 
 GameObject &GameObject::addComponent(Component &component)

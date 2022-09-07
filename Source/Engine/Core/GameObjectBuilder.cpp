@@ -51,8 +51,8 @@ GameObjectBuilder &GameObjectBuilder::withRotation(const Quaternion &rotation)
 GameObject &GameObjectBuilder::build()
 {
 	GameObject &gameObject = _scene.createGameObject(_name);
-	std::for_each(_children.begin(), _children.end(), [&gameObject](std::reference_wrapper<GameObject> g)
-								{ gameObject.addChild(g.get()); });
+	std::for_each(_children.begin(), _children.end(), [&](std::reference_wrapper<GameObject> g)
+								{ _scene.addChildToNode(gameObject, g.get()); });
 	std::for_each(_components.begin(), _components.end(), [&gameObject](std::reference_wrapper<Component> c)
 								{ gameObject.addComponent(c.get()); });
 	gameObject.transform()
