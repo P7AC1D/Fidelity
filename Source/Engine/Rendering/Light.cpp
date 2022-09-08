@@ -44,6 +44,13 @@ Light &Light::setLightType(LightType lightType)
 	return *this;
 }
 
+Light &Light::setDirection(const Vector3 &direction)
+{
+	_direction = direction;
+	_modified = true;
+	return *this;
+}
+
 void Light::onUpdate(float32 dt)
 {
 	if (_modified)

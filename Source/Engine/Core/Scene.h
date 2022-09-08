@@ -58,8 +58,8 @@ private:
 
   std::map<uint64, std::vector<uint64>> _sceneGraph;
 
-  std::unordered_map<ComponentType, std::vector<std::shared_ptr<Component>>>
-      _components;
+  // TODO: Not quite data-driven as we are still using pointers, needs improvement
+  std::unordered_map<ComponentType, std::vector<std::shared_ptr<Component >>> _components;
   std::map<uint64, GameObject> _gameObjects;
   Camera _camera;
 

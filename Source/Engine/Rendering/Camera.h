@@ -30,6 +30,7 @@ public:
   Radian getFov() const { return _fov; }
   float32 getNear() const { return _near; }
   float32 getFar() const { return _far; }
+  float32 getAspectRatio() const { return _width / static_cast<float32>(_height); }
 
   Transform &getTransform() { return _transform; }
   Transform getTransformCopy() const { return _transform; }

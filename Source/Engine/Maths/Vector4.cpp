@@ -8,21 +8,21 @@
 
 Vector4 Vector4::One = Vector4(1.0f);
 
-float32 Vector4::Dot(const Vector4& lhs, const Vector4& rhs)
+float32 Vector4::Dot(const Vector4 &lhs, const Vector4 &rhs)
 {
   return lhs.X * rhs.X + lhs.Y * rhs.Y + lhs.Z * rhs.Z + lhs.W * rhs.W;
 }
 
-Vector4 Vector4::Normalize(const Vector4& vec)
+Vector4 Vector4::Normalize(const Vector4 &vec)
 {
   float32 length = vec.Length();
   float32 lengthInv = 1.0f / length;
   return Vector4(vec[0] * lengthInv, vec[1] * lengthInv, vec[2] * lengthInv, vec[3] * lengthInv);
 }
 
-float32 Vector4::Length(const Vector4& vec)
+float32 Vector4::Length(const Vector4 &vec)
 {
-	return vec.Length();
+  return vec.Length();
 }
 
 Vector4::Vector4()
@@ -49,7 +49,7 @@ Vector4::Vector4(float32 a, float32 b, float32 c, float32 d)
   W = d;
 }
 
-Vector4::Vector4(const Vector2& vec, float32 c, float32 d)
+Vector4::Vector4(const Vector2 &vec, float32 c, float32 d)
 {
   X = vec[0];
   Y = vec[1];
@@ -57,7 +57,7 @@ Vector4::Vector4(const Vector2& vec, float32 c, float32 d)
   W = d;
 }
 
-Vector4::Vector4(const Vector3& vec, float32 d)
+Vector4::Vector4(const Vector3 &vec, float32 d)
 {
   X = vec[0];
   Y = vec[1];
@@ -65,7 +65,7 @@ Vector4::Vector4(const Vector3& vec, float32 d)
   W = d;
 }
 
-Vector4::Vector4(const Vector4& vec)
+Vector4::Vector4(const Vector4 &vec)
 {
   X = vec[0];
   Y = vec[1];
@@ -73,7 +73,7 @@ Vector4::Vector4(const Vector4& vec)
   W = vec[3];
 }
 
-Vector4& Vector4::operator=(const Vector4& rhs)
+Vector4 &Vector4::operator=(const Vector4 &rhs)
 {
   X = rhs.X;
   Y = rhs.Y;
@@ -100,7 +100,7 @@ Vector4 Vector4::operator-(const Vector4 &rhs) const
   return Vector4(x, y, z, w);
 }
 
-Vector4 Vector4::operator*(const Vector4& rhs) const
+Vector4 Vector4::operator*(const Vector4 &rhs) const
 {
   float32 x = X * rhs.X;
   float32 y = Y * rhs.Y;
@@ -136,7 +136,16 @@ Vector4 Vector4::operator*(float32 rhs) const
   return Vector4(x, y, z, w);
 }
 
-Vector4 Vector4::operator+=(const Vector4& rhs)
+Vector4 Vector4::operator/(float32 rhs) const
+{
+  float32 x = X / rhs;
+  float32 y = Y / rhs;
+  float32 z = Z / rhs;
+  float32 w = W / rhs;
+  return Vector4(x, y, z, w);
+}
+
+Vector4 Vector4::operator+=(const Vector4 &rhs)
 {
   X += rhs.X;
   Y += rhs.Y;
@@ -145,7 +154,7 @@ Vector4 Vector4::operator+=(const Vector4& rhs)
   return *this;
 }
 
-Vector4 Vector4::operator-=(const Vector4& rhs)
+Vector4 Vector4::operator-=(const Vector4 &rhs)
 {
   X -= rhs.X;
   Y -= rhs.Y;
@@ -154,7 +163,7 @@ Vector4 Vector4::operator-=(const Vector4& rhs)
   return *this;
 }
 
-Vector4& Vector4::operator+=(float32 rhs)
+Vector4 &Vector4::operator+=(float32 rhs)
 {
   X += rhs;
   Y += rhs;
@@ -163,7 +172,7 @@ Vector4& Vector4::operator+=(float32 rhs)
   return *this;
 }
 
-Vector4& Vector4::operator-=(float32 rhs)
+Vector4 &Vector4::operator-=(float32 rhs)
 {
   X -= rhs;
   Y -= rhs;
@@ -172,7 +181,7 @@ Vector4& Vector4::operator-=(float32 rhs)
   return *this;
 }
 
-Vector4& Vector4::operator*=(float32 rhs)
+Vector4 &Vector4::operator*=(float32 rhs)
 {
   X *= rhs;
   Y *= rhs;
@@ -181,23 +190,23 @@ Vector4& Vector4::operator*=(float32 rhs)
   return *this;
 }
 
-bool Vector4::operator==(const Vector4& rhs) const
+bool Vector4::operator==(const Vector4 &rhs) const
 {
   return X == rhs.X && Y == rhs.Y && Z && rhs.Z && W == rhs.W;
 }
 
-bool Vector4::operator!=(const Vector4& rhs) const
+bool Vector4::operator!=(const Vector4 &rhs) const
 {
   return X != rhs.X && Y != rhs.Y && Z != rhs.Z && W != rhs.W;
 }
 
-float32& Vector4::operator[](uint32 i)
+float32 &Vector4::operator[](uint32 i)
 {
   assert(i < 4);
   return *(&X + i);
 }
 
-const float32& Vector4::operator[](uint32 i) const
+const float32 &Vector4::operator[](uint32 i) const
 {
   assert(i < 4);
   return *(&X + i);
@@ -218,12 +227,12 @@ void Vector4::Normalize()
   W *= lengthInv;
 }
 
-const float32* Vector4::Ptr() const
+const float32 *Vector4::Ptr() const
 {
   return &X;
 }
 
-Vector4 operator+(float32 lhs, const Vector4& rhs)
+Vector4 operator+(float32 lhs, const Vector4 &rhs)
 {
   float32 x = lhs + rhs.X;
   float32 y = lhs + rhs.Y;
@@ -232,7 +241,7 @@ Vector4 operator+(float32 lhs, const Vector4& rhs)
   return Vector4(x, y, z, w);
 }
 
-Vector4 operator-(float32 lhs, const Vector4& rhs)
+Vector4 operator-(float32 lhs, const Vector4 &rhs)
 {
   float32 x = lhs - rhs.X;
   float32 y = lhs - rhs.Y;
@@ -241,7 +250,7 @@ Vector4 operator-(float32 lhs, const Vector4& rhs)
   return Vector4(x, y, z, w);
 }
 
-Vector4 operator*(float32 lhs, const Vector4& rhs)
+Vector4 operator*(float32 lhs, const Vector4 &rhs)
 {
   float32 x = lhs * rhs.X;
   float32 y = lhs * rhs.Y;

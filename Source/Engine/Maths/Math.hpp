@@ -6,6 +6,7 @@
 #include "Radian.hpp"
 
 class Vector3;
+class Vector4;
 
 class Math
 {
@@ -29,6 +30,8 @@ public:
   static float32 Abs(float32 value);
 
   static Vector3 Min(Vector3 a, Vector3 b);
+  static Vector4 Min(Vector4 a, Vector4 b);
   static Vector3 Max(Vector3 a, Vector3 b);
+  static Vector4 Max(Vector4 a, Vector4 b);
   static Vector3 Abs(Vector3 a);
 };
