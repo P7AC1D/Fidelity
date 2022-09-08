@@ -8,6 +8,7 @@
 #include "../UI/ImGui/imgui.h"
 #include "../Utility/ModelLoader.hpp"
 #include "../Rendering/DeferredRenderer.h"
+#include "../Rendering/DebugRenderer.h"
 #include "../Rendering/Drawable.h"
 #include "../Rendering/Light.h"
 #include "../RenderApi/RenderDevice.hpp"
@@ -21,7 +22,8 @@ bool Scene::init(const Vector2I &windowDims, std::shared_ptr<RenderDevice> rende
 
   _renderDevice = renderDevice;
   _deferredRenderer.reset(new DeferredRenderer(windowDims));
-  return _deferredRenderer->init(_renderDevice);
+  _debugRenderer.reset(new DebugRenderer());
+  return _deferredRenderer->init(_renderDevice) && _debugRenderer->init(_renderDevice);
 }
 
 GameObject &Scene::createGameObject(const std::string &name)
@@ -80,7 +82,7 @@ void Scene::drawFrame() const
     auto drawable = std::dynamic_pointer_cast<Drawable>(component);
     if (_camera.intersectsFrustrum(drawable->getAabb()))
     {
-      culledDrawables.insert(DrawableSortMap(_camera.distanceFrom(drawable->getPosition()), drawable));      
+      culledDrawables.insert(DrawableSortMap(_camera.distanceFrom(drawable->getPosition()), drawable));
     }
 
     if (drawable->shouldDrawAabb())
@@ -103,19 +105,23 @@ void Scene::drawFrame() const
   }
 
   _deferredRenderer->drawFrame(_renderDevice, aabbDrawables, drawables, lights, _camera);
+  _debugRenderer->drawFrame(_renderDevice, _deferredRenderer->getGbuffer(), _deferredRenderer->getLightPrepassBuffer(), _deferredRenderer->getMergePassBuffer(), aabbDrawables, _camera);
 }
 
-void Scene::drawInspector()
+void Scene::drawDebugUi()
 {
-  ImGui::BeginChild("SceneGraph", ImVec2(ImGui::GetContentRegionAvail().x, 200), false, ImGuiWindowFlags_HorizontalScrollbar);
-  drawInspectorNode(0);
+  ImGui::BeginChild("SceneGraph", ImVec2(ImGui::GetContentRegionAvail().x, 300), false, ImGuiWindowFlags_HorizontalScrollbar);
+  drawSceneGraphUi(0);
   drawGameObjectInspector(SELECTED_GAME_OBJECT_INDEX);
   ImGui::EndChild();
+
+  _deferredRenderer->drawDebugUi();
+  _debugRenderer->drawDebugUi();
 }
 
-void Scene::drawInspectorNode(uint64 nodeIndex)
+void Scene::drawSceneGraphUi(uint64 nodeIndex)
 {
-  ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick | (SELECTED_GAME_OBJECT_INDEX == nodeIndex ? ImGuiTreeNodeFlags_Selected : 0);
+  ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick | (SELECTED_GAME_OBJECT_INDEX == nodeIndex ? ImGuiTreeNodeFlags_Selected : 0);
 
   GameObject &gameObject = _gameObjects[nodeIndex];
 
@@ -143,7 +149,7 @@ void Scene::drawInspectorNode(uint64 nodeIndex)
     {
       for (auto childNodeIndex : _sceneGraph[nodeIndex])
       {
-        drawInspectorNode(childNodeIndex);
+        drawSceneGraphUi(childNodeIndex);
       }
       ImGui::TreePop();
     }
@@ -159,7 +165,7 @@ void Scene::drawGameObjectInspector(uint64 selectedGameObjectIndex)
 
   ImGui::Begin("Inspector", 0, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_AlwaysAutoResize);
 
-  GameObject& gameObject = _gameObjects[selectedGameObjectIndex];
+  GameObject &gameObject = _gameObjects[selectedGameObjectIndex];
   gameObject.drawInspector();
 
   ImVec2 screenSize = ImGui::GetIO().DisplaySize;
@@ -170,7 +176,7 @@ void Scene::drawGameObjectInspector(uint64 selectedGameObjectIndex)
 
 void Scene::setAabbDrawOnGameObject(uint64 gameObjectIndex, bool enableAabbDraw)
 {
-  GameObject& gameObject = _gameObjects[gameObjectIndex];
+  GameObject &gameObject = _gameObjects[gameObjectIndex];
   if (gameObject.hasComponent<Drawable>())
   {
     gameObject.getComponent<Drawable>().enableDrawAabb(enableAabbDraw);

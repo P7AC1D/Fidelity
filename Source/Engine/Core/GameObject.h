@@ -19,7 +19,7 @@ public:
 
   GameObject &addComponent(Component &component);
   template <typename T>
-  T& getComponent();
+  T &getComponent();
   template <typename T>
   bool hasComponent();
 
@@ -38,31 +38,27 @@ protected:
 private:
   void notifyComponents() const;
 
-  std::list<Component*> _components;
+  std::list<Component *> _components;
 };
 
 template <typename T>
-T& GameObject::getComponent()
+T &GameObject::getComponent()
 {
-  std::list<Component*>::iterator iter = std::find_if(_components.begin(), _components.end(), [](Component* c)
-    {
-      return dynamic_cast<T*>(c) != nullptr;
-    });
+  std::list<Component *>::iterator iter = std::find_if(_components.begin(), _components.end(), [](Component *c)
+                                                       { return dynamic_cast<T *>(c) != nullptr; });
 
   if (iter == _components.end())
   {
     throw std::runtime_error("Component type does not exist.");
   }
 
-  return *dynamic_cast<T*>(*iter);
+  return *dynamic_cast<T *>(*iter);
 }
 
 template <typename T>
 bool GameObject::hasComponent()
 {
-  auto iter = std::find_if(_components.begin(), _components.end(), [](Component* c)
-    {
-      return dynamic_cast<T*>(c) != nullptr;
-    });
+  auto iter = std::find_if(_components.begin(), _components.end(), [](Component *c)
+                           { return dynamic_cast<T *>(c) != nullptr; });
   return iter != _components.end();
 }

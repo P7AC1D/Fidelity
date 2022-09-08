@@ -13,6 +13,7 @@
 
 class GameObject;
 class DeferredRenderer;
+class DebugRenderer;
 class RenderDevice;
 
 class Scene
@@ -31,7 +32,7 @@ public:
 
   void update(float64 dt);
   void drawFrame() const;
-  void drawInspector();
+  void drawDebugUi();
 
   Camera &getCamera() { return _camera; }
   GameObject &getRoot() { return _gameObjects[0]; }
@@ -40,7 +41,7 @@ public:
   std::shared_ptr<RenderDevice> getRenderDevice() { return _renderDevice; }
 
 private:
-  void drawInspectorNode(uint64 nodeIndex);
+  void drawSceneGraphUi(uint64 nodeIndex);
   void drawGameObjectInspector(uint64 selectedGameObjectIndex);
   void setAabbDrawOnGameObject(uint64 gameObjectIndex, bool enableAabbDraw);
 
@@ -63,6 +64,7 @@ private:
   Camera _camera;
 
   std::shared_ptr<DeferredRenderer> _deferredRenderer;
+  std::shared_ptr<DebugRenderer> _debugRenderer;
   std::shared_ptr<RenderDevice> _renderDevice;
 };
 

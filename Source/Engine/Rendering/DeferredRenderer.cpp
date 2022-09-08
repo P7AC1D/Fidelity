@@ -16,6 +16,7 @@
 #include "../RenderApi/VertexBuffer.hpp"
 #include "../RenderApi/VertexLayout.hpp"
 #include "../Utility/String.hpp"
+#include "../UI/ImGui/imgui.h"
 #include "Camera.h"
 #include "Drawable.h"
 #include "Light.h"
@@ -38,19 +39,6 @@ struct MaterialBufferData
   int32 GreyscaleSpecular = 1;
 };
 
-struct ObjectBuffer
-{
-  Matrix4 Model;
-  Matrix4 ModelView;
-  Matrix4 ModelViewProjection;
-};
-
-struct CameraBufferData
-{
-  float32 NearClip;
-  float32 FarClip;
-};
-
 struct PointLightConstantsBuffer
 {
   Matrix4 ProjViewInvs;
@@ -69,418 +57,241 @@ struct PointLightBuffer
   float32 Radius;
 };
 
-struct FullscreenQuadVertex
-{
-  Vector2 Position;
-  Vector2 TexCoord;
-
-  FullscreenQuadVertex(const Vector2 &position, const Vector2 &texCoord) : Position(position), TexCoord(texCoord)
-  {
-  }
-};
-
-std::vector<FullscreenQuadVertex> FullscreenQuadVertices{
-    FullscreenQuadVertex(Vector2(-1.0f, -1.0f), Vector2(0.0f, 0.0f)),
-    FullscreenQuadVertex(Vector2(1.0f, -1.0f), Vector2(1.0f, 0.0f)),
-    FullscreenQuadVertex(Vector2(-1.0f, 1.0f), Vector2(0.0f, 1.0f)),
-    FullscreenQuadVertex(Vector2(1.0f, -1.0f), Vector2(1.0f, 0.0f)),
-    FullscreenQuadVertex(Vector2(1.0f, 1.0f), Vector2(1.0f, 1.0f)),
-    FullscreenQuadVertex(Vector2(-1.0f, 1.0f), Vector2(0.0f, 1.0f))};
-
-std::vector<Vector3> AabbCoords = {
-    Vector3(-1.0, 1.0, 1.0), Vector3(1.0, 1.0, 1.0),
-    Vector3(1.0, 1.0, 1.0), Vector3(1.0, -1.0, 1.0),
-    Vector3(1.0, -1.0, 1.0), Vector3(-1.0, -1.0, 1.0),
-    Vector3(-1.0, -1.0, 1.0), Vector3(-1.0, 1.0, 1.0),
-
-    Vector3(-1.0, 1.0, 1.0), Vector3(-1.0, 1.0, -1.0),
-    Vector3(-1.0, 1.0, -1.0), Vector3(1.0, 1.0, -1.0),
-    Vector3(1.0, 1.0, -1.0), Vector3(1.0, 1.0, 1.0),
-
-    Vector3(1.0, 1.0, -1.0), Vector3(1.0, -1.0, -1.0),
-    Vector3(1.0, -1.0, -1.0), Vector3(1.0, -1.0, 1.0),
-
-    Vector3(-1.0, 1.0, -1.0), Vector3(-1.0, -1.0, -1.0),
-    Vector3(-1.0, -1.0, -1.0), Vector3(-1.0, -1.0, 1.0),
-
-    Vector3(-1.0, -1.0, -1.0), Vector3(1.0, -1.0, -1.0)};
-
-DeferredRenderer::DeferredRenderer(const Vector2I &windowDims) : _windowDims(windowDims), _debugDisplayType(DebugDisplayType::Disabled)
+DeferredRenderer::DeferredRenderer(const Vector2I &windowDims) : _windowDims(windowDims)
 {
 }
 
-bool DeferredRenderer::init(std::shared_ptr<RenderDevice> device)
+void DeferredRenderer::onInit(const std::shared_ptr<RenderDevice> &device)
 {
-  try
   {
-    {
-      ShaderDesc vsDesc;
-      vsDesc.EntryPoint = "main";
-      vsDesc.ShaderLang = ShaderLang::Glsl;
-      vsDesc.ShaderType = ShaderType::Vertex;
-      vsDesc.Source = String::LoadFromFile("./Shaders/Gbuffer.vert");
+    ShaderDesc vsDesc;
+    vsDesc.EntryPoint = "main";
+    vsDesc.ShaderLang = ShaderLang::Glsl;
+    vsDesc.ShaderType = ShaderType::Vertex;
+    vsDesc.Source = String::LoadFromFile("./Shaders/Gbuffer.vert");
 
-      ShaderDesc psDesc;
-      psDesc.EntryPoint = "main";
-      psDesc.ShaderLang = ShaderLang::Glsl;
-      psDesc.ShaderType = ShaderType::Pixel;
-      psDesc.Source = String::LoadFromFile("./Shaders/Gbuffer.frag");
+    ShaderDesc psDesc;
+    psDesc.EntryPoint = "main";
+    psDesc.ShaderLang = ShaderLang::Glsl;
+    psDesc.ShaderType = ShaderType::Pixel;
+    psDesc.Source = String::LoadFromFile("./Shaders/Gbuffer.frag");
 
-      std::vector<VertexLayoutDesc> vertexLayoutDesc{
-          VertexLayoutDesc(SemanticType::Position, SemanticFormat::Float3),
-          VertexLayoutDesc(SemanticType::Normal, SemanticFormat::Float3),
-          VertexLayoutDesc(SemanticType::TexCoord, SemanticFormat::Float2),
-          VertexLayoutDesc(SemanticType::Tangent, SemanticFormat::Float3),
-          VertexLayoutDesc(SemanticType::Bitangent, SemanticFormat::Float3)};
+    std::vector<VertexLayoutDesc> vertexLayoutDesc{
+        VertexLayoutDesc(SemanticType::Position, SemanticFormat::Float3),
+        VertexLayoutDesc(SemanticType::Normal, SemanticFormat::Float3),
+        VertexLayoutDesc(SemanticType::TexCoord, SemanticFormat::Float2),
+        VertexLayoutDesc(SemanticType::Tangent, SemanticFormat::Float3),
+        VertexLayoutDesc(SemanticType::Bitangent, SemanticFormat::Float3)};
 
-      std::shared_ptr<ShaderParams> shaderParams(new ShaderParams());
-      shaderParams->AddParam(ShaderParam("ObjectBuffer", ShaderParamType::ConstBuffer, 0));
-      shaderParams->AddParam(ShaderParam("MaterialBuffer", ShaderParamType::ConstBuffer, 2));
-      shaderParams->AddParam(ShaderParam("DiffuseMap", ShaderParamType::Texture, 0));
-      shaderParams->AddParam(ShaderParam("NormalMap", ShaderParamType::Texture, 1));
-      shaderParams->AddParam(ShaderParam("SpecularMap", ShaderParamType::Texture, 2));
-      shaderParams->AddParam(ShaderParam("OpacityMap", ShaderParamType::Texture, 3));
+    std::shared_ptr<ShaderParams> shaderParams(new ShaderParams());
+    shaderParams->AddParam(ShaderParam("ObjectBuffer", ShaderParamType::ConstBuffer, 0));
+    shaderParams->AddParam(ShaderParam("MaterialBuffer", ShaderParamType::ConstBuffer, 2));
+    shaderParams->AddParam(ShaderParam("DiffuseMap", ShaderParamType::Texture, 0));
+    shaderParams->AddParam(ShaderParam("NormalMap", ShaderParamType::Texture, 1));
+    shaderParams->AddParam(ShaderParam("SpecularMap", ShaderParamType::Texture, 2));
+    shaderParams->AddParam(ShaderParam("OpacityMap", ShaderParamType::Texture, 3));
 
-      RasterizerStateDesc rasterizerStateDesc;
-      rasterizerStateDesc.CullMode = CullMode::CounterClockwise;
+    RasterizerStateDesc rasterizerStateDesc;
+    rasterizerStateDesc.CullMode = CullMode::CounterClockwise;
 
-      BlendStateDesc blendStateDesc{};
-      blendStateDesc.RTBlendState[0].BlendEnabled = true;
-      blendStateDesc.RTBlendState[0].BlendAlpha = BlendDesc(BlendFactor::SrcAlpha, BlendFactor::InvSrcAlpha, BlendOperation::Add);
+    BlendStateDesc blendStateDesc{};
+    blendStateDesc.RTBlendState[0].BlendEnabled = true;
+    blendStateDesc.RTBlendState[0].BlendAlpha = BlendDesc(BlendFactor::SrcAlpha, BlendFactor::InvSrcAlpha, BlendOperation::Add);
 
-      PipelineStateDesc pipelineDesc;
-      pipelineDesc.VS = device->CreateShader(vsDesc);
-      pipelineDesc.PS = device->CreateShader(psDesc);
-      pipelineDesc.BlendState = device->CreateBlendState(blendStateDesc);
-      pipelineDesc.RasterizerState = device->CreateRasterizerState(rasterizerStateDesc);
-      pipelineDesc.DepthStencilState = device->CreateDepthStencilState(DepthStencilStateDesc());
-      pipelineDesc.VertexLayout = device->CreateVertexLayout(vertexLayoutDesc);
-      pipelineDesc.ShaderParams = shaderParams;
+    PipelineStateDesc pipelineDesc;
+    pipelineDesc.VS = device->CreateShader(vsDesc);
+    pipelineDesc.PS = device->CreateShader(psDesc);
+    pipelineDesc.BlendState = device->CreateBlendState(blendStateDesc);
+    pipelineDesc.RasterizerState = device->CreateRasterizerState(rasterizerStateDesc);
+    pipelineDesc.DepthStencilState = device->CreateDepthStencilState(DepthStencilStateDesc());
+    pipelineDesc.VertexLayout = device->CreateVertexLayout(vertexLayoutDesc);
+    pipelineDesc.ShaderParams = shaderParams;
 
-      _gBufferPso = device->CreatePipelineState(pipelineDesc);
-    }
-    {
-      SamplerStateDesc desc;
-      desc.AddressingMode = AddressingMode{TextureAddressMode::Wrap, TextureAddressMode::Wrap, TextureAddressMode::Wrap};
-      desc.MinFiltering = TextureFilteringMode::Linear;
-      desc.MinFiltering = TextureFilteringMode::Linear;
-      desc.MipFiltering = TextureFilteringMode::Linear;
-      _basicSamplerState = device->CreateSamplerState(desc);
-    }
-    {
-      SamplerStateDesc desc;
-      desc.AddressingMode = AddressingMode{TextureAddressMode::Wrap, TextureAddressMode::Wrap, TextureAddressMode::Wrap};
-      desc.MinFiltering = TextureFilteringMode::None;
-      desc.MinFiltering = TextureFilteringMode::None;
-      desc.MipFiltering = TextureFilteringMode::None;
-      _noMipSamplerState = device->CreateSamplerState(desc);
-    }
-    {
-      TextureDesc colourTexDesc;
-      colourTexDesc.Width = _windowDims.X;
-      colourTexDesc.Height = _windowDims.Y;
-      colourTexDesc.Usage = TextureUsage::RenderTarget;
-      colourTexDesc.Type = TextureType::Texture2D;
-      colourTexDesc.Format = TextureFormat::RGBA8;
-
-      TextureDesc depthStencilDesc;
-      depthStencilDesc.Width = _windowDims.X;
-      depthStencilDesc.Height = _windowDims.Y;
-      depthStencilDesc.Usage = TextureUsage::Depth;
-      depthStencilDesc.Type = TextureType::Texture2D;
-      depthStencilDesc.Format = TextureFormat::D24;
-
-      RenderTargetDesc rtDesc;
-      rtDesc.ColourTargets[0] = device->CreateTexture(colourTexDesc);
-      rtDesc.ColourTargets[1] = device->CreateTexture(colourTexDesc);
-      rtDesc.ColourTargets[2] = device->CreateTexture(colourTexDesc);
-      rtDesc.DepthStencilTarget = device->CreateTexture(depthStencilDesc);
-      rtDesc.Height = _windowDims.X;
-      rtDesc.Width = _windowDims.Y;
-
-      _gBufferRto = device->CreateRenderTarget(rtDesc);
-    }
-
-    GpuBufferDesc materialBufferDesc;
-    materialBufferDesc.BufferType = BufferType::Constant;
-    materialBufferDesc.BufferUsage = BufferUsage::Stream;
-    materialBufferDesc.ByteCount = sizeof(MaterialBufferData);
-    _materialBuffer = device->CreateGpuBuffer(materialBufferDesc);
-
-    GpuBufferDesc objectBufferDesc;
-    objectBufferDesc.BufferType = BufferType::Constant;
-    objectBufferDesc.BufferUsage = BufferUsage::Stream;
-    objectBufferDesc.ByteCount = sizeof(ObjectBuffer);
-    _objectBuffer = device->CreateGpuBuffer(objectBufferDesc);
-
-    {
-      ShaderDesc vsDesc;
-      vsDesc.EntryPoint = "main";
-      vsDesc.ShaderLang = ShaderLang::Glsl;
-      vsDesc.ShaderType = ShaderType::Vertex;
-      vsDesc.Source = String::LoadFromFile("./Shaders/PointLights.vert");
-
-      ShaderDesc psDesc;
-      psDesc.EntryPoint = "main";
-      psDesc.ShaderLang = ShaderLang::Glsl;
-      psDesc.ShaderType = ShaderType::Pixel;
-      psDesc.Source = String::LoadFromFile("./Shaders/PointLights.frag");
-
-      std::vector<VertexLayoutDesc> vertexLayoutDesc{
-          VertexLayoutDesc(SemanticType::Position, SemanticFormat::Float3),
-          VertexLayoutDesc(SemanticType::Normal, SemanticFormat::Float3),
-          VertexLayoutDesc(SemanticType::TexCoord, SemanticFormat::Float2),
-          VertexLayoutDesc(SemanticType::Tangent, SemanticFormat::Float3),
-          VertexLayoutDesc(SemanticType::Bitangent, SemanticFormat::Float3)};
-
-      std::shared_ptr<ShaderParams> shaderParams(new ShaderParams());
-      shaderParams->AddParam(ShaderParam("ObjectBuffer", ShaderParamType::ConstBuffer, 0));
-      shaderParams->AddParam(ShaderParam("PointLightPassConstants", ShaderParamType::ConstBuffer, 1));
-      shaderParams->AddParam(ShaderParam("PointLightBuffer", ShaderParamType::ConstBuffer, 2));
-      shaderParams->AddParam(ShaderParam("DepthMap", ShaderParamType::Texture, 0));
-      shaderParams->AddParam(ShaderParam("NormalMap", ShaderParamType::Texture, 1));
-      shaderParams->AddParam(ShaderParam("SpecularMap", ShaderParamType::Texture, 2));
-
-      RasterizerStateDesc rasterizerStateDesc{};
-      rasterizerStateDesc.CullMode = CullMode::Clockwise;
-
-      DepthStencilStateDesc depthStencilStateDesc{};
-      depthStencilStateDesc.DepthReadEnabled = false;
-      depthStencilStateDesc.DepthWriteEnabled = false;
-
-      BlendStateDesc blendStateDesc{};
-      blendStateDesc.RTBlendState[0].BlendEnabled = true;
-      blendStateDesc.RTBlendState[0].Blend = BlendDesc(BlendFactor::One, BlendFactor::One, BlendOperation::Add);
-
-      PipelineStateDesc pipelineDesc;
-      pipelineDesc.VS = device->CreateShader(vsDesc);
-      pipelineDesc.PS = device->CreateShader(psDesc);
-      pipelineDesc.BlendState = device->CreateBlendState(blendStateDesc);
-      pipelineDesc.RasterizerState = device->CreateRasterizerState(rasterizerStateDesc);
-      pipelineDesc.DepthStencilState = device->CreateDepthStencilState(depthStencilStateDesc);
-      pipelineDesc.VertexLayout = device->CreateVertexLayout(vertexLayoutDesc);
-      pipelineDesc.ShaderParams = shaderParams;
-
-      _lightPrePassCWPto = device->CreatePipelineState(pipelineDesc);
-
-      rasterizerStateDesc.CullMode = CullMode::CounterClockwise;
-      pipelineDesc.RasterizerState = device->CreateRasterizerState(rasterizerStateDesc);
-      _lightPrePassCCWPto = device->CreatePipelineState(pipelineDesc);
-    }
-    {
-      TextureDesc colourTexDesc;
-      colourTexDesc.Width = _windowDims.X;
-      colourTexDesc.Height = _windowDims.Y;
-      colourTexDesc.Usage = TextureUsage::RenderTarget;
-      colourTexDesc.Type = TextureType::Texture2D;
-      colourTexDesc.Format = TextureFormat::RGB8;
-
-      RenderTargetDesc rtDesc;
-      rtDesc.ColourTargets[0] = device->CreateTexture(colourTexDesc);
-      rtDesc.ColourTargets[1] = device->CreateTexture(colourTexDesc);
-      rtDesc.Height = _windowDims.X;
-      rtDesc.Width = _windowDims.Y;
-
-      _lightPrePassRto = device->CreateRenderTarget(rtDesc);
-    }
-    GpuBufferDesc pointLightConstantsBufferDesc;
-    pointLightConstantsBufferDesc.BufferType = BufferType::Constant;
-    pointLightConstantsBufferDesc.BufferUsage = BufferUsage::Stream;
-    pointLightConstantsBufferDesc.ByteCount = sizeof(PointLightConstantsBuffer);
-    _pointLightConstantsBuffer = device->CreateGpuBuffer(pointLightConstantsBufferDesc);
-
-    GpuBufferDesc pointLightBufferDesc;
-    pointLightBufferDesc.BufferType = BufferType::Constant;
-    pointLightBufferDesc.BufferUsage = BufferUsage::Stream;
-    pointLightBufferDesc.ByteCount = sizeof(PointLightBuffer);
-    _pointLightBuffer = device->CreateGpuBuffer(pointLightBufferDesc);
-
-    _pointLightMesh = MeshFactory::CreateUvSphere();
-
-    VertexBufferDesc vtxBuffDesc;
-    vtxBuffDesc.BufferUsage = BufferUsage::Default;
-    vtxBuffDesc.VertexCount = FullscreenQuadVertices.size();
-    vtxBuffDesc.VertexSizeBytes = sizeof(FullscreenQuadVertex);
-    _fsQuadBuffer = device->CreateVertexBuffer(vtxBuffDesc);
-    _fsQuadBuffer->WriteData(0, sizeof(FullscreenQuadVertex) * FullscreenQuadVertices.size(), FullscreenQuadVertices.data(), AccessType::WriteOnlyDiscardRange);
-
-    {
-      ShaderDesc vsDesc;
-      vsDesc.EntryPoint = "main";
-      vsDesc.ShaderLang = ShaderLang::Glsl;
-      vsDesc.ShaderType = ShaderType::Vertex;
-      vsDesc.Source = String::LoadFromFile("./Shaders/FSPassThrough.vert");
-
-      ShaderDesc psDesc;
-      psDesc.EntryPoint = "main";
-      psDesc.ShaderLang = ShaderLang::Glsl;
-      psDesc.ShaderType = ShaderType::Pixel;
-      psDesc.Source = String::LoadFromFile("./Shaders/FullscreenQuad.frag");
-
-      std::vector<VertexLayoutDesc> vertexLayoutDesc{
-          VertexLayoutDesc(SemanticType::Position, SemanticFormat::Float2),
-          VertexLayoutDesc(SemanticType::TexCoord, SemanticFormat::Float2),
-      };
-
-      std::shared_ptr<ShaderParams> shaderParams(new ShaderParams());
-      shaderParams->AddParam(ShaderParam("QuadTexture", ShaderParamType::Texture, 0));
-
-      RasterizerStateDesc rasterizerStateDesc;
-      rasterizerStateDesc.CullMode = CullMode::None;
-
-      PipelineStateDesc pipelineDesc;
-      pipelineDesc.VS = device->CreateShader(vsDesc);
-      pipelineDesc.PS = device->CreateShader(psDesc);
-      pipelineDesc.BlendState = device->CreateBlendState(BlendStateDesc());
-      pipelineDesc.RasterizerState = device->CreateRasterizerState(rasterizerStateDesc);
-      pipelineDesc.DepthStencilState = device->CreateDepthStencilState(DepthStencilStateDesc());
-      pipelineDesc.VertexLayout = device->CreateVertexLayout(vertexLayoutDesc);
-      pipelineDesc.ShaderParams = shaderParams;
-
-      _gbufferDebugDrawPso = device->CreatePipelineState(pipelineDesc);
-    }
-    {
-      ShaderDesc vsDesc;
-      vsDesc.EntryPoint = "main";
-      vsDesc.ShaderLang = ShaderLang::Glsl;
-      vsDesc.ShaderType = ShaderType::Vertex;
-      vsDesc.Source = String::LoadFromFile("./Shaders/FSPassThrough.vert");
-
-      ShaderDesc psDesc;
-      psDesc.EntryPoint = "main";
-      psDesc.ShaderLang = ShaderLang::Glsl;
-      psDesc.ShaderType = ShaderType::Pixel;
-      psDesc.Source = String::LoadFromFile("./Shaders/DepthDebug.frag");
-
-      std::vector<VertexLayoutDesc> vertexLayoutDesc{
-          VertexLayoutDesc(SemanticType::Position, SemanticFormat::Float2),
-          VertexLayoutDesc(SemanticType::TexCoord, SemanticFormat::Float2),
-      };
-
-      std::shared_ptr<ShaderParams> shaderParams(new ShaderParams());
-      shaderParams->AddParam(ShaderParam("QuadTexture", ShaderParamType::Texture, 0));
-      shaderParams->AddParam(ShaderParam("FrameBuffer", ShaderParamType::ConstBuffer, 1));
-
-      RasterizerStateDesc rasterizerStateDesc;
-      rasterizerStateDesc.CullMode = CullMode::None;
-
-      PipelineStateDesc pipelineDesc;
-      pipelineDesc.VS = device->CreateShader(vsDesc);
-      pipelineDesc.PS = device->CreateShader(psDesc);
-      pipelineDesc.BlendState = device->CreateBlendState(BlendStateDesc());
-      pipelineDesc.RasterizerState = device->CreateRasterizerState(rasterizerStateDesc);
-      pipelineDesc.DepthStencilState = device->CreateDepthStencilState(DepthStencilStateDesc());
-      pipelineDesc.VertexLayout = device->CreateVertexLayout(vertexLayoutDesc);
-      pipelineDesc.ShaderParams = shaderParams;
-
-      _depthDebugDrawPso = device->CreatePipelineState(pipelineDesc);
-    }
-
-    GpuBufferDesc cameraBufferDesc;
-    cameraBufferDesc.BufferType = BufferType::Constant;
-    cameraBufferDesc.BufferUsage = BufferUsage::Stream;
-    cameraBufferDesc.ByteCount = sizeof(CameraBufferData);
-    _cameraBuffer = device->CreateGpuBuffer(cameraBufferDesc);
-
-    {
-      ShaderDesc vsDesc;
-      vsDesc.EntryPoint = "main";
-      vsDesc.ShaderLang = ShaderLang::Glsl;
-      vsDesc.ShaderType = ShaderType::Vertex;
-      vsDesc.Source = String::LoadFromFile("./Shaders/Basic.vert");
-
-      ShaderDesc psDesc;
-      psDesc.EntryPoint = "main";
-      psDesc.ShaderLang = ShaderLang::Glsl;
-      psDesc.ShaderType = ShaderType::Pixel;
-      psDesc.Source = String::LoadFromFile("./Shaders/Empty.frag");
-
-      std::vector<VertexLayoutDesc> vertexLayoutDesc{
-          VertexLayoutDesc(SemanticType::Position, SemanticFormat::Float3)};
-
-      std::shared_ptr<ShaderParams> shaderParams(new ShaderParams());
-      shaderParams->AddParam(ShaderParam("ObjectBuffer", ShaderParamType::ConstBuffer, 0));
-
-      RasterizerStateDesc rasterizerStateDesc{};
-      rasterizerStateDesc.FillMode = FillMode::WireFrame;
-      rasterizerStateDesc.CullMode = CullMode::None;
-
-      DepthStencilStateDesc depthStencilStateDesc{};
-      depthStencilStateDesc.DepthReadEnabled = false;
-      depthStencilStateDesc.DepthWriteEnabled = false;
-
-      BlendStateDesc blendStateDesc{};
-
-      PipelineStateDesc pipelineDesc;
-      pipelineDesc.VS = device->CreateShader(vsDesc);
-      pipelineDesc.PS = device->CreateShader(psDesc);
-      pipelineDesc.BlendState = device->CreateBlendState(blendStateDesc);
-      pipelineDesc.RasterizerState = device->CreateRasterizerState(rasterizerStateDesc);
-      pipelineDesc.DepthStencilState = device->CreateDepthStencilState(depthStencilStateDesc);
-      pipelineDesc.VertexLayout = device->CreateVertexLayout(vertexLayoutDesc);
-      pipelineDesc.ShaderParams = shaderParams;
-      pipelineDesc.Topology = PrimitiveTopology::LineList;
-
-      _drawAabbPso = device->CreatePipelineState(pipelineDesc);
-    }
-
-    GpuBufferDesc aabbBufferDesc;
-    aabbBufferDesc.BufferType = BufferType::Constant;
-    aabbBufferDesc.BufferUsage = BufferUsage::Stream;
-    aabbBufferDesc.ByteCount = sizeof(ObjectBuffer);
-    _aabbBuffer = device->CreateGpuBuffer(aabbBufferDesc);
-
-    VertexBufferDesc aabbVertexBuffDesc;
-    aabbVertexBuffDesc.BufferUsage = BufferUsage::Default;
-    aabbVertexBuffDesc.VertexCount = AabbCoords.size();
-    aabbVertexBuffDesc.VertexSizeBytes = sizeof(Vector3) * AabbCoords.size();
-    _aabbVertexBuffer = device->CreateVertexBuffer(aabbVertexBuffDesc);
-    _aabbVertexBuffer->WriteData(0, sizeof(Vector3) * AabbCoords.size(), AabbCoords.data(), AccessType::WriteOnlyDiscardRange);
-
-    {
-      ShaderDesc vsDesc;
-      vsDesc.EntryPoint = "main";
-      vsDesc.ShaderLang = ShaderLang::Glsl;
-      vsDesc.ShaderType = ShaderType::Vertex;
-      vsDesc.Source = String::LoadFromFile("./Shaders/FSPassThrough.vert");
-
-      ShaderDesc psDesc;
-      psDesc.EntryPoint = "main";
-      psDesc.ShaderLang = ShaderLang::Glsl;
-      psDesc.ShaderType = ShaderType::Pixel;
-      psDesc.Source = String::LoadFromFile("./Shaders/Merge.frag");
-
-      std::vector<VertexLayoutDesc> vertexLayoutDesc{
-          VertexLayoutDesc(SemanticType::Position, SemanticFormat::Float2),
-          VertexLayoutDesc(SemanticType::TexCoord, SemanticFormat::Float2),
-      };
-
-      std::shared_ptr<ShaderParams> shaderParams(new ShaderParams());
-      shaderParams->AddParam(ShaderParam("DiffuseMap", ShaderParamType::Texture, 0));
-      shaderParams->AddParam(ShaderParam("EmissiveMap", ShaderParamType::Texture, 1));
-      shaderParams->AddParam(ShaderParam("SpecularMap", ShaderParamType::Texture, 2));
-
-      RasterizerStateDesc rasterizerStateDesc;
-      rasterizerStateDesc.CullMode = CullMode::None;
-
-      PipelineStateDesc pipelineDesc;
-      pipelineDesc.VS = device->CreateShader(vsDesc);
-      pipelineDesc.PS = device->CreateShader(psDesc);
-      pipelineDesc.BlendState = device->CreateBlendState(BlendStateDesc());
-      pipelineDesc.RasterizerState = device->CreateRasterizerState(rasterizerStateDesc);
-      pipelineDesc.DepthStencilState = device->CreateDepthStencilState(DepthStencilStateDesc());
-      pipelineDesc.VertexLayout = device->CreateVertexLayout(vertexLayoutDesc);
-      pipelineDesc.ShaderParams = shaderParams;
-
-      _mergePso = device->CreatePipelineState(pipelineDesc);
-    }
+    _gBufferPso = device->CreatePipelineState(pipelineDesc);
   }
-  catch (const std::exception &e)
   {
-    std::cerr << "Failed to init DeferredRenderer. " << e.what() << std::endl;
-    return false;
+    TextureDesc colourTexDesc;
+    colourTexDesc.Width = _windowDims.X;
+    colourTexDesc.Height = _windowDims.Y;
+    colourTexDesc.Usage = TextureUsage::RenderTarget;
+    colourTexDesc.Type = TextureType::Texture2D;
+    colourTexDesc.Format = TextureFormat::RGBA8;
+
+    TextureDesc depthStencilDesc;
+    depthStencilDesc.Width = _windowDims.X;
+    depthStencilDesc.Height = _windowDims.Y;
+    depthStencilDesc.Usage = TextureUsage::Depth;
+    depthStencilDesc.Type = TextureType::Texture2D;
+    depthStencilDesc.Format = TextureFormat::D24;
+
+    RenderTargetDesc rtDesc;
+    rtDesc.ColourTargets[0] = device->CreateTexture(colourTexDesc);
+    rtDesc.ColourTargets[1] = device->CreateTexture(colourTexDesc);
+    rtDesc.ColourTargets[2] = device->CreateTexture(colourTexDesc);
+    rtDesc.DepthStencilTarget = device->CreateTexture(depthStencilDesc);
+    rtDesc.Height = _windowDims.X;
+    rtDesc.Width = _windowDims.Y;
+
+    _gBufferRto = device->CreateRenderTarget(rtDesc);
   }
-  return true;
+
+  GpuBufferDesc materialBufferDesc;
+  materialBufferDesc.BufferType = BufferType::Constant;
+  materialBufferDesc.BufferUsage = BufferUsage::Stream;
+  materialBufferDesc.ByteCount = sizeof(MaterialBufferData);
+  _materialBuffer = device->CreateGpuBuffer(materialBufferDesc);
+
+  GpuBufferDesc objectBufferDesc;
+  objectBufferDesc.BufferType = BufferType::Constant;
+  objectBufferDesc.BufferUsage = BufferUsage::Stream;
+  objectBufferDesc.ByteCount = sizeof(ObjectBuffer);
+  _objectBuffer = device->CreateGpuBuffer(objectBufferDesc);
+
+  {
+    ShaderDesc vsDesc;
+    vsDesc.EntryPoint = "main";
+    vsDesc.ShaderLang = ShaderLang::Glsl;
+    vsDesc.ShaderType = ShaderType::Vertex;
+    vsDesc.Source = String::LoadFromFile("./Shaders/PointLights.vert");
+
+    ShaderDesc psDesc;
+    psDesc.EntryPoint = "main";
+    psDesc.ShaderLang = ShaderLang::Glsl;
+    psDesc.ShaderType = ShaderType::Pixel;
+    psDesc.Source = String::LoadFromFile("./Shaders/PointLights.frag");
+
+    std::vector<VertexLayoutDesc> vertexLayoutDesc{
+        VertexLayoutDesc(SemanticType::Position, SemanticFormat::Float3),
+        VertexLayoutDesc(SemanticType::Normal, SemanticFormat::Float3),
+        VertexLayoutDesc(SemanticType::TexCoord, SemanticFormat::Float2),
+        VertexLayoutDesc(SemanticType::Tangent, SemanticFormat::Float3),
+        VertexLayoutDesc(SemanticType::Bitangent, SemanticFormat::Float3)};
+
+    std::shared_ptr<ShaderParams> shaderParams(new ShaderParams());
+    shaderParams->AddParam(ShaderParam("ObjectBuffer", ShaderParamType::ConstBuffer, 0));
+    shaderParams->AddParam(ShaderParam("PointLightPassConstants", ShaderParamType::ConstBuffer, 1));
+    shaderParams->AddParam(ShaderParam("PointLightBuffer", ShaderParamType::ConstBuffer, 2));
+    shaderParams->AddParam(ShaderParam("DepthMap", ShaderParamType::Texture, 0));
+    shaderParams->AddParam(ShaderParam("NormalMap", ShaderParamType::Texture, 1));
+    shaderParams->AddParam(ShaderParam("SpecularMap", ShaderParamType::Texture, 2));
+
+    RasterizerStateDesc rasterizerStateDesc{};
+    rasterizerStateDesc.CullMode = CullMode::Clockwise;
+
+    DepthStencilStateDesc depthStencilStateDesc{};
+    depthStencilStateDesc.DepthReadEnabled = false;
+    depthStencilStateDesc.DepthWriteEnabled = false;
+
+    BlendStateDesc blendStateDesc{};
+    blendStateDesc.RTBlendState[0].BlendEnabled = true;
+    blendStateDesc.RTBlendState[0].Blend = BlendDesc(BlendFactor::One, BlendFactor::One, BlendOperation::Add);
+
+    PipelineStateDesc pipelineDesc;
+    pipelineDesc.VS = device->CreateShader(vsDesc);
+    pipelineDesc.PS = device->CreateShader(psDesc);
+    pipelineDesc.BlendState = device->CreateBlendState(blendStateDesc);
+    pipelineDesc.RasterizerState = device->CreateRasterizerState(rasterizerStateDesc);
+    pipelineDesc.DepthStencilState = device->CreateDepthStencilState(depthStencilStateDesc);
+    pipelineDesc.VertexLayout = device->CreateVertexLayout(vertexLayoutDesc);
+    pipelineDesc.ShaderParams = shaderParams;
+
+    _lightPrePassCWPto = device->CreatePipelineState(pipelineDesc);
+
+    rasterizerStateDesc.CullMode = CullMode::CounterClockwise;
+    pipelineDesc.RasterizerState = device->CreateRasterizerState(rasterizerStateDesc);
+    _lightPrePassCCWPto = device->CreatePipelineState(pipelineDesc);
+  }
+  {
+    TextureDesc colourTexDesc;
+    colourTexDesc.Width = _windowDims.X;
+    colourTexDesc.Height = _windowDims.Y;
+    colourTexDesc.Usage = TextureUsage::RenderTarget;
+    colourTexDesc.Type = TextureType::Texture2D;
+    colourTexDesc.Format = TextureFormat::RGB8;
+
+    RenderTargetDesc rtDesc;
+    rtDesc.ColourTargets[0] = device->CreateTexture(colourTexDesc);
+    rtDesc.ColourTargets[1] = device->CreateTexture(colourTexDesc);
+    rtDesc.Height = _windowDims.X;
+    rtDesc.Width = _windowDims.Y;
+
+    _lightPrePassRto = device->CreateRenderTarget(rtDesc);
+  }
+  GpuBufferDesc pointLightConstantsBufferDesc;
+  pointLightConstantsBufferDesc.BufferType = BufferType::Constant;
+  pointLightConstantsBufferDesc.BufferUsage = BufferUsage::Stream;
+  pointLightConstantsBufferDesc.ByteCount = sizeof(PointLightConstantsBuffer);
+  _pointLightConstantsBuffer = device->CreateGpuBuffer(pointLightConstantsBufferDesc);
+
+  GpuBufferDesc pointLightBufferDesc;
+  pointLightBufferDesc.BufferType = BufferType::Constant;
+  pointLightBufferDesc.BufferUsage = BufferUsage::Stream;
+  pointLightBufferDesc.ByteCount = sizeof(PointLightBuffer);
+  _pointLightBuffer = device->CreateGpuBuffer(pointLightBufferDesc);
+
+  _pointLightMesh = MeshFactory::CreateUvSphere();
+
+  {
+    ShaderDesc vsDesc;
+    vsDesc.EntryPoint = "main";
+    vsDesc.ShaderLang = ShaderLang::Glsl;
+    vsDesc.ShaderType = ShaderType::Vertex;
+    vsDesc.Source = String::LoadFromFile("./Shaders/FSPassThrough.vert");
+
+    ShaderDesc psDesc;
+    psDesc.EntryPoint = "main";
+    psDesc.ShaderLang = ShaderLang::Glsl;
+    psDesc.ShaderType = ShaderType::Pixel;
+    psDesc.Source = String::LoadFromFile("./Shaders/Merge.frag");
+
+    std::vector<VertexLayoutDesc> vertexLayoutDesc{
+        VertexLayoutDesc(SemanticType::Position, SemanticFormat::Float2),
+        VertexLayoutDesc(SemanticType::TexCoord, SemanticFormat::Float2),
+    };
+
+    std::shared_ptr<ShaderParams> shaderParams(new ShaderParams());
+    shaderParams->AddParam(ShaderParam("DiffuseMap", ShaderParamType::Texture, 0));
+    shaderParams->AddParam(ShaderParam("EmissiveMap", ShaderParamType::Texture, 1));
+    shaderParams->AddParam(ShaderParam("SpecularMap", ShaderParamType::Texture, 2));
+
+    RasterizerStateDesc rasterizerStateDesc;
+    rasterizerStateDesc.CullMode = CullMode::None;
+
+    PipelineStateDesc pipelineDesc;
+    pipelineDesc.VS = device->CreateShader(vsDesc);
+    pipelineDesc.PS = device->CreateShader(psDesc);
+    pipelineDesc.BlendState = device->CreateBlendState(BlendStateDesc());
+    pipelineDesc.RasterizerState = device->CreateRasterizerState(rasterizerStateDesc);
+    pipelineDesc.DepthStencilState = device->CreateDepthStencilState(DepthStencilStateDesc());
+    pipelineDesc.VertexLayout = device->CreateVertexLayout(vertexLayoutDesc);
+    pipelineDesc.ShaderParams = shaderParams;
+
+    _mergePso = device->CreatePipelineState(pipelineDesc);
+  }
+  {
+    TextureDesc colourTexDesc;
+    colourTexDesc.Width = _windowDims.X;
+    colourTexDesc.Height = _windowDims.Y;
+    colourTexDesc.Usage = TextureUsage::RenderTarget;
+    colourTexDesc.Type = TextureType::Texture2D;
+    colourTexDesc.Format = TextureFormat::RGB8;
+
+    RenderTargetDesc rtDesc;
+    rtDesc.ColourTargets[0] = device->CreateTexture(colourTexDesc);
+    rtDesc.ColourTargets[1] = device->CreateTexture(colourTexDesc);
+    rtDesc.Height = _windowDims.X;
+    rtDesc.Width = _windowDims.Y;
+
+    _mergePassRto = device->CreateRenderTarget(rtDesc);
+  }
+}
+
+void DeferredRenderer::onDrawDebugUi()
+{
+  ImGui::Separator();
+  {
+    ImGui::Text("Deferred Renderer");
+  }  
 }
 
 void DeferredRenderer::drawFrame(std::shared_ptr<RenderDevice> renderDevice,
@@ -493,42 +304,7 @@ void DeferredRenderer::drawFrame(std::shared_ptr<RenderDevice> renderDevice,
 
   gbufferPass(renderDevice, drawables, camera);
   lightPrePass(renderDevice, lights, camera);
-
-  switch (_debugDisplayType)
-  {
-  case DebugDisplayType::Disabled:
-  {
-    mergePass(renderDevice);
-    break;
-  }
-  case DebugDisplayType::Diffuse:
-  {
-    drawRenderTarget(renderDevice, _gBufferRto->GetColourTarget(0), camera);
-    break;
-  }
-  case DebugDisplayType::Normal:
-  {
-    drawRenderTarget(renderDevice, _gBufferRto->GetColourTarget(1), camera);
-    break;
-  }
-  case DebugDisplayType::Emissive:
-  {
-    drawRenderTarget(renderDevice, _lightPrePassRto->GetColourTarget(0), camera);
-    break;
-  }
-  case DebugDisplayType::Specular:
-  {
-    drawRenderTarget(renderDevice, _lightPrePassRto->GetColourTarget(1), camera);
-    break;
-  }
-  case DebugDisplayType::Depth:
-  {
-    drawRenderTarget(renderDevice, _gBufferRto->GetDepthStencilTarget(), camera);
-    break;
-  }
-  }
-
-  drawAabb(renderDevice, aabbDrawables, camera);
+  mergePass(renderDevice);
 }
 
 void DeferredRenderer::gbufferPass(std::shared_ptr<RenderDevice> device,
@@ -615,7 +391,7 @@ void DeferredRenderer::lightPrePass(std::shared_ptr<RenderDevice> renderDevice,
 
 void DeferredRenderer::mergePass(std::shared_ptr<RenderDevice> renderDevice)
 {
-  renderDevice->SetRenderTarget(nullptr);
+  renderDevice->SetRenderTarget(_mergePassRto);
   renderDevice->SetPipelineState(_mergePso);
   renderDevice->SetTexture(0, _gBufferRto->GetColourTarget(0));
   renderDevice->SetTexture(1, _lightPrePassRto->GetColourTarget(0));
@@ -625,57 +401,6 @@ void DeferredRenderer::mergePass(std::shared_ptr<RenderDevice> renderDevice)
   renderDevice->SetSamplerState(2, _noMipSamplerState);
   renderDevice->SetVertexBuffer(_fsQuadBuffer);
   renderDevice->Draw(6, 0);
-}
-
-void DeferredRenderer::drawRenderTarget(std::shared_ptr<RenderDevice> renderDevice,
-                                        std::shared_ptr<Texture> renderTarget,
-                                        const Camera &camera)
-{
-  CameraBufferData cameraBufferData;
-  cameraBufferData.FarClip = camera.getFar();
-  cameraBufferData.NearClip = camera.getNear();
-  _cameraBuffer->WriteData(0, sizeof(CameraBufferData), &cameraBufferData, AccessType::WriteOnlyDiscard);
-
-  if (renderTarget->GetDesc().Usage == TextureUsage::RenderTarget)
-  {
-    renderDevice->SetPipelineState(_gbufferDebugDrawPso);
-  }
-  else if (renderTarget->GetDesc().Usage == TextureUsage::Depth)
-  {
-    renderDevice->SetConstantBuffer(1, _cameraBuffer);
-    renderDevice->SetPipelineState(_depthDebugDrawPso);
-  }
-  else
-  {
-    return;
-  }
-
-  renderDevice->SetRenderTarget(nullptr);
-  renderDevice->SetTexture(0, renderTarget);
-  renderDevice->SetSamplerState(0, _noMipSamplerState);
-  renderDevice->SetVertexBuffer(_fsQuadBuffer);
-  renderDevice->Draw(6, 0);
-}
-
-void DeferredRenderer::drawAabb(std::shared_ptr<RenderDevice> renderDevice,
-                                const std::vector<std::shared_ptr<Drawable>> &aabbDrawables,
-                                const Camera &camera)
-{
-  renderDevice->SetPipelineState(_drawAabbPso);
-  for (auto drawable : aabbDrawables)
-  {
-    auto aabb = drawable->getAabb();
-
-    ObjectBuffer objectBufferData;
-    objectBufferData.Model = Matrix4::Translation(drawable->getPosition()) * Matrix4::Scaling(aabb.GetHalfSize());
-    objectBufferData.ModelView = camera.getView() * objectBufferData.Model;
-    objectBufferData.ModelViewProjection = camera.getProj() * objectBufferData.ModelView;
-    _aabbBuffer->WriteData(0, sizeof(ObjectBuffer), &objectBufferData, AccessType::WriteOnlyDiscard);
-
-    renderDevice->SetConstantBuffer(0, _aabbBuffer);
-    renderDevice->SetVertexBuffer(_aabbVertexBuffer);
-    renderDevice->Draw(AabbCoords.size(), 0);
-  }
 }
 
 void DeferredRenderer::writeMaterialConstantData(std::shared_ptr<RenderDevice> renderDevice, std::shared_ptr<Material> material) const
