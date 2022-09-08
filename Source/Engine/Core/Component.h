@@ -19,6 +19,8 @@ public:
 
   void notify(const GameObject &gameObject);
 
+  virtual void drawInspector() = 0;
+
   ComponentType getType() const { return _componentType; }
 
 protected:

@@ -528,7 +528,7 @@ void DeferredRenderer::drawFrame(std::shared_ptr<RenderDevice> renderDevice,
   }
   }
 
-  // drawAabb(renderDevice, aabbDrawableIndices, allDrawables, camera);
+  drawAabb(renderDevice, aabbDrawables, camera);
 }
 
 void DeferredRenderer::gbufferPass(std::shared_ptr<RenderDevice> device,
@@ -661,6 +661,7 @@ void DeferredRenderer::drawAabb(std::shared_ptr<RenderDevice> renderDevice,
                                 const std::vector<std::shared_ptr<Drawable>> &aabbDrawables,
                                 const Camera &camera)
 {
+  renderDevice->SetPipelineState(_drawAabbPso);
   for (auto drawable : aabbDrawables)
   {
     auto aabb = drawable->getAabb();

@@ -15,7 +15,7 @@ class Light : public Component
 public:
 	Light();
 
-	void drawInspector();
+	void drawInspector() override;
 
 	Light &setColour(const Colour &colour);
 	Light &setRadius(float32 radius);

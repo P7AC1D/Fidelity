@@ -215,7 +215,7 @@ std::shared_ptr<StaticMesh> BuildMesh(const std::string &filePath, const aiMesh 
 
 GameObject &BuildModel(Scene &scene, const std::string &fileFolder, const aiScene *aiScene, bool reconstructWorldTransforms)
 {
-  GameObject &root = scene.createGameObject(aiScene->mName.C_Str());
+  GameObject &root = scene.createGameObject(aiScene->mRootNode->mName.C_Str());
 
   std::vector<std::shared_ptr<Material>> materials(aiScene->mNumMaterials);
   for (uint32 i = 0; i < aiScene->mNumMaterials; i++)

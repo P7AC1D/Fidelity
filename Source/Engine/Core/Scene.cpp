@@ -13,6 +13,8 @@
 #include "../RenderApi/RenderDevice.hpp"
 #include "GameObject.h"
 
+static uint64 SELECTED_GAME_OBJECT_INDEX = -1;
+
 bool Scene::init(const Vector2I &windowDims, std::shared_ptr<RenderDevice> renderDevice)
 {
   createGameObject("root");
@@ -24,27 +26,16 @@ bool Scene::init(const Vector2I &windowDims, std::shared_ptr<RenderDevice> rende
 
 GameObject &Scene::createGameObject(const std::string &name)
 {
-  _sceneGraph.push_back(Hierarchy{ _sceneGraph.size(), -1, -1});
-  auto gameObject = std::shared_ptr<GameObject>(new GameObject(name, _sceneGraph.size() - 1));
-  _gameObjects.push_back(gameObject);
-  return *(_gameObjects.back().get());
+  static uint64 index = 0;
+
+  _sceneGraph.insert(std::pair<uint64, std::vector<uint64>>(index, {}));
+  _gameObjects.insert(std::pair<uint64, GameObject>(index, std::move(GameObject(name, index))));
+  return _gameObjects[index++];
 }
 
 void Scene::addChildToNode(GameObject &parent, GameObject &child)
 {
-  int64 index = _sceneGraph[parent.getIndex()].Child;
-  if (index == -1)
-  {
-    _sceneGraph[parent.getIndex()].Child = child.getIndex();
-    return;
-  }
-
-  while (_sceneGraph[index].Sibling != -1)
-  {
-    index = _sceneGraph[index].Sibling;
-  }
-
-  _sceneGraph[index].Sibling = child.getIndex();
+  _sceneGraph[parent.getIndex()].push_back(child.getIndex());
 }
 
 void Scene::update(float64 dt)
@@ -61,7 +52,7 @@ void Scene::update(float64 dt)
 
   for (auto &gameObject : _gameObjects)
   {
-    gameObject->update(dt);
+    gameObject.second.update(dt);
   }
 }
 
@@ -89,11 +80,12 @@ void Scene::drawFrame() const
     auto drawable = std::dynamic_pointer_cast<Drawable>(component);
     if (_camera.intersectsFrustrum(drawable->getAabb()))
     {
-      culledDrawables.insert(DrawableSortMap(_camera.distanceFrom(drawable->getPosition()), drawable));
-      if (drawable->shouldDrawAabb())
-      {
-        aabbDrawables.push_back(drawable);
-      }
+      culledDrawables.insert(DrawableSortMap(_camera.distanceFrom(drawable->getPosition()), drawable));      
+    }
+
+    if (drawable->shouldDrawAabb())
+    {
+      aabbDrawables.push_back(drawable);
     }
   }
 
@@ -113,34 +105,74 @@ void Scene::drawFrame() const
   _deferredRenderer->drawFrame(_renderDevice, aabbDrawables, drawables, lights, _camera);
 }
 
-void Scene::updateInspector()
+void Scene::drawInspector()
 {
   ImGui::BeginChild("SceneGraph", ImVec2(ImGui::GetContentRegionAvail().x, 200), false, ImGuiWindowFlags_HorizontalScrollbar);
+  drawInspectorNode(0);
+  drawGameObjectInspector(SELECTED_GAME_OBJECT_INDEX);
+  ImGui::EndChild();
+}
 
-  ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick /* | (selectedActor == parentNode ? ImGuiTreeNodeFlags_Selected : 0)*/;
-  ImGui::Separator();
-  if (ImGui::TreeNode("Scene"))
+void Scene::drawInspectorNode(uint64 nodeIndex)
+{
+  ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick | (SELECTED_GAME_OBJECT_INDEX == nodeIndex ? ImGuiTreeNodeFlags_Selected : 0);
+
+  GameObject &gameObject = _gameObjects[nodeIndex];
+
+  if (_sceneGraph[nodeIndex].empty())
   {
-    
-
-    Hierarchy& node(_sceneGraph.front());
-
-    auto gameObject = _gameObjects.front();
-    bool open = ImGui::TreeNodeEx(gameObject->getName().c_str(), flags);
+    flags |= ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen;
+    ImGui::TreeNodeEx(gameObject.getName().c_str(), flags);
+    if (ImGui::IsItemClicked())
+    {
+      setAabbDrawOnGameObject(SELECTED_GAME_OBJECT_INDEX, false);
+      SELECTED_GAME_OBJECT_INDEX = nodeIndex;
+      setAabbDrawOnGameObject(SELECTED_GAME_OBJECT_INDEX, true);
+    }
+  }
+  else
+  {
+    bool open = ImGui::TreeNodeEx(gameObject.getName().c_str(), flags);
+    if (ImGui::IsItemClicked())
+    {
+      setAabbDrawOnGameObject(SELECTED_GAME_OBJECT_INDEX, false);
+      SELECTED_GAME_OBJECT_INDEX = nodeIndex;
+      setAabbDrawOnGameObject(SELECTED_GAME_OBJECT_INDEX, true);
+    }
     if (open)
     {
-      while (node.Child != -1)
+      for (auto childNodeIndex : _sceneGraph[nodeIndex])
       {
-        node = _sceneGraph[node.Child];
-        ImGui::TreeNodeEx(gameObject->getName().c_str(), flags);
-
-        ImGui::TreePop();
+        drawInspectorNode(childNodeIndex);
       }
+      ImGui::TreePop();
     }
+  }
+}
 
-    
-    ImGui::TreePop();
+void Scene::drawGameObjectInspector(uint64 selectedGameObjectIndex)
+{
+  if (selectedGameObjectIndex == -1)
+  {
+    return;
   }
 
-  ImGui::EndChild();
+  ImGui::Begin("Inspector", 0, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_AlwaysAutoResize);
+
+  GameObject& gameObject = _gameObjects[selectedGameObjectIndex];
+  gameObject.drawInspector();
+
+  ImVec2 screenSize = ImGui::GetIO().DisplaySize;
+  auto windowPos = ImVec2(screenSize.x - ImGui::GetWindowWidth(), 0);
+  ImGui::SetWindowPos(windowPos);
+  ImGui::End();
+}
+
+void Scene::setAabbDrawOnGameObject(uint64 gameObjectIndex, bool enableAabbDraw)
+{
+  GameObject& gameObject = _gameObjects[gameObjectIndex];
+  if (gameObject.hasComponent<Drawable>())
+  {
+    gameObject.getComponent<Drawable>().enableDrawAabb(enableAabbDraw);
+  }
 }

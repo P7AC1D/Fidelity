@@ -1,5 +1,6 @@
 #pragma once
 #include <functional>
+#include <map>
 #include <memory>
 #include <type_traits>
 #include <unordered_map>
@@ -30,15 +31,19 @@ public:
 
   void update(float64 dt);
   void drawFrame() const;
-  void updateInspector();
+  void drawInspector();
 
   Camera &getCamera() { return _camera; }
-  GameObject &getRoot() { return *(_gameObjects[0].get()); }
+  GameObject &getRoot() { return _gameObjects[0]; }
 
   // TODO Remove this and better abstract dependenciexc
   std::shared_ptr<RenderDevice> getRenderDevice() { return _renderDevice; }
 
 private:
+  void drawInspectorNode(uint64 nodeIndex);
+  void drawGameObjectInspector(uint64 selectedGameObjectIndex);
+  void setAabbDrawOnGameObject(uint64 gameObjectIndex, bool enableAabbDraw);
+
   struct DrawableSortMap
   {
     float32 DistanceToCamera;
@@ -50,18 +55,11 @@ private:
     }
   };
 
-  struct Hierarchy
-  {
-    uint64 Index = 0;
-    int32 Sibling = -1;
-    int32 Child = -1;
-  };
-
-  std::vector<Hierarchy> _sceneGraph;
+  std::map<uint64, std::vector<uint64>> _sceneGraph;
 
   std::unordered_map<ComponentType, std::vector<std::shared_ptr<Component>>>
       _components;
-  std::vector<std::shared_ptr<GameObject>> _gameObjects;
+  std::map<uint64, GameObject> _gameObjects;
   Camera _camera;
 
   std::shared_ptr<DeferredRenderer> _deferredRenderer;

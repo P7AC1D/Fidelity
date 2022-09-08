@@ -14,6 +14,8 @@ class Drawable : public Component
 public:
   Drawable();
 
+  void drawInspector() override;
+
   Drawable &setMesh(std::shared_ptr<StaticMesh> mesh);
   Drawable &setMaterial(std::shared_ptr<Material> material);
 

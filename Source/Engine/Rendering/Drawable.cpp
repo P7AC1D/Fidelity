@@ -3,6 +3,8 @@
 #include <cmath>
 
 #include "../Core/Maths.h"
+#include "../UI/ImGui/imgui.h"
+#include "../UI/UiManager.hpp"
 #include "StaticMesh.h"
 #include "Material.h"
 
@@ -12,6 +14,93 @@ Drawable::Drawable() : Component(ComponentType::Drawable),
                        _drawAabb(false),
                        _modified(true)
 {
+}
+
+void Drawable::drawInspector()
+{
+  ImGui::Separator();
+  ImGui::Text("Drawable");
+	std::shared_ptr<Material> material = getMaterial();
+	{
+		Colour ambient = material->getAmbientColour();
+		float32 rawCol[3] = { ambient[0], ambient[1], ambient[2] };
+		ImGui::ColorEdit3("Ambient", rawCol);
+		material->setAmbientColour(Colour(rawCol[0] * 255, rawCol[1] * 255, rawCol[2] * 255));
+	}
+	{
+		Colour diffuse = material->getDiffuseColour();
+		float32 rawCol[3] = { diffuse[0], diffuse[1], diffuse[2] };
+		ImGui::ColorEdit3("Diffuse", rawCol);
+		material->setDiffuseColour(Colour(rawCol[0] * 255, rawCol[1] * 255, rawCol[2] * 255));
+	}
+	{
+		Colour specular = material->getSpecularColour();
+		float32 rawCol[3] = { specular[0], specular[1], specular[2] };
+		ImGui::ColorEdit3("Specular", rawCol);
+		material->setSpecularColour(Colour(rawCol[0] * 255, rawCol[1] * 255, rawCol[2] * 255));
+	}
+	{
+		float32 specular = material->getSpecularExponent();
+		ImGui::DragFloat("Exponent", &specular, 1.0f, 0.0f, 1000.0f);
+		material->setSpecularExponent(specular);
+	}
+	{
+		std::vector<const char*> debugRenderingItems = { "Diffuse", "Normal", "Specular" };
+		static int debugRenderingCurrentItem = 0;
+
+		ImGui::Combo("Texture", &debugRenderingCurrentItem, debugRenderingItems.data(), debugRenderingItems.size());
+		if (debugRenderingCurrentItem == 0)
+		{
+			auto diffuseTexture = material->getDiffuseTexture();
+			if (diffuseTexture == nullptr)
+			{
+				return;
+			}
+
+			UiManager::AddTexture(reinterpret_cast<uint64>(&diffuseTexture), diffuseTexture);
+			ImGui::Image(
+				&diffuseTexture,
+				ImVec2(200, 200),
+				ImVec2(0.0f, 0.0f),
+				ImVec2(1.0f, 1.0f),
+				ImVec4(1.0f, 1.0f, 1.0f, 1.0f),
+				ImVec4(1.0f, 1.0f, 1.0f, 0.5f));
+		}
+		else if (debugRenderingCurrentItem == 1)
+		{
+			auto normalTexture = material->getNormalTexture();
+			if (normalTexture == nullptr)
+			{
+				return;
+			}
+
+			UiManager::AddTexture(reinterpret_cast<uint64>(&normalTexture), normalTexture);
+			ImGui::Image(
+				&normalTexture,
+				ImVec2(200, 200),
+				ImVec2(0.0f, 0.0f),
+				ImVec2(1.0f, 1.0f),
+				ImVec4(1.0f, 1.0f, 1.0f, 1.0f),
+				ImVec4(1.0f, 1.0f, 1.0f, 0.5f));
+		}
+		else if (debugRenderingCurrentItem == 2)
+		{
+			auto specularTexture = material->getSpecularTexture();
+			if (specularTexture == nullptr)
+			{
+				return;
+			}
+
+			UiManager::AddTexture(reinterpret_cast<uint64>(&specularTexture), specularTexture);
+			ImGui::Image(
+				&specularTexture,
+				ImVec2(200, 200),
+				ImVec2(0.0f, 0.0f),
+				ImVec2(1.0f, 1.0f),
+				ImVec4(1.0f, 1.0f, 1.0f, 1.0f),
+				ImVec4(1.0f, 1.0f, 1.0f, 0.5f));
+		}
+	}
 }
 
 Drawable &Drawable::setMesh(std::shared_ptr<StaticMesh> mesh)

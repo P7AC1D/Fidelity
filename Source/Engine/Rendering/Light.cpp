@@ -14,7 +14,7 @@ Light::Light() : Component(ComponentType::Light),
 void Light::drawInspector()
 {
 	ImGui::Separator();
-	ImGui::Text("LightNode");
+	ImGui::Text("Light");
 
 	float32 rawCol[]{_colour[0], _colour[1], _colour[2]};
 	ImGui::ColorEdit3("Colour", rawCol);

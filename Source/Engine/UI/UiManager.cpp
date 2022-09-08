@@ -61,25 +61,20 @@ void UiManager::Update(Scene &scene)
 	{
 		bool displayDebugWindow = true;
 		ImGui::SetNextWindowPos(ImVec2(0, 0));
-		if (!ImGui::Begin("Inspector", &displayDebugWindow, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoMove))
+		if (!ImGui::Begin("Scene", &displayDebugWindow, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoMove))
 		{
 			ImGui::End();
 			return;
 		}
 
-		scene.updateInspector();
+		ImGui::Separator();
+		{
+			scene.drawInspector();
+		}		
 
 		ImGui::Separator();
 		{
 			ImGui::Checkbox("Demo Window", &show_demo_window);
-		}
-
-		{
-			std::vector<const char *> debugRenderingItems = {"Disabled", "Diffuse", "Normal", "Depth", "Emissive", "Specular"};
-			static int debugRenderingCurrentItem = 0;
-			ImGui::Combo("Debug Rendering", &debugRenderingCurrentItem, debugRenderingItems.data(), debugRenderingItems.size());
-			// scene.setDebugDisplayType(static_cast<DebugDisplayType>(debugRenderingCurrentItem));
-			ImGui::Separator();
 		}
 
 		ImGui::Separator();
