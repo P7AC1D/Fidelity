@@ -1,37 +1,37 @@
 #include "ModelLoader.hpp"
 
-
 #include <stdexcept>
+
 #include <assimp/Importer.hpp>
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
+
 #include "../Maths/Math.hpp"
-#include "../Rendering/Material.hpp"
-#include "../Rendering/MaterialFactory.hpp"
-#include "../Rendering/Renderable.hpp"
+#include "../Core/Component.h"
+#include "../Core/Transform.h"
+#include "../Core/GameObject.h"
+#include "../RenderApi/RenderDevice.hpp"
+#include "../Rendering/Drawable.h"
+#include "../Rendering/Material.h"
 #include "../Rendering/StaticMesh.h"
-#include "../SceneManagement/ActorNode.hpp"
-#include "../SceneManagement/SceneNode.hpp"
-#include "../SceneManagement/Transform.h"
 #include "Assert.hpp"
 #include "String.hpp"
 #include "TextureLoader.hpp"
-#include "../SceneManagement/GenericNode.hpp"
 
 Vector3 toVector3(aiVector3D input)
 {
   return Vector3(input.x, input.y, input.z);
 }
 
-void OffsetVertices(std::vector<Vector3>& vertices, const Vector3& midPoint)
+void OffsetVertices(std::vector<Vector3> &vertices, const Vector3 &midPoint)
 {
-	for (uint32 i = 0; i < vertices.size(); i++)
-	{
-		vertices[i] = vertices[i] - midPoint;
-	}
+  for (uint32 i = 0; i < vertices.size(); i++)
+  {
+    vertices[i] = vertices[i] - midPoint;
+  }
 }
 
-void BuildIndexData(const aiFace* faces, uint32 indexCount, std::vector<uint32>& indicesOut)
+void BuildIndexData(const aiFace *faces, uint32 indexCount, std::vector<uint32> &indicesOut)
 {
   indicesOut.reserve(indexCount);
   for (uint32 i = 0; i < indexCount; i++)
@@ -47,7 +47,7 @@ void BuildIndexData(const aiFace* faces, uint32 indexCount, std::vector<uint32>&
   }
 }
 
-void BuildTexCoordData(const aiVector3D* texCoords, uint32 texCoordCount, std::vector<Vector2>& texCoordsOut)
+void BuildTexCoordData(const aiVector3D *texCoords, uint32 texCoordCount, std::vector<Vector2> &texCoordsOut)
 {
   texCoordsOut.reserve(texCoordCount);
   for (uint32 i = 0; i < texCoordCount; i++)
@@ -56,14 +56,14 @@ void BuildTexCoordData(const aiVector3D* texCoords, uint32 texCoordCount, std::v
   }
 }
 
-Vector3 BuildVertexData(const aiVector3D* vertices, uint32 verexCount, std::vector<Vector3>& verticesOut)
+Vector3 BuildVertexData(const aiVector3D *vertices, uint32 verexCount, std::vector<Vector3> &verticesOut)
 {
-	Vector3 avg(0);
+  Vector3 avg(0);
 
   verticesOut.reserve(verexCount);
   for (uint32 i = 0; i < verexCount; i++)
   {
-		Vector3 vertex(vertices[i].x, vertices[i].y, vertices[i].z);
+    Vector3 vertex(vertices[i].x, vertices[i].y, vertices[i].z);
 
     avg.X = (avg.X + vertices[i].x) / 2.0f;
     avg.Y = (avg.Y + vertices[i].y) / 2.0f;
@@ -72,38 +72,37 @@ Vector3 BuildVertexData(const aiVector3D* vertices, uint32 verexCount, std::vect
     verticesOut.push_back(vertex);
   }
 
-	return avg;
+  return avg;
 }
 
-void BuildNormalData(const aiVector3D* normals, uint32 normalCount, std::vector<Vector3>& normalsOut)
+void BuildNormalData(const aiVector3D *normals, uint32 normalCount, std::vector<Vector3> &normalsOut)
 {
-	normalsOut.reserve(normalCount);
-	for (uint32 i = 0; i < normalCount; i++)
-	{
-		normalsOut.emplace_back(normals[i].x, normals[i].y, normals[i].z);
-	}
+  normalsOut.reserve(normalCount);
+  for (uint32 i = 0; i < normalCount; i++)
+  {
+    normalsOut.emplace_back(normals[i].x, normals[i].y, normals[i].z);
+  }
 }
 
-std::shared_ptr<Material> BuildMaterial(const std::string& filePath, const aiMaterial* aiMaterial)
+std::shared_ptr<Material> BuildMaterial(std::shared_ptr<RenderDevice> renderDevice, const std::string &filePath, const aiMaterial *aiMaterial)
 {
-	std::shared_ptr<Material> material(MaterialFactory::Create());
+  std::shared_ptr<Material> material(new Material());
 
   aiColor3D ambientColour;
   aiMaterial->Get(AI_MATKEY_COLOR_AMBIENT, ambientColour);
-  material->SetAmbientColour(Vector3(ambientColour.r, ambientColour.g, ambientColour.b));
-  
+  material->setAmbientColour(Vector3(ambientColour.r, ambientColour.g, ambientColour.b));
+
   aiColor3D diffuseColour;
   aiMaterial->Get(AI_MATKEY_COLOR_DIFFUSE, diffuseColour);
-  material->SetDiffuseColour(Vector3(diffuseColour.r, diffuseColour.g, diffuseColour.b));
-  
+  material->setDiffuseColour(Vector3(diffuseColour.r, diffuseColour.g, diffuseColour.b));
+
   aiColor3D specularColour;
   aiMaterial->Get(AI_MATKEY_COLOR_SPECULAR, specularColour);
-  material->SetSpecularColour(Vector3(specularColour.r, specularColour.g, specularColour.b));
-  
+  material->setSpecularColour(Vector3(specularColour.r, specularColour.g, specularColour.b));
+
   float32 specularShininess;
   aiMaterial->Get(AI_MATKEY_SHININESS, specularShininess);
-  material->SetSpecularExponent(specularShininess);
-  
+  material->setSpecularExponent(specularShininess);
 
   if (aiMaterial->GetTextureCount(aiTextureType_DIFFUSE) > 0)
   {
@@ -111,8 +110,8 @@ std::shared_ptr<Material> BuildMaterial(const std::string& filePath, const aiMat
     aiMaterial->GetTexture(aiTextureType_DIFFUSE, 0, &diffuseTexturePath);
     if (diffuseTexturePath.length != 0)
     {
-      auto diffuseTexture = TextureLoader::LoadFromFile2D(filePath + diffuseTexturePath.C_Str(), true);
-      material->SetDiffuseTexture(diffuseTexture);
+      auto diffuseTexture = TextureLoader::LoadFromFile2D(renderDevice, filePath + diffuseTexturePath.C_Str(), true);
+      material->setDiffuseTexture(diffuseTexture);
     }
   }
 
@@ -122,8 +121,8 @@ std::shared_ptr<Material> BuildMaterial(const std::string& filePath, const aiMat
     aiMaterial->GetTexture(aiTextureType_NORMALS, 0, &normalTexturePath);
     if (normalTexturePath.length != 0)
     {
-      auto normalTexture = TextureLoader::LoadFromFile2D(filePath + normalTexturePath.C_Str());
-      material->SetNormalTexture(normalTexture);
+      auto normalTexture = TextureLoader::LoadFromFile2D(renderDevice, filePath + normalTexturePath.C_Str());
+      material->setNormalTexture(normalTexture);
     }
   }
 
@@ -133,14 +132,14 @@ std::shared_ptr<Material> BuildMaterial(const std::string& filePath, const aiMat
     aiMaterial->GetTexture(aiTextureType_SPECULAR, 0, &specularTexturePath);
     if (specularTexturePath.length != 0)
     {
-      auto specularTexture = TextureLoader::LoadFromFile2D(filePath + specularTexturePath.C_Str());
-      material->SetSpecularTexture(specularTexture);
+      auto specularTexture = TextureLoader::LoadFromFile2D(renderDevice, filePath + specularTexturePath.C_Str());
+      material->setSpecularTexture(specularTexture);
     }
   }
-	return material;
+  return material;
 }
 
-Vector3 CalculateCentroid(const aiMesh* mesh)
+Vector3 CalculateCentroid(const aiMesh *mesh)
 {
   float32 areaSum = 0.0f;
   Vector3 centroid = Vector3::Zero;
@@ -159,7 +158,7 @@ Vector3 CalculateCentroid(const aiMesh* mesh)
   return centroid / areaSum;
 }
 
-std::shared_ptr<StaticMesh> BuildMesh(const std::string& filePath, const aiMesh* aiMesh, bool reconstructWorldTransforms, Vector3& offset)
+std::shared_ptr<StaticMesh> BuildMesh(const std::string &filePath, const aiMesh *aiMesh, bool reconstructWorldTransforms, Vector3 &offset)
 {
   if (!aiMesh->HasPositions() || !aiMesh->HasNormals())
   {
@@ -167,96 +166,90 @@ std::shared_ptr<StaticMesh> BuildMesh(const std::string& filePath, const aiMesh*
   }
 
   Vector3 centroid = CalculateCentroid(aiMesh);
-  
+
   std::shared_ptr<StaticMesh> mesh(new StaticMesh());
-  auto material = mesh->GetMaterial();
-  
+
   std::vector<Vector3> vertices;
   BuildVertexData(aiMesh->mVertices, aiMesh->mNumVertices, vertices);
-	if (reconstructWorldTransforms)
-	{
-		offset = centroid;
-		OffsetVertices(vertices, centroid);
-	}
-  mesh->SetPositionVertexData(vertices);
-  
+  if (reconstructWorldTransforms)
+  {
+    offset = centroid;
+    OffsetVertices(vertices, centroid);
+  }
+  mesh->setPositionVertexData(vertices);
+
   if (aiMesh->HasNormals())
   {
     std::vector<Vector3> normals;
-		BuildNormalData(aiMesh->mNormals, aiMesh->mNumVertices, normals);
-    mesh->SetNormalVertexData(normals);
+    BuildNormalData(aiMesh->mNormals, aiMesh->mNumVertices, normals);
+    mesh->setNormalVertexData(normals);
   }
   else
   {
-    mesh->GenerateNormals();
+    mesh->generateNormals();
   }
-  
+
   // Assume that mesh contains a single set of texture coordinate data.
   if (aiMesh->HasTextureCoords(0))
   {
     std::vector<Vector2> texCoords;
     BuildTexCoordData(aiMesh->mTextureCoords[0], aiMesh->mNumVertices, texCoords);
-    mesh->SetTextureVertexData(texCoords);
+    mesh->setTextureVertexData(texCoords);
   }
   else
   {
     std::vector<Vector2> texCoords(aiMesh->mNumVertices);
-    mesh->SetTextureVertexData(texCoords);
+    mesh->setTextureVertexData(texCoords);
   }
-  
+
   if (aiMesh->HasFaces())
   {
     std::vector<uint32> indices;
     BuildIndexData(aiMesh->mFaces, aiMesh->mNumFaces, indices);
-    mesh->SetIndexData(indices);
+    mesh->setIndexData(indices);
   }
-  
-  mesh->GenerateTangents();
+
+  mesh->generateTangents();
   return mesh;
 }
 
-std::shared_ptr<SceneNode> BuildModel(const std::string& fileFolder, const aiScene* scene, bool reconstructWorldTransforms)
+GameObject &BuildModel(Scene &scene, const std::string &fileFolder, const aiScene *aiScene, bool reconstructWorldTransforms)
 {
-  if (!scene->HasMeshes() || !scene->HasMaterials())
+  GameObject &root = scene.createGameObject(aiScene->mRootNode->mName.C_Str());
+
+  std::vector<std::shared_ptr<Material>> materials(aiScene->mNumMaterials);
+  for (uint32 i = 0; i < aiScene->mNumMaterials; i++)
   {
-    return nullptr;
+    materials[i] = BuildMaterial(scene.getRenderDevice(), fileFolder, aiScene->mMaterials[i]);
   }
 
-	std::vector<std::shared_ptr<Material>> materials(scene->mNumMaterials);
-	for (uint32 i = 0; i < scene->mNumMaterials; i++)
-	{		
-		materials[i] = BuildMaterial(fileFolder, scene->mMaterials[i]);		
-	}
-  
-  std::shared_ptr<GenericNode> parentNode(SceneNode::Create<GenericNode>(scene->mRootNode->mName.C_Str()));
-  for (uint32 i = 0; i < scene->mNumMeshes; i++)
+  for (uint32 i = 0; i < aiScene->mNumMeshes; i++)
   {
-		Vector3 offset;
+    auto aiMesh = aiScene->mMeshes[i];
 
-    auto aiMesh = scene->mMeshes[i];
-    auto mesh = BuildMesh(fileFolder, aiMesh, reconstructWorldTransforms, offset);
-		mesh->SetMaterial(materials[aiMesh->mMaterialIndex]);
-    
-    std::shared_ptr<ActorNode> childNode(SceneNode::Create<ActorNode>(aiMesh->mName.C_Str()));
-    childNode->GetTransform().SetPosition(offset);
-  	
-    parentNode->AddChild(childNode);
-  	   
-    std::shared_ptr<Renderable> renderable(new Renderable());
-    renderable->SetMesh(mesh);    
-    childNode->AddComponent(renderable);
+    GameObject &currentObject = scene.createGameObject(aiMesh->mName.C_Str());
+    Drawable &drawable = scene.createComponent<Drawable>();
+
+    currentObject.addComponent(drawable);
+    scene.addChildToNode(root, currentObject);
+
+    Vector3 offset;
+    drawable.setMaterial(materials[aiMesh->mMaterialIndex]);
+    drawable.setMesh(BuildMesh(fileFolder, aiMesh, reconstructWorldTransforms, offset));
+    currentObject.transform().setPosition(offset);
   }
-  return parentNode;
+
+  return root;
 }
 
-std::shared_ptr<SceneNode> ModelLoader::LoadFromFile(const std::string& filePath, bool reconstructWorldTransforms)
+GameObject &ModelLoader::FromFile(Scene &scene, const std::string &filePath, bool reconstructWorldTransforms)
 {
   Assimp::Importer importer;
-  auto scene = importer.ReadFile(filePath, aiProcess_Triangulate | aiProcess_GenNormals | aiProcess_GenUVCoords);
-  ASSERT_TRUE(scene, "failed to load mode from " + filePath);
-  
+  auto aiScene = importer.ReadFile(filePath, aiProcess_Triangulate | aiProcess_GenNormals | aiProcess_GenUVCoords);
+  ASSERT_TRUE(aiScene, "failed to load mode from " + filePath);
+
   auto splitPath = String::Split(filePath, '/');
-	splitPath.pop_back();
-	auto fileFolder = String::Join(splitPath, '/');
-  return BuildModel(fileFolder, scene, reconstructWorldTransforms);
+  splitPath.pop_back();
+  auto fileFolder = String::Join(splitPath, '/');
+  return BuildModel(scene, fileFolder, aiScene, reconstructWorldTransforms);
 }

@@ -14,6 +14,9 @@ layout(std140) uniform PointLightPassConstants
 
 layout(std140) uniform PointLightBuffer
 {
+  mat4 Model;
+  mat4 ModelView;
+  mat4 ModelViewProjection;
   vec4 Colour;
   vec3 Position;
   float Radius;

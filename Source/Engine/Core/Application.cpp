@@ -4,21 +4,19 @@
 #include <utility>
 #include "../Input/EventDispatcher.hpp"
 #include "../Input/InputHandler.hpp"
-#include "../Rendering/Renderer.h"
-#include "../SceneManagement/GenericNode.hpp"
-#include "../SceneManagement/SceneNode.hpp"
+#include "../RenderApi/GL/GLRenderDevice.hpp"
 
 static std::shared_ptr<InputHandler> INPUT_HANDLER = nullptr;
 static std::shared_ptr<UiManager> DEBUG_UI = nullptr;
 static int32 TICK_DURATION = 0;
 static Vector2I MOUSE_POSITION = Vector2I(0);
 
-void errorCallback(int error, const char* description)
+void errorCallback(int error, const char *description)
 {
   std::cerr << "GLFW Error: " << description << std::endl;
 }
 
-void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods)
+void keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods)
 {
   switch (action)
   {
@@ -40,12 +38,11 @@ void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods
   }
   case GLFW_REPEAT:
   {
-
   }
   }
 }
 
-void mouseButtonCallback(GLFWwindow* window, int button, int action, int mods)
+void mouseButtonCallback(GLFWwindow *window, int button, int action, int mods)
 {
   if (DEBUG_UI->HasMouseCapture())
   {
@@ -64,7 +61,7 @@ void mouseButtonCallback(GLFWwindow* window, int button, int action, int mods)
     break;
   }
   case GLFW_RELEASE:
-  {   
+  {
     InputEvent inputEvent;
     inputEvent.AxisPos = MOUSE_POSITION;
     inputEvent.Button = GlfwMouseButtonToButton(button);
@@ -75,7 +72,7 @@ void mouseButtonCallback(GLFWwindow* window, int button, int action, int mods)
   }
 }
 
-void cursorPositionCallback(GLFWwindow* window, double xpos, double ypos)
+void cursorPositionCallback(GLFWwindow *window, double xpos, double ypos)
 {
   InputEvent inputEvent;
   inputEvent.Axis = Axis::MouseXY;
@@ -86,7 +83,7 @@ void cursorPositionCallback(GLFWwindow* window, double xpos, double ypos)
   MOUSE_POSITION = inputEvent.AxisPos;
 }
 
-void scrollCallback(GLFWwindow* window, double xoffset, double yoffset)
+void scrollCallback(GLFWwindow *window, double xoffset, double yoffset)
 {
   if (DEBUG_UI->HasMouseCapture())
   {
@@ -99,7 +96,7 @@ void scrollCallback(GLFWwindow* window, double xoffset, double yoffset)
   INPUT_HANDLER->Dispatch(inputEvent, TICK_DURATION);
 }
 
-Application::~Application() 
+Application::~Application()
 {
   glfwDestroyWindow(_window);
   glfwTerminate();
@@ -119,19 +116,18 @@ int32 Application::Run()
     uint32 dtMs = GetTickDuration();
     TICK_DURATION = dtMs;
 
-    OnUpdate(dtMs);
-    
     if (glfwWindowShouldClose(_window))
     {
       _isRunning = false;
       return 0;
-    }   
+    }
 
-		_sceneGraph->Update(dtMs);
-    _sceneGraph->Draw(_renderer); //TODO Change name to SubmitDraw() or PrepareDraw() or something similar.
-  	
-		_renderer->DrawFrame();
-		_debugUi->Update();		
+    _scene.update(dtMs);
+    _scene.drawFrame();
+    _debugUi->Update(_scene);
+
+    OnUpdate(dtMs);
+
     glfwSwapBuffers(_window);
     glfwPollEvents();
   }
@@ -139,12 +135,10 @@ int32 Application::Run()
   return 0;
 }
 
-Application::Application(ApplicationDesc desc) :
-  _eventDispatcher(new EventDispatcher),
-  _inputHandler(new InputHandler(*_eventDispatcher.get())),
-  _sceneGraph(SceneNode::Create<GenericNode>()),
-  _mouseFocus(true),
-  _desc(std::move(desc))
+Application::Application(ApplicationDesc desc) : _eventDispatcher(new EventDispatcher),
+                                                 _inputHandler(new InputHandler(*_eventDispatcher.get())),
+                                                 _mouseFocus(true),
+                                                 _desc(std::move(desc))
 {
   INPUT_HANDLER = _inputHandler;
 }
@@ -165,7 +159,7 @@ float32 Application::GetAverageTickMs(int32 dtMs)
   {
     dtSum += dtMs;
     count++;
-  }  
+  }
   return currentDt;
 }
 
@@ -203,24 +197,27 @@ bool Application::Initialize()
     return false;
   }
 
-	try
-	{
-		RendererDesc rendererDesc;
-		rendererDesc.RenderWidth = _desc.Width;
-		rendererDesc.RenderHeight = _desc.Height;
-		_renderer.reset(new Renderer(rendererDesc));
-	}
-	catch (const std::exception& exception)
-	{
-#ifdef _DEBUG
-		std::cout << exception.what();
-#endif
-		return false;
-	}
+  try
+  {
+    RenderDeviceDesc renderDeviceDesc;
+    renderDeviceDesc.RenderWidth = _desc.Width;
+    renderDeviceDesc.RenderHeight = _desc.Height;
+    _renderDevice.reset(new GLRenderDevice(renderDeviceDesc));
+  }
+  catch (const std::exception &exception)
+  {
+    std::cerr << "Renderdevice exception thrown. " << exception.what();
+    return false;
+  }
+
+  if (!_scene.init(Vector2I(_desc.Width, _desc.Height), _renderDevice))
+  {
+    std::cerr << "Failed to initialize scene." << std::endl;
+    return false;
+  }
 
   _debugUi.reset(new UiManager(_window));
-	_debugUi->SetRenderer(_renderer);
-  _debugUi->SetSceneGraph(_sceneGraph);
+  _debugUi->Initialize(_renderDevice);
   DEBUG_UI = _debugUi;
   return true;
 }

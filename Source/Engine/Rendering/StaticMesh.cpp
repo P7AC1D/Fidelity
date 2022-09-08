@@ -3,35 +3,31 @@
 #include "../RenderApi/IndexBuffer.hpp"
 #include "../RenderApi/RenderDevice.hpp"
 #include "../RenderApi/VertexBuffer.hpp"
-#include "Material.hpp"
-#include "MaterialFactory.hpp"
-#include "Renderer.h"
 
-StaticMesh::StaticMesh() :
-  _vertexDataFormat(0),
-  _vertexCount(0),
-	_verticesNeedUpdate(true),
-	_indicesNeedUpdate(true),
-  _indexed(false),
-	_material(MaterialFactory::Create())
-{}
+StaticMesh::StaticMesh() : _vertexDataFormat(0),
+                           _vertexCount(0),
+                           _verticesNeedUpdate(true),
+                           _indicesNeedUpdate(true),
+                           _indexed(false)
+{
+}
 
-void StaticMesh::SetPositionVertexData(const std::vector<Vector3>& positionData)
+void StaticMesh::setPositionVertexData(const std::vector<Vector3> &positionData)
 {
   auto vertexCount = static_cast<int32>(positionData.size());
   if (vertexCount == 0)
   {
-		return;
+    return;
   }
 
   _vertexCount = _vertexCount >= vertexCount || _vertexCount == 0 ? vertexCount : _vertexCount;
 
   _positionData = positionData;
   _vertexDataFormat |= VertexDataFormat::Position;
-	_verticesNeedUpdate = true;
+  _verticesNeedUpdate = true;
 }
 
-void StaticMesh::SetNormalVertexData(const std::vector<Vector3>& normalData)
+void StaticMesh::setNormalVertexData(const std::vector<Vector3> &normalData)
 {
   auto vertexCount = static_cast<int32>(normalData.size());
   if (vertexCount == 0)
@@ -43,40 +39,40 @@ void StaticMesh::SetNormalVertexData(const std::vector<Vector3>& normalData)
 
   _normalData = normalData;
   _vertexDataFormat |= VertexDataFormat::Normal;
-	_verticesNeedUpdate = true;
+  _verticesNeedUpdate = true;
 }
-  
-void StaticMesh::SetTangentVertexData(const std::vector<Vector3>& tangentData)
+
+void StaticMesh::setTangentVertexData(const std::vector<Vector3> &tangentData)
 {
   auto vertexCount = static_cast<int32>(tangentData.size());
   if (vertexCount == 0)
   {
     return;
   }
-  
+
   _vertexCount = _vertexCount >= vertexCount || _vertexCount == 0 ? vertexCount : _vertexCount;
-  
+
   _tangentData = tangentData;
   _vertexDataFormat |= VertexDataFormat::Tangent;
-	_verticesNeedUpdate = true;
+  _verticesNeedUpdate = true;
 }
-  
-void StaticMesh::SetBitangentVertexData(const std::vector<Vector3>& bitangentData)
+
+void StaticMesh::setBitangentVertexData(const std::vector<Vector3> &bitangentData)
 {
   auto vertexCount = static_cast<int32>(bitangentData.size());
   if (vertexCount == 0)
   {
     return;
   }
-  
+
   _vertexCount = _vertexCount >= vertexCount || _vertexCount == 0 ? vertexCount : _vertexCount;
-  
+
   _bitangentData = bitangentData;
   _vertexDataFormat |= VertexDataFormat::Bitanget;
-	_verticesNeedUpdate = true;
+  _verticesNeedUpdate = true;
 }
 
-void StaticMesh::SetTextureVertexData(const std::vector<Vector2>& textureData)
+void StaticMesh::setTextureVertexData(const std::vector<Vector2> &textureData)
 {
   auto vertexCount = static_cast<int32>(textureData.size());
   if (vertexCount == 0)
@@ -88,10 +84,10 @@ void StaticMesh::SetTextureVertexData(const std::vector<Vector2>& textureData)
 
   _textureData = textureData;
   _vertexDataFormat |= VertexDataFormat::Uv;
-	_verticesNeedUpdate = true;
+  _verticesNeedUpdate = true;
 }
 
-void StaticMesh::SetIndexData(const std::vector<uint32>& indexData)
+void StaticMesh::setIndexData(const std::vector<uint32> &indexData)
 {
   auto indexCount = static_cast<int32>(indexData.size());
   if (indexCount == 0)
@@ -104,36 +100,36 @@ void StaticMesh::SetIndexData(const std::vector<uint32>& indexData)
   _indicesNeedUpdate = true;
   _indexed = true;
 }
-  
-void StaticMesh::GenerateTangents()
+
+void StaticMesh::generateTangents()
 {
   if (_positionData.empty() && _textureData.empty())
   {
     return;
   }
-  
+
   if (_indexed)
   {
     std::vector<Vector3> tangents(_positionData.size());
     std::vector<Vector3> bitangents(_positionData.size());
-    
+
     // TODO: improve this using vectors instead of floats
     for (size_t i = 0; i < _indexData.size(); i += 3)
     {
       Vector3 p0 = _positionData[_indexData[i]];
       Vector3 p1 = _positionData[_indexData[i + 1]];
       Vector3 p2 = _positionData[_indexData[i + 2]];
-      
+
       Vector2 uv0 = _textureData[_indexData[i]];
       Vector2 uv1 = _textureData[_indexData[i + 1]];
       Vector2 uv2 = _textureData[_indexData[i + 2]];
-      
+
       Vector3 q0 = p1 - p0;
       Vector3 q1 = p2 - p0;
 
       Vector3 s = uv1 - uv0;
       Vector3 t = uv2 - uv0;
-      
+
       Vector3 tangent;
       Vector3 bitangent;
       float32 demon = (s[0] * t[1] - t[0] * s[1]);
@@ -146,28 +142,28 @@ void StaticMesh::GenerateTangents()
         tangent = t[1] * q0 - s[1] * q1;
         bitangent = s[0] * q1 - t[0] * q0;
       }
-      
+
       tangents[_indexData[i]] += tangent;
       tangents[_indexData[i + 1]] += tangent;
       tangents[_indexData[i + 2]] += tangent;
-      
+
       bitangents[_indexData[i]] += bitangent;
       bitangents[_indexData[i + 1]] += bitangent;
       bitangents[_indexData[i + 2]] += bitangent;
     }
-    
+
     for (size_t i = 0; i < _positionData.size(); i++)
     {
       tangents[i] = Vector3::Normalize(tangents[i]);
       bitangents[i] = Vector3::Normalize(bitangents[i]);
     }
-    
-    SetTangentVertexData(tangents);
-    SetBitangentVertexData(bitangents);
+
+    setTangentVertexData(tangents);
+    setBitangentVertexData(bitangents);
   }
 }
 
-void StaticMesh::CalculateTangents(const std::vector<Vector3>& positionData, const std::vector<Vector2>& textureData)
+void StaticMesh::calculateTangents(const std::vector<Vector3> &positionData, const std::vector<Vector2> &textureData)
 {
   _tangentData.reserve(positionData.size());
   _bitangentData.reserve(positionData.size());
@@ -199,10 +195,19 @@ void StaticMesh::CalculateTangents(const std::vector<Vector3>& positionData, con
     _bitangentData.push_back(bitangent);
     _bitangentData.push_back(bitangent);
   }
-	_verticesNeedUpdate = true;
+  _verticesNeedUpdate = true;
 }
 
-void StaticMesh::GenerateNormals()
+Aabb StaticMesh::getAabb()
+{
+  if (_verticesNeedUpdate)
+  {
+    calculateAabb();
+  }
+  return _aabb;
+}
+
+void StaticMesh::generateNormals()
 {
   if (_positionData.empty())
   {
@@ -231,7 +236,7 @@ void StaticMesh::GenerateNormals()
     }
   }
   else
-  {    
+  {
     for (size_t i = 0; i < _positionData.size(); i += 3)
     {
       auto vecAB = _positionData[i + 1] - _positionData[i];
@@ -242,37 +247,45 @@ void StaticMesh::GenerateNormals()
       normals[i + 2] = normal;
     }
   }
-  SetNormalVertexData(normals);
+  setNormalVertexData(normals);
 }
 
-std::shared_ptr<Material> StaticMesh::GetMaterial()
-{
-  return _material;
-}
-
-std::shared_ptr<VertexBuffer> StaticMesh::GetVertexData()
+std::shared_ptr<VertexBuffer> StaticMesh::getVertexData(std::shared_ptr<RenderDevice> renderDevice)
 {
   if (_verticesNeedUpdate)
   {
-    UploadVertexData();
-		_verticesNeedUpdate = false;
+    uploadVertexData(renderDevice);
+    _verticesNeedUpdate = false;
   }
   return _vertexBuffer;
 }
 
-std::shared_ptr<IndexBuffer> StaticMesh::GetIndexData()
+std::shared_ptr<IndexBuffer> StaticMesh::getIndexData(std::shared_ptr<RenderDevice> renderDevice)
 {
   if (_indicesNeedUpdate)
   {
-    UploadIndexData();
-		_indicesNeedUpdate = false;
+    uploadIndexData(renderDevice);
+    _indicesNeedUpdate = false;
   }
   return _indexBuffer;
 }
 
-std::vector<float32> StaticMesh::CreateRestructuredVertexDataArray(int32& stride) const
+void StaticMesh::calculateAabb()
 {
-  std::vector<float32> restructuredData = CreateVertexDataArray();
+  Vector3 min(std::numeric_limits<float32>::max());
+  Vector3 max(std::numeric_limits<float32>::min());
+  for (auto position : _positionData)
+  {
+    max = Math::Max(max, position);
+    min = Math::Min(min, position);
+  }
+
+  _aabb = Aabb(max, min);
+}
+
+std::vector<float32> StaticMesh::createRestructuredVertexDataArray(int32 &stride) const
+{
+  std::vector<float32> restructuredData = createVertexDataArray();
   if (_vertexDataFormat & VertexDataFormat::Position)
   {
     stride += 3 * sizeof(float32);
@@ -293,7 +306,6 @@ std::vector<float32> StaticMesh::CreateRestructuredVertexDataArray(int32& stride
   {
     stride += 3 * sizeof(float32);
   }
-
 
   for (int i = 0; i < _vertexCount; ++i)
   {
@@ -331,7 +343,7 @@ std::vector<float32> StaticMesh::CreateRestructuredVertexDataArray(int32& stride
   return restructuredData;
 }
 
-std::vector<float32> StaticMesh::CreateVertexDataArray() const
+std::vector<float32> StaticMesh::createVertexDataArray() const
 {
   decltype(_positionData.size()) dataSize = 0;
   if (_vertexDataFormat & VertexDataFormat::Position)
@@ -359,25 +371,25 @@ std::vector<float32> StaticMesh::CreateVertexDataArray() const
   return vertexDataArray;
 }
 
-void StaticMesh::UploadVertexData()
+void StaticMesh::uploadVertexData(std::shared_ptr<RenderDevice> renderDevice)
 {
   int32 stride = 0;
-  auto dataToUpload = CreateRestructuredVertexDataArray(stride);
-  
+  auto dataToUpload = createRestructuredVertexDataArray(stride);
+
   VertexBufferDesc desc;
   desc.BufferUsage = BufferUsage::Default;
   desc.VertexCount = _vertexCount;
   desc.VertexSizeBytes = stride;
-  _vertexBuffer = Renderer::GetRenderDevice()->CreateVertexBuffer(desc);
+  _vertexBuffer = renderDevice->CreateVertexBuffer(desc);
   _vertexBuffer->WriteData(0, dataToUpload.size() * sizeof(float32), dataToUpload.data(), AccessType::WriteOnlyDiscard);
 }
 
-void StaticMesh::UploadIndexData()
+void StaticMesh::uploadIndexData(std::shared_ptr<RenderDevice> renderDevice)
 {
   IndexBufferDesc desc;
   desc.BufferUsage = BufferUsage::Default;
   desc.IndexCount = static_cast<uint32>(_indexData.size());
   desc.IndexType = IndexType::UInt32;
-  _indexBuffer = Renderer::GetRenderDevice()->CreateIndexBuffer(desc);
+  _indexBuffer = renderDevice->CreateIndexBuffer(desc);
   _indexBuffer->WriteData(0, _indexData.size() * IndexBuffer::GetBytesPerIndex(desc.IndexType), _indexData.data(), AccessType::WriteOnlyDiscard);
 }

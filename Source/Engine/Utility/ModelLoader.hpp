@@ -2,10 +2,12 @@
 #include <memory>
 #include <string>
 
-class SceneNode;
+#include "../Core/Scene.h"
+
+class GameObject;
 
 class ModelLoader
 {
 public:
-  static std::shared_ptr<SceneNode> LoadFromFile(const std::string& filePath, bool reconstructWorldTransforms);
+  static GameObject& FromFile(Scene &scene, const std::string &filePath, bool reconstructWorldTransforms);
 };
