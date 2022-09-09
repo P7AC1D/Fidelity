@@ -20,7 +20,16 @@ void Light::drawInspector()
 	ImGui::ColorEdit3("Colour", rawCol);
 	setColour(Colour(rawCol[0] * 255, rawCol[1] * 255, rawCol[2] * 255));
 
-	ImGui::DragFloat("Radius", &_radius, 0.1f, 0.0f, 1000.0f);
+	if (_lightType == LightType::Directional)
+	{
+		float32 direction[]{ _direction.X, _direction.Y, _direction.Z };
+		ImGui::DragFloat3("Direction", direction, 0.1f);
+		setDirection(Vector3(direction[0], direction[1], direction[2]));
+	}
+	if (_lightType == LightType::Point)
+	{
+		ImGui::DragFloat("Radius", &_radius, 0.1f, 0.0f, 1000.0f);
+	}
 }
 
 Light &Light::setColour(const Colour &colour)

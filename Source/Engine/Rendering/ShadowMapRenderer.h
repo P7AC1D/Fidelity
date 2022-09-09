@@ -5,6 +5,7 @@
 #include "Renderer.h"
 
 class Camera;
+class Drawable;
 class GpuBuffer;
 class Light;
 class PipelineState;

@@ -21,6 +21,17 @@ void AttachDepthStencilTexture(const std::shared_ptr<Texture>& texture)
         GLCall(glFramebufferTexture2D(GL_FRAMEBUFFER, GL_STENCIL_ATTACHMENT, GL_TEXTURE_2D, glTexture->GetId(), 0));
       }
       break;
+    case TextureType::Texture2DArray:
+      if (textureDesc.Usage == TextureUsage::Depth)
+      {
+        GLCall(glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, glTexture->GetId(), 0));
+      }
+      else if (textureDesc.Usage == TextureUsage::DepthStencil)
+      {
+        GLCall(glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, glTexture->GetId(), 0));
+        GLCall(glFramebufferTexture(GL_FRAMEBUFFER, GL_STENCIL_ATTACHMENT, glTexture->GetId(), 0));
+      }
+      break;
     default:
       throw std::runtime_error("Unsupported TextureType for depth-stencil target attachment");
   }

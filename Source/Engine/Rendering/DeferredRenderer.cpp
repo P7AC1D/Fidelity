@@ -55,6 +55,8 @@ struct PointLightBuffer
   Vector4 Colour;
   Vector3 Position;
   float32 Radius;
+  Vector3 Direction;
+  int32 LightType;
 };
 
 DeferredRenderer::DeferredRenderer(const Vector2I &windowDims) : _windowDims(windowDims)
@@ -253,6 +255,10 @@ void DeferredRenderer::onInit(const std::shared_ptr<RenderDevice> &device)
     shaderParams->AddParam(ShaderParam("DiffuseMap", ShaderParamType::Texture, 0));
     shaderParams->AddParam(ShaderParam("EmissiveMap", ShaderParamType::Texture, 1));
     shaderParams->AddParam(ShaderParam("SpecularMap", ShaderParamType::Texture, 2));
+    shaderParams->AddParam(ShaderParam("NormalMap", ShaderParamType::Texture, 3));
+    shaderParams->AddParam(ShaderParam("DepthMap", ShaderParamType::Texture, 4));
+    shaderParams->AddParam(ShaderParam("PointLightPassConstants", ShaderParamType::ConstBuffer, 0));
+    shaderParams->AddParam(ShaderParam("PointLightBuffer", ShaderParamType::ConstBuffer, 1));
 
     RasterizerStateDesc rasterizerStateDesc;
     rasterizerStateDesc.CullMode = CullMode::None;
@@ -291,20 +297,25 @@ void DeferredRenderer::onDrawDebugUi()
   ImGui::Separator();
   {
     ImGui::Text("Deferred Renderer");
-  }  
+  }
 }
 
 void DeferredRenderer::drawFrame(std::shared_ptr<RenderDevice> renderDevice,
                                  const std::vector<std::shared_ptr<Drawable>> &aabbDrawables,
                                  const std::vector<std::shared_ptr<Drawable>> &drawables,
                                  const std::vector<std::shared_ptr<Light>> &lights,
+                                 const std::shared_ptr<Light> &directionalLight,
                                  const Camera &camera)
 {
   renderDevice->ClearBuffers(RTT_Colour | RTT_Depth | RTT_Stencil);
+  ViewportDesc viewportDesc;
+  viewportDesc.Width = _windowDims.X;
+  viewportDesc.Height = _windowDims.Y;
+  renderDevice->SetViewport(viewportDesc);
 
   gbufferPass(renderDevice, drawables, camera);
   lightPrePass(renderDevice, lights, camera);
-  mergePass(renderDevice);
+  mergePass(renderDevice, directionalLight);
 }
 
 void DeferredRenderer::gbufferPass(std::shared_ptr<RenderDevice> device,
@@ -380,6 +391,8 @@ void DeferredRenderer::lightPrePass(std::shared_ptr<RenderDevice> renderDevice,
     pointLightBuffer.Colour = light->getColour().ToVec3();
     pointLightBuffer.Position = light->getPosition();
     pointLightBuffer.Radius = light->getRadius();
+    pointLightBuffer.Direction = light->getDirection();
+    pointLightBuffer.LightType = static_cast<int32>(light->getLightType());
     _pointLightBuffer->WriteData(0, sizeof(PointLightBuffer), &pointLightBuffer, AccessType::WriteOnlyDiscard);
 
     renderDevice->SetConstantBuffer(0, _pointLightBuffer);
@@ -389,16 +402,33 @@ void DeferredRenderer::lightPrePass(std::shared_ptr<RenderDevice> renderDevice,
   }
 }
 
-void DeferredRenderer::mergePass(std::shared_ptr<RenderDevice> renderDevice)
+void DeferredRenderer::mergePass(std::shared_ptr<RenderDevice> renderDevice,
+                                 const std::shared_ptr<Light> &directionalLight)
 {
+  PointLightBuffer directionalLightBuffer;
+  directionalLightBuffer.Colour = directionalLight->getColour().ToVec3();
+  directionalLightBuffer.Direction = directionalLight->getDirection();
+  directionalLightBuffer.LightType = static_cast<int32>(directionalLight->getLightType());
+  _pointLightBuffer->WriteData(0, sizeof(PointLightBuffer), &directionalLightBuffer, AccessType::WriteOnlyDiscard);
+
+  PointLightConstantsBuffer pointLightConstantsBuffer;
+  pointLightConstantsBuffer.PixelSize = Vector2(1.0f / _windowDims.X, 1.0f / _windowDims.Y);
+  _pointLightConstantsBuffer->WriteData(0, sizeof(PointLightConstantsBuffer), &pointLightConstantsBuffer, AccessType::WriteOnlyDiscard);
+
   renderDevice->SetRenderTarget(_mergePassRto);
   renderDevice->SetPipelineState(_mergePso);
+  renderDevice->SetConstantBuffer(0, _pointLightConstantsBuffer);
+  renderDevice->SetConstantBuffer(1, _pointLightBuffer);
   renderDevice->SetTexture(0, _gBufferRto->GetColourTarget(0));
   renderDevice->SetTexture(1, _lightPrePassRto->GetColourTarget(0));
   renderDevice->SetTexture(2, _lightPrePassRto->GetColourTarget(1));
+  renderDevice->SetTexture(3, _gBufferRto->GetColourTarget(1));
+  renderDevice->SetTexture(4, _gBufferRto->GetDepthStencilTarget());
   renderDevice->SetSamplerState(0, _noMipSamplerState);
   renderDevice->SetSamplerState(1, _noMipSamplerState);
   renderDevice->SetSamplerState(2, _noMipSamplerState);
+  renderDevice->SetSamplerState(3, _noMipSamplerState);
+  renderDevice->SetSamplerState(4, _noMipSamplerState);
   renderDevice->SetVertexBuffer(_fsQuadBuffer);
   renderDevice->Draw(6, 0);
 }

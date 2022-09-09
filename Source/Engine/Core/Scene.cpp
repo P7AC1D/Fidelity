@@ -11,6 +11,7 @@
 #include "../Rendering/DebugRenderer.h"
 #include "../Rendering/Drawable.h"
 #include "../Rendering/Light.h"
+#include "../Rendering/ShadowMapRenderer.h"
 #include "../RenderApi/RenderDevice.hpp"
 #include "GameObject.h"
 
@@ -23,7 +24,8 @@ bool Scene::init(const Vector2I &windowDims, std::shared_ptr<RenderDevice> rende
   _renderDevice = renderDevice;
   _deferredRenderer.reset(new DeferredRenderer(windowDims));
   _debugRenderer.reset(new DebugRenderer());
-  return _deferredRenderer->init(_renderDevice) && _debugRenderer->init(_renderDevice);
+  _shadowMapRenderer.reset(new ShadowMapRenderer());
+  return _deferredRenderer->init(_renderDevice) && _debugRenderer->init(_renderDevice) && _shadowMapRenderer->init(renderDevice);
 }
 
 GameObject &Scene::createGameObject(const std::string &name)
@@ -92,10 +94,18 @@ void Scene::drawFrame() const
   }
 
   std::vector<std::shared_ptr<Light>> lights;
+  std::shared_ptr<Light> directionalLight;
   for (auto component : _components.find(ComponentType::Light)->second)
   {
     auto light = std::dynamic_pointer_cast<Light>(component);
-    lights.push_back(light);
+    if (light->getLightType() == LightType::Point)
+    {
+      lights.push_back(light);
+    }
+    if (light->getLightType() == LightType::Directional)
+    {
+      directionalLight = light;
+    }
   }
 
   std::vector<std::shared_ptr<Drawable>> drawables;
@@ -104,7 +114,8 @@ void Scene::drawFrame() const
     drawables.push_back(std::dynamic_pointer_cast<Drawable>(culledDrawable));
   }
 
-  _deferredRenderer->drawFrame(_renderDevice, aabbDrawables, drawables, lights, _camera);
+  _shadowMapRenderer->drawFrame(_renderDevice, drawables, directionalLight, _camera);
+  _deferredRenderer->drawFrame(_renderDevice, aabbDrawables, drawables, lights, directionalLight, _camera);
   _debugRenderer->drawFrame(_renderDevice, _deferredRenderer->getGbuffer(), _deferredRenderer->getLightPrepassBuffer(), _deferredRenderer->getMergePassBuffer(), aabbDrawables, _camera);
 }
 

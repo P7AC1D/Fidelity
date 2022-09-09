@@ -31,6 +31,7 @@ public:
                  const std::vector<std::shared_ptr<Drawable>> &aabbDrawables,
                  const std::vector<std::shared_ptr<Drawable>> &drawables,
                  const std::vector<std::shared_ptr<Light>> &lights,
+                 const std::shared_ptr<Light> &directionalLight,
                  const Camera &camera);
 
   std::shared_ptr<RenderTarget> getGbuffer() { return _gBufferRto; }
@@ -46,7 +47,8 @@ private:
                     const std::vector<std::shared_ptr<Light>> &lights,
                     const Camera &camera);
 
-  void mergePass(std::shared_ptr<RenderDevice> renderDevice);
+  void mergePass(std::shared_ptr<RenderDevice> renderDevice,
+                 const std::shared_ptr<Light> &directionalLight);
 
   void writeMaterialConstantData(std::shared_ptr<RenderDevice> renderDevice,
                                  std::shared_ptr<Material> material) const;

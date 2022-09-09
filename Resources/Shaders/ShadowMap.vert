@@ -9,7 +9,8 @@ layout(std140) uniform ObjectBuffer
   mat4 ModelViewProjection;
 } Object;
 
-out gl_PerVertex {
+out gl_PerVertex
+{
   vec4 gl_Position;
   float gl_PointSize;
   float gl_ClipDistance[];

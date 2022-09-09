@@ -20,6 +20,8 @@ layout(std140) uniform PointLightBuffer
   vec4 Colour;
   vec3 Position;
   float Radius;
+  vec3 Direction;
+  int LightType; // 0 - Point; 1 - Directional
 } PointLight;
 
 layout(location = 0) out vec4 Emissive;

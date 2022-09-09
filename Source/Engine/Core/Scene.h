@@ -15,6 +15,7 @@ class GameObject;
 class DeferredRenderer;
 class DebugRenderer;
 class RenderDevice;
+class ShadowMapRenderer;
 
 class Scene
 {
@@ -65,6 +66,7 @@ private:
 
   std::shared_ptr<DeferredRenderer> _deferredRenderer;
   std::shared_ptr<DebugRenderer> _debugRenderer;
+  std::shared_ptr<ShadowMapRenderer> _shadowMapRenderer;
   std::shared_ptr<RenderDevice> _renderDevice;
 };
 

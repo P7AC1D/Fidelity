@@ -20,6 +20,13 @@ void Test3D::OnStart()
 
   GameObject &root = _scene.getRoot();
   _scene.addChildToNode(root, GameObjectBuilder(_scene)
+                                  .withName("directionalLight")
+                                  .withComponent(_scene.createComponent<Light>()
+                                                     .setLightType(LightType::Directional)
+                                                     .setColour(Colour(244, 233, 155))
+                                                     .setDirection(Vector3(-25.0f, 7.0f, 1.0f)))
+                                  .build());
+  _scene.addChildToNode(root, GameObjectBuilder(_scene)
                                   .withName("light1")
                                   .withComponent(_scene.createComponent<Light>()
                                                      .setColour(Colour(150, 25, 25))

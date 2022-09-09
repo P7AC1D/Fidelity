@@ -7,6 +7,20 @@ layout (std140) uniform TransformsBuffer
 {
     mat4 lightSpaceMatrices[16];
 } Transforms;
+
+in gl_PerVertex
+{
+  vec4 gl_Position;
+  float gl_PointSize;
+  float gl_ClipDistance[];
+} gl_in[];
+
+out gl_PerVertex
+{
+  vec4 gl_Position;
+  float gl_PointSize;
+  float gl_ClipDistance[];
+};
     
 void main()
 {          

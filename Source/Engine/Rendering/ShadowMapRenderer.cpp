@@ -23,10 +23,10 @@ void ShadowMapRenderer::onInit(const std::shared_ptr<RenderDevice> &renderDevice
   TextureDesc shadowMapDesc;
   shadowMapDesc.Width = _shadowMapResolution;
   shadowMapDesc.Height = _shadowMapResolution;
-  shadowMapDesc.Usage = TextureUsage::RenderTarget;
+  shadowMapDesc.Usage = TextureUsage::Depth;
   shadowMapDesc.Type = TextureType::Texture2DArray;
   shadowMapDesc.Format = TextureFormat::D32;
-  shadowMapDesc.Depth = _cascadeCount;
+  shadowMapDesc.Count = _cascadeCount;
 
   RenderTargetDesc rtDesc;
   rtDesc.DepthStencilTarget = renderDevice->CreateTexture(shadowMapDesc);
@@ -56,7 +56,11 @@ void ShadowMapRenderer::onInit(const std::shared_ptr<RenderDevice> &renderDevice
   psDesc.Source = String::LoadFromFile("./Shaders/Empty.frag");
 
   std::vector<VertexLayoutDesc> vertexLayoutDesc{
-      VertexLayoutDesc(SemanticType::Position, SemanticFormat::Float3)};
+      VertexLayoutDesc(SemanticType::Position, SemanticFormat::Float3),
+      VertexLayoutDesc(SemanticType::Normal, SemanticFormat::Float3),
+      VertexLayoutDesc(SemanticType::TexCoord, SemanticFormat::Float2),
+      VertexLayoutDesc(SemanticType::Tangent, SemanticFormat::Float3),
+      VertexLayoutDesc(SemanticType::Bitangent, SemanticFormat::Float3) };
 
   std::shared_ptr<ShaderParams> shaderParams(new ShaderParams());
   shaderParams->AddParam(ShaderParam("ObjectBuffer", ShaderParamType::ConstBuffer, 0));
@@ -83,11 +87,11 @@ void ShadowMapRenderer::onInit(const std::shared_ptr<RenderDevice> &renderDevice
   objectBufferDesc.ByteCount = sizeof(ObjectBuffer);
   _objectBuffer = renderDevice->CreateGpuBuffer(objectBufferDesc);
 
-  GpuBufferDesc objectBufferDesc;
-  objectBufferDesc.BufferType = BufferType::Constant;
-  objectBufferDesc.BufferUsage = BufferUsage::Stream;
-  objectBufferDesc.ByteCount = sizeof(Matrix4) * 16;
-  _transformsBuffer = renderDevice->CreateGpuBuffer(objectBufferDesc);
+  GpuBufferDesc transformsBufferDesc;
+  transformsBufferDesc.BufferType = BufferType::Constant;
+  transformsBufferDesc.BufferUsage = BufferUsage::Stream;
+  transformsBufferDesc.ByteCount = sizeof(Matrix4) * 16;
+  _transformsBuffer = renderDevice->CreateGpuBuffer(transformsBufferDesc);
 }
 
 void ShadowMapRenderer::onDrawDebugUi()
@@ -108,9 +112,9 @@ void ShadowMapRenderer::drawFrame(const std::shared_ptr<RenderDevice> &renderDev
 
   renderDevice->SetRenderTarget(_shadowMapRto);
   renderDevice->ClearBuffers(RTT_Depth);
-  renderDevice->SetTexture(0, _shadowCubeMap);
 
-  renderDevice->SetConstantBuffer(0, _transformsBuffer);
+  writeTransformConstantData(renderDevice, directionalLight, camera);
+  renderDevice->SetConstantBuffer(1, _transformsBuffer);
   for (const auto &drawable : drawables)
   {
     writeObjectConstantData(drawable, camera);
@@ -148,6 +152,7 @@ std::vector<Vector4> ShadowMapRenderer::getFrustrumCorners(const Matrix4 &proj, 
       }
     }
   }
+  return frustrumCorners;
 }
 
 Matrix4 ShadowMapRenderer::calcLightViewProj(const float32 nearPlane,
@@ -240,5 +245,5 @@ void ShadowMapRenderer::writeTransformConstantData(const std::shared_ptr<RenderD
     }
   }
 
-  _objectBuffer->WriteData(0, sizeof(Matrix4) * 16, transforms.data(), AccessType::WriteOnlyDiscard);
+  _transformsBuffer->WriteData(0, sizeof(Matrix4) * 16, transforms.data(), AccessType::WriteOnlyDiscard);
 }

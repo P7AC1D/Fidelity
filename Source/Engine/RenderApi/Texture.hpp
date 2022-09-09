@@ -18,6 +18,8 @@ enum class TextureFormat
   RGBA16F,
   /// 32-bit depth channel stored as unsigned bytes.
   D32,
+  /// 32-bit depth channel stored as floats.
+  D32F,
   /// 24-bit depth channel with an 8 bit stencil channel stored as unsigned bytes.
   D24S8,
   /// 24-bit depth channel stored as unsigned bytes.
