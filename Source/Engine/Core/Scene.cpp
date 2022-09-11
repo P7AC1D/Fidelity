@@ -94,18 +94,10 @@ void Scene::drawFrame() const
   }
 
   std::vector<std::shared_ptr<Light>> lights;
-  std::shared_ptr<Light> directionalLight;
   for (auto component : _components.find(ComponentType::Light)->second)
   {
     auto light = std::dynamic_pointer_cast<Light>(component);
-    if (light->getLightType() == LightType::Point)
-    {
-      lights.push_back(light);
-    }
-    if (light->getLightType() == LightType::Directional)
-    {
-      directionalLight = light;
-    }
+    lights.push_back(light);
   }
 
   std::vector<std::shared_ptr<Drawable>> drawables;
@@ -114,9 +106,9 @@ void Scene::drawFrame() const
     drawables.push_back(std::dynamic_pointer_cast<Drawable>(culledDrawable));
   }
 
-  _shadowMapRenderer->drawFrame(_renderDevice, drawables, directionalLight, _camera);
-  _deferredRenderer->drawFrame(_renderDevice, aabbDrawables, drawables, lights, directionalLight, _camera);
-  _debugRenderer->drawFrame(_renderDevice, _deferredRenderer->getGbuffer(), _deferredRenderer->getLightPrepassBuffer(), _deferredRenderer->getMergePassBuffer(), aabbDrawables, _camera);
+  //_shadowMapRenderer->drawFrame(_renderDevice, drawables, lights, _camera);
+  _deferredRenderer->drawFrame(_renderDevice, aabbDrawables, drawables, lights, _camera);
+  _debugRenderer->drawFrame(_renderDevice, _deferredRenderer->getGbuffer(), _deferredRenderer->getLightingBuffer(), aabbDrawables, _camera);
 }
 
 void Scene::drawDebugUi()

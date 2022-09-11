@@ -23,7 +23,7 @@ public:
 
   void drawFrame(const std::shared_ptr<RenderDevice> &renderDevice,
                  const std::vector<std::shared_ptr<Drawable>> &drawables,
-                 const std::shared_ptr<Light> &directionalLight,
+                 const std::vector<std::shared_ptr<Light>> &lights,
                  const Camera &camera);
 
 private:

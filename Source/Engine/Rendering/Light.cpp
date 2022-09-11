@@ -7,7 +7,9 @@ Light::Light() : Component(ComponentType::Light),
 								 _colour(Colour::White),
 								 _radius(10.0f),
 								 _lightType(LightType::Point),
-								 _modified(true)
+								 _modified(true),
+								 _direction(Vector3::Identity),
+								 _intensity(1.0f)
 {
 }
 
@@ -22,7 +24,7 @@ void Light::drawInspector()
 
 	if (_lightType == LightType::Directional)
 	{
-		float32 direction[]{ _direction.X, _direction.Y, _direction.Z };
+		float32 direction[]{_direction.X, _direction.Y, _direction.Z};
 		ImGui::DragFloat3("Direction", direction, 0.1f);
 		setDirection(Vector3(direction[0], direction[1], direction[2]));
 	}
@@ -30,6 +32,8 @@ void Light::drawInspector()
 	{
 		ImGui::DragFloat("Radius", &_radius, 0.1f, 0.0f, 1000.0f);
 	}
+
+	ImGui::DragFloat("Intensity", &_intensity, 0.05f, 0.0f, 1.0f);
 }
 
 Light &Light::setColour(const Colour &colour)
@@ -56,6 +60,13 @@ Light &Light::setLightType(LightType lightType)
 Light &Light::setDirection(const Vector3 &direction)
 {
 	_direction = direction;
+	_modified = true;
+	return *this;
+}
+
+Light &Light::setIntensity(float32 intensity)
+{
+	_intensity = intensity;
 	_modified = true;
 	return *this;
 }

@@ -175,7 +175,7 @@ void DebugRenderer::onDrawDebugUi()
   {
     ImGui::Text("Debug Renderer");
 
-    std::vector<const char*> debugRenderingItems = { "Disabled", "Diffuse", "Normal", "Depth", "Emissive", "Specular" };
+    std::vector<const char *> debugRenderingItems = {"Disabled", "Diffuse", "Normal", "Depth"};
     static int debugRenderingCurrentItem = 0;
     ImGui::Combo("Target", &debugRenderingCurrentItem, debugRenderingItems.data(), debugRenderingItems.size());
     _debugDisplayType = static_cast<DebugDisplayType>(debugRenderingCurrentItem);
@@ -184,8 +184,7 @@ void DebugRenderer::onDrawDebugUi()
 
 void DebugRenderer::drawFrame(const std::shared_ptr<RenderDevice> &renderDevice,
                               const std::shared_ptr<RenderTarget> &gBuffer,
-                              const std::shared_ptr<RenderTarget> &lightBuffer,
-                              const std::shared_ptr<RenderTarget> &mergeBuffer,
+                              const std::shared_ptr<RenderTarget> &lightingBuffer,
                               const std::vector<std::shared_ptr<Drawable>> &aabbDrawables,
                               const Camera &camera)
 {
@@ -193,7 +192,7 @@ void DebugRenderer::drawFrame(const std::shared_ptr<RenderDevice> &renderDevice,
   {
   case DebugDisplayType::Disabled:
   {
-    drawRenderTarget(renderDevice, mergeBuffer->GetColourTarget(0), camera);
+    drawRenderTarget(renderDevice, lightingBuffer->GetColourTarget(0), camera);
     break;
   }
   case DebugDisplayType::Diffuse:
@@ -204,16 +203,6 @@ void DebugRenderer::drawFrame(const std::shared_ptr<RenderDevice> &renderDevice,
   case DebugDisplayType::Normal:
   {
     drawRenderTarget(renderDevice, gBuffer->GetColourTarget(1), camera);
-    break;
-  }
-  case DebugDisplayType::Emissive:
-  {
-    drawRenderTarget(renderDevice, lightBuffer->GetColourTarget(0), camera);
-    break;
-  }
-  case DebugDisplayType::Specular:
-  {
-    drawRenderTarget(renderDevice, lightBuffer->GetColourTarget(1), camera);
     break;
   }
   case DebugDisplayType::Depth:

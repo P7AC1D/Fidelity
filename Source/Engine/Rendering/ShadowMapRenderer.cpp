@@ -60,7 +60,7 @@ void ShadowMapRenderer::onInit(const std::shared_ptr<RenderDevice> &renderDevice
       VertexLayoutDesc(SemanticType::Normal, SemanticFormat::Float3),
       VertexLayoutDesc(SemanticType::TexCoord, SemanticFormat::Float2),
       VertexLayoutDesc(SemanticType::Tangent, SemanticFormat::Float3),
-      VertexLayoutDesc(SemanticType::Bitangent, SemanticFormat::Float3) };
+      VertexLayoutDesc(SemanticType::Bitangent, SemanticFormat::Float3)};
 
   std::shared_ptr<ShaderParams> shaderParams(new ShaderParams());
   shaderParams->AddParam(ShaderParam("ObjectBuffer", ShaderParamType::ConstBuffer, 0));
@@ -100,9 +100,18 @@ void ShadowMapRenderer::onDrawDebugUi()
 
 void ShadowMapRenderer::drawFrame(const std::shared_ptr<RenderDevice> &renderDevice,
                                   const std::vector<std::shared_ptr<Drawable>> &drawables,
-                                  const std::shared_ptr<Light> &directionalLight,
+                                  const std::vector<std::shared_ptr<Light>> &lights,
                                   const Camera &camera)
 {
+  std::shared_ptr<Light> directionalLight;
+  for (auto light : lights)
+  {
+    if (light->getLightType() == LightType::Directional)
+    {
+      directionalLight = light;
+    }
+  }
+
   renderDevice->SetPipelineState(_shadowMapPso);
 
   ViewportDesc viewportDesc;

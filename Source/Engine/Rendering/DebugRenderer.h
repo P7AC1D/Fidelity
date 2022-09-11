@@ -19,9 +19,7 @@ enum class DebugDisplayType
   Disabled,
   Diffuse,
   Normal,
-  Depth,
-  Emissive,
-  Specular
+  Depth
 };
 
 class DebugRenderer : public Renderer
@@ -34,8 +32,7 @@ public:
 
   void drawFrame(const std::shared_ptr<RenderDevice> &renderDevice,
                  const std::shared_ptr<RenderTarget> &gBuffer,
-                 const std::shared_ptr<RenderTarget> &lightBuffer,
-                 const std::shared_ptr<RenderTarget> &mergeBuffer,
+                 const std::shared_ptr<RenderTarget> &lightingBuffer,
                  const std::vector<std::shared_ptr<Drawable>> &aabbDrawables,
                  const Camera &camera);
 
