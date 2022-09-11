@@ -69,7 +69,7 @@ void Scene::drawFrame() const
   }
 
   auto compare = [](DrawableSortMap a, DrawableSortMap b)
-  { return a.DistanceToCamera < b.DistanceToCamera; };
+  { return a.DistanceToCamera > b.DistanceToCamera; };
   std::multiset<DrawableSortMap, decltype(compare)> culledDrawables(compare);
 
   auto findIter = _components.find(ComponentType::Drawable);
@@ -101,9 +101,9 @@ void Scene::drawFrame() const
   }
 
   std::vector<std::shared_ptr<Drawable>> drawables;
-  for (auto culledDrawable : _components.find(ComponentType::Drawable)->second)
+  for (const auto &culledDrawable : culledDrawables)
   {
-    drawables.push_back(std::dynamic_pointer_cast<Drawable>(culledDrawable));
+    drawables.push_back(culledDrawable.ComponentPtr);
   }
 
   //_shadowMapRenderer->drawFrame(_renderDevice, drawables, lights, _camera);

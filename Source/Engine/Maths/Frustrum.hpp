@@ -3,15 +3,16 @@
 #include "AABB.hpp"
 #include "Matrix4.hpp"
 #include "Plane.hpp"
+#include "Vector4.hpp"
 
 class Frustrum
 {
 public:
 	Frustrum();
-	Frustrum(const std::array<Plane, 6>& planes);
-	Frustrum(const Matrix4& viewProjection);
+	Frustrum(const std::array<Plane, 6> &planes);
+	Frustrum(const Matrix4 &viewProjection);
 
-	bool Intersects(const Aabb& box) const;
+	bool Intersects(const Aabb &box) const;
 
 	std::array<Plane, 6> GetPlanes() const { return _planes; }
 

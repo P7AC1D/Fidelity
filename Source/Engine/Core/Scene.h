@@ -49,10 +49,10 @@ private:
   struct DrawableSortMap
   {
     float32 DistanceToCamera;
-    std::shared_ptr<Component> ComponentPtr;
+    std::shared_ptr<Drawable> ComponentPtr;
 
-    DrawableSortMap(float32 distance, std::shared_ptr<Component> component) : DistanceToCamera(distance),
-                                                                              ComponentPtr(component)
+    DrawableSortMap(float32 distance, std::shared_ptr<Drawable> component) : DistanceToCamera(distance),
+                                                                             ComponentPtr(component)
     {
     }
   };
@@ -60,7 +60,7 @@ private:
   std::map<uint64, std::vector<uint64>> _sceneGraph;
 
   // TODO: Not quite data-driven as we are still using pointers, needs improvement
-  std::unordered_map<ComponentType, std::vector<std::shared_ptr<Component >>> _components;
+  std::unordered_map<ComponentType, std::vector<std::shared_ptr<Component>>> _components;
   std::map<uint64, GameObject> _gameObjects;
   Camera _camera;
 
