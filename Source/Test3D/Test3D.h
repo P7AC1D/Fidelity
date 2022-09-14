@@ -3,6 +3,8 @@
 
 #include "../Engine/Core/Fidelity.h"
 
+class GameObject;
+
 class Test3D : public Application
 {
 public:
@@ -16,4 +18,5 @@ private:
   void ZoomCamera(float32 delta, int32 dtMs);
 
   Vector3 _cameraTarget;
+  GameObject *_camera;
 };

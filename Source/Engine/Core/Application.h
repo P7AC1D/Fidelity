@@ -43,6 +43,7 @@ protected:
   float32 GetAverageTickMs(int32 dtMs);
   float32 GetAverageFps(int32 dtMs);
 
+  // TODO: Move this elsewhere
   std::shared_ptr<Texture> LoadTextureFromFile(const std::string &path, bool generateMips, bool sRgb);
 
 private:

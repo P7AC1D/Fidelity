@@ -71,22 +71,22 @@ void Scene::drawFrame() const
   { return a.DistanceToCamera > b.DistanceToCamera; };
   std::multiset<DrawableSortMap, decltype(compare)> culledDrawables(compare);
 
-  auto findIter = _components.find(ComponentType::Drawable);
-  if (findIter == _components.end())
+  auto drawableFindIter = _components.find(ComponentType::Drawable);
+  if (drawableFindIter == _components.end())
   {
     return;
   }
 
-  findIter = _components.find(ComponentType::Camera);
-  if (findIter == _components.end())
+  auto cameraFindIter = _components.find(ComponentType::Camera);
+  if (cameraFindIter == _components.end())
   {
     return;
   }
 
-  std::shared_ptr<Camera> camera(std::static_pointer_cast<Camera>(findIter->second[0]));
+  std::shared_ptr<Camera> camera(std::static_pointer_cast<Camera>(cameraFindIter->second[0]));
   std::vector<std::shared_ptr<Drawable>>
       aabbDrawables;
-  for (auto component : findIter->second)
+  for (auto component : drawableFindIter->second)
   {
     auto drawable = std::dynamic_pointer_cast<Drawable>(component);
     if (camera->intersectsFrustrum(drawable->getAabb()))

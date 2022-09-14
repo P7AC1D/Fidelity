@@ -14,14 +14,16 @@ Test3D::Test3D(const ApplicationDesc &desc) : Application(desc),
 void Test3D::OnStart()
 {
   GameObject &root = _scene.getRoot();
-  _scene.addChildToNode(root, GameObjectBuilder(_scene)
-                                  .withName("mainCamera")
-                                  .withComponent(_scene.createComponent<Camera>()
-                                                     .setPerspective(Degree(67.67f), GetWidth(), GetHeight(), 0.1f, 2000.0f))
-                                  .withPosition(Vector3(-400.0f, 500.0f, 20.0f))
-                                  .withRotation(Quaternion::LookAt(Vector3(-400.0f, 500.0f, 20.0f), _cameraTarget))
-                                  .withRotation(Quaternion(Degree(0), Degree(-180.f), Degree(0.0f)))
-                                  .build());
+
+  _camera = &GameObjectBuilder(_scene)
+                 .withName("mainCamera")
+                 .withComponent(_scene.createComponent<Camera>()
+                                    .setPerspective(Degree(67.67f), GetWidth(), GetHeight(), 0.1f, 2000.0f))
+                 .withPosition(Vector3(-400.0f, 500.0f, 20.0f))
+                 .withTarget(_cameraTarget)
+                 .withRotation(Quaternion(Degree(0), Degree(-180.f), Degree(0.0f)))
+                 .build();
+  _scene.addChildToNode(root, *_camera);
 
   _scene.addChildToNode(root, GameObjectBuilder(_scene)
                                   .withName("directionalLight")
@@ -120,7 +122,7 @@ void Test3D::OnUpdate(uint32 dtMs)
 
 void Test3D::RotateCamera(const Degree &deltaX, const Degree &deltaY, int32 dtMs)
 {
-  Transform &cameraTransform = _scene.getCamera().getTransform();
+  Transform &cameraTransform = _camera->transform();
   float32 velocity(CAMERA_ROTATION_FACTOR * static_cast<float32>(dtMs));
   Quaternion pitch(cameraTransform.getRight(), velocity * deltaX.InRadians());
   Quaternion yaw(cameraTransform.getUp(), velocity * deltaY.InRadians());
@@ -131,7 +133,7 @@ void Test3D::RotateCamera(const Degree &deltaX, const Degree &deltaY, int32 dtMs
 
 void Test3D::ZoomCamera(float32 delta, int32 dtMs)
 {
-  Transform &cameraTransform = _scene.getCamera().getTransform();
+  Transform &cameraTransform = _camera->transform();
   Vector3 cameraForward = cameraTransform.getForward();
   Vector3 cameraPostion = cameraTransform.getPosition();
 

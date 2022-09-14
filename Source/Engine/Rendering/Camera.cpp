@@ -8,6 +8,8 @@ Camera::Camera() : _width(1280),
 									 _fov(Degree(60.f)),
 									 _near(0.1f),
 									 _far(10000.0f),
+									 _view(Matrix4::Identity),
+									 _proj(Matrix4::Identity),
 									 _modified(true),
 									 _position(Vector3::Zero),
 									 Component(ComponentType::Camera)

@@ -37,16 +37,16 @@ public:
                  const std::shared_ptr<RenderTarget> &lightingBuffer,
                  const std::shared_ptr<RenderTarget> &shadowMapBuffer,
                  const std::vector<std::shared_ptr<Drawable>> &aabbDrawables,
-                 const Camera &camera);
+                 const std::shared_ptr<Camera> &camera);
 
 private:
   void drawAabb(const std::shared_ptr<RenderDevice> &renderDevice,
                 const std::vector<std::shared_ptr<Drawable>> &aabbDrawables,
-                const Camera &camera);
+                const std::shared_ptr<Camera> &camera);
 
   void drawRenderTarget(std::shared_ptr<RenderDevice> renderDevice,
                         std::shared_ptr<Texture> renderTarget,
-                        const Camera &camera);
+                        const std::shared_ptr<Camera> &camera);
 
   DebugDisplayType _debugDisplayType;
   int32 _shadowMapLayerToDraw;

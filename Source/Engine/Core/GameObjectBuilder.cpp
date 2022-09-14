@@ -42,6 +42,12 @@ GameObjectBuilder &GameObjectBuilder::withPosition(const Vector3 &position)
 	return *this;
 }
 
+GameObjectBuilder &GameObjectBuilder::withTarget(const Vector3 &target)
+{
+	_target = target;
+	return *this;
+}
+
 GameObjectBuilder &GameObjectBuilder::withRotation(const Quaternion &rotation)
 {
 	_rotation = rotation;
@@ -55,9 +61,14 @@ GameObject &GameObjectBuilder::build()
 								{ _scene.addChildToNode(gameObject, g.get()); });
 	std::for_each(_components.begin(), _components.end(), [&gameObject](std::reference_wrapper<Component> c)
 								{ gameObject.addComponent(c.get()); });
-	gameObject.transform()
-			.setPosition(_position)
-			.setScale(_scale)
-			.setRotation(_rotation);
+	Transform &transform = gameObject.transform()
+														 .setPosition(_position)
+														 .setScale(_scale)
+														 .setRotation(_rotation);
+
+	if (_target.has_value())
+	{
+		transform.lookAt(_position, *_target);
+	}
 	return gameObject;
 }

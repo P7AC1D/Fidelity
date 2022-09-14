@@ -11,6 +11,7 @@
 #include "Types.hpp"
 
 class Camera;
+class Drawable;
 class GameObject;
 class DeferredRenderer;
 class DebugRenderer;
@@ -35,7 +36,6 @@ public:
   void drawFrame() const;
   void drawDebugUi();
 
-  Camera &getCamera() { return _camera; }
   GameObject &getRoot() { return _gameObjects[0]; }
 
   // TODO Remove this and better abstract dependenciexc

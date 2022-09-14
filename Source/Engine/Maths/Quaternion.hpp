@@ -1,11 +1,11 @@
 #pragma once
 #include <array>
 #include "../Core/Types.hpp"
+#include "Vector3.hpp"
 
 class Degree;
 class Matrix3;
 class Radian;
-class Vector3;
 
 class Quaternion
 {
@@ -15,7 +15,7 @@ public:
 
   static float32 Dot(const Quaternion &lhs, const Quaternion &rhs);
   static Quaternion Normalize(const Quaternion &quat);
-  static Quaternion LookAt(const Vector3 &position, const Vector3 &target, const Vector3 &up = Vector3(0.0f, 1.0f, 0.0f);
+  static Quaternion LookAt(const Vector3 &position, const Vector3 &target, const Vector3 &up = Vector3(0.0f, 1.0f, 0.0f));
 
   Quaternion();
   Quaternion(float32 w, float32 x, float32 y, float32 z);
