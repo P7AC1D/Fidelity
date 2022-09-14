@@ -5,6 +5,8 @@
 #include "../Input/EventDispatcher.hpp"
 #include "../Input/InputHandler.hpp"
 #include "../RenderApi/GL/GLRenderDevice.hpp"
+#include "../RenderApi/Texture.hpp"
+#include "../Utility/TextureLoader.hpp"
 
 static std::shared_ptr<InputHandler> INPUT_HANDLER = nullptr;
 static std::shared_ptr<UiManager> DEBUG_UI = nullptr;
@@ -166,6 +168,11 @@ float32 Application::GetAverageTickMs(int32 dtMs)
 float32 Application::GetAverageFps(int32 dtMs)
 {
   return 1.0f / (GetAverageTickMs(dtMs) * 0.001f);
+}
+
+std::shared_ptr<Texture> Application::LoadTextureFromFile(const std::string &path, bool generateMips, bool sRgb)
+{
+  return TextureLoader::LoadFromFile2D(_renderDevice, path, generateMips, sRgb);
 }
 
 bool Application::Initialize()

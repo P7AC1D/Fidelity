@@ -50,6 +50,19 @@ void Test3D::OnStart()
                                   .build());
   _scene.addChildToNode(root, ModelLoader::FromFile(_scene, "./Models/Sponza/sponza.obj", true));
 
+  std::shared_ptr<Material> material(new Material());
+  material->setDiffuseTexture(LoadTextureFromFile("./Textures/crate0_diffuse.png", true, true));
+  material->setNormalTexture(LoadTextureFromFile("./Textures/crate0_normal.png", false, false));
+  material->setSpecularTexture(LoadTextureFromFile("./Textures/crate0_bump.png", false, false));
+
+  _scene.addChildToNode(root, GameObjectBuilder(_scene)
+                                  .withName("cube1")
+                                  .withComponent(_scene.createComponent<Drawable>()
+                                                     .setMesh(MeshFactory::CreateCube())
+                                                     .setMaterial(material))
+                                  .withPosition(Vector3(0, 0, 0))
+                                  .build());
+
   _inputHandler->BindButtonToState("ActivateCameraLook", Button::Button_LMouse);
   _inputHandler->BindAxisToState("CameraZoom", Axis::MouseScrollXY);
   _inputHandler->BindAxisToState("CameraLook", Axis::MouseXY);

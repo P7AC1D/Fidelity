@@ -1,8 +1,10 @@
 #pragma once
 
+#include "../Geometry/MeshFactory.h"
 #include "../Input/InputHandler.hpp"
 #include "../Rendering/Light.h"
 #include "../Rendering/Drawable.h"
+#include "../Rendering/Material.h"
 #include "../Input/EventDispatcher.hpp"
 #include "../Utility/ModelLoader.hpp"
 #include "Application.h"

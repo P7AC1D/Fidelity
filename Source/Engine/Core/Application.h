@@ -15,6 +15,7 @@ class EventDispatcher;
 class InputHandler;
 class Renderer;
 class RenderDevice;
+class Texture;
 
 struct ApplicationDesc
 {
@@ -41,6 +42,8 @@ protected:
 
   float32 GetAverageTickMs(int32 dtMs);
   float32 GetAverageFps(int32 dtMs);
+
+  std::shared_ptr<Texture> LoadTextureFromFile(const std::string &path, bool generateMips, bool sRgb);
 
 private:
   bool Initialize();
