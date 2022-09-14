@@ -20,7 +20,6 @@ public:
 	Light &setColour(const Colour &colour);
 	Light &setRadius(float32 radius);
 	Light &setLightType(LightType lightType);
-	Light &setDirection(const Vector3 &direction);
 	Light &setIntensity(float32 intensity);
 
 	Matrix4 getMatrix() const { return _matrix; }

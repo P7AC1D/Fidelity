@@ -13,8 +13,17 @@ layout(std140) uniform ShadowMapDebugBuffer
   uint layer;
 } ShadowMapDebugConstants;
 
+float LinearizeDepth(in vec2 uv, in uint layer)
+{
+    float zNear = ShadowMapDebugConstants.nearClip;
+    float zFar  = ShadowMapDebugConstants.farClip;
+    float depth = texture(ShadowMaps, vec3(uv, layer)).r;
+    return (2.0 * zNear) / (zFar + zNear - depth * (zFar - zNear));
+}
+
 void main()
 {             
 	float depthValue = texture(ShadowMaps, vec3(TexCoord, ShadowMapDebugConstants.layer)).r;
+  //float depthValue = LinearizeDepth(TexCoord, ShadowMapDebugConstants.layer);
 	FinalColour = vec4(vec3(depthValue), 1.0);
 }

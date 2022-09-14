@@ -22,12 +22,6 @@ void Light::drawInspector()
 	ImGui::ColorEdit3("Colour", rawCol);
 	setColour(Colour(rawCol[0] * 255, rawCol[1] * 255, rawCol[2] * 255));
 
-	if (_lightType == LightType::Directional)
-	{
-		float32 direction[]{_direction.X, _direction.Y, _direction.Z};
-		ImGui::DragFloat3("Direction", direction, 0.1f);
-		setDirection(Vector3(direction[0], direction[1], direction[2]));
-	}
 	if (_lightType == LightType::Point)
 	{
 		ImGui::DragFloat("Radius", &_radius, 0.1f, 0.0f, 1000.0f);
@@ -57,13 +51,6 @@ Light &Light::setLightType(LightType lightType)
 	return *this;
 }
 
-Light &Light::setDirection(const Vector3 &direction)
-{
-	_direction = direction;
-	_modified = true;
-	return *this;
-}
-
 Light &Light::setIntensity(float32 intensity)
 {
 	_intensity = intensity;
@@ -87,5 +74,7 @@ void Light::onNotify(const GameObject &gameObject)
 	Transform transform = gameObject.getTransform();
 	_position = transform.getPosition();
 	_rotation = transform.getRotation();
+
+	_direction = _rotation.Rotate(Vector3::Identity);
 	_modified = true;
 }

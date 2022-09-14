@@ -1,11 +1,11 @@
 #version 410
     
-layout(triangles, invocations = 5) in;
+layout(triangles, invocations = 4) in;
 layout(triangle_strip, max_vertices = 3) out;
     
 layout (std140) uniform TransformsBuffer
 {
-    mat4 lightSpaceMatrices[16];
+    mat4 lightSpaceMatrices[4];
 } Transforms;
 
 in gl_PerVertex

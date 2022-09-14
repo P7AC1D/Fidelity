@@ -107,8 +107,8 @@ void Scene::drawFrame() const
   }
 
   _shadowMapRenderer->drawFrame(_renderDevice, drawables, lights, _camera);
-  _deferredRenderer->drawFrame(_renderDevice, aabbDrawables, drawables, lights, _camera);
-  _debugRenderer->drawFrame(_renderDevice, _deferredRenderer->getGbuffer(), _deferredRenderer->getLightingBuffer(), _shadowMapRenderer->getShadowMapBuffer(), aabbDrawables, _camera);
+  _deferredRenderer->drawFrame(_renderDevice, aabbDrawables, drawables, lights, _shadowMapRenderer->getShadowMapRto(), _shadowMapRenderer->getCSMBuffer(), _camera);
+  _debugRenderer->drawFrame(_renderDevice, _deferredRenderer->getGbuffer(), _deferredRenderer->getLightingBuffer(), _shadowMapRenderer->getShadowMapRto(), aabbDrawables, _camera);
 }
 
 void Scene::drawDebugUi()
@@ -118,6 +118,7 @@ void Scene::drawDebugUi()
   drawGameObjectInspector(SELECTED_GAME_OBJECT_INDEX);
   ImGui::EndChild();
 
+  _shadowMapRenderer->drawDebugUi();
   _deferredRenderer->drawDebugUi();
   _debugRenderer->drawDebugUi();
 }

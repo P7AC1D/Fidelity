@@ -14,7 +14,7 @@ Test3D::Test3D(const ApplicationDesc &desc) : Application(desc),
 void Test3D::OnStart()
 {
   _scene.getCamera()
-      .setPerspective(Degree(67.67f), GetWidth(), GetHeight(), 0.1f, 10000.0f)
+      .setPerspective(Degree(67.67f), GetWidth(), GetHeight(), 0.1f, 2000.0f)
       .getTransform()
       .lookAt(Vector3(-400.0f, 500.0f, 20.0f), _cameraTarget);
 
@@ -24,8 +24,8 @@ void Test3D::OnStart()
                                   .withComponent(_scene.createComponent<Light>()
                                                      .setLightType(LightType::Directional)
                                                      .setColour(Colour(244, 233, 155))
-                                                     .setDirection(Vector3(20.0f, 50.0f, 20.0f))
                                                      .setIntensity(0.1f))
+                                  .withRotation(Quaternion(Degree(-120.0f), 30.0f, 6.0f))
                                   .build());
   _scene.addChildToNode(root, GameObjectBuilder(_scene)
                                   .withName("light1")

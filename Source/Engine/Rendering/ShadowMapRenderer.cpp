@@ -12,12 +12,15 @@
 #include "Light.h"
 #include "StaticMesh.h"
 
+#include <algorithm>
+#include <cmath>
+
 struct LightDepthData
 {
-  Matrix4 Transform;
+  Matrix4 LightTransform;
 };
 
-ShadowMapRenderer::ShadowMapRenderer() : _zMulti(10.0),
+ShadowMapRenderer::ShadowMapRenderer() : _zMulti(100.0),
                                          _shadowMapResolution(1024),
                                          _cascadeCount(4)
 {
@@ -29,8 +32,9 @@ void ShadowMapRenderer::onInit(const std::shared_ptr<RenderDevice> &renderDevice
   shadowMapDesc.Width = _shadowMapResolution;
   shadowMapDesc.Height = _shadowMapResolution;
   shadowMapDesc.Usage = TextureUsage::Depth;
-  shadowMapDesc.Type = TextureType::Texture2D;
+  shadowMapDesc.Type = TextureType::Texture2DArray;
   shadowMapDesc.Format = TextureFormat::D32F;
+  shadowMapDesc.Count = 4;
 
   RenderTargetDesc rtDesc;
   rtDesc.DepthStencilTarget = renderDevice->CreateTexture(shadowMapDesc);
@@ -45,7 +49,13 @@ void ShadowMapRenderer::onInit(const std::shared_ptr<RenderDevice> &renderDevice
   vsDesc.EntryPoint = "main";
   vsDesc.ShaderLang = ShaderLang::Glsl;
   vsDesc.ShaderType = ShaderType::Vertex;
-  vsDesc.Source = String::LoadFromFile("./Shaders/ShadowMap.vert");
+  vsDesc.Source = String::LoadFromFile("./Shaders/CascadeShadowMap.vert");
+
+  ShaderDesc gsDesc;
+  gsDesc.EntryPoint = "main";
+  gsDesc.ShaderLang = ShaderLang::Glsl;
+  gsDesc.ShaderType = ShaderType::Geometry;
+  gsDesc.Source = String::LoadFromFile("./Shaders/CascadeShadowMap.geom");
 
   ShaderDesc psDesc;
   psDesc.EntryPoint = "main";
@@ -62,16 +72,14 @@ void ShadowMapRenderer::onInit(const std::shared_ptr<RenderDevice> &renderDevice
 
   std::shared_ptr<ShaderParams> shaderParams(new ShaderParams());
   shaderParams->AddParam(ShaderParam("ObjectBuffer", ShaderParamType::ConstBuffer, 0));
-  shaderParams->AddParam(ShaderParam("LightDepthBuffer", ShaderParamType::ConstBuffer, 0));
-
-  RasterizerStateDesc rasterizerStateDesc;
-  rasterizerStateDesc.CullMode = CullMode::Clockwise;
+  shaderParams->AddParam(ShaderParam("TransformsBuffer", ShaderParamType::ConstBuffer, 1));
 
   PipelineStateDesc pipelineDesc;
   pipelineDesc.VS = renderDevice->CreateShader(vsDesc);
+  pipelineDesc.GS = renderDevice->CreateShader(gsDesc);
   pipelineDesc.PS = renderDevice->CreateShader(psDesc);
   pipelineDesc.BlendState = renderDevice->CreateBlendState(BlendStateDesc{});
-  pipelineDesc.RasterizerState = renderDevice->CreateRasterizerState(rasterizerStateDesc);
+  pipelineDesc.RasterizerState = renderDevice->CreateRasterizerState(RasterizerStateDesc{});
   pipelineDesc.DepthStencilState = renderDevice->CreateDepthStencilState(DepthStencilStateDesc());
   pipelineDesc.VertexLayout = renderDevice->CreateVertexLayout(vertexLayoutDesc);
   pipelineDesc.ShaderParams = shaderParams;
@@ -87,12 +95,27 @@ void ShadowMapRenderer::onInit(const std::shared_ptr<RenderDevice> &renderDevice
   GpuBufferDesc transformsBufferDesc;
   transformsBufferDesc.BufferType = BufferType::Constant;
   transformsBufferDesc.BufferUsage = BufferUsage::Stream;
-  transformsBufferDesc.ByteCount = sizeof(LightDepthData);
+  transformsBufferDesc.ByteCount = sizeof(Matrix4) * 4;
   _transformsBuffer = renderDevice->CreateGpuBuffer(transformsBufferDesc);
+
+  GpuBufferDesc csmBufferDesc;
+  csmBufferDesc.BufferType = BufferType::Constant;
+  csmBufferDesc.BufferUsage = BufferUsage::Stream;
+  csmBufferDesc.ByteCount = sizeof(CascadeShadowMapData);
+  _cascadeShadowBuffer = renderDevice->CreateGpuBuffer(csmBufferDesc);
 }
 
 void ShadowMapRenderer::onDrawDebugUi()
 {
+  ImGui::Separator();
+  {
+    ImGui::Text("Shadow Map Renderer");
+    ImGui::DragFloat("Z-Multiple", &_zMulti, 0.1f, 0.1f, 1000.0f);
+    if (ImGui::SliderInt("Resolution", &_shadowMapResolution, 256, 8192))
+    {
+      _settingsModified = true;
+    }
+  }
 }
 
 void ShadowMapRenderer::drawFrame(const std::shared_ptr<RenderDevice> &renderDevice,
@@ -100,6 +123,25 @@ void ShadowMapRenderer::drawFrame(const std::shared_ptr<RenderDevice> &renderDev
                                   const std::vector<std::shared_ptr<Light>> &lights,
                                   const Camera &camera)
 {
+  if (_settingsModified)
+  {
+    TextureDesc shadowMapDesc;
+    shadowMapDesc.Width = _shadowMapResolution;
+    shadowMapDesc.Height = _shadowMapResolution;
+    shadowMapDesc.Usage = TextureUsage::Depth;
+    shadowMapDesc.Type = TextureType::Texture2DArray;
+    shadowMapDesc.Format = TextureFormat::D32F;
+    shadowMapDesc.Count = 4;
+
+    RenderTargetDesc rtDesc;
+    rtDesc.DepthStencilTarget = renderDevice->CreateTexture(shadowMapDesc);
+    rtDesc.Height = _shadowMapResolution;
+    rtDesc.Width = _shadowMapResolution;
+
+    _shadowMapRto = renderDevice->CreateRenderTarget(rtDesc);
+    _settingsModified = false;
+  }
+
   std::shared_ptr<Light> directionalLight;
   for (auto light : lights)
   {
@@ -119,7 +161,25 @@ void ShadowMapRenderer::drawFrame(const std::shared_ptr<RenderDevice> &renderDev
   renderDevice->SetRenderTarget(_shadowMapRto);
   renderDevice->ClearBuffers(RTT_Depth);
 
-  writeTransformConstantData(renderDevice, directionalLight, camera);
+  auto transforms = createLightTransforms(directionalLight, camera);
+
+  CascadeShadowMapData csmData;
+  csmData.CascadeCount = 4;
+  csmData.LightDirection = directionalLight->getDirection();
+  csmData.LightTransforms[0] = transforms[0];
+  csmData.LightTransforms[1] = transforms[1];
+  csmData.LightTransforms[2] = transforms[2];
+  csmData.LightTransforms[3] = transforms[3];
+
+  auto cascadeLevels = createCascadeLevels(camera);
+  csmData.CascadePlaneDistances[0] = cascadeLevels[0];
+  csmData.CascadePlaneDistances[1] = cascadeLevels[1];
+  csmData.CascadePlaneDistances[2] = cascadeLevels[2];
+  csmData.CascadePlaneDistances[3] = cascadeLevels[3];
+  _cascadeShadowBuffer->WriteData(0, sizeof(CascadeShadowMapData), &csmData, AccessType::WriteOnlyDiscard);
+
+  _transformsBuffer->WriteData(0, sizeof(Matrix4) * 4, transforms.data(), AccessType::WriteOnlyDiscard);
+
   renderDevice->SetConstantBuffer(1, _transformsBuffer);
   for (const auto &drawable : drawables)
   {
@@ -145,7 +205,9 @@ void ShadowMapRenderer::drawFrame(const std::shared_ptr<RenderDevice> &renderDev
 
 std::vector<Vector4> ShadowMapRenderer::getFrustrumCorners(const Matrix4 &proj, const Matrix4 &cameraView) const
 {
-  Matrix4 projViewInvs = (proj * cameraView).Inverse();
+  Matrix4 projView = proj * cameraView;
+  Matrix4 projViewInvs = projView.Inverse();
+
   std::vector<Vector4> frustrumCorners;
   for (uint32 x = 0; x < 2; ++x)
   {
@@ -154,7 +216,8 @@ std::vector<Vector4> ShadowMapRenderer::getFrustrumCorners(const Matrix4 &proj, 
       for (uint32 z = 0; z < 2; ++z)
       {
         const Vector4 point = projViewInvs * Vector4(2.0f * x - 1.0f, 2.0f * y - 1.0f, 2.0f * z - 1.0f, 1.0f);
-        frustrumCorners.push_back(point / point.W);
+        frustrumCorners.push_back(point);
+        // frustrumCorners.push_back(point / point.W);
       }
     }
   }
@@ -183,7 +246,9 @@ Matrix4 ShadowMapRenderer::calcLightView(const std::vector<Vector4> &frustrumCor
   }
   center /= frustrumCorners.size();
 
-  return Matrix4::LookAt(center + directionalLight->getDirection(), center, Vector3(0.0f, 1.0f, 0.0f));
+  Matrix4 lightTransform = Matrix4::LookAt(center + directionalLight->getDirection(), center, Vector3(0.0f, 1.0f, 0.0f));
+  Matrix4 defaultLightTransform = Matrix4::LookAt(-directionalLight->getDirection(), Vector3::Zero, Vector3(0.0f, 1.0f, 0.0f));
+  return defaultLightTransform;
 }
 
 Matrix4 ShadowMapRenderer::calcLightProj(const std::vector<Vector4> &frustrumCorners, const Matrix4 &lightView) const
@@ -226,17 +291,20 @@ void ShadowMapRenderer::writeObjectConstantData(std::shared_ptr<Drawable> drawab
   _objectBuffer->WriteData(0, sizeof(ObjectBuffer), &objectBufferData, AccessType::WriteOnlyDiscard);
 }
 
-void ShadowMapRenderer::writeTransformConstantData(const std::shared_ptr<RenderDevice> &renderDevice,
-                                                   const std::shared_ptr<Light> &directionalLight,
-                                                   const Camera &camera) const
+std::vector<Matrix4> ShadowMapRenderer::createLightTransforms(const std::shared_ptr<Light> &directionalLight,
+                                                              const Camera &camera) const
 {
   float32 cameraFarPlane = camera.getFar();
   float32 cameraNearPlane = camera.getNear();
-  std::vector<float32> shadowCascadeLevels{cameraFarPlane / 50.0f, cameraFarPlane / 25.0f, cameraFarPlane / 10.0f, cameraFarPlane / 2.0f};
+  std::vector<float32> shadowCascadeLevels = createCascadeLevels(camera);
 
-  std::vector<Matrix4> transforms;
+  std::vector<Matrix4>
+      transforms;
   for (uint64 i = 0; i < shadowCascadeLevels.size() + 1; ++i)
   {
+    // transforms.push_back(calcLightViewProj(cameraNearPlane, cameraFarPlane, camera, directionalLight));
+    // continue;
+
     if (i == 0)
     {
       transforms.push_back(calcLightViewProj(cameraNearPlane, shadowCascadeLevels[i], camera, directionalLight));
@@ -250,6 +318,12 @@ void ShadowMapRenderer::writeTransformConstantData(const std::shared_ptr<RenderD
       transforms.push_back(calcLightViewProj(shadowCascadeLevels[i - 1], cameraFarPlane, camera, directionalLight));
     }
   }
+  return transforms;
+}
 
-  _transformsBuffer->WriteData(0, sizeof(Matrix4) * 16, transforms.data(), AccessType::WriteOnlyDiscard);
+std::vector<float32> ShadowMapRenderer::createCascadeLevels(const Camera &camera) const
+{
+  float32 cameraFarPlane = camera.getFar();
+  float32 cameraNearPlane = camera.getNear();
+  return std::vector<float32>{cameraFarPlane / 50.0f, cameraFarPlane / 25.0f, cameraFarPlane / 10.0f, cameraFarPlane / 2.0f};
 }

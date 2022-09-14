@@ -41,9 +41,10 @@ struct MaterialBufferData
 
 struct LightingConstantsBuffer
 {
+  Matrix4 View;
   Matrix4 ProjViewInvs;
   Vector3 CameraPosition;
-  float32 _padding;
+  float32 FarPlane;
   Vector2 PixelSize;
 };
 
@@ -178,10 +179,13 @@ void DeferredRenderer::onInit(const std::shared_ptr<RenderDevice> &device)
     std::shared_ptr<ShaderParams> shaderParams(new ShaderParams());
     shaderParams->AddParam(ShaderParam("LightingConstantsBuffer", ShaderParamType::ConstBuffer, 0));
     shaderParams->AddParam(ShaderParam("LightingBuffer", ShaderParamType::ConstBuffer, 1));
+    shaderParams->AddParam(ShaderParam("CascadeShadowMapBuffer", ShaderParamType::ConstBuffer, 2));
+
     shaderParams->AddParam(ShaderParam("AlbedoMap", ShaderParamType::Texture, 0));
     shaderParams->AddParam(ShaderParam("DepthMap", ShaderParamType::Texture, 1));
     shaderParams->AddParam(ShaderParam("NormalMap", ShaderParamType::Texture, 2));
     shaderParams->AddParam(ShaderParam("SpecularMap", ShaderParamType::Texture, 3));
+    shaderParams->AddParam(ShaderParam("ShadowMaps", ShaderParamType::Texture, 4));
 
     RasterizerStateDesc rasterizerStateDesc{};
 
@@ -248,16 +252,17 @@ void DeferredRenderer::drawFrame(std::shared_ptr<RenderDevice> renderDevice,
                                  const std::vector<std::shared_ptr<Drawable>> &aabbDrawables,
                                  const std::vector<std::shared_ptr<Drawable>> &drawables,
                                  const std::vector<std::shared_ptr<Light>> &lights,
+                                 const std::shared_ptr<RenderTarget> &shadowMapRto,
+                                 const std::shared_ptr<GpuBuffer> &cmsBuffer,
                                  const Camera &camera)
 {
-  renderDevice->ClearBuffers(RTT_Colour | RTT_Depth | RTT_Stencil);
   ViewportDesc viewportDesc;
   viewportDesc.Width = _windowDims.X;
   viewportDesc.Height = _windowDims.Y;
   renderDevice->SetViewport(viewportDesc);
 
   gbufferPass(renderDevice, drawables, camera);
-  lightingPass(renderDevice, lights, camera);
+  lightingPass(renderDevice, lights, shadowMapRto, cmsBuffer, camera);
 }
 
 void DeferredRenderer::gbufferPass(std::shared_ptr<RenderDevice> device,
@@ -294,6 +299,8 @@ void DeferredRenderer::gbufferPass(std::shared_ptr<RenderDevice> device,
 
 void DeferredRenderer::lightingPass(std::shared_ptr<RenderDevice> renderDevice,
                                     const std::vector<std::shared_ptr<Light>> &lights,
+                                    const std::shared_ptr<RenderTarget> &shadowMapRto,
+                                    const std::shared_ptr<GpuBuffer> &cmsBuffer,
                                     const Camera &camera)
 {
   renderDevice->SetPipelineState(_lightingPto);
@@ -303,15 +310,20 @@ void DeferredRenderer::lightingPass(std::shared_ptr<RenderDevice> renderDevice,
   renderDevice->SetTexture(1, _gBufferRto->GetDepthStencilTarget());
   renderDevice->SetTexture(2, _gBufferRto->GetColourTarget(1));
   renderDevice->SetTexture(3, _gBufferRto->GetColourTarget(2));
+  renderDevice->SetTexture(4, shadowMapRto->GetDepthStencilTarget());
   renderDevice->SetSamplerState(0, _noMipSamplerState);
   renderDevice->SetSamplerState(1, _noMipSamplerState);
   renderDevice->SetSamplerState(2, _noMipSamplerState);
   renderDevice->SetSamplerState(3, _noMipSamplerState);
+  renderDevice->SetSamplerState(4, _noMipSamplerState);
   renderDevice->SetConstantBuffer(0, _lightingConstantsBuffer);
   renderDevice->SetConstantBuffer(1, _lightingBuffer);
+  renderDevice->SetConstantBuffer(2, cmsBuffer);
 
   Transform cameraTransform(camera.getTransformCopy());
   LightingConstantsBuffer lightingConstants;
+  lightingConstants.View = camera.getView();
+  lightingConstants.FarPlane = camera.getFar();
   lightingConstants.ProjViewInvs = (camera.getProj() * camera.getView()).Inverse();
   lightingConstants.CameraPosition = cameraTransform.getPosition();
   lightingConstants.PixelSize = Vector2(1.0f / _windowDims.X, 1.0f / _windowDims.Y);

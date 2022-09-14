@@ -11,6 +11,7 @@ class GpuBuffer;
 class PipelineState;
 class RenderDevice;
 class RenderTarget;
+class SamplerState;
 class Texture;
 class VertexBuffer;
 
@@ -48,11 +49,14 @@ private:
                         const Camera &camera);
 
   DebugDisplayType _debugDisplayType;
+  int32 _shadowMapLayerToDraw;
 
   std::shared_ptr<PipelineState> _gbufferDebugDrawPso;
   std::shared_ptr<PipelineState> _depthDebugDrawPso;
   std::shared_ptr<PipelineState> _shadowMapDebugPso;
   std::shared_ptr<PipelineState> _drawAabbPso;
+
+  std::shared_ptr<SamplerState> _noMipWithBorderSamplerState;
 
   std::shared_ptr<GpuBuffer> _aabbBuffer;
   std::shared_ptr<GpuBuffer> _shadowMapDebugBuffer;

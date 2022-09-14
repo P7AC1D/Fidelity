@@ -42,7 +42,7 @@ struct ShadowMapDebugData
   uint32 Layer;
 };
 
-DebugRenderer::DebugRenderer() : _debugDisplayType(DebugDisplayType::Disabled)
+DebugRenderer::DebugRenderer() : _debugDisplayType(DebugDisplayType::Disabled), _shadowMapLayerToDraw(0)
 {
 }
 
@@ -104,7 +104,7 @@ void DebugRenderer::onInit(const std::shared_ptr<RenderDevice> &renderDevice)
 
     std::shared_ptr<ShaderParams> shaderParams(new ShaderParams());
     shaderParams->AddParam(ShaderParam("QuadTexture", ShaderParamType::Texture, 0));
-    shaderParams->AddParam(ShaderParam("CameraBuffer", ShaderParamType::ConstBuffer, 1));
+    shaderParams->AddParam(ShaderParam("CameraBuffer", ShaderParamType::ConstBuffer, 0));
 
     RasterizerStateDesc rasterizerStateDesc;
     rasterizerStateDesc.CullMode = CullMode::None;
@@ -216,6 +216,13 @@ void DebugRenderer::onInit(const std::shared_ptr<RenderDevice> &renderDevice)
   aabbVertexBuffDesc.VertexSizeBytes = sizeof(Vector3) * AabbCoords.size();
   _aabbVertexBuffer = renderDevice->CreateVertexBuffer(aabbVertexBuffDesc);
   _aabbVertexBuffer->WriteData(0, sizeof(Vector3) * AabbCoords.size(), AabbCoords.data(), AccessType::WriteOnlyDiscardRange);
+
+  SamplerStateDesc noMipSamplerState;
+  noMipSamplerState.AddressingMode = AddressingMode{ TextureAddressMode::Border, TextureAddressMode::Border, TextureAddressMode::Border };
+  noMipSamplerState.MinFiltering = TextureFilteringMode::None;
+  noMipSamplerState.MinFiltering = TextureFilteringMode::None;
+  noMipSamplerState.MipFiltering = TextureFilteringMode::None;
+  _noMipWithBorderSamplerState = renderDevice->CreateSamplerState(noMipSamplerState);
 }
 
 void DebugRenderer::onDrawDebugUi()
@@ -228,6 +235,10 @@ void DebugRenderer::onDrawDebugUi()
     static int debugRenderingCurrentItem = 0;
     ImGui::Combo("Target", &debugRenderingCurrentItem, debugRenderingItems.data(), debugRenderingItems.size());
     _debugDisplayType = static_cast<DebugDisplayType>(debugRenderingCurrentItem);
+    if (debugRenderingCurrentItem == static_cast<uint32>(DebugDisplayType::ShadowMap))
+    {
+      ImGui::SliderInt("Layer", &_shadowMapLayerToDraw, 0, 3);
+    }
   }
 }
 
@@ -298,7 +309,7 @@ void DebugRenderer::drawRenderTarget(std::shared_ptr<RenderDevice> renderDevice,
   ShadowMapDebugData shadowMapDebugData;
   shadowMapDebugData.FarClip = camera.getFar();
   shadowMapDebugData.NearClip = camera.getNear();
-  shadowMapDebugData.Layer = 0;
+  shadowMapDebugData.Layer = _shadowMapLayerToDraw;
   _shadowMapDebugBuffer->WriteData(0, sizeof(ShadowMapDebugData), &shadowMapDebugData, AccessType::WriteOnlyDiscard);
 
   if (renderTarget->GetDesc().Usage == TextureUsage::RenderTarget)
@@ -307,7 +318,6 @@ void DebugRenderer::drawRenderTarget(std::shared_ptr<RenderDevice> renderDevice,
   }
   else if (renderTarget->GetDesc().Usage == TextureUsage::Depth)
   {
-    renderDevice->SetTexture(0, renderTarget);
     if (renderTarget->GetTextureType() == TextureType::Texture2DArray)
     {
       renderDevice->SetPipelineState(_shadowMapDebugPso);
@@ -316,7 +326,7 @@ void DebugRenderer::drawRenderTarget(std::shared_ptr<RenderDevice> renderDevice,
     else if (renderTarget->GetTextureType() == TextureType::Texture2D)
     {
       renderDevice->SetPipelineState(_depthDebugDrawPso);
-      renderDevice->SetConstantBuffer(1, _shadowMapDebugBuffer);
+      renderDevice->SetConstantBuffer(0, _shadowMapDebugBuffer);
     }
     else
     {
@@ -331,7 +341,7 @@ void DebugRenderer::drawRenderTarget(std::shared_ptr<RenderDevice> renderDevice,
   renderDevice->SetRenderTarget(nullptr);
   renderDevice->ClearBuffers(RTT_Colour | RTT_Depth);
   renderDevice->SetTexture(0, renderTarget);
-  renderDevice->SetSamplerState(0, _noMipSamplerState);
+  renderDevice->SetSamplerState(0, _noMipWithBorderSamplerState);
   renderDevice->SetVertexBuffer(_fsQuadBuffer);
   renderDevice->Draw(6, 0);
 }
