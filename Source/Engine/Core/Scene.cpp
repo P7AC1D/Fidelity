@@ -7,6 +7,7 @@
 
 #include "../UI/ImGui/imgui.h"
 #include "../Utility/ModelLoader.hpp"
+#include "../Rendering/Camera.h"
 #include "../Rendering/DeferredRenderer.h"
 #include "../Rendering/DebugRenderer.h"
 #include "../Rendering/Drawable.h"
@@ -44,8 +45,6 @@ void Scene::addChildToNode(GameObject &parent, GameObject &child)
 
 void Scene::update(float64 dt)
 {
-  _camera.update(dt);
-
   for (auto componentType : _components)
   {
     for (auto &component : _components[componentType.first])
@@ -78,13 +77,21 @@ void Scene::drawFrame() const
     return;
   }
 
-  std::vector<std::shared_ptr<Drawable>> aabbDrawables;
+  findIter = _components.find(ComponentType::Camera);
+  if (findIter == _components.end())
+  {
+    return;
+  }
+
+  std::shared_ptr<Camera> camera(std::static_pointer_cast<Camera>(findIter->second[0]));
+  std::vector<std::shared_ptr<Drawable>>
+      aabbDrawables;
   for (auto component : findIter->second)
   {
     auto drawable = std::dynamic_pointer_cast<Drawable>(component);
-    if (_camera.intersectsFrustrum(drawable->getAabb()))
+    if (camera->intersectsFrustrum(drawable->getAabb()))
     {
-      culledDrawables.insert(DrawableSortMap(_camera.distanceFrom(drawable->getPosition()), drawable));
+      culledDrawables.insert(DrawableSortMap(camera->distanceFrom(drawable->getPosition()), drawable));
     }
 
     if (drawable->shouldDrawAabb())
@@ -106,9 +113,9 @@ void Scene::drawFrame() const
     drawables.push_back(culledDrawable.ComponentPtr);
   }
 
-  _shadowMapRenderer->drawFrame(_renderDevice, drawables, lights, _camera);
-  _deferredRenderer->drawFrame(_renderDevice, aabbDrawables, drawables, lights, _shadowMapRenderer->getShadowMapRto(), _shadowMapRenderer->getCSMBuffer(), _camera);
-  _debugRenderer->drawFrame(_renderDevice, _deferredRenderer->getGbuffer(), _deferredRenderer->getLightingBuffer(), _shadowMapRenderer->getShadowMapRto(), aabbDrawables, _camera);
+  _shadowMapRenderer->drawFrame(_renderDevice, drawables, lights, camera);
+  _deferredRenderer->drawFrame(_renderDevice, aabbDrawables, drawables, lights, _shadowMapRenderer->getShadowMapRto(), _shadowMapRenderer->getCSMBuffer(), camera);
+  _debugRenderer->drawFrame(_renderDevice, _deferredRenderer->getGbuffer(), _deferredRenderer->getLightingBuffer(), _shadowMapRenderer->getShadowMapRto(), aabbDrawables, camera);
 }
 
 void Scene::drawDebugUi()

@@ -218,7 +218,7 @@ void DebugRenderer::onInit(const std::shared_ptr<RenderDevice> &renderDevice)
   _aabbVertexBuffer->WriteData(0, sizeof(Vector3) * AabbCoords.size(), AabbCoords.data(), AccessType::WriteOnlyDiscardRange);
 
   SamplerStateDesc noMipSamplerState;
-  noMipSamplerState.AddressingMode = AddressingMode{ TextureAddressMode::Border, TextureAddressMode::Border, TextureAddressMode::Border };
+  noMipSamplerState.AddressingMode = AddressingMode{TextureAddressMode::Border, TextureAddressMode::Border, TextureAddressMode::Border};
   noMipSamplerState.MinFiltering = TextureFilteringMode::None;
   noMipSamplerState.MinFiltering = TextureFilteringMode::None;
   noMipSamplerState.MipFiltering = TextureFilteringMode::None;
@@ -247,7 +247,7 @@ void DebugRenderer::drawFrame(const std::shared_ptr<RenderDevice> &renderDevice,
                               const std::shared_ptr<RenderTarget> &lightingBuffer,
                               const std::shared_ptr<RenderTarget> &shadowMapBuffer,
                               const std::vector<std::shared_ptr<Drawable>> &aabbDrawables,
-                              const Camera &camera)
+                              const std::shared_ptr<Camera> &camera)
 {
   switch (_debugDisplayType)
   {
@@ -283,7 +283,7 @@ void DebugRenderer::drawFrame(const std::shared_ptr<RenderDevice> &renderDevice,
 
 void DebugRenderer::drawAabb(const std::shared_ptr<RenderDevice> &renderDevice,
                              const std::vector<std::shared_ptr<Drawable>> &aabbDrawables,
-                             const Camera &camera)
+                             const std::shared_ptr<Camera> &camera)
 {
   renderDevice->SetPipelineState(_drawAabbPso);
   for (auto drawable : aabbDrawables)
@@ -292,8 +292,8 @@ void DebugRenderer::drawAabb(const std::shared_ptr<RenderDevice> &renderDevice,
 
     ObjectBuffer objectBufferData;
     objectBufferData.Model = Matrix4::Translation(drawable->getPosition()) * Matrix4::Scaling(aabb.GetHalfSize());
-    objectBufferData.ModelView = camera.getView() * objectBufferData.Model;
-    objectBufferData.ModelViewProjection = camera.getProj() * objectBufferData.ModelView;
+    objectBufferData.ModelView = camera->getView() * objectBufferData.Model;
+    objectBufferData.ModelViewProjection = camera->getProj() * objectBufferData.ModelView;
     _aabbBuffer->WriteData(0, sizeof(ObjectBuffer), &objectBufferData, AccessType::WriteOnlyDiscard);
 
     renderDevice->SetConstantBuffer(0, _aabbBuffer);
@@ -304,11 +304,11 @@ void DebugRenderer::drawAabb(const std::shared_ptr<RenderDevice> &renderDevice,
 
 void DebugRenderer::drawRenderTarget(std::shared_ptr<RenderDevice> renderDevice,
                                      std::shared_ptr<Texture> renderTarget,
-                                     const Camera &camera)
+                                     const std::shared_ptr<Camera> &camera)
 {
   ShadowMapDebugData shadowMapDebugData;
-  shadowMapDebugData.FarClip = camera.getFar();
-  shadowMapDebugData.NearClip = camera.getNear();
+  shadowMapDebugData.FarClip = camera->getFar();
+  shadowMapDebugData.NearClip = camera->getNear();
   shadowMapDebugData.Layer = _shadowMapLayerToDraw;
   _shadowMapDebugBuffer->WriteData(0, sizeof(ShadowMapDebugData), &shadowMapDebugData, AccessType::WriteOnlyDiscard);
 

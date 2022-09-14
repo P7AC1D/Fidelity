@@ -33,7 +33,7 @@ public:
                  const std::vector<std::shared_ptr<Light>> &lights,
                  const std::shared_ptr<RenderTarget> &shadowMapRto,
                  const std::shared_ptr<GpuBuffer> &cmsBuffer,
-                 const Camera &camera);
+                 const std::shared_ptr<Camera> &camera);
 
   std::shared_ptr<RenderTarget> getGbuffer() { return _gBufferRto; }
   std::shared_ptr<RenderTarget> getLightingBuffer() { return _lightingPassRto; }
@@ -41,17 +41,17 @@ public:
 private:
   void gbufferPass(std::shared_ptr<RenderDevice> renderDevice,
                    const std::vector<std::shared_ptr<Drawable>> &drawables,
-                   const Camera &camera);
+                   const std::shared_ptr<Camera> &camera);
 
   void lightingPass(std::shared_ptr<RenderDevice> renderDevice,
                     const std::vector<std::shared_ptr<Light>> &lights,
                     const std::shared_ptr<RenderTarget> &shadowMapRto,
                     const std::shared_ptr<GpuBuffer> &cmsBuffer,
-                    const Camera &camera);
+                    const std::shared_ptr<Camera> &camera);
 
   void writeMaterialConstantData(std::shared_ptr<RenderDevice> renderDevice,
                                  std::shared_ptr<Material> material) const;
-  void writeObjectConstantData(std::shared_ptr<Drawable> drawable, const Camera &camera) const;
+  void writeObjectConstantData(std::shared_ptr<Drawable> drawable, const std::shared_ptr<Camera> &camera) const;
 
   Vector2I _windowDims;
   Colour _ambientColour;

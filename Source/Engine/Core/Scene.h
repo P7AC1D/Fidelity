@@ -6,11 +6,11 @@
 #include <unordered_map>
 #include <vector>
 
-#include "../Rendering/Camera.h"
 #include "Component.h"
 #include "Maths.h"
 #include "Types.hpp"
 
+class Camera;
 class GameObject;
 class DeferredRenderer;
 class DebugRenderer;
@@ -62,7 +62,6 @@ private:
   // TODO: Not quite data-driven as we are still using pointers, needs improvement
   std::unordered_map<ComponentType, std::vector<std::shared_ptr<Component>>> _components;
   std::map<uint64, GameObject> _gameObjects;
-  Camera _camera;
 
   std::shared_ptr<DeferredRenderer> _deferredRenderer;
   std::shared_ptr<DebugRenderer> _debugRenderer;

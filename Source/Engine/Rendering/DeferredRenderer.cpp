@@ -254,7 +254,7 @@ void DeferredRenderer::drawFrame(std::shared_ptr<RenderDevice> renderDevice,
                                  const std::vector<std::shared_ptr<Light>> &lights,
                                  const std::shared_ptr<RenderTarget> &shadowMapRto,
                                  const std::shared_ptr<GpuBuffer> &cmsBuffer,
-                                 const Camera &camera)
+                                 const std::shared_ptr<Camera> &camera)
 {
   ViewportDesc viewportDesc;
   viewportDesc.Width = _windowDims.X;
@@ -267,7 +267,7 @@ void DeferredRenderer::drawFrame(std::shared_ptr<RenderDevice> renderDevice,
 
 void DeferredRenderer::gbufferPass(std::shared_ptr<RenderDevice> device,
                                    const std::vector<std::shared_ptr<Drawable>> &drawables,
-                                   const Camera &camera)
+                                   const std::shared_ptr<Camera> &camera)
 {
   device->SetPipelineState(_gBufferPso);
   device->SetRenderTarget(_gBufferRto);
@@ -301,7 +301,7 @@ void DeferredRenderer::lightingPass(std::shared_ptr<RenderDevice> renderDevice,
                                     const std::vector<std::shared_ptr<Light>> &lights,
                                     const std::shared_ptr<RenderTarget> &shadowMapRto,
                                     const std::shared_ptr<GpuBuffer> &cmsBuffer,
-                                    const Camera &camera)
+                                    const std::shared_ptr<Camera> &camera)
 {
   renderDevice->SetPipelineState(_lightingPto);
   renderDevice->SetRenderTarget(_lightingPassRto);
@@ -320,12 +320,11 @@ void DeferredRenderer::lightingPass(std::shared_ptr<RenderDevice> renderDevice,
   renderDevice->SetConstantBuffer(1, _lightingBuffer);
   renderDevice->SetConstantBuffer(2, cmsBuffer);
 
-  Transform cameraTransform(camera.getTransformCopy());
   LightingConstantsBuffer lightingConstants;
-  lightingConstants.View = camera.getView();
-  lightingConstants.FarPlane = camera.getFar();
-  lightingConstants.ProjViewInvs = (camera.getProj() * camera.getView()).Inverse();
-  lightingConstants.CameraPosition = cameraTransform.getPosition();
+  lightingConstants.View = camera->getView();
+  lightingConstants.FarPlane = camera->getFar();
+  lightingConstants.ProjViewInvs = (camera->getProj() * camera->getView()).Inverse();
+  lightingConstants.CameraPosition = camera->getPosition();
   lightingConstants.PixelSize = Vector2(1.0f / _windowDims.X, 1.0f / _windowDims.Y);
   _lightingConstantsBuffer->WriteData(0, sizeof(LightingConstantsBuffer), &lightingConstants, AccessType::WriteOnlyDiscard);
 
@@ -385,11 +384,11 @@ void DeferredRenderer::writeMaterialConstantData(std::shared_ptr<RenderDevice> r
   _materialBuffer->WriteData(0, sizeof(MaterialBufferData), &matData, AccessType::WriteOnlyDiscard);
 }
 
-void DeferredRenderer::writeObjectConstantData(std::shared_ptr<Drawable> drawable, const Camera &camera) const
+void DeferredRenderer::writeObjectConstantData(std::shared_ptr<Drawable> drawable, const std::shared_ptr<Camera> &camera) const
 {
   ObjectBuffer objectBufferData;
   objectBufferData.Model = drawable->getMatrix();
-  objectBufferData.ModelView = camera.getView() * objectBufferData.Model;
-  objectBufferData.ModelViewProjection = camera.getProj() * objectBufferData.ModelView;
+  objectBufferData.ModelView = camera->getView() * objectBufferData.Model;
+  objectBufferData.ModelViewProjection = camera->getProj() * objectBufferData.ModelView;
   _objectBuffer->WriteData(0, sizeof(ObjectBuffer), &objectBufferData, AccessType::WriteOnlyDiscard);
 }

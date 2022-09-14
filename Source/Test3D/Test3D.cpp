@@ -13,19 +13,23 @@ Test3D::Test3D(const ApplicationDesc &desc) : Application(desc),
 
 void Test3D::OnStart()
 {
-  _scene.getCamera()
-      .setPerspective(Degree(67.67f), GetWidth(), GetHeight(), 0.1f, 2000.0f)
-      .getTransform()
-      .lookAt(Vector3(-400.0f, 500.0f, 20.0f), _cameraTarget);
-
   GameObject &root = _scene.getRoot();
+  _scene.addChildToNode(root, GameObjectBuilder(_scene)
+                                  .withName("mainCamera")
+                                  .withComponent(_scene.createComponent<Camera>()
+                                                     .setPerspective(Degree(67.67f), GetWidth(), GetHeight(), 0.1f, 2000.0f))
+                                  .withPosition(Vector3(-400.0f, 500.0f, 20.0f))
+                                  .withRotation(Quaternion::LookAt(Vector3(-400.0f, 500.0f, 20.0f), _cameraTarget))
+                                  .withRotation(Quaternion(Degree(0), Degree(-180.f), Degree(0.0f)))
+                                  .build());
+
   _scene.addChildToNode(root, GameObjectBuilder(_scene)
                                   .withName("directionalLight")
                                   .withComponent(_scene.createComponent<Light>()
                                                      .setLightType(LightType::Directional)
                                                      .setColour(Colour(244, 233, 155))
                                                      .setIntensity(0.1f))
-                                  .withRotation(Quaternion(Degree(0), Degree(-180.f), Degree(0.0f))) // 148, 70, 61
+                                  .withRotation(Quaternion(Degree(0), Degree(-180.f), Degree(0.0f)))
                                   .build());
   //_scene.addChildToNode(root, GameObjectBuilder(_scene)
   //                                .withName("light1")

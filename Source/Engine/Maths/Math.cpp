@@ -3,6 +3,24 @@
 #include "Vector3.hpp"
 #include "Vector4.hpp"
 
+float32 Math::InverseSqrt(float32 value)
+{
+  union
+  {
+    float32 f;
+    uint32 i;
+  } conv;
+
+  float32 x2;
+  const float32 threehalfs = 1.5F;
+
+  x2 = value * 0.5F;
+  conv.f = value;
+  conv.i = 0x5f3759df - (conv.i >> 1);
+  conv.f = conv.f * (threehalfs - (x2 * conv.f * conv.f));
+  return conv.f;
+}
+
 float32 Math::Sin(const Radian &angle)
 {
   return std::sinf(angle.InRadians());

@@ -2,6 +2,7 @@
 
 #include "../Geometry/MeshFactory.h"
 #include "../Input/InputHandler.hpp"
+#include "../Rendering/Camera.h"
 #include "../Rendering/Light.h"
 #include "../Rendering/Drawable.h"
 #include "../Rendering/Material.h"

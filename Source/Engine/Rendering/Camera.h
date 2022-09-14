@@ -1,20 +1,19 @@
 #pragma once
 
+#include "../Core/Component.h"
 #include "../Core/GameObject.h"
-#include "../Core/Types.hpp"
 #include "../Core/Maths.h"
 #include "../Core/Transform.h"
+#include "../Core/Types.hpp"
 
 class Drawable;
 
-class Camera
+class Camera : public Component
 {
 public:
   Camera();
 
-  void drawInspector();
-
-  void update(float64 dt);
+  void drawInspector() override;
 
   Camera &setPerspective(const Degree &fovY, int32 width, int32 height, float32 nearClip, float32 farClip);
   Camera &setHeight(int32 height);
@@ -31,16 +30,18 @@ public:
   float32 getNear() const { return _near; }
   float32 getFar() const { return _far; }
   float32 getAspectRatio() const { return _width / static_cast<float32>(_height); }
+  Vector3 getPosition() const { return _position; }
 
-  Transform &getTransform() { return _transform; }
-  Transform getTransformCopy() const { return _transform; }
   const Frustrum &getFustrum() const { return _frustrum; }
 
   bool intersectsFrustrum(const Aabb &aabb) const;
   float32 distanceFrom(const Vector3 &position) const;
 
 private:
-  void updateView();
+  void onUpdate(float32 dt) override;
+  void onNotify(const GameObject &gameObject) override;
+
+  void updateView(const Transform &transform);
   void updateProjection();
 
   bool _modified;
@@ -54,6 +55,7 @@ private:
   Matrix4 _view;
   Matrix4 _proj;
 
+  Vector3 _position;
+
   Frustrum _frustrum;
-  Transform _transform;
 };

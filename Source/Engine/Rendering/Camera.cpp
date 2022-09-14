@@ -8,7 +8,9 @@ Camera::Camera() : _width(1280),
 									 _fov(Degree(60.f)),
 									 _near(0.1f),
 									 _far(10000.0f),
-									 _modified(true)
+									 _modified(true),
+									 _position(Vector3::Zero),
+									 Component(ComponentType::Camera)
 {
 	updateProjection();
 }
@@ -22,36 +24,20 @@ void Camera::drawInspector()
 		float32 nearClip = _near;
 		float32 fovY = _fov.InDegrees();
 
-		ImGui::DragFloat("Near Clip", &nearClip, 1, 0.1f, 100.f);
-		ImGui::DragFloat("Far Clip", &farClip, 1, 0.1f, 10000.f);
-		ImGui::DragFloat("Field-of-view", &fovY, 1, 1.f, 180.f);
-
-		setFar(farClip);
-		setNear(nearClip);
-		setFov(fovY);
-
-		Vector3 position(_transform.getPosition());
-		float32 pos[]{position.X, position.Y, position.Z};
-		ImGui::DragFloat3("Position", pos, 0.1f);
-		_transform.setPosition(Vector3(pos[0], pos[1], pos[2]));
-
-		Vector3 euler = _transform.getRotation().ToEuler();
-		float32 angles[3] = {euler.X, euler.Y, euler.Z};
-		if (ImGui::DragFloat3("Orientation", angles, 1.0f))
+		if (ImGui::SliderFloat("Near Clip", &nearClip, 0.1f, 100.f))
 		{
-			_transform.rotate(Quaternion(Degree(euler.X - angles[0]), Degree(euler.Y - angles[1]), Degree(euler.Z - angles[2])));
+			setNear(nearClip);
 		}
-	}
-}
 
-void Camera::update(float64 dt)
-{
-	if (_modified || _transform.modified())
-	{
-		_transform.update(dt);
-		updateView();
-		updateProjection();
-		_modified = false;
+		if (ImGui::SliderFloat("Far Clip", &farClip, 0.1f, 10000.f))
+		{
+			setFar(farClip);
+		}
+
+		if (ImGui::SliderFloat("Field-of-view", &fovY, 1.f, 180.f))
+		{
+			setFov(fovY);
+		}
 	}
 }
 
@@ -101,10 +87,26 @@ Camera &Camera::setFar(float32 far)
 	return *this;
 }
 
-void Camera::updateView()
+void Camera::onUpdate(float32 dt)
 {
-	Matrix4 rotation(_transform.getRotation());
-	Matrix4 translation(Matrix4::Translation(_transform.getPosition()));
+	if (_modified)
+	{
+		updateProjection();
+		_modified = false;
+	}
+}
+
+void Camera::onNotify(const GameObject &gameObject)
+{
+	Transform transform(gameObject.getTransform());
+	updateView(transform);
+	_position = transform.getPosition();
+}
+
+void Camera::updateView(const Transform &transform)
+{
+	Matrix4 rotation(transform.getRotation());
+	Matrix4 translation(Matrix4::Translation(transform.getPosition()));
 	translation[3][0] = -translation[3][0];
 	translation[3][1] = -translation[3][1];
 	translation[3][2] = -translation[3][2];
@@ -125,5 +127,5 @@ bool Camera::intersectsFrustrum(const Aabb &aabb) const
 
 float32 Camera::distanceFrom(const Vector3 &position) const
 {
-	return (_transform.getPosition() - position).Length();
+	return (_position - position).Length();
 }

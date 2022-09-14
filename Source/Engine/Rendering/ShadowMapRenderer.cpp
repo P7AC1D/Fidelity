@@ -121,7 +121,7 @@ void ShadowMapRenderer::onDrawDebugUi()
 void ShadowMapRenderer::drawFrame(const std::shared_ptr<RenderDevice> &renderDevice,
                                   const std::vector<std::shared_ptr<Drawable>> &drawables,
                                   const std::vector<std::shared_ptr<Light>> &lights,
-                                  const Camera &camera)
+                                  const std::shared_ptr<Camera> &camera)
 {
   if (_settingsModified)
   {
@@ -226,11 +226,11 @@ std::vector<Vector4> ShadowMapRenderer::getFrustrumCorners(const Matrix4 &proj, 
 
 Matrix4 ShadowMapRenderer::calcLightViewProj(const float32 nearPlane,
                                              const float32 farPlane,
-                                             const Camera &camera,
+                                             const std::shared_ptr<Camera> &camera,
                                              const std::shared_ptr<Light> &directionalLight) const
 {
-  Matrix4 proj = Matrix4::Perspective(camera.getFov(), camera.getAspectRatio(), nearPlane, farPlane);
-  auto frustrumCorners = getFrustrumCorners(proj, camera.getView());
+  Matrix4 proj = Matrix4::Perspective(camera->getFov(), camera->getAspectRatio(), nearPlane, farPlane);
+  auto frustrumCorners = getFrustrumCorners(proj, camera->getView());
 
   Matrix4 lightView = calcLightView(frustrumCorners, directionalLight);
   Matrix4 lightProj = calcLightProj(frustrumCorners, lightView);
@@ -281,20 +281,20 @@ Matrix4 ShadowMapRenderer::calcLightProj(const std::vector<Vector4> &frustrumCor
   return Matrix4::Orthographic(min.X, max.X, min.Y, max.Y, min.Z, max.Z);
 }
 
-void ShadowMapRenderer::writeObjectConstantData(std::shared_ptr<Drawable> drawable, const Camera &camera) const
+void ShadowMapRenderer::writeObjectConstantData(std::shared_ptr<Drawable> drawable, const std::shared_ptr<Camera> &camera) const
 {
   ObjectBuffer objectBufferData;
   objectBufferData.Model = drawable->getMatrix();
-  objectBufferData.ModelView = camera.getView() * objectBufferData.Model;
-  objectBufferData.ModelViewProjection = camera.getProj() * objectBufferData.ModelView;
+  objectBufferData.ModelView = camera->getView() * objectBufferData.Model;
+  objectBufferData.ModelViewProjection = camera->getProj() * objectBufferData.ModelView;
   _objectBuffer->WriteData(0, sizeof(ObjectBuffer), &objectBufferData, AccessType::WriteOnlyDiscard);
 }
 
 std::vector<Matrix4> ShadowMapRenderer::createLightTransforms(const std::shared_ptr<Light> &directionalLight,
-                                                              const Camera &camera) const
+                                                              const std::shared_ptr<Camera> &camera) const
 {
-  float32 cameraFarPlane = camera.getFar();
-  float32 cameraNearPlane = camera.getNear();
+  float32 cameraFarPlane = camera->getFar();
+  float32 cameraNearPlane = camera->getNear();
   std::vector<float32> shadowCascadeLevels = createCascadeLevels(camera);
 
   std::vector<Matrix4>
@@ -320,9 +320,9 @@ std::vector<Matrix4> ShadowMapRenderer::createLightTransforms(const std::shared_
   return transforms;
 }
 
-std::vector<float32> ShadowMapRenderer::createCascadeLevels(const Camera &camera) const
+std::vector<float32> ShadowMapRenderer::createCascadeLevels(const std::shared_ptr<Camera> &camera) const
 {
-  float32 cameraFarPlane = camera.getFar();
-  float32 cameraNearPlane = camera.getNear();
+  float32 cameraFarPlane = camera->getFar();
+  float32 cameraNearPlane = camera->getNear();
   return std::vector<float32>{cameraFarPlane / 50.0f, cameraFarPlane / 25.0f, cameraFarPlane / 10.0f, cameraFarPlane / 2.0f};
 }
