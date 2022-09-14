@@ -15,7 +15,6 @@ public:
   
   static float32 Dot(const Quaternion& lhs, const Quaternion& rhs);
   static Quaternion Normalize(const Quaternion& quat);
-  static Quaternion FromAxisAngle(const Vector3& axis, const Radian& angle);
   
   Quaternion();
   Quaternion(float32 w, float32 x, float32 y, float32 z);
@@ -67,6 +66,7 @@ public:
   
 private:
   void FromEulerAngles(const Radian& pitch, const Radian& yaw, const Radian& roll);
+  void FromAxisAngle(const Vector3& axis, const Radian& angle);
   void FromRotationMatrix(const Matrix3& rotMatrix);
 
 	float32 Pitch() const;

@@ -143,7 +143,7 @@ void main()
       vec3 halfDir = normalize(lightDir + viewDir);
       float diffuseFactor = clamp(dot(lightDir, normal), 0.0f, 1.0f);
       float specularFactor = pow(max(dot(normal, halfDir), 0.0), specular.a * 255.0f);
-      finalColour += (1.0f - shadowFactor) * (albedo.rgb * diffuseFactor + specular.rgb * specularFactor) * Lighting.Lights[i].Colour * Lighting.Lights[i].Intensity; 
+      finalColour += (albedo.rgb * diffuseFactor + specular.rgb * specularFactor) * Lighting.Lights[i].Colour * Lighting.Lights[i].Intensity; 
     }
   }
   FinalColour = vec4(finalColour.rgb, 1.0f);

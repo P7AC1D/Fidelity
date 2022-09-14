@@ -37,8 +37,10 @@ void Camera::drawInspector()
 
 		Vector3 euler = _transform.getRotation().ToEuler();
 		float32 angles[3] = {euler.X, euler.Y, euler.Z};
-		ImGui::DragFloat3("Orientation", angles, 1.0f);
-		_transform.setRotation(Quaternion(Degree(angles[0]), Degree(angles[1]), Degree(angles[2])));
+		if (ImGui::DragFloat3("Orientation", angles, 1.0f))
+		{
+			_transform.rotate(Quaternion(Degree(euler.X - angles[0]), Degree(euler.Y - angles[1]), Degree(euler.Z - angles[2])));
+		}
 	}
 }
 

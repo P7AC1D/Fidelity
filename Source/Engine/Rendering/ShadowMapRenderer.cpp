@@ -247,8 +247,7 @@ Matrix4 ShadowMapRenderer::calcLightView(const std::vector<Vector4> &frustrumCor
   center /= frustrumCorners.size();
 
   Matrix4 lightTransform = Matrix4::LookAt(center + directionalLight->getDirection(), center, Vector3(0.0f, 1.0f, 0.0f));
-  Matrix4 defaultLightTransform = Matrix4::LookAt(-directionalLight->getDirection(), Vector3::Zero, Vector3(0.0f, 1.0f, 0.0f));
-  return defaultLightTransform;
+  return lightTransform;
 }
 
 Matrix4 ShadowMapRenderer::calcLightProj(const std::vector<Vector4> &frustrumCorners, const Matrix4 &lightView) const
