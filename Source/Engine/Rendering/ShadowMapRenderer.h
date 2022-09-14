@@ -26,6 +26,8 @@ public:
                  const std::vector<std::shared_ptr<Light>> &lights,
                  const Camera &camera);
 
+  std::shared_ptr<RenderTarget> getShadowMapBuffer() { return _shadowMapRto; }
+
 private:
   std::vector<Vector4> getFrustrumCorners(const Matrix4 &proj, const Matrix4 &cameraView) const;
   Matrix4 calcLightViewProj(const float32 nearPlane,

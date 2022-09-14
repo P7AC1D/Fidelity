@@ -106,9 +106,9 @@ void Scene::drawFrame() const
     drawables.push_back(culledDrawable.ComponentPtr);
   }
 
-  //_shadowMapRenderer->drawFrame(_renderDevice, drawables, lights, _camera);
+  _shadowMapRenderer->drawFrame(_renderDevice, drawables, lights, _camera);
   _deferredRenderer->drawFrame(_renderDevice, aabbDrawables, drawables, lights, _camera);
-  _debugRenderer->drawFrame(_renderDevice, _deferredRenderer->getGbuffer(), _deferredRenderer->getLightingBuffer(), aabbDrawables, _camera);
+  _debugRenderer->drawFrame(_renderDevice, _deferredRenderer->getGbuffer(), _deferredRenderer->getLightingBuffer(), _shadowMapRenderer->getShadowMapBuffer(), aabbDrawables, _camera);
 }
 
 void Scene::drawDebugUi()

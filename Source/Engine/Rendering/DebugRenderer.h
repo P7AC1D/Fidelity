@@ -17,6 +17,7 @@ class VertexBuffer;
 enum class DebugDisplayType
 {
   Disabled,
+  ShadowMap,
   Diffuse,
   Normal,
   Depth
@@ -33,6 +34,7 @@ public:
   void drawFrame(const std::shared_ptr<RenderDevice> &renderDevice,
                  const std::shared_ptr<RenderTarget> &gBuffer,
                  const std::shared_ptr<RenderTarget> &lightingBuffer,
+                 const std::shared_ptr<RenderTarget> &shadowMapBuffer,
                  const std::vector<std::shared_ptr<Drawable>> &aabbDrawables,
                  const Camera &camera);
 
@@ -49,8 +51,10 @@ private:
 
   std::shared_ptr<PipelineState> _gbufferDebugDrawPso;
   std::shared_ptr<PipelineState> _depthDebugDrawPso;
+  std::shared_ptr<PipelineState> _shadowMapDebugPso;
   std::shared_ptr<PipelineState> _drawAabbPso;
 
   std::shared_ptr<GpuBuffer> _aabbBuffer;
+  std::shared_ptr<GpuBuffer> _shadowMapDebugBuffer;
   std::shared_ptr<VertexBuffer> _aabbVertexBuffer;
 };

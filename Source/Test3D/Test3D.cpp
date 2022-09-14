@@ -24,7 +24,7 @@ void Test3D::OnStart()
                                   .withComponent(_scene.createComponent<Light>()
                                                      .setLightType(LightType::Directional)
                                                      .setColour(Colour(244, 233, 155))
-                                                     .setDirection(Vector3(-25.0f, 7.0f, 1.0f))
+                                                     .setDirection(Vector3(20.0f, 50.0f, 20.0f))
                                                      .setIntensity(0.1f))
                                   .build());
   _scene.addChildToNode(root, GameObjectBuilder(_scene)

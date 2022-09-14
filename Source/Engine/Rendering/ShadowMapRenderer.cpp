@@ -12,6 +12,11 @@
 #include "Light.h"
 #include "StaticMesh.h"
 
+struct LightDepthData
+{
+  Matrix4 Transform;
+};
+
 ShadowMapRenderer::ShadowMapRenderer() : _zMulti(10.0),
                                          _shadowMapResolution(1024),
                                          _cascadeCount(4)
@@ -24,9 +29,8 @@ void ShadowMapRenderer::onInit(const std::shared_ptr<RenderDevice> &renderDevice
   shadowMapDesc.Width = _shadowMapResolution;
   shadowMapDesc.Height = _shadowMapResolution;
   shadowMapDesc.Usage = TextureUsage::Depth;
-  shadowMapDesc.Type = TextureType::Texture2DArray;
-  shadowMapDesc.Format = TextureFormat::D32;
-  shadowMapDesc.Count = _cascadeCount;
+  shadowMapDesc.Type = TextureType::Texture2D;
+  shadowMapDesc.Format = TextureFormat::D32F;
 
   RenderTargetDesc rtDesc;
   rtDesc.DepthStencilTarget = renderDevice->CreateTexture(shadowMapDesc);
@@ -43,12 +47,6 @@ void ShadowMapRenderer::onInit(const std::shared_ptr<RenderDevice> &renderDevice
   vsDesc.ShaderType = ShaderType::Vertex;
   vsDesc.Source = String::LoadFromFile("./Shaders/ShadowMap.vert");
 
-  ShaderDesc gsDesc;
-  gsDesc.EntryPoint = "main";
-  gsDesc.ShaderLang = ShaderLang::Glsl;
-  gsDesc.ShaderType = ShaderType::Geometry;
-  gsDesc.Source = String::LoadFromFile("./Shaders/ShadowMap.geom");
-
   ShaderDesc psDesc;
   psDesc.EntryPoint = "main";
   psDesc.ShaderLang = ShaderLang::Glsl;
@@ -64,14 +62,13 @@ void ShadowMapRenderer::onInit(const std::shared_ptr<RenderDevice> &renderDevice
 
   std::shared_ptr<ShaderParams> shaderParams(new ShaderParams());
   shaderParams->AddParam(ShaderParam("ObjectBuffer", ShaderParamType::ConstBuffer, 0));
-  shaderParams->AddParam(ShaderParam("TransformsBuffer", ShaderParamType::ConstBuffer, 1));
+  shaderParams->AddParam(ShaderParam("LightDepthBuffer", ShaderParamType::ConstBuffer, 0));
 
   RasterizerStateDesc rasterizerStateDesc;
   rasterizerStateDesc.CullMode = CullMode::Clockwise;
 
   PipelineStateDesc pipelineDesc;
   pipelineDesc.VS = renderDevice->CreateShader(vsDesc);
-  pipelineDesc.GS = renderDevice->CreateShader(gsDesc);
   pipelineDesc.PS = renderDevice->CreateShader(psDesc);
   pipelineDesc.BlendState = renderDevice->CreateBlendState(BlendStateDesc{});
   pipelineDesc.RasterizerState = renderDevice->CreateRasterizerState(rasterizerStateDesc);
@@ -90,7 +87,7 @@ void ShadowMapRenderer::onInit(const std::shared_ptr<RenderDevice> &renderDevice
   GpuBufferDesc transformsBufferDesc;
   transformsBufferDesc.BufferType = BufferType::Constant;
   transformsBufferDesc.BufferUsage = BufferUsage::Stream;
-  transformsBufferDesc.ByteCount = sizeof(Matrix4) * 16;
+  transformsBufferDesc.ByteCount = sizeof(LightDepthData);
   _transformsBuffer = renderDevice->CreateGpuBuffer(transformsBufferDesc);
 }
 
