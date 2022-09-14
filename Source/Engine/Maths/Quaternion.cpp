@@ -28,6 +28,18 @@ Quaternion Quaternion::Normalize(const Quaternion& quat)
   return Quaternion(quat[0] * normInv, quat[1] * normInv, quat[2] * normInv, quat[3] * normInv);
 }
 
+Quaternion Quaternion::FromAxisAngle(const Vector3& axis, const Radian& angle)
+{
+  Radian halfAngle = 0.5f * angle;
+  float32 sin = Math::Sin(halfAngle);
+
+  float32 W = Math::Cos(halfAngle);
+  float32 Z = sin * axis.Z;
+  float32 Y = sin * axis.Y;
+  float32 X = sin * axis.X;
+  return Quaternion(W, X, Y, Z);
+}
+
 Quaternion::Quaternion():
 X(0.0f),
 Y(0.0f),
@@ -264,24 +276,9 @@ Quaternion operator*(float32 lhs, const Quaternion& rhs)
 
 void Quaternion::FromEulerAngles(const Radian& xAngle, const Radian& yAngle, const Radian& zAngle)
 {
-  Vector3 c(Math::Cos(xAngle * 0.5f), Math::Cos(yAngle * 0.5f), Math::Cos(zAngle * 0.5f));
-  Vector3 s(Math::Sin(xAngle * 0.5f), Math::Sin(yAngle * 0.5f), Math::Sin(zAngle * 0.5f));
-
-  this->W = c.X * c.Y * c.Z + s.X * s.Y * s.Z;
-  this->X = s.X * c.Y * c.Z - c.X * s.Y * s.Z;
-  this->Y = c.X * s.Y * c.Z + s.X * c.Y * s.Z;
-  this->Z = c.X * c.Y * s.Z - s.X * s.Y * c.Z;
-}
-
-void Quaternion::FromAxisAngle(const Vector3& axis, const Radian& angle)
-{
-  Radian halfAngle = 0.5f * angle;
-  float32 sin = Math::Sin(halfAngle);
-  
-  W = Math::Cos(halfAngle);
-  Z = sin * axis.Z;
-  Y = sin * axis.Y;
-  X = sin * axis.X;
+  FromAxisAngle(Vector3(0.0, 0.0, 1.0), zAngle);
+  FromAxisAngle(Vector3(1.0, 0.0, 0.0), xAngle);
+  FromAxisAngle(Vector3(0.0, 1.0, 0.0), yAngle);
 }
 
 void Quaternion::FromRotationMatrix(const Matrix3 & m)

@@ -27,40 +27,67 @@ void Test3D::OnStart()
                                                      .setIntensity(0.1f))
                                   .withRotation(Quaternion(Degree(-120.0f), 30.0f, 6.0f))
                                   .build());
-  _scene.addChildToNode(root, GameObjectBuilder(_scene)
-                                  .withName("light1")
-                                  .withComponent(_scene.createComponent<Light>()
-                                                     .setColour(Colour(150, 25, 25))
-                                                     .setRadius(300.0f))
-                                  .withPosition(Vector3(0.0f, 100.0f, 0.0f))
-                                  .build());
-  _scene.addChildToNode(root, GameObjectBuilder(_scene)
-                                  .withName("light2")
-                                  .withComponent(_scene.createComponent<Light>()
-                                                     .setColour(Colour(25, 150, 25))
-                                                     .setRadius(300.0f))
-                                  .withPosition(Vector3(-150.0f, 100.0f, -100.0f))
-                                  .build());
-  _scene.addChildToNode(root, GameObjectBuilder(_scene)
-                                  .withName("light3")
-                                  .withComponent(_scene.createComponent<Light>()
-                                                     .setColour(Colour(25, 25, 100))
-                                                     .setRadius(300.0f))
-                                  .withPosition(Vector3(-150.0f, 100.0f, 100.0f))
-                                  .build());
-  _scene.addChildToNode(root, ModelLoader::FromFile(_scene, "./Models/Sponza/sponza.obj", true));
+  //_scene.addChildToNode(root, GameObjectBuilder(_scene)
+  //                                .withName("light1")
+  //                                .withComponent(_scene.createComponent<Light>()
+  //                                                   .setColour(Colour(150, 25, 25))
+  //                                                   .setRadius(300.0f))
+  //                                .withPosition(Vector3(0.0f, 100.0f, 0.0f))
+  //                                .build());
+  //_scene.addChildToNode(root, GameObjectBuilder(_scene)
+  //                                .withName("light2")
+  //                                .withComponent(_scene.createComponent<Light>()
+  //                                                   .setColour(Colour(25, 150, 25))
+  //                                                   .setRadius(300.0f))
+  //                                .withPosition(Vector3(-150.0f, 100.0f, -100.0f))
+  //                                .build());
+  //_scene.addChildToNode(root, GameObjectBuilder(_scene)
+  //                                .withName("light3")
+  //                                .withComponent(_scene.createComponent<Light>()
+  //                                                   .setColour(Colour(25, 25, 100))
+  //                                                   .setRadius(300.0f))
+  //                                .withPosition(Vector3(-150.0f, 100.0f, 100.0f))
+  //                                .build());
+  //_scene.addChildToNode(root, ModelLoader::FromFile(_scene, "./Models/Sponza/sponza.obj", true));
 
   std::shared_ptr<Material> material(new Material());
   material->setDiffuseTexture(LoadTextureFromFile("./Textures/crate0_diffuse.png", true, true));
   material->setNormalTexture(LoadTextureFromFile("./Textures/crate0_normal.png", false, false));
   material->setSpecularTexture(LoadTextureFromFile("./Textures/crate0_bump.png", false, false));
 
+  //_scene.addChildToNode(root, GameObjectBuilder(_scene)
+  //                                .withName("cube1")
+  //                                .withComponent(_scene.createComponent<Drawable>()
+  //                                                   .setMesh(MeshFactory::CreateCube())
+  //                                                   .setMaterial(material))
+  //                                .withPosition(Vector3(0, 1, 0))
+  //                                .build());
+
+  //_scene.addChildToNode(root, GameObjectBuilder(_scene)
+  //                                .withName("cube2")
+  //                                .withComponent(_scene.createComponent<Drawable>()
+  //                                                   .setMesh(MeshFactory::CreateCube())
+  //                                                   .setMaterial(material))
+  //                                .withPosition(Vector3(-6, 3.5, 7))
+  //                                .build());
+
+  //_scene.addChildToNode(root, GameObjectBuilder(_scene)
+  //                                .withName("cube3")
+  //                                .withComponent(_scene.createComponent<Drawable>()
+  //                                                   .setMesh(MeshFactory::CreateCube())
+  //                                                   .setMaterial(material))
+  //                                .withPosition(Vector3(6, 1.3, 5.4))
+  //                                .build());
+
+  std::shared_ptr<Material> floorMaterial(new Material());
+  floorMaterial->setDiffuseTexture(LoadTextureFromFile("./Textures/brick_floor_tileable_Base_Color.jpg", true, true));
   _scene.addChildToNode(root, GameObjectBuilder(_scene)
-                                  .withName("cube1")
+                                  .withName("floor")
                                   .withComponent(_scene.createComponent<Drawable>()
-                                                     .setMesh(MeshFactory::CreateCube())
-                                                     .setMaterial(material))
-                                  .withPosition(Vector3(0, 0, 0))
+                                                     .setMesh(MeshFactory::CreatePlane(100))
+                                                     .setMaterial(floorMaterial))
+                                  .withPosition(Vector3(50, -5, 50))
+                                  .withScale(Vector3(100, 100, 100))
                                   .build());
 
   _inputHandler->BindButtonToState("ActivateCameraLook", Button::Button_LMouse);

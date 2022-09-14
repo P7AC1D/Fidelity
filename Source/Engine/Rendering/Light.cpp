@@ -22,12 +22,21 @@ void Light::drawInspector()
 	ImGui::ColorEdit3("Colour", rawCol);
 	setColour(Colour(rawCol[0] * 255, rawCol[1] * 255, rawCol[2] * 255));
 
+	float32 radius = _radius;
 	if (_lightType == LightType::Point)
 	{
-		ImGui::DragFloat("Radius", &_radius, 0.1f, 0.0f, 1000.0f);
+		if (ImGui::SliderFloat("Radius", &radius, 0.0f, 1000.0f))
+		{
+			setRadius(radius);
+		}		
 	}
 
-	ImGui::DragFloat("Intensity", &_intensity, 0.05f, 0.0f, 1.0f);
+	float32 intensity = _intensity;
+	if (ImGui::SliderFloat("Intensity", &intensity, 0.0f, 1.0f))
+	{
+		setIntensity(intensity);
+	}
+
 }
 
 Light &Light::setColour(const Colour &colour)
@@ -74,7 +83,8 @@ void Light::onNotify(const GameObject &gameObject)
 	Transform transform = gameObject.getTransform();
 	_position = transform.getPosition();
 	_rotation = transform.getRotation();
-
 	_direction = _rotation.Rotate(Vector3::Identity);
+	_direction.Normalize();
+
 	_modified = true;
 }
