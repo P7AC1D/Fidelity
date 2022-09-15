@@ -22,12 +22,11 @@ struct ObjectBuffer
   Matrix4 ModelViewProjection;
 };
 
-struct CascadeShadowMapData
+struct ShadowMapData
 {
-  Matrix4 LightTransforms[4];
+  Matrix4 LightTransform;
   Vector3 LightDirection;
-  float32 CascadePlaneDistances[4];
-  uint32 CascadeCount;
+  float32 CameraFarPlane;
 };
 
 class Renderer

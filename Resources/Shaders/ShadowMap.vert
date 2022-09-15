@@ -9,10 +9,10 @@ layout(std140) uniform ObjectBuffer
   mat4 ModelViewProjection;
 } Object;
 
-layout(std140) uniform LightDepthBuffer
+layout (std140) uniform TransformsBuffer
 {
-  mat4 LightTransform;
-} Light;
+    mat4 LightSpace;
+} Transforms;
 
 out gl_PerVertex
 {
@@ -23,5 +23,5 @@ out gl_PerVertex
 
 void main()
 {
-  gl_Position = Light.LightTransform * Object.Model * vec4(aPosition, 1.0f);
+  gl_Position = Transforms.LightSpace * Object.Model * vec4(aPosition, 1.0f);
 }

@@ -32,7 +32,7 @@ public:
                  const std::vector<std::shared_ptr<Drawable>> &drawables,
                  const std::vector<std::shared_ptr<Light>> &lights,
                  const std::shared_ptr<RenderTarget> &shadowMapRto,
-                 const std::shared_ptr<GpuBuffer> &cmsBuffer,
+                 const std::shared_ptr<GpuBuffer> &shadowMapBuffer,
                  const std::shared_ptr<Camera> &camera);
 
   std::shared_ptr<RenderTarget> getGbuffer() { return _gBufferRto; }
@@ -46,7 +46,7 @@ private:
   void lightingPass(std::shared_ptr<RenderDevice> renderDevice,
                     const std::vector<std::shared_ptr<Light>> &lights,
                     const std::shared_ptr<RenderTarget> &shadowMapRto,
-                    const std::shared_ptr<GpuBuffer> &cmsBuffer,
+                    const std::shared_ptr<GpuBuffer> &shadowMapBuffer,
                     const std::shared_ptr<Camera> &camera);
 
   void writeMaterialConstantData(std::shared_ptr<RenderDevice> renderDevice,

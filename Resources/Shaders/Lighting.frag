@@ -28,45 +28,26 @@ layout(std140) uniform LightingBuffer
   Light Lights[MAX_LIGHTS];
 } Lighting;
 
-layout (std140) uniform CascadeShadowMapBuffer
+layout(std140) uniform ShadowMapBuffer
 {
-  mat4 LightTransforms[4];
+  mat4 LightTransform;
   vec3 LightDirection;
-  float CascadePlaneDistances[4];
-  int CascadeCount;
-} CascadeShadowMap;
+  float CameraFarPlane;
+} ShadowMapData;
 
 uniform sampler2D AlbedoMap;
 uniform sampler2D DepthMap;
 uniform sampler2D NormalMap;
 uniform sampler2D SpecularMap;
-uniform sampler2DArray ShadowMaps;
+uniform sampler2D ShadowMap;
 
 layout(location = 0) in vec2 TexCoord;
 
 layout(location = 0) out vec4 FinalColour;
 
-float ShadowCalculation(vec3 fragPosWorldSpace, vec3 normalWorldSpace)
+float calculateShadowFactor(vec3 fragPosWorldSpace, vec3 normalWorldSpace)
 {
-    // select cascade layer
-    vec4 fragPosViewSpace = Constants.View * vec4(fragPosWorldSpace, 1.0);
-    float depthValue = abs(fragPosViewSpace.z);
-
-    int layer = -1;
-    for (int i = 0; i < CascadeShadowMap.CascadeCount; ++i)
-    {
-        if (depthValue < CascadeShadowMap.CascadePlaneDistances[i])
-        {
-            layer = i;
-            break;
-        }
-    }
-    if (layer == -1)
-    {
-        layer = CascadeShadowMap.CascadeCount;
-    }
-
-    vec4 fragPosLightSpace = CascadeShadowMap.LightTransforms[layer] * vec4(fragPosWorldSpace, 1.0);
+    vec4 fragPosLightSpace = ShadowMapData.LightTransform * vec4(fragPosWorldSpace, 1.0);
     vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
     projCoords = projCoords * 0.5 + 0.5;
 
@@ -75,27 +56,21 @@ float ShadowCalculation(vec3 fragPosWorldSpace, vec3 normalWorldSpace)
     {
         return 0.0;
     }
- 
+
+    // Apply bias based on distance from far plane
     vec3 normal = normalize(normalWorldSpace);
-    float bias = max(0.05 * (1.0 - dot(normal, CascadeShadowMap.LightDirection)), 0.005);
+    float bias = max(0.05 * (1.0 - dot(normal, ShadowMapData.LightDirection)), 0.005);
     const float biasModifier = 0.5f;
-    if (layer == CascadeShadowMap.CascadeCount)
-    {
-        bias *= 1 / (Constants.FarPlane * biasModifier);
-    }
-    else
-    {
-        bias *= 1 / (CascadeShadowMap.CascadePlaneDistances[layer] * biasModifier);
-    }
+    bias *= 1 / (ShadowMapData.CameraFarPlane * biasModifier);
 
     // PCF
     float shadow = 0.0;
-    vec2 texelSize = 1.0 / vec2(textureSize(ShadowMaps, 0));
+    vec2 texelSize = 1.0 / vec2(textureSize(ShadowMap, 0));
     for(int x = -1; x <= 1; ++x)
     {
         for(int y = -1; y <= 1; ++y)
         {
-            float pcfDepth = texture(ShadowMaps, vec3(projCoords.xy + vec2(x, y) * texelSize, layer)).r;
+            float pcfDepth = texture(ShadowMap, projCoords.xy + vec2(x, y) * texelSize).r;
             shadow += (currentDepth - bias) > pcfDepth ? 1.0 : 0.0;        
         }    
     }
@@ -117,7 +92,7 @@ void main()
   vec4 clip = Constants.ProjViewInv * vec4(position * 2.0f - 1.0f, 1.0f);
   position = clip.xyz / clip.w;
 
-  float shadowFactor = ShadowCalculation(position, normal);
+  float shadowFactor = calculateShadowFactor(position, normal);
 
   vec3 ambient = albedo.rgb * Lighting.AmbientColour * Lighting.AmbientIntensity;
   vec3 finalColour = ambient;

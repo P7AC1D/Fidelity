@@ -27,21 +27,13 @@ public:
                  const std::shared_ptr<Camera> &camera);
 
   std::shared_ptr<RenderTarget> getShadowMapRto() { return _shadowMapRto; }
-  std::shared_ptr<GpuBuffer> getCSMBuffer() { return _cascadeShadowBuffer; }
+  std::shared_ptr<GpuBuffer> getShadowBuffer() { return _shadowBufer; }
 
 private:
-  std::vector<Vector4>
-  getFrustrumCorners(const Matrix4 &proj, const Matrix4 &cameraView) const;
   Matrix4 calcLightViewProj(const float32 nearPlane,
                             const float32 farPlane,
                             const std::shared_ptr<Camera> &camera,
                             const std::shared_ptr<Light> &directionalLight) const;
-  Matrix4 calcLightView(const std::vector<Vector4> &frustrumCorners, const std::shared_ptr<Light> &directionalLight) const;
-  Matrix4 calcLightProj(const std::vector<Vector4> &frustrumCorners, const Matrix4 &lightView) const;
-
-  std::vector<Matrix4> createLightTransforms(const std::shared_ptr<Light> &directionalLight,
-                                             const std::shared_ptr<Camera> &camera) const;
-  std::vector<float32> createCascadeLevels(const std::shared_ptr<Camera> &camera) const;
 
   void writeObjectConstantData(std::shared_ptr<Drawable> drawable, const std::shared_ptr<Camera> &camera) const;
 
@@ -54,5 +46,5 @@ private:
   std::shared_ptr<PipelineState> _shadowMapPso;
   std::shared_ptr<GpuBuffer> _objectBuffer;
   std::shared_ptr<GpuBuffer> _transformsBuffer;
-  std::shared_ptr<GpuBuffer> _cascadeShadowBuffer;
+  std::shared_ptr<GpuBuffer> _shadowBufer;
 };

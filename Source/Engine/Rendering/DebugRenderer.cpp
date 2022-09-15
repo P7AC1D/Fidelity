@@ -237,15 +237,6 @@ void DebugRenderer::onDrawDebugUi()
     {
       _debugDisplayType = static_cast<DebugDisplayType>(debugRenderingCurrentItem);
     }
-
-    if (_debugDisplayType == DebugDisplayType::ShadowMap)
-    {
-      int shadowMapLayerToDraw = _shadowMapLayerToDraw;
-      if (ImGui::SliderInt("Layer", &shadowMapLayerToDraw, 0, 3))
-      {
-        _shadowMapLayerToDraw = shadowMapLayerToDraw;
-      }
-    }
   }
 }
 

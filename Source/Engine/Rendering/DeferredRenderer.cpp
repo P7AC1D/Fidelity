@@ -179,13 +179,13 @@ void DeferredRenderer::onInit(const std::shared_ptr<RenderDevice> &device)
     std::shared_ptr<ShaderParams> shaderParams(new ShaderParams());
     shaderParams->AddParam(ShaderParam("LightingConstantsBuffer", ShaderParamType::ConstBuffer, 0));
     shaderParams->AddParam(ShaderParam("LightingBuffer", ShaderParamType::ConstBuffer, 1));
-    shaderParams->AddParam(ShaderParam("CascadeShadowMapBuffer", ShaderParamType::ConstBuffer, 2));
+    shaderParams->AddParam(ShaderParam("ShadowMapBuffer", ShaderParamType::ConstBuffer, 2));
 
     shaderParams->AddParam(ShaderParam("AlbedoMap", ShaderParamType::Texture, 0));
     shaderParams->AddParam(ShaderParam("DepthMap", ShaderParamType::Texture, 1));
     shaderParams->AddParam(ShaderParam("NormalMap", ShaderParamType::Texture, 2));
     shaderParams->AddParam(ShaderParam("SpecularMap", ShaderParamType::Texture, 3));
-    shaderParams->AddParam(ShaderParam("ShadowMaps", ShaderParamType::Texture, 4));
+    shaderParams->AddParam(ShaderParam("ShadowMap", ShaderParamType::Texture, 4));
 
     RasterizerStateDesc rasterizerStateDesc{};
 
@@ -234,7 +234,7 @@ void DeferredRenderer::onInit(const std::shared_ptr<RenderDevice> &device)
   _lightingBuffer = device->CreateGpuBuffer(lightingBufferDesc);
 
   SamplerStateDesc shadowMapSamplerStateDesc;
-  shadowMapSamplerStateDesc.AddressingMode = AddressingMode{ TextureAddressMode::Border, TextureAddressMode::Border, TextureAddressMode::Clamp };
+  shadowMapSamplerStateDesc.AddressingMode = AddressingMode{TextureAddressMode::Border, TextureAddressMode::Border, TextureAddressMode::Clamp};
   shadowMapSamplerStateDesc.MinFiltering = TextureFilteringMode::None;
   shadowMapSamplerStateDesc.MinFiltering = TextureFilteringMode::None;
   shadowMapSamplerStateDesc.MipFiltering = TextureFilteringMode::None;
@@ -252,7 +252,7 @@ void DeferredRenderer::onDrawDebugUi()
     if (ImGui::ColorEdit3("Ambient Colour", rawCol))
     {
       _ambientColour = Colour(rawCol[0] * 255, rawCol[1] * 255, rawCol[2] * 255);
-    }    
+    }
 
     float32 ambientIntensity = _ambientIntensity;
     if (ImGui::SliderFloat("Ambient Intensity", &ambientIntensity, 0.0f, 1.0f))
@@ -267,7 +267,7 @@ void DeferredRenderer::drawFrame(std::shared_ptr<RenderDevice> renderDevice,
                                  const std::vector<std::shared_ptr<Drawable>> &drawables,
                                  const std::vector<std::shared_ptr<Light>> &lights,
                                  const std::shared_ptr<RenderTarget> &shadowMapRto,
-                                 const std::shared_ptr<GpuBuffer> &cmsBuffer,
+                                 const std::shared_ptr<GpuBuffer> &shadowMapBuffer,
                                  const std::shared_ptr<Camera> &camera)
 {
   ViewportDesc viewportDesc;
@@ -276,7 +276,7 @@ void DeferredRenderer::drawFrame(std::shared_ptr<RenderDevice> renderDevice,
   renderDevice->SetViewport(viewportDesc);
 
   gbufferPass(renderDevice, drawables, camera);
-  lightingPass(renderDevice, lights, shadowMapRto, cmsBuffer, camera);
+  lightingPass(renderDevice, lights, shadowMapRto, shadowMapBuffer, camera);
 }
 
 void DeferredRenderer::gbufferPass(std::shared_ptr<RenderDevice> device,
@@ -314,7 +314,7 @@ void DeferredRenderer::gbufferPass(std::shared_ptr<RenderDevice> device,
 void DeferredRenderer::lightingPass(std::shared_ptr<RenderDevice> renderDevice,
                                     const std::vector<std::shared_ptr<Light>> &lights,
                                     const std::shared_ptr<RenderTarget> &shadowMapRto,
-                                    const std::shared_ptr<GpuBuffer> &cmsBuffer,
+                                    const std::shared_ptr<GpuBuffer> &shadowMapBuffer,
                                     const std::shared_ptr<Camera> &camera)
 {
   renderDevice->SetPipelineState(_lightingPto);
@@ -332,7 +332,7 @@ void DeferredRenderer::lightingPass(std::shared_ptr<RenderDevice> renderDevice,
   renderDevice->SetSamplerState(4, _shadowMapSamplerState);
   renderDevice->SetConstantBuffer(0, _lightingConstantsBuffer);
   renderDevice->SetConstantBuffer(1, _lightingBuffer);
-  renderDevice->SetConstantBuffer(2, cmsBuffer);
+  renderDevice->SetConstantBuffer(2, shadowMapBuffer);
 
   LightingConstantsBuffer lightingConstants;
   lightingConstants.View = camera->getView();
