@@ -232,6 +232,14 @@ void DeferredRenderer::onInit(const std::shared_ptr<RenderDevice> &device)
   lightingBufferDesc.BufferUsage = BufferUsage::Stream;
   lightingBufferDesc.ByteCount = sizeof(LightingBuffer);
   _lightingBuffer = device->CreateGpuBuffer(lightingBufferDesc);
+
+  SamplerStateDesc shadowMapSamplerStateDesc;
+  shadowMapSamplerStateDesc.AddressingMode = AddressingMode{ TextureAddressMode::Border, TextureAddressMode::Border, TextureAddressMode::Clamp };
+  shadowMapSamplerStateDesc.MinFiltering = TextureFilteringMode::None;
+  shadowMapSamplerStateDesc.MinFiltering = TextureFilteringMode::None;
+  shadowMapSamplerStateDesc.MipFiltering = TextureFilteringMode::None;
+  shadowMapSamplerStateDesc.BorderColour = Colour::White;
+  _shadowMapSamplerState = device->CreateSamplerState(shadowMapSamplerStateDesc);
 }
 
 void DeferredRenderer::onDrawDebugUi()
@@ -246,7 +254,7 @@ void DeferredRenderer::onDrawDebugUi()
       _ambientColour = Colour(rawCol[0] * 255, rawCol[1] * 255, rawCol[2] * 255);
     }    
 
-    float32 ambientIntensity;
+    float32 ambientIntensity = _ambientIntensity;
     if (ImGui::SliderFloat("Ambient Intensity", &ambientIntensity, 0.0f, 1.0f))
     {
       _ambientIntensity = ambientIntensity;
@@ -321,7 +329,7 @@ void DeferredRenderer::lightingPass(std::shared_ptr<RenderDevice> renderDevice,
   renderDevice->SetSamplerState(1, _noMipSamplerState);
   renderDevice->SetSamplerState(2, _noMipSamplerState);
   renderDevice->SetSamplerState(3, _noMipSamplerState);
-  renderDevice->SetSamplerState(4, _noMipSamplerState);
+  renderDevice->SetSamplerState(4, _shadowMapSamplerState);
   renderDevice->SetConstantBuffer(0, _lightingConstantsBuffer);
   renderDevice->SetConstantBuffer(1, _lightingBuffer);
   renderDevice->SetConstantBuffer(2, cmsBuffer);

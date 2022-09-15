@@ -51,7 +51,6 @@ private:
 
   std::shared_ptr<Texture> _shadowCubeMap;
   std::shared_ptr<RenderTarget> _shadowMapRto;
-  std::shared_ptr<SamplerState> _shadowMapSamplerState;
   std::shared_ptr<PipelineState> _shadowMapPso;
   std::shared_ptr<GpuBuffer> _objectBuffer;
   std::shared_ptr<GpuBuffer> _transformsBuffer;

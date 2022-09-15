@@ -236,9 +236,14 @@ void DebugRenderer::onDrawDebugUi()
     if (ImGui::Combo("Target", &debugRenderingCurrentItem, debugRenderingItems.data(), debugRenderingItems.size()))
     {
       _debugDisplayType = static_cast<DebugDisplayType>(debugRenderingCurrentItem);
-      if (debugRenderingCurrentItem == static_cast<uint32>(DebugDisplayType::ShadowMap))
+    }
+
+    if (_debugDisplayType == DebugDisplayType::ShadowMap)
+    {
+      int shadowMapLayerToDraw = _shadowMapLayerToDraw;
+      if (ImGui::SliderInt("Layer", &shadowMapLayerToDraw, 0, 3))
       {
-        ImGui::SliderInt("Layer", &_shadowMapLayerToDraw, 0, 3);
+        _shadowMapLayerToDraw = shadowMapLayerToDraw;
       }
     }
   }

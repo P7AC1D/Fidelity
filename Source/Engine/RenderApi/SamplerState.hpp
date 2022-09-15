@@ -1,4 +1,5 @@
 #pragma once
+#include "../Maths/Colour.hpp"
 
 enum class TextureAddressMode
 {
@@ -29,6 +30,7 @@ struct SamplerStateDesc
   TextureFilteringMode MinFiltering = TextureFilteringMode::None;
   TextureFilteringMode MaxFiltering = TextureFilteringMode::None;
   TextureFilteringMode MipFiltering = TextureFilteringMode::None;
+  Colour BorderColour = Colour::Black;
 };
 
 class SamplerState
@@ -38,6 +40,7 @@ public:
   TextureFilteringMode GetMinFilteringMode() const { return _desc.MinFiltering; }
   TextureFilteringMode GetMagFilteringMode() const { return _desc.MaxFiltering; }
   TextureFilteringMode GetMipFilteringMode() const { return _desc.MipFiltering; }
+  Colour GetBorderColour() const { return _desc.BorderColour; }
 
 protected:
   SamplerState(const SamplerStateDesc& desc): _desc(desc) {}

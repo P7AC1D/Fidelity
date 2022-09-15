@@ -66,4 +66,5 @@ private:
   std::shared_ptr<GpuBuffer> _objectBuffer;
   std::shared_ptr<GpuBuffer> _lightingConstantsBuffer;
   std::shared_ptr<GpuBuffer> _lightingBuffer;
+  std::shared_ptr<SamplerState> _shadowMapSamplerState;
 };

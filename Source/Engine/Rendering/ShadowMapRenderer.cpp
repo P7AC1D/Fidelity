@@ -20,7 +20,7 @@ struct LightDepthData
   Matrix4 LightTransform;
 };
 
-ShadowMapRenderer::ShadowMapRenderer() : _zMulti(100.0),
+ShadowMapRenderer::ShadowMapRenderer() : _zMulti(10.0),
                                          _shadowMapResolution(1024),
                                          _cascadeCount(4)
 {
@@ -42,8 +42,6 @@ void ShadowMapRenderer::onInit(const std::shared_ptr<RenderDevice> &renderDevice
   rtDesc.Width = _shadowMapResolution;
 
   _shadowMapRto = renderDevice->CreateRenderTarget(rtDesc);
-
-  _shadowMapSamplerState = renderDevice->CreateSamplerState(SamplerStateDesc{});
 
   ShaderDesc vsDesc;
   vsDesc.EntryPoint = "main";
@@ -111,13 +109,13 @@ void ShadowMapRenderer::onDrawDebugUi()
   {
     ImGui::Text("Shadow Map Renderer");
 
-    float32 zMultiple;
+    float32 zMultiple = _zMulti;
     if (ImGui::DragFloat("Z-Multiple", &zMultiple, 0.1f, 0.1f, 1000.0f))
     {
       _zMulti = zMultiple;
     }
 
-    int shadowMapResolution;
+    int shadowMapResolution = _shadowMapResolution;
     if (ImGui::SliderInt("Resolution", &shadowMapResolution, 256, 8192))
     {
       _shadowMapResolution = shadowMapResolution;
@@ -254,7 +252,7 @@ Matrix4 ShadowMapRenderer::calcLightView(const std::vector<Vector4> &frustrumCor
   }
   center /= frustrumCorners.size();
 
-  Matrix4 lightTransform = Matrix4::LookAt(center + directionalLight->getDirection(), center, Vector3(0.0f, 1.0f, 0.0f));
+  Matrix4 lightTransform = Matrix4::LookAt(center - directionalLight->getDirection(), center, Vector3(0.0f, 1.0f, 0.0f));
   return lightTransform;
 }
 

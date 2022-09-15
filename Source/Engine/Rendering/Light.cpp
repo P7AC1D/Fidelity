@@ -36,7 +36,6 @@ void Light::drawInspector()
 	{
 		setIntensity(intensity);
 	}
-
 }
 
 Light &Light::setColour(const Colour &colour)
@@ -83,7 +82,7 @@ void Light::onNotify(const GameObject &gameObject)
 	Transform transform = gameObject.getTransform();
 	_position = transform.getPosition();
 	_rotation = transform.getRotation();
-	_direction = _rotation.Rotate(Vector3(0, 1, 0));
+	_direction = _rotation.Rotate(Vector3(0, -1, 0));
 	_direction.Normalize();
 
 	_modified = true;
