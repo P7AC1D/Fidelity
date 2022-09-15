@@ -72,6 +72,9 @@ void ShadowMapRenderer::onInit(const std::shared_ptr<RenderDevice> &renderDevice
   shaderParams->AddParam(ShaderParam("ObjectBuffer", ShaderParamType::ConstBuffer, 0));
   shaderParams->AddParam(ShaderParam("TransformsBuffer", ShaderParamType::ConstBuffer, 1));
 
+  RasterizerStateDesc rasterizerStateDesc;
+  rasterizerStateDesc.CullMode = CullMode::Clockwise;
+
   PipelineStateDesc pipelineDesc;
   pipelineDesc.VS = renderDevice->CreateShader(vsDesc);
   pipelineDesc.GS = renderDevice->CreateShader(gsDesc);
