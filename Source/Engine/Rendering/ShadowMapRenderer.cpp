@@ -20,7 +20,7 @@ struct LightDepthData
   Matrix4 LightTransform;
 };
 
-Matrix4 calculateLightProjFromFustrum(const Matrix4 &lightView, const std::shared_ptr<Camera> &camera)
+Matrix4 calculateLightProjFromFustrum(const Matrix4 &lightView, const std::shared_ptr<Camera> &camera, float32 zMulti)
 {
   Matrix4 projView(camera->getProj() * camera->getView());
   Matrix4 projViewInvs(projView.Inverse());
@@ -44,6 +44,24 @@ Matrix4 calculateLightProjFromFustrum(const Matrix4 &lightView, const std::share
     const Vector4 transformedPoint = lightView * corner;
     min = Math::Min(transformedPoint, min);
     max = Math::Max(transformedPoint, max);
+  }
+
+  if (min.Z < 0)
+  {
+    min.Z *= zMulti;
+  }
+  else
+  {
+    min.Z /= zMulti;
+  }
+
+  if (max.Z < 0)
+  {
+    max.Z /= zMulti;
+  }
+  else
+  {
+    max.Z *= zMulti;
   }
 
   return Matrix4::Orthographic(min.X, max.X, min.Y, max.Y, min.Z, max.Z);
@@ -192,7 +210,7 @@ void ShadowMapRenderer::drawFrame(const std::shared_ptr<RenderDevice> &renderDev
   renderDevice->ClearBuffers(RTT_Depth);
 
   Matrix4 lightView(Matrix4::LookAt(-directionalLight->getDirection(), Vector3::Zero, Vector3(0.0f, 1.0f, 0.0f)));
-  Matrix4 lightProj(calculateLightProjFromFustrum(lightView, camera));
+  Matrix4 lightProj(calculateLightProjFromFustrum(lightView, camera, _zMulti));
 
   LightDepthData lightDepthData;
   lightDepthData.LightTransform = lightProj * lightView;

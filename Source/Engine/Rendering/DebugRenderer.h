@@ -46,13 +46,15 @@ private:
 
   void drawRenderTarget(std::shared_ptr<RenderDevice> renderDevice,
                         std::shared_ptr<Texture> renderTarget,
-                        const std::shared_ptr<Camera> &camera);
+                        const std::shared_ptr<Camera> &camera,
+                        bool isOrthographicDepth = false);
 
   DebugDisplayType _debugDisplayType;
   int32 _shadowMapLayerToDraw;
 
   std::shared_ptr<PipelineState> _gbufferDebugDrawPso;
   std::shared_ptr<PipelineState> _depthDebugDrawPso;
+  std::shared_ptr<PipelineState> _depthDebugOrthoDrawPso;
   std::shared_ptr<PipelineState> _shadowMapDebugPso;
   std::shared_ptr<PipelineState> _drawAabbPso;
 

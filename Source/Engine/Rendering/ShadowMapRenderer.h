@@ -30,11 +30,6 @@ public:
   std::shared_ptr<GpuBuffer> getShadowBuffer() { return _shadowBufer; }
 
 private:
-  Matrix4 calcLightViewProj(const float32 nearPlane,
-                            const float32 farPlane,
-                            const std::shared_ptr<Camera> &camera,
-                            const std::shared_ptr<Light> &directionalLight) const;
-
   void writeObjectConstantData(std::shared_ptr<Drawable> drawable, const std::shared_ptr<Camera> &camera) const;
 
   float32 _zMulti;
