@@ -110,9 +110,17 @@ void ShadowMapRenderer::onDrawDebugUi()
   ImGui::Separator();
   {
     ImGui::Text("Shadow Map Renderer");
-    ImGui::DragFloat("Z-Multiple", &_zMulti, 0.1f, 0.1f, 1000.0f);
-    if (ImGui::SliderInt("Resolution", &_shadowMapResolution, 256, 8192))
+
+    float32 zMultiple;
+    if (ImGui::DragFloat("Z-Multiple", &zMultiple, 0.1f, 0.1f, 1000.0f))
     {
+      _zMulti = zMultiple;
+    }
+
+    int shadowMapResolution;
+    if (ImGui::SliderInt("Resolution", &shadowMapResolution, 256, 8192))
+    {
+      _shadowMapResolution = shadowMapResolution;
       _settingsModified = true;
     }
   }

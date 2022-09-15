@@ -233,11 +233,13 @@ void DebugRenderer::onDrawDebugUi()
 
     std::vector<const char *> debugRenderingItems = {"Disabled", "Shadow Map", "Diffuse", "Normal", "Depth"};
     static int debugRenderingCurrentItem = 0;
-    ImGui::Combo("Target", &debugRenderingCurrentItem, debugRenderingItems.data(), debugRenderingItems.size());
-    _debugDisplayType = static_cast<DebugDisplayType>(debugRenderingCurrentItem);
-    if (debugRenderingCurrentItem == static_cast<uint32>(DebugDisplayType::ShadowMap))
+    if (ImGui::Combo("Target", &debugRenderingCurrentItem, debugRenderingItems.data(), debugRenderingItems.size()))
     {
-      ImGui::SliderInt("Layer", &_shadowMapLayerToDraw, 0, 3);
+      _debugDisplayType = static_cast<DebugDisplayType>(debugRenderingCurrentItem);
+      if (debugRenderingCurrentItem == static_cast<uint32>(DebugDisplayType::ShadowMap))
+      {
+        ImGui::SliderInt("Layer", &_shadowMapLayerToDraw, 0, 3);
+      }
     }
   }
 }

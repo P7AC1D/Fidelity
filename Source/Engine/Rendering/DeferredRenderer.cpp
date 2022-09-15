@@ -241,10 +241,16 @@ void DeferredRenderer::onDrawDebugUi()
     ImGui::Text("Deferred Renderer");
 
     float32 rawCol[]{_ambientColour[0], _ambientColour[1], _ambientColour[2]};
-    ImGui::ColorEdit3("Ambient Colour", rawCol);
-    _ambientColour = Colour(rawCol[0] * 255, rawCol[1] * 255, rawCol[2] * 255);
+    if (ImGui::ColorEdit3("Ambient Colour", rawCol))
+    {
+      _ambientColour = Colour(rawCol[0] * 255, rawCol[1] * 255, rawCol[2] * 255);
+    }    
 
-    ImGui::DragFloat("Ambient Intensity", &_ambientIntensity, 0.01f, 0.0f, 1.0f);
+    float32 ambientIntensity;
+    if (ImGui::SliderFloat("Ambient Intensity", &ambientIntensity, 0.0f, 1.0f))
+    {
+      _ambientIntensity = ambientIntensity;
+    }
   }
 }
 
