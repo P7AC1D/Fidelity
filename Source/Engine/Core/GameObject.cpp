@@ -35,7 +35,7 @@ void GameObject::drawInspector()
 		if (ImGui::DragFloat3("Position", pos, 0.1f))
 		{
 			_transform.translate(Vector3(position.X - pos[0], position.Y - pos[1], position.Z - pos[2]));
-		}		
+		}
 	}
 	{
 		Vector3 scale = _transform.getScale();
@@ -43,15 +43,15 @@ void GameObject::drawInspector()
 		if (ImGui::DragFloat3("Scale", scl, 0.1f))
 		{
 			_transform.scale(Vector3(scale.X - scl[0], scale.Y - scl[1], scale.Z - scl[2]));
-		}		
+		}
 	}
 	{
-		Vector3 euler = _transform.getRotation().ToEuler();
-		float32 angles[3] = {euler.X, euler.Y, euler.Z};
+		auto euler = _transform.getRotation().ToEuler();
+		float32 angles[3] = {euler[0].InDegrees(), euler[1].InDegrees(), euler[2].InDegrees()};
 		if (ImGui::DragFloat3("Orientation", angles, 1.0f, -180.0f, 180.0f))
 		{
-			_transform.rotate(Quaternion(Degree(euler.X - angles[0]), Degree(euler.Y - angles[1]), Degree(euler.Z - angles[2])));
-		}		
+			_transform.rotate(Quaternion(euler[0] - Degree(angles[0]), euler[1] - Degree(angles[1]), euler[2] - Degree(angles[2])));
+		}
 	}
 
 	for (auto component : _components)

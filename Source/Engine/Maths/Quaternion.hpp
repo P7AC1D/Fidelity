@@ -15,7 +15,7 @@ public:
 
   static float32 Dot(const Quaternion &lhs, const Quaternion &rhs);
   static Quaternion Normalize(const Quaternion &quat);
-  static Quaternion LookAt(const Vector3 &position, const Vector3 &target, const Vector3 &up = Vector3(0.0f, 1.0f, 0.0f));
+  static Quaternion LookAt(const Vector3 &direction, const Vector3 &up = Vector3(0.0f, 1.0f, 0.0f));
 
   Quaternion();
   Quaternion(float32 w, float32 x, float32 y, float32 z);
@@ -59,7 +59,10 @@ public:
   Quaternion Lerp(const Quaternion &a, const Quaternion &b, float32 t);
   Quaternion Slerp(const Quaternion &a, const Quaternion &b, float32 t);
 
-  Vector3 ToEuler() const;
+  std::array<Radian, 3> ToEuler() const;
+  Radian Pitch() const;
+  Radian Yaw() const;
+  Radian Roll() const;
 
   friend Quaternion operator+(float32 lhs, const Quaternion &rhs);
   friend Quaternion operator-(float32 lhs, const Quaternion &rhs);
@@ -69,10 +72,6 @@ private:
   void FromEulerAngles(const Radian &pitch, const Radian &yaw, const Radian &roll);
   void FromAxisAngle(const Vector3 &axis, const Radian &angle);
   void FromRotationMatrix(const Matrix3 &rotMatrix);
-
-  float32 Pitch() const;
-  float32 Roll() const;
-  float32 Yaw() const;
 
 public:
   float32 X;

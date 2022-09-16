@@ -28,17 +28,13 @@ Quaternion Quaternion::Normalize(const Quaternion &quat)
   return Quaternion(quat[0] * normInv, quat[1] * normInv, quat[2] * normInv, quat[3] * normInv);
 }
 
-Quaternion Quaternion::LookAt(const Vector3 &position, const Vector3 &target, const Vector3 &up)
+Quaternion Quaternion::LookAt(const Vector3 &direction, const Vector3 &up)
 {
-  Vector3 direction = target - position;
-  direction.Normalize();
-
-  // https://github.com/g-truc/glm/blob/b3f87720261d623986f164b2a7f6a0a938430271/glm/gtc/quaternion.inl
   Matrix3 result;
   result[2] = -direction;
 
   Vector3 right = Vector3::Cross(up, result[2]);
-  result[0] = right * Math::InverseSqrt(std::fmax((0.00001f), Vector3::Dot(right, right)));
+  result[0] = right * Math::InverseSqrt(std::fmaxf((0.00001f), Vector3::Dot(right, right)));
   result[1] = Vector3::Cross(result[2], result[0]);
 
   return Quaternion(result);
@@ -256,9 +252,31 @@ Quaternion Quaternion::Slerp(const Quaternion &a, const Quaternion &b, float32 t
   return wa * a + wb * b;
 }
 
-Vector3 Quaternion::ToEuler() const
+std::array<Radian, 3> Quaternion::ToEuler() const
 {
-  return Vector3(Radian(Pitch()).InDegrees(), Radian(Yaw()).InDegrees(), Radian(Roll()).InDegrees());
+  return std::array<Radian, 3>{Pitch(), Yaw(), Roll()};
+}
+
+Radian Quaternion::Pitch() const
+{
+  const float32 y = 2.0f * (Y * Z + W * X);
+  const float32 x = W * W - X * X - Y * Y + Z * Z;
+
+  if (y == 0.0f && x == 0.0f)
+  {
+    return 2.0f * std::atan2(X, W);
+  }
+  return Radian(std::atan2(y, x));
+}
+
+Radian Quaternion::Roll() const
+{
+  return Radian(std::atan2(2.0f * (X * Y + W * Z), W * W + X * X - Y * Y - Z * Z));
+}
+
+Radian Quaternion::Yaw() const
+{
+  return Radian(std::asin(Math::Clamp(-2.0f * (X * Z - W * Y), -1.0f, 1.0f)));
 }
 
 Quaternion operator+(float32 lhs, const Quaternion &rhs)
@@ -343,26 +361,4 @@ void Quaternion::FromRotationMatrix(const Matrix3 &m)
   default:
     *this = Quaternion(1, 0, 0, 0);
   }
-}
-
-float32 Quaternion::Pitch() const
-{
-  const float32 y = 2.0f * (Y * Z + W * X);
-  const float32 x = W * W - X * X - Y * Y + Z * Z;
-
-  if (y == 0.0f && x == 0.0f)
-  {
-    return 2.0f * std::atan2(X, W);
-  }
-  return std::atan2(y, x);
-}
-
-float32 Quaternion::Roll() const
-{
-  return std::atan2(2.0f * (X * Y + W * Z), W * W + X * X - Y * Y - Z * Z);
-}
-
-float32 Quaternion::Yaw() const
-{
-  return std::asin(Math::Clamp(-2.0f * (X * Z - W * Y), -1.0f, 1.0f));
 }

@@ -1,10 +1,12 @@
 #pragma once
+#include <array>
 #include <string>
 #include <memory>
 
 #include "../Core/Component.h"
 #include "../Core/GameObject.h"
 #include "../Core/Maths.h"
+#include "../Maths/Radian.hpp"
 
 class StaticMesh;
 class Material;
@@ -40,7 +42,7 @@ private:
   std::shared_ptr<Material> _material;
 
   Aabb _initAabb, _currAabb;
-  Vector3 _currentRotationEuler;
+  std::array<Radian, 3> _currentRotationEuler;
   Vector3 _currentScale;
 
   Vector3 _scale;
