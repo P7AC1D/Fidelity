@@ -89,7 +89,7 @@ void Scene::drawFrame() const
   for (auto component : drawableFindIter->second)
   {
     auto drawable = std::dynamic_pointer_cast<Drawable>(component);
-    if (camera->intersectsFrustrum(drawable->getAabb()))
+    if (camera->contains(drawable->getAabb()))
     {
       culledDrawables.insert(DrawableSortMap(camera->distanceFrom(drawable->getPosition()), drawable));
     }

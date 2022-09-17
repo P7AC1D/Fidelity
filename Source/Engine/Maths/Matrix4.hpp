@@ -36,7 +36,6 @@ public:
   Matrix4 operator-(const Matrix4 &rhs) const;
   Matrix4 operator*(const Matrix4 &rhs) const;
   Vector4 operator*(const Vector4 &rhs) const;
-  Plane operator*(const Plane &rhs) const;
 
   bool operator==(const Matrix4 &rhs) const;
   bool operator!=(const Matrix4 &rhs) const;

@@ -186,13 +186,16 @@ bool Application::Initialize()
   glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);
   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-  glfwWindowHint(GLFW_COCOA_RETINA_FRAMEBUFFER, GLFW_FALSE);
+  // glfwWindowHint(GLFW_COCOA_RETINA_FRAMEBUFFER, GLFW_FALSE);
 
   _window = glfwCreateWindow(_desc.Width, _desc.Height, _desc.Name.c_str(), nullptr, nullptr);
   if (!_window)
   {
     return false;
   }
+
+  int fbWidth, fbHeight;
+  glfwGetFramebufferSize(_window, &fbWidth, &fbHeight);
 
   glfwSetWindowUserPointer(_window, this);
   glfwMakeContextCurrent(_window);
@@ -208,8 +211,8 @@ bool Application::Initialize()
   try
   {
     RenderDeviceDesc renderDeviceDesc;
-    renderDeviceDesc.RenderWidth = _desc.Width;
-    renderDeviceDesc.RenderHeight = _desc.Height;
+    renderDeviceDesc.RenderWidth = fbWidth;
+    renderDeviceDesc.RenderHeight = fbHeight;
     _renderDevice.reset(new GLRenderDevice(renderDeviceDesc));
   }
   catch (const std::exception &exception)
@@ -218,7 +221,7 @@ bool Application::Initialize()
     return false;
   }
 
-  if (!_scene.init(Vector2I(_desc.Width, _desc.Height), _renderDevice))
+  if (!_scene.init(Vector2I(fbWidth, fbHeight), _renderDevice))
   {
     std::cerr << "Failed to initialize scene." << std::endl;
     return false;

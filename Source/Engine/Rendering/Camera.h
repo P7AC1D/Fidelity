@@ -30,11 +30,11 @@ public:
   float32 getNear() const { return _near; }
   float32 getFar() const { return _far; }
   float32 getAspectRatio() const { return _width / static_cast<float32>(_height); }
-  Vector3 getPosition() const { return _position; }
+  const Transform &getParentTransform() const { return _parentTransform; }
 
   const Frustrum &getFustrum() const { return _frustrum; }
 
-  bool intersectsFrustrum(const Aabb &aabb) const;
+  bool contains(const Aabb &aabb) const;
   float32 distanceFrom(const Vector3 &position) const;
 
 private:
@@ -55,7 +55,7 @@ private:
   Matrix4 _view;
   Matrix4 _proj;
 
-  Vector3 _position;
+  Transform _parentTransform;
 
   Frustrum _frustrum;
 };

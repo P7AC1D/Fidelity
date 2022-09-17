@@ -11,7 +11,6 @@ Camera::Camera() : _width(1280),
 									 _view(Matrix4::Identity),
 									 _proj(Matrix4::Identity),
 									 _modified(true),
-									 _position(Vector3::Zero),
 									 Component(ComponentType::Camera)
 {
 	updateProjection();
@@ -102,7 +101,7 @@ void Camera::onNotify(const GameObject &gameObject)
 {
 	Transform transform(gameObject.getTransform());
 	updateView(transform);
-	_position = transform.getPosition();
+	_parentTransform = transform;
 }
 
 void Camera::updateView(const Transform &transform)
@@ -119,15 +118,15 @@ void Camera::updateView(const Transform &transform)
 void Camera::updateProjection()
 {
 	_proj = Matrix4::Perspective(_fov, _width / static_cast<float32>(_height), _near, _far);
-	_frustrum = Frustrum(_proj);
+	_frustrum = Frustrum(*this);
 }
 
-bool Camera::intersectsFrustrum(const Aabb &aabb) const
+bool Camera::contains(const Aabb &aabb) const
 {
-	return _frustrum.Intersects(aabb);
+	return _frustrum.contains(aabb);
 }
 
 float32 Camera::distanceFrom(const Vector3 &position) const
 {
-	return (_position - position).Length();
+	return (_parentTransform.getPosition() - position).Length();
 }

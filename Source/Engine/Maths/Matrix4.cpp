@@ -276,21 +276,6 @@ Vector4 Matrix4::operator*(const Vector4 &rhs) const
 //   return *this;
 // }
 
-Plane Matrix4::operator*(const Plane &rhs) const
-{
-  Vector4 localNormal(rhs.Normal.X, rhs.Normal.Y, rhs.Normal.Z, 0.0f);
-  Vector4 localPoint = localNormal * rhs.D;
-  localPoint.W = 1.0f;
-
-  Matrix4 itMat = Inverse().Transpose();
-  Vector4 worldNormal = itMat * localNormal;
-  Vector4 worldPoint = operator*(localPoint);
-
-  float32 d = Vector4::Dot(worldNormal, worldPoint);
-
-  return Plane(Vector3(worldNormal.X, worldNormal.Y, worldNormal.Z), d);
-}
-
 bool Matrix4::operator==(const Matrix4 &rhs) const
 {
   for (uint32 row = 0; row < 4; ++row)

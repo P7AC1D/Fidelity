@@ -338,7 +338,7 @@ void DeferredRenderer::lightingPass(std::shared_ptr<RenderDevice> renderDevice,
   lightingConstants.View = camera->getView();
   lightingConstants.FarPlane = camera->getFar();
   lightingConstants.ProjViewInvs = (camera->getProj() * camera->getView()).Inverse();
-  lightingConstants.CameraPosition = camera->getPosition();
+  lightingConstants.CameraPosition = camera->getParentTransform().getPosition();
   lightingConstants.PixelSize = Vector2(1.0f / _windowDims.X, 1.0f / _windowDims.Y);
   _lightingConstantsBuffer->WriteData(0, sizeof(LightingConstantsBuffer), &lightingConstants, AccessType::WriteOnlyDiscard);
 
