@@ -29,14 +29,15 @@ TEST_CASE("Quaternion Constructor and Accessor")
   REQUIRE(qatC[2] == 4);
   REQUIRE(qatC[3] == 5);
 
-  Degree angle(30);
-  Vector3 axis(1, 1, 1);
+  Degree angle(23);
+  Vector3 axis(4, 3, 2);
   axis.Normalize();
   Quaternion qatD(axis, angle);
-  REQUIRE(qatD[0] == Approx(0.149429f));
-  REQUIRE(qatD[1] == Approx(0.149429f));
-  REQUIRE(qatD[2] == Approx(0.149429f));
-  REQUIRE(qatD[3] == Approx(0.965926f));
+  glm::quat resultAngleAxis = glm::angleAxis(angle.InRadians(), glm::vec3(axis[0], axis[1], axis[2]));
+  REQUIRE(qatD[0] == Approx(resultAngleAxis[0]));
+  REQUIRE(qatD[1] == Approx(resultAngleAxis[1]));
+  REQUIRE(qatD[2] == Approx(resultAngleAxis[2]));
+  REQUIRE(qatD[3] == Approx(resultAngleAxis[3]));
 
   Quaternion qatE(angle, angle, angle);
   glm::quat result(glm::vec3(angle.InRadians(), angle.InRadians(), angle.InRadians()));

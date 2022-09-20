@@ -15,6 +15,7 @@ public:
 
 private:
   void RotateCamera(const Degree &deltaX, const Degree &deltaY, int32 dtMs);
+  void FpsCameraLook(const Degree &deltaX, const Degree &deltaY, int32 dtMs);
   void ZoomCamera(float32 delta, int32 dtMs);
 
   Vector3 _cameraTarget;

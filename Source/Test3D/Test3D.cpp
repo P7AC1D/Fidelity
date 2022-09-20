@@ -58,10 +58,10 @@ void Test3D::OnStart()
                                   .build());
   _scene.addChildToNode(root, ModelLoader::FromFile(_scene, "./Models/Sponza/sponza.obj", true));
 
-  //std::shared_ptr<Material> material(new Material());
-  //material->setDiffuseTexture(LoadTextureFromFile("./Textures/crate0_diffuse.png", true, true));
-  //material->setNormalTexture(LoadTextureFromFile("./Textures/crate0_normal.png", false, false));
-  //material->setSpecularTexture(LoadTextureFromFile("./Textures/crate0_bump.png", false, false));
+  // std::shared_ptr<Material> material(new Material());
+  // material->setDiffuseTexture(LoadTextureFromFile("./Textures/crate0_diffuse.png", true, true));
+  // material->setNormalTexture(LoadTextureFromFile("./Textures/crate0_normal.png", false, false));
+  // material->setSpecularTexture(LoadTextureFromFile("./Textures/crate0_bump.png", false, false));
 
   //_scene.addChildToNode(root, GameObjectBuilder(_scene)
   //                                .withName("cube1")
@@ -87,18 +87,19 @@ void Test3D::OnStart()
   //                                .withPosition(Vector3(6, 1.3, 5.4))
   //                                .build());
 
-  //std::shared_ptr<Material> floorMaterial(new Material());
-  //floorMaterial->setDiffuseTexture(LoadTextureFromFile("./Textures/brick_floor_tileable_Base_Color.jpg", true, true));
+  // std::shared_ptr<Material> floorMaterial(new Material());
+  // floorMaterial->setDiffuseTexture(LoadTextureFromFile("./Textures/brick_floor_tileable_Base_Color.jpg", true, true));
   //_scene.addChildToNode(root, GameObjectBuilder(_scene)
-  //                                .withName("floor")
-  //                                .withComponent(_scene.createComponent<Drawable>()
-  //                                                   .setMesh(MeshFactory::CreatePlane(100))
-  //                                                   .setMaterial(floorMaterial))
-  //                                .withPosition(Vector3(50, -5, 50))
-  //                                .withScale(Vector3(100, 100, 100))
-  //                                .build());
+  //                                 .withName("floor")
+  //                                 .withComponent(_scene.createComponent<Drawable>()
+  //                                                    .setMesh(MeshFactory::CreatePlane(100))
+  //                                                    .setMaterial(floorMaterial))
+  //                                 .withPosition(Vector3(50, -5, 50))
+  //                                 .withScale(Vector3(100, 100, 100))
+  //                                 .build());
 
   _inputHandler->BindButtonToState("ActivateCameraLook", Button::Button_LMouse);
+  _inputHandler->BindButtonToState("ActivateFpsCamera", Button::Button_RMouse);
   _inputHandler->BindAxisToState("CameraZoom", Axis::MouseScrollXY);
   _inputHandler->BindAxisToState("CameraLook", Axis::MouseXY);
 
@@ -112,6 +113,13 @@ void Test3D::OnStart()
       Radian yaw(static_cast<float32>(-inputEvent.AxisPosDelta[1]));
       Radian pitch(static_cast<float32>(-inputEvent.AxisPosDelta[0]));
       RotateCamera(yaw, pitch, dt);
+    } 
+
+    if (_inputHandler->IsButtonStateActive("ActivateFpsCamera"))
+    {
+      Radian yaw(static_cast<float32>(-inputEvent.AxisPosDelta[1]));
+      Radian pitch(static_cast<float32>(-inputEvent.AxisPosDelta[0]));
+      FpsCameraLook(pitch, yaw, dt);
     } });
 }
 
@@ -122,12 +130,21 @@ void Test3D::OnUpdate(uint32 dtMs)
   ss << GetAverageFps(dtMs) << " FPS " << GetAverageTickMs(dtMs) << " ms";
 }
 
+void Test3D::FpsCameraLook(const Degree &deltaX, const Degree &deltaY, int32 dtMs)
+{
+  Quaternion qPitch(Vector3(1.0f, 0.0f, 0.0f), deltaY.InRadians() * static_cast<float32>(dtMs) * CAMERA_ROTATION_FACTOR);
+  Quaternion qYaw(Vector3(0.0f, 1.0f, 0.0f), deltaX.InRadians() * static_cast<float32>(dtMs) * CAMERA_ROTATION_FACTOR);
+
+  Transform &cameraTransform = _camera->transform();
+  cameraTransform.rotate(qPitch * qYaw);
+}
+
 void Test3D::RotateCamera(const Degree &deltaX, const Degree &deltaY, int32 dtMs)
 {
   Transform &cameraTransform = _camera->transform();
   float32 velocity(CAMERA_ROTATION_FACTOR * static_cast<float32>(dtMs));
-  Quaternion pitch(cameraTransform.getRight(), velocity * deltaX.InRadians());
-  Quaternion yaw(cameraTransform.getUp(), velocity * deltaY.InRadians());
+  Quaternion pitch(cameraTransform.getRight(), -velocity * deltaX.InRadians());
+  Quaternion yaw(cameraTransform.getUp(), -velocity * deltaY.InRadians());
   Quaternion rotation(pitch * yaw);
   Vector3 newPosition(rotation.Rotate(cameraTransform.getPosition()));
   cameraTransform.lookAt(newPosition, _cameraTarget);

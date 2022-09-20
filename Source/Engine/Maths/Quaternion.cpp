@@ -307,13 +307,14 @@ void Quaternion::FromEulerAngles(const Radian &xAngle, const Radian &yAngle, con
 
 void Quaternion::FromAxisAngle(const Vector3 &axis, const Radian &angle)
 {
-  Radian halfAngle = 0.5f * angle;
-  float32 sin = Math::Sin(halfAngle);
+  float32 halfAngle = 0.5f * angle.InRadians();
+  float32 sin = sinf(halfAngle);
 
-  W = Math::Cos(halfAngle);
-  Z = sin * axis.Z;
-  Y = sin * axis.Y;
-  X = sin * axis.X;
+  W = cosf(halfAngle);
+  Z = axis.Z * sin;
+  Y = axis.Y * sin;
+  X = axis.X * sin;
+  //this->Normalize();
 }
 
 void Quaternion::FromRotationMatrix(const Matrix3 &m)
