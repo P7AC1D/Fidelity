@@ -314,7 +314,7 @@ void Quaternion::FromAxisAngle(const Vector3 &axis, const Radian &angle)
   Z = axis.Z * sin;
   Y = axis.Y * sin;
   X = axis.X * sin;
-  //this->Normalize();
+  // this->Normalize();
 }
 
 void Quaternion::FromRotationMatrix(const Matrix3 &m)

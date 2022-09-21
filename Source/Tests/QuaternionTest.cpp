@@ -6,6 +6,7 @@
 #include "../Engine/Maths/Degree.hpp"
 #include "../Engine/Maths/Math.hpp"
 #include "../Engine/Maths/Quaternion.hpp"
+#include "../Engine/Maths/Matrix4.hpp"
 #include "../Engine/Maths/Radian.hpp"
 #include "../Engine/Maths/Vector3.hpp"
 
@@ -57,6 +58,22 @@ TEST_CASE("Quaternion Constructor and Accessor")
   REQUIRE(qatG[1] == 0);
   REQUIRE(qatG[2] == 0);
   REQUIRE(qatG[3] == 0);
+
+  SECTION("FROM ROTATION MATRIX")
+  {
+    glm::vec3 axisOfRotation(glm::normalize(glm::vec3(2, 3, 4)));
+    glm::mat3 expectedRotation(glm::mat3(glm::rotate(glm::mat4(1.0f), glm::radians(45.0f), axisOfRotation)));
+    Matrix3 rotation(expectedRotation[0][0], expectedRotation[0][1], expectedRotation[0][2],
+                     expectedRotation[1][0], expectedRotation[1][1], expectedRotation[1][2],
+                     expectedRotation[2][0], expectedRotation[2][1], expectedRotation[2][2]);
+    Quaternion result(rotation);
+    glm::quat expected(expectedRotation);
+
+    REQUIRE(result[0] == Approx(expected[0]));
+    REQUIRE(result[1] == Approx(expected[1]));
+    REQUIRE(result[2] == Approx(expected[2]));
+    REQUIRE(result[3] == Approx(expected[3]));
+  }
 }
 
 TEST_CASE("Quaterion Assignment Operators")
@@ -105,11 +122,15 @@ TEST_CASE("Quaternion Binary Operators")
 
   SECTION("Multiplication")
   {
-    Quaternion qatC = Quaternion(1, 0, 1, 0) * Quaternion(1, 0.5f, 0.5f, 0.75f);
-    REQUIRE(qatC[0] == 1.25f);
-    REQUIRE(qatC[1] == 1.5f);
-    REQUIRE(qatC[2] == 0.25f);
-    REQUIRE(qatC[3] == 0.5f);
+    Quaternion multiplicand(2, 3, 4, 5);
+    Quaternion multiplier(5, 6, 2, 1);
+    Quaternion qatC = multiplicand * multiplier;
+    glm::quat expected(glm::quat(multiplicand.W, multiplicand.X, multiplicand.Y, multiplicand.Z) *
+                       glm::quat(multiplier.W, multiplier.X, multiplier.Y, multiplier.Z));
+    REQUIRE(qatC[0] == Approx(expected[0]));
+    REQUIRE(qatC[1] == Approx(expected[1]));
+    REQUIRE(qatC[2] == Approx(expected[2]));
+    REQUIRE(qatC[3] == Approx(expected[3]));
 
     Quaternion qatD = qatA * 0.5;
     REQUIRE(qatD[0] == 1.5);
@@ -205,4 +226,16 @@ TEST_CASE("Quaternion Look-at")
   REQUIRE(result[1] == Approx(expected[1]).margin(0.001f));
   REQUIRE(result[2] == Approx(expected[2]).margin(0.001f));
   REQUIRE(result[3] == Approx(expected[3]).margin(0.001f));
+}
+
+TEST_CASE("Vector3 Rotation")
+{
+  Vector3 vectorToRotate(3, 4, 5);
+  Quaternion quat(5, 6, 7, 8);
+  glm::vec3 expected(glm::rotate(glm::quat(quat.W, quat.X, quat.Y, quat.Z), glm::vec3(vectorToRotate[0], vectorToRotate[1], vectorToRotate[2])));
+  Vector3 result(quat.Rotate(vectorToRotate));
+
+  REQUIRE(result[0] == Approx(expected[0]));
+  REQUIRE(result[1] == Approx(expected[1]));
+  REQUIRE(result[2] == Approx(expected[2]));
 }

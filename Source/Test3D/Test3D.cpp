@@ -132,11 +132,12 @@ void Test3D::OnUpdate(uint32 dtMs)
 
 void Test3D::FpsCameraLook(const Degree &deltaX, const Degree &deltaY, int32 dtMs)
 {
-  Quaternion qPitch(Vector3(1.0f, 0.0f, 0.0f), deltaY.InRadians() * static_cast<float32>(dtMs) * CAMERA_ROTATION_FACTOR);
-  Quaternion qYaw(Vector3(0.0f, 1.0f, 0.0f), deltaX.InRadians() * static_cast<float32>(dtMs) * CAMERA_ROTATION_FACTOR);
-
   Transform &cameraTransform = _camera->transform();
-  cameraTransform.rotate(qPitch * qYaw);
+  float32 velocity(CAMERA_ROTATION_FACTOR * static_cast<float32>(dtMs));
+  Quaternion qPitch(Vector3(1.0f, 0.0f, 0.0f), velocity * deltaY.InRadians());
+  Quaternion qYaw(Vector3(0.0f, 1.0f, 0.0f), velocity * deltaX.InRadians());
+
+  cameraTransform.setRotation(qPitch * cameraTransform.getRotation() * qYaw);
 }
 
 void Test3D::RotateCamera(const Degree &deltaX, const Degree &deltaY, int32 dtMs)
