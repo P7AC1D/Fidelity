@@ -19,7 +19,7 @@
 
 static uint64 SELECTED_GAME_OBJECT_INDEX = -1;
 
-Scene::Scene() {}
+Scene::Scene() : _objectAddedToScene(false) {}
 
 Scene::~Scene() {}
 
@@ -41,6 +41,7 @@ GameObject &Scene::createGameObject(const std::string &name)
 
   _sceneGraph->addNode(index);
   _gameObjects.insert(std::pair<uint64, GameObject>(index, std::move(GameObject(name, index))));
+  _objectAddedToScene = true;
   return _gameObjects[index++];
 }
 
@@ -51,6 +52,11 @@ void Scene::addChildToNode(GameObject &parent, GameObject &child)
 
 void Scene::update(float64 dt)
 {
+  for (auto &gameObject : _gameObjects)
+  {
+    gameObject.second.update(dt);
+  }
+
   for (auto componentType : _components)
   {
     for (auto &component : _components[componentType.first])
@@ -58,19 +64,19 @@ void Scene::update(float64 dt)
       component->update(dt);
     }
   }
-
-  for (auto &gameObject : _gameObjects)
-  {
-    gameObject.second.update(dt);
-  }
 }
 
-void Scene::drawFrame() const
+void Scene::drawFrame()
 {
   if (_renderDevice == nullptr || _deferredRenderer == nullptr)
   {
     std::cerr << "Renderer not initialized." << std::endl;
     return;
+  }
+
+  if (_objectAddedToScene)
+  {
+    calcSceneExtents();
   }
 
   auto compare = [](DrawableSortMap a, DrawableSortMap b)
@@ -199,4 +205,27 @@ void Scene::setAabbDrawOnGameObject(uint64 gameObjectIndex, bool enableAabbDraw)
     gameObject.getComponent<Drawable>().enableDrawAabb(enableAabbDraw);
     return;
   }
+}
+
+void Scene::calcSceneExtents()
+{
+  auto findIter = _components.find(ComponentType::Drawable);
+  if (findIter == _components.end())
+  {
+    return;
+  }
+
+  Vector3 max(std::numeric_limits<float32>::min());
+  Vector3 min(std::numeric_limits<float32>::max());
+  for (const auto &component : findIter->second)
+  {
+    auto drawable = std::static_pointer_cast<Drawable>(component);
+    const Aabb &aabb = drawable->getAabb();
+    min = Math::Min(min, aabb.GetNegBounds());
+    max = Math::Max(max, aabb.GetPosBounds());
+  }
+
+  _sceneMaxExtents = std::move(max);
+  _sceneMinExtents = std::move(min);
+  _objectAddedToScene = false;
 }

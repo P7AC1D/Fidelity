@@ -36,7 +36,7 @@ public:
   void addChildToNode(GameObject &parent, GameObject &child);
 
   void update(float64 dt);
-  void drawFrame() const;
+  void drawFrame();
   void drawDebugUi();
 
   GameObject &getRoot() { return _gameObjects[0]; }
@@ -48,6 +48,7 @@ private:
   void drawSceneGraphUi(uint64 nodeIndex);
   void drawGameObjectInspector(uint64 selectedGameObjectIndex);
   void setAabbDrawOnGameObject(uint64 gameObjectIndex, bool enableAabbDraw);
+  void calcSceneExtents();
 
   struct DrawableSortMap
   {
@@ -59,6 +60,10 @@ private:
     {
     }
   };
+
+  bool _objectAddedToScene;
+  Vector3 _sceneMaxExtents;
+  Vector3 _sceneMinExtents;
 
   std::unique_ptr<SceneGraph> _sceneGraph;
   // TODO: Remove pointers here so that its a true data-driven design

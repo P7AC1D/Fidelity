@@ -26,7 +26,7 @@ public:
 
   void enableDrawAabb(bool enable) { _drawAabb = enable; }
 
-  Aabb getAabb() const { return _currAabb; }
+  const Aabb &getAabb() const { return _currAabb; }
   bool shouldDrawAabb() const { return _drawAabb; }
 
   Vector3 getPosition() const { return _position; }

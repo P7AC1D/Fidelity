@@ -11,7 +11,10 @@
 Drawable::Drawable() : Component(ComponentType::Drawable),
 											 _currentScale(Vector3::Identity),
 											 _drawAabb(false),
-											 _modified(true)
+											 _modified(true),
+											 _scale(Vector3::Identity),
+											 _position(Vector3::Zero),
+											 _rotation(Quaternion::Zero)
 {
 	_currentRotationEuler[0] = Radian(0.0f);
 	_currentRotationEuler[1] = Radian(0.0f);
@@ -124,19 +127,14 @@ void Drawable::onUpdate(float32 dt)
 {
 	if (_modified)
 	{
-		if (_currentRotationEuler != _rotation.ToEuler() || _currentScale != _scale)
-		{
-			updateAabb(_scale, _rotation);
-			_currentScale = _scale;
-			_currentRotationEuler = _rotation.ToEuler();
-		}
+		updateAabb(_scale, _rotation);
 
 		Matrix4 translation = Matrix4::Translation(_position);
 		Matrix4 scale = Matrix4::Scaling(_scale);
 		Matrix4 rotation = Matrix4::Rotation(_rotation);
 		_transform = translation * scale * rotation;
 
-		_modified = true;
+		_modified = false;
 	}
 }
 
