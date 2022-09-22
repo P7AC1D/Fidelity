@@ -16,11 +16,14 @@ class GameObject;
 class DeferredRenderer;
 class DebugRenderer;
 class RenderDevice;
+class SceneGraph;
 class ShadowMapRenderer;
 
 class Scene
 {
 public:
+  Scene();
+  virtual ~Scene();
   bool init(const Vector2I &windowDims, std::shared_ptr<RenderDevice> renderDevice);
 
   template <typename T>
@@ -57,9 +60,8 @@ private:
     }
   };
 
-  std::map<uint64, std::vector<uint64>> _sceneGraph;
-
-  // TODO: Not quite data-driven as we are still using pointers, needs improvement
+  std::unique_ptr<SceneGraph> _sceneGraph;
+  // TODO: Remove pointers here so that its a true data-driven design
   std::unordered_map<ComponentType, std::vector<std::shared_ptr<Component>>> _components;
   std::map<uint64, GameObject> _gameObjects;
 

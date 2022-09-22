@@ -15,11 +15,17 @@
 #include "../Rendering/ShadowMapRenderer.h"
 #include "../RenderApi/RenderDevice.hpp"
 #include "GameObject.h"
+#include "SceneGraph.h"
 
 static uint64 SELECTED_GAME_OBJECT_INDEX = -1;
 
+Scene::Scene() {}
+
+Scene::~Scene() {}
+
 bool Scene::init(const Vector2I &windowDims, std::shared_ptr<RenderDevice> renderDevice)
 {
+  _sceneGraph.reset(new SceneGraph());
   createGameObject("root");
 
   _renderDevice = renderDevice;
@@ -33,14 +39,14 @@ GameObject &Scene::createGameObject(const std::string &name)
 {
   static uint64 index = 0;
 
-  _sceneGraph.insert(std::pair<uint64, std::vector<uint64>>(index, {}));
+  _sceneGraph->addNode(index);
   _gameObjects.insert(std::pair<uint64, GameObject>(index, std::move(GameObject(name, index))));
   return _gameObjects[index++];
 }
 
 void Scene::addChildToNode(GameObject &parent, GameObject &child)
 {
-  _sceneGraph[parent.getIndex()].push_back(child.getIndex());
+  _sceneGraph->addChildToNode(parent.getIndex(), child.getIndex());
 }
 
 void Scene::update(float64 dt)
@@ -136,7 +142,7 @@ void Scene::drawSceneGraphUi(uint64 nodeIndex)
 
   GameObject &gameObject = _gameObjects[nodeIndex];
 
-  if (_sceneGraph[nodeIndex].empty())
+  if (!_sceneGraph->doesNodeHaveChildren(nodeIndex))
   {
     flags |= ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen;
     ImGui::TreeNodeEx(gameObject.getName().c_str(), flags);
@@ -158,7 +164,7 @@ void Scene::drawSceneGraphUi(uint64 nodeIndex)
     }
     if (open)
     {
-      for (auto childNodeIndex : _sceneGraph[nodeIndex])
+      for (const auto &childNodeIndex : _sceneGraph->getNodeChildren(nodeIndex))
       {
         drawSceneGraphUi(childNodeIndex);
       }
@@ -191,5 +197,6 @@ void Scene::setAabbDrawOnGameObject(uint64 gameObjectIndex, bool enableAabbDraw)
   if (gameObject.hasComponent<Drawable>())
   {
     gameObject.getComponent<Drawable>().enableDrawAabb(enableAabbDraw);
+    return;
   }
 }

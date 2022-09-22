@@ -22,10 +22,8 @@ void Test3D::OnStart()
                  .withName("mainCamera")
                  .withComponent(_scene.createComponent<Camera>()
                                     .setPerspective(Degree(67.67f), GetWidth(), GetHeight(), 0.1f, 5000.0f))
-                 //.withPosition(Vector3(-400.0f, 500.0f, 20.0f))
                  .withPosition(Vector3(-15.0f, 17.0f, -11.0f))
                  .withTarget(Vector3::Zero)
-                 //.withRotation(Quaternion(Degree(0), Degree(-180.f), Degree(0.0f)))
                  .withRotation(Quaternion(Degree(-123.0f), Degree(36.0f), Degree(138.0f)))
                  .build();
   _scene.addChildToNode(root, *_camera);
