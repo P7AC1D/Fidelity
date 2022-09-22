@@ -151,12 +151,32 @@ Radian operator*(float32 lhs, const Radian &rhs)
   return Radian(lhs * rhs._rad);
 }
 
+bool Radian::operator==(const float32 &rhs) const
+{
+  return _rad == rhs;
+}
+
+bool Radian::operator==(const Degree &rhs) const
+{
+  return _rad == rhs.InRadians();
+}
+
 bool Radian::operator==(const Radian &rhs) const
 {
   return _rad == rhs._rad;
 }
 
+bool Radian::operator!=(const float32 &rhs) const
+{
+  return !this->operator==(rhs);
+}
+
+bool Radian::operator!=(const Degree &rhs) const
+{
+  return !this->operator==(rhs);
+}
+
 bool Radian::operator!=(const Radian &rhs) const
 {
-  return _rad != rhs._rad;
+  return !this->operator==(rhs);
 }

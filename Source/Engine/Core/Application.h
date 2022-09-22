@@ -11,11 +11,10 @@
 #include "Scene.h"
 #include "Maths.h"
 
-class EventDispatcher;
-class InputHandler;
 class Renderer;
 class RenderDevice;
 class Texture;
+class InputHandler;
 
 struct ApplicationDesc
 {
@@ -51,7 +50,6 @@ private:
   int32 GetTickDuration();
 
 protected:
-  std::unique_ptr<EventDispatcher> _eventDispatcher;
   std::shared_ptr<InputHandler> _inputHandler;
   std::shared_ptr<UiManager> _debugUi;
   std::shared_ptr<Renderer> _renderer;

@@ -41,7 +41,12 @@ public:
   friend Radian operator-(float32 lhs, const Radian &rhs);
   friend Radian operator*(float32 lhs, const Radian &rhs);
 
+  bool operator==(const float32 &rhs) const;
+  bool operator==(const Degree &rhs) const;
   bool operator==(const Radian &rhs) const;
+
+  bool operator!=(const float32 &rhs) const;
+  bool operator!=(const Degree &rhs) const;
   bool operator!=(const Radian &rhs) const;
 
 private:

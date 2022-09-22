@@ -1,16 +1,15 @@
 #pragma once
 
 #include "../Geometry/MeshFactory.h"
-#include "../Input/InputHandler.hpp"
 #include "../Rendering/Camera.h"
 #include "../Rendering/Light.h"
 #include "../Rendering/Drawable.h"
 #include "../Rendering/Material.h"
-#include "../Input/EventDispatcher.hpp"
 #include "../Utility/ModelLoader.hpp"
 #include "Application.h"
 #include "GameObject.h"
 #include "GameObjectBuilder.h"
+#include "InputHandler.h"
 #include "Maths.h"
 #include "Scene.h"
 #include "Transform.h"
