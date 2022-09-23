@@ -470,23 +470,27 @@ TEST_CASE("Matrix4 Inverse")
                6.1f, -3.9f, 7.8f, 1.1f,
                3.1f, 5.5f, -9.2f, 0.4f,
                0.5f, 4.2f, 9.4f, 8.3f);
-  Matrix4 matC = matA.Inverse();
-  REQUIRE(matC[0][0] == Approx(0.00834f).margin(0.00001f));
-  REQUIRE(matC[0][1] == Approx(0.116834f));
-  REQUIRE(matC[0][2] == Approx(0.083850f));
-  REQUIRE(matC[0][3] == Approx(-0.017012f).margin(0.00001f));
-  REQUIRE(matC[1][0] == Approx(0.078843f));
-  REQUIRE(matC[1][1] == Approx(-0.059383f));
-  REQUIRE(matC[1][2] == Approx(0.002408f).margin(0.00001f));
-  REQUIRE(matC[1][3] == Approx(0.031502f));
-  REQUIRE(matC[2][0] == Approx(0.045928f));
-  REQUIRE(matC[2][1] == Approx(0.004639f).margin(0.00001f));
-  REQUIRE(matC[2][2] == Approx(-0.075555f));
-  REQUIRE(matC[2][3] == Approx(0.016860f));
-  REQUIRE(matC[3][0] == Approx(-0.092414f));
-  REQUIRE(matC[3][1] == Approx(0.017757f));
-  REQUIRE(matC[3][2] == Approx(0.079298f));
-  REQUIRE(matC[3][3] == Approx(0.086472f));
+  glm::mat4 expected(glm::inverse(glm::mat4(4.3f, 7.9f, 2.4f, -2.5f,
+                                            6.1f, -3.9f, 7.8f, 1.1f,
+                                            3.1f, 5.5f, -9.2f, 0.4f,
+                                            0.5f, 4.2f, 9.4f, 8.3f)));
+  Matrix4 result = matA.Inverse();
+  REQUIRE(result[0][0] == Approx(expected[0][0]));
+  REQUIRE(result[0][1] == Approx(expected[0][1]));
+  REQUIRE(result[0][2] == Approx(expected[0][2]));
+  REQUIRE(result[0][3] == Approx(expected[0][3]));
+  REQUIRE(result[1][0] == Approx(expected[1][0]));
+  REQUIRE(result[1][1] == Approx(expected[1][1]));
+  REQUIRE(result[1][2] == Approx(expected[1][2]));
+  REQUIRE(result[1][3] == Approx(expected[1][3]));
+  REQUIRE(result[2][0] == Approx(expected[2][0]));
+  REQUIRE(result[2][1] == Approx(expected[2][1]));
+  REQUIRE(result[2][2] == Approx(expected[2][2]));
+  REQUIRE(result[2][3] == Approx(expected[2][3]));
+  REQUIRE(result[3][0] == Approx(expected[3][0]));
+  REQUIRE(result[3][1] == Approx(expected[3][1]));
+  REQUIRE(result[3][2] == Approx(expected[3][2]));
+  REQUIRE(result[3][3] == Approx(expected[3][3]));
 }
 
 TEST_CASE("Matrix4 Transpose")
@@ -512,4 +516,27 @@ TEST_CASE("Matrix4 Transpose")
   REQUIRE(matD[3][1] == matC[1][3]);
   REQUIRE(matD[3][2] == matC[2][3]);
   REQUIRE(matD[3][3] == matC[3][3]);
+}
+
+TEST_CASE("MATRIX PERSPECTIVE")
+{
+  Matrix4 result(Matrix4::Perspective(Degree(70.0f), 1.5f, 0.1f, 1000.0f));
+  glm::mat4 expected(glm::perspective(glm::radians(70.0f), 1.5f, 0.1f, 1000.0f));
+
+  REQUIRE(result[0][0] == Approx(expected[0][0]));
+  REQUIRE(result[0][1] == Approx(expected[0][1]));
+  REQUIRE(result[0][2] == Approx(expected[0][2]));
+  REQUIRE(result[0][3] == Approx(expected[0][3]));
+  REQUIRE(result[1][0] == Approx(expected[1][0]));
+  REQUIRE(result[1][1] == Approx(expected[1][1]));
+  REQUIRE(result[1][2] == Approx(expected[1][2]));
+  REQUIRE(result[1][3] == Approx(expected[1][3]));
+  REQUIRE(result[2][0] == Approx(expected[2][0]));
+  REQUIRE(result[2][1] == Approx(expected[2][1]));
+  REQUIRE(result[2][2] == Approx(expected[2][2]));
+  REQUIRE(result[2][3] == Approx(expected[2][3]));
+  REQUIRE(result[3][0] == Approx(expected[3][0]));
+  REQUIRE(result[3][1] == Approx(expected[3][1]));
+  REQUIRE(result[3][2] == Approx(expected[3][2]));
+  REQUIRE(result[3][3] == Approx(expected[3][3]));
 }

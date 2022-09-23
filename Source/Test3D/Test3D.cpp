@@ -57,47 +57,47 @@ void Test3D::OnStart()
                                                      .setRadius(300.0f))
                                   .withPosition(Vector3(-150.0f, 100.0f, 100.0f))
                                   .build());
-  _scene.addChildToNode(root, ModelLoader::FromFile(_scene, "./Models/Sponza/sponza.obj", true));
+  //_scene.addChildToNode(root, ModelLoader::FromFile(_scene, "./Models/Sponza/sponza.obj", true));
 
-  // std::shared_ptr<Material> material(new Material());
-  // material->setDiffuseTexture(LoadTextureFromFile("./Textures/crate0_diffuse.png", true, true));
-  // material->setNormalTexture(LoadTextureFromFile("./Textures/crate0_normal.png", false, false));
-  // material->setSpecularTexture(LoadTextureFromFile("./Textures/crate0_bump.png", false, false));
+  std::shared_ptr<Material> material(new Material());
+  material->setDiffuseTexture(LoadTextureFromFile("./Textures/crate0_diffuse.png", true, true));
+  material->setNormalTexture(LoadTextureFromFile("./Textures/crate0_normal.png", false, false));
+  material->setSpecularTexture(LoadTextureFromFile("./Textures/crate0_bump.png", false, false));
 
-  //_scene.addChildToNode(root, GameObjectBuilder(_scene)
-  //                                .withName("cube1")
-  //                                .withComponent(_scene.createComponent<Drawable>()
-  //                                                   .setMesh(MeshFactory::CreateCube())
-  //                                                   .setMaterial(material))
-  //                                .withPosition(Vector3(0, 1, 0))
-  //                                .build());
+  _scene.addChildToNode(root, GameObjectBuilder(_scene)
+                                  .withName("cube1")
+                                  .withComponent(_scene.createComponent<Drawable>()
+                                                     .setMesh(MeshFactory::CreateCube())
+                                                     .setMaterial(material))
+                                  .withPosition(Vector3(0, 1, 0))
+                                  .build());
 
-  //_scene.addChildToNode(root, GameObjectBuilder(_scene)
-  //                                .withName("cube2")
-  //                                .withComponent(_scene.createComponent<Drawable>()
-  //                                                   .setMesh(MeshFactory::CreateCube())
-  //                                                   .setMaterial(material))
-  //                                .withPosition(Vector3(-6, 3.5, 7))
-  //                                .build());
+  _scene.addChildToNode(root, GameObjectBuilder(_scene)
+                                  .withName("cube2")
+                                  .withComponent(_scene.createComponent<Drawable>()
+                                                     .setMesh(MeshFactory::CreateCube())
+                                                     .setMaterial(material))
+                                  .withPosition(Vector3(-6, 3.5, 7))
+                                  .build());
 
-  //_scene.addChildToNode(root, GameObjectBuilder(_scene)
-  //                                .withName("cube3")
-  //                                .withComponent(_scene.createComponent<Drawable>()
-  //                                                   .setMesh(MeshFactory::CreateCube())
-  //                                                   .setMaterial(material))
-  //                                .withPosition(Vector3(6, 1.3, 5.4))
-  //                                .build());
+  _scene.addChildToNode(root, GameObjectBuilder(_scene)
+                                  .withName("cube3")
+                                  .withComponent(_scene.createComponent<Drawable>()
+                                                     .setMesh(MeshFactory::CreateCube())
+                                                     .setMaterial(material))
+                                  .withPosition(Vector3(6, 1.3, 5.4))
+                                  .build());
 
-  // std::shared_ptr<Material> floorMaterial(new Material());
-  // floorMaterial->setDiffuseTexture(LoadTextureFromFile("./Textures/brick_floor_tileable_Base_Color.jpg", true, true));
-  //_scene.addChildToNode(root, GameObjectBuilder(_scene)
-  //                                 .withName("floor")
-  //                                 .withComponent(_scene.createComponent<Drawable>()
-  //                                                    .setMesh(MeshFactory::CreatePlane(100))
-  //                                                    .setMaterial(floorMaterial))
-  //                                 .withPosition(Vector3(50, -5, 50))
-  //                                 .withScale(Vector3(100, 100, 100))
-  //                                 .build());
+  std::shared_ptr<Material> floorMaterial(new Material());
+  floorMaterial->setDiffuseTexture(LoadTextureFromFile("./Textures/brick_floor_tileable_Base_Color.jpg", true, true));
+  _scene.addChildToNode(root, GameObjectBuilder(_scene)
+                                  .withName("floor")
+                                  .withComponent(_scene.createComponent<Drawable>()
+                                                     .setMesh(MeshFactory::CreatePlane(100))
+                                                     .setMaterial(floorMaterial))
+                                  .withPosition(Vector3(50, -5, 50))
+                                  .withScale(Vector3(100, 100, 100))
+                                  .build());
 }
 
 void Test3D::OnUpdate(uint32 dtMs)

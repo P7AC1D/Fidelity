@@ -7,6 +7,7 @@
 #include "Vector4.hpp"
 
 Vector3 Vector3::Zero = Vector3(0.0f);
+Vector3 Vector3::Up = Vector3(0.0f, 1.0f, 0.0f);
 Vector3 Vector3::Identity = Vector3(1.0f);
 
 float32 Vector3::Length(const Vector3 &a)

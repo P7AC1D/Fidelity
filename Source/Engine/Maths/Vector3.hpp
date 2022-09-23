@@ -8,6 +8,7 @@ class Vector3
 {
 public:
   static Vector3 Zero;
+  static Vector3 Up;
   static Vector3 Identity;
 
   static float32 Length(const Vector3 &a);

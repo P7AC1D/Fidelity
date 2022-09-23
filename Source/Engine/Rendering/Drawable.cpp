@@ -158,6 +158,7 @@ void Drawable::updateAabb(Vector3 scalingDelta, Quaternion rotationDelta)
 	Matrix4 rotation = Matrix4::Rotation(rotationDelta);
 	Matrix4 scaling = Matrix4::Scaling(scalingDelta);
 	Matrix3 transform(Matrix4::ToMatrix3(scaling * rotation));
+
 	for (int i = 0; i < 3; i++)
 	{
 		for (int j = 0; j < 3; j++)

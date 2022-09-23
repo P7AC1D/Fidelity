@@ -24,7 +24,8 @@ public:
   void drawFrame(const std::shared_ptr<RenderDevice> &renderDevice,
                  const std::vector<std::shared_ptr<Drawable>> &drawables,
                  const std::vector<std::shared_ptr<Light>> &lights,
-                 const std::shared_ptr<Camera> &camera);
+                 const std::shared_ptr<Camera> &camera,
+                 const Vector3 &sceneMaxExtents, const Vector3 &sceneMinExtents);
 
   std::shared_ptr<RenderTarget> getShadowMapRto() { return _shadowMapRto; }
   std::shared_ptr<GpuBuffer> getShadowBuffer() { return _shadowBufer; }

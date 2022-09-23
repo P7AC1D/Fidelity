@@ -125,7 +125,7 @@ void Scene::drawFrame()
     drawables.push_back(culledDrawable.ComponentPtr);
   }
 
-  _shadowMapRenderer->drawFrame(_renderDevice, drawables, lights, camera);
+  _shadowMapRenderer->drawFrame(_renderDevice, drawables, lights, camera, _sceneMaxExtents, _sceneMinExtents);
   _deferredRenderer->drawFrame(_renderDevice, aabbDrawables, drawables, lights, _shadowMapRenderer->getShadowMapRto(), _shadowMapRenderer->getShadowBuffer(), camera);
   _debugRenderer->drawFrame(_renderDevice, _deferredRenderer->getGbuffer(), _deferredRenderer->getLightingBuffer(), _shadowMapRenderer->getShadowMapRto(), aabbDrawables, camera);
 }

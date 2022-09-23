@@ -6,6 +6,7 @@
 #include "../RenderApi/RenderDevice.hpp"
 #include "../RenderApi/SamplerState.hpp"
 #include "../Utility/String.hpp"
+#include "../Utility/Assert.hpp"
 #include "../UI/ImGui/imgui.h"
 #include "Camera.h"
 #include "Drawable.h"
@@ -20,51 +21,94 @@ struct LightDepthData
   Matrix4 LightTransform;
 };
 
-Matrix4 calculateLightProjFromFustrum(const Matrix4 &lightView, const std::shared_ptr<Camera> &camera, float32 zMulti)
+float32 calculateCascadeRadius(const std::vector<Vector4> &frustrumCorners)
 {
-  Matrix4 projView(camera->getProj() * camera->getView());
+  Assert::ThrowIfFalse(frustrumCorners.size() == 8, "Invalid size of supplied frustrum corners.");
+
+  float32 length = (frustrumCorners[0] - frustrumCorners[6]).Length();
+  return length / 2.0f;
+}
+
+float32 calculateTexelsPerUnitInWorldSpace(float32 shadowMapResolution, float32 cascadeRadius)
+{
+  return shadowMapResolution / (cascadeRadius * 2.0f);
+}
+
+std::vector<Matrix4> calculateCameraCascadeProjections(const std::shared_ptr<Camera> &camera)
+{
+  Radian fov = camera->getFar();
+  float32 aspect = camera->getAspectRatio();
+  float32 nearPlane = camera->getNear();
+  float32 farPlane = camera->getFar();
+
+  std::vector<Matrix4> projections;
+  projections.push_back(Matrix4::Perspective(fov, aspect, nearPlane, farPlane / 500.0f));
+  projections.push_back(Matrix4::Perspective(fov, aspect, farPlane / 500.0f, farPlane / 12.5f));
+  projections.push_back(Matrix4::Perspective(fov, aspect, farPlane / 12.5f, farPlane / 0.25f));
+  projections.push_back(Matrix4::Perspective(fov, aspect, farPlane / 0.25f, farPlane));
+  return std::move(projections);
+}
+
+Vector3 calculateFrustrumCenter(const std::vector<Vector4> &frustrumCorners)
+{
+  Vector3 center(Vector3::Zero);
+  for (uint32 i = 0; i < 0; ++i)
+  {
+    center = center + Vector3(frustrumCorners[i][0], frustrumCorners[i][1], frustrumCorners[i][2]);
+  }
+  return center * (1.0f / 8.0f);
+}
+
+std::vector<Vector4> calculateFrustrumCorners(const Matrix4 &view, const Matrix4 &projection)
+{
+  std::vector<Vector4> frustrumCorners = {
+      Vector4(-1.0f, 1.0f, 0.0f, 1.0f),
+      Vector4(1.0f, 1.0f, 0.0f, 1.0f),
+      Vector4(1.0f, -1.0f, 0.0f, 1.0f),
+      Vector4(-1.0f, -1.0f, 0.0f, 1.0f),
+      Vector4(-1.0f, 1.0f, 1.0f, 1.0f),
+      Vector4(1.0f, 1.0f, 1.0f, 1.0f),
+      Vector4(1.0f, -1.0f, 1.0f, 1.0f),
+      Vector4(-1.0f, -1.0f, 1.0f, 1.0f)};
+
+  Matrix4 projView(projection * view);
   Matrix4 projViewInvs(projView.Inverse());
 
-  std::vector<Vector4> frustrumCorners;
-  for (uint32 x = 0; x < 2; ++x)
+  for (uint32 i = 0; i < 8; i++)
   {
-    for (uint32 y = 0; y < 2; ++y)
-    {
-      for (uint32 z = 0; z < 2; ++z)
-      {
-        const Vector4 point = projViewInvs * Vector4(2.0f * x - 1.0f, 2.0f * y - 1.0f, 2.0f * z - 1.0f, 1.0f);
-        frustrumCorners.push_back(point);
-      }
-    }
+    frustrumCorners[i] = projViewInvs * frustrumCorners[i];
   }
 
-  Vector4 max(std::numeric_limits<float32>::min()), min(std::numeric_limits<float32>::max());
-  for (const Vector4 &corner : frustrumCorners)
-  {
-    const Vector4 transformedPoint = lightView * corner;
-    min = Math::Min(transformedPoint, min);
-    max = Math::Max(transformedPoint, max);
-  }
+  return std::move(frustrumCorners);
+}
 
-  if (min.Z < 0)
-  {
-    min.Z *= zMulti;
-  }
-  else
-  {
-    min.Z /= zMulti;
-  }
+Matrix4 calculateLightView(const std::vector<Vector4> &frustrumCorners,
+                           const std::shared_ptr<Light> &directionalLight,
+                           float32 shadowMapResolution)
+{
+  const float32 radius = calculateCascadeRadius(frustrumCorners);
+  const float32 texelsPerUnit = calculateTexelsPerUnitInWorldSpace(shadowMapResolution, radius);
+  const Vector3 lightDirection = directionalLight->getDirection();
 
-  if (max.Z < 0)
-  {
-    max.Z /= zMulti;
-  }
-  else
-  {
-    max.Z *= zMulti;
-  }
+  Matrix4 lookAt(Matrix4::LookAt(Vector3::Zero, -lightDirection, Vector3(0.0f, 1.0f, 0.0f)));
+  lookAt = lookAt * Matrix4::Scaling(Vector3(texelsPerUnit)); // Might be the other way round
 
-  return Matrix4::Orthographic(min.X, max.X, min.Y, max.Y, min.Z, max.Z);
+  Matrix4 lookAtInv(lookAt.Inverse());
+
+  // Move center in texel-size increments; Transform back into original space using inverse.
+  Vector3 fustrumCenter = calculateFrustrumCenter(frustrumCorners);
+  fustrumCenter = lookAt * fustrumCenter;
+  fustrumCenter.X = std::floorf(fustrumCenter.X);
+  fustrumCenter.Y = std::floorf(fustrumCenter.Y);
+  fustrumCenter = lookAtInv * fustrumCenter;
+
+  Vector3 eye = fustrumCenter - (lightDirection * radius * 2.0f);
+  return Matrix4::LookAt(eye, fustrumCenter, Vector3::Up);
+}
+
+Matrix4 calculateLightProjection(float32 radius, float32 zMulti)
+{
+  return Matrix4::Orthographic(-radius, radius, -radius, radius, -radius * zMulti, radius * zMulti);
 }
 
 ShadowMapRenderer::ShadowMapRenderer() : _zMulti(10.0),
@@ -169,7 +213,8 @@ void ShadowMapRenderer::onDrawDebugUi()
 void ShadowMapRenderer::drawFrame(const std::shared_ptr<RenderDevice> &renderDevice,
                                   const std::vector<std::shared_ptr<Drawable>> &drawables,
                                   const std::vector<std::shared_ptr<Light>> &lights,
-                                  const std::shared_ptr<Camera> &camera)
+                                  const std::shared_ptr<Camera> &camera,
+                                  const Vector3 &sceneMaxExtents, const Vector3 &sceneMinExtents)
 {
   if (_settingsModified)
   {
@@ -209,11 +254,12 @@ void ShadowMapRenderer::drawFrame(const std::shared_ptr<RenderDevice> &renderDev
   renderDevice->SetRenderTarget(_shadowMapRto);
   renderDevice->ClearBuffers(RTT_Depth);
 
-  Matrix4 lightView(Matrix4::LookAt(-directionalLight->getDirection(), Vector3::Zero, Vector3(0.0f, 1.0f, 0.0f)));
-  Matrix4 lightProj(calculateLightProjFromFustrum(lightView, camera, _zMulti));
+  auto frustrumCorners = calculateFrustrumCorners(camera->getView(), camera->getProj());
+  Matrix4 lightView = calculateLightView(frustrumCorners, directionalLight, _shadowMapResolution);
+  Matrix4 lightProjection = calculateLightProjection(calculateCascadeRadius(frustrumCorners), _zMulti);
 
   LightDepthData lightDepthData;
-  lightDepthData.LightTransform = lightProj * lightView;
+  lightDepthData.LightTransform = lightProjection * lightView;
   _transformsBuffer->WriteData(0, sizeof(LightDepthData), &lightDepthData, AccessType::WriteOnlyDiscard);
 
   ShadowMapData shadowMapData;

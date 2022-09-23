@@ -229,6 +229,12 @@ Matrix4 Matrix4::operator*(const Matrix4 &rhs) const
   return result;
 }
 
+Vector3 Matrix4::operator*(const Vector3 &rhs) const
+{
+  Vector4 result = this->operator*(Vector4(rhs[0], rhs[1], rhs[2], 1.0f));
+  return Vector3(result[0], result[1], result[2]);
+}
+
 Vector4 Matrix4::operator*(const Vector4 &rhs) const
 {
   return Vector4(_m[0][0] * rhs[0] + _m[1][0] * rhs[1] + _m[2][0] * rhs[2] + _m[3][0] * rhs[3],
