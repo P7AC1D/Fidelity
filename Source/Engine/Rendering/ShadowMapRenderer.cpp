@@ -23,7 +23,7 @@ struct LightDepthData
 
 std::vector<float32> calculateCascadeLevels(float32 farPlane)
 {
-  return std::move(std::vector<float32>{farPlane / 500.0f, farPlane / 12.f, farPlane / 2.5f, farPlane});
+  return std::move(std::vector<float32>{farPlane / 250.0f, farPlane / 12.f, farPlane / 2.5f, farPlane});
 }
 
 float32 calculateCascadeRadius(const std::vector<Vector4> &frustrumCorners)
@@ -301,10 +301,10 @@ void ShadowMapRenderer::drawFrame(const std::shared_ptr<RenderDevice> &renderDev
   csmData.LightTransforms[3] = lightTransforms[3];
 
   auto cascadeLevels = calculateCascadeLevels(camera->getFar());
-  csmData.CascadePlaneDistances[0] = cascadeLevels[0];
-  csmData.CascadePlaneDistances[1] = cascadeLevels[1];
-  csmData.CascadePlaneDistances[2] = cascadeLevels[2];
-  csmData.CascadePlaneDistances[3] = cascadeLevels[3];
+  csmData.CascadePlaneDistances[0].X = cascadeLevels[0];
+  csmData.CascadePlaneDistances[1].X = cascadeLevels[1];
+  csmData.CascadePlaneDistances[2].X = cascadeLevels[2];
+  csmData.CascadePlaneDistances[3].X = cascadeLevels[3];
   _cascadeShadowBuffer->WriteData(0, sizeof(CascadeShadowMapData), &csmData, AccessType::WriteOnlyDiscard);
 
   _transformsBuffer->WriteData(0, sizeof(Matrix4) * 4, lightTransforms.data(), AccessType::WriteOnlyDiscard);

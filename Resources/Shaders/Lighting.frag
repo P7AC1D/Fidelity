@@ -31,9 +31,9 @@ layout(std140) uniform LightingBuffer
 layout(std140) uniform CascadeShadowMapBuffer
 {
   mat4 LightTransforms[4];
+  float CascadePlaneDistances[4];
   vec3 LightDirection;
   int CascadeCount;
-  float CascadePlaneDistances[4];
 } CascadeShadowMapData;
 
 uniform sampler2D AlbedoMap;
@@ -117,7 +117,7 @@ void main()
   // ----------------
   vec3 cascadeDebugColour = vec3(0.0,0.0,0.0);
   vec4 fragPosViewSpace = Constants.View * vec4(position, 1.0);
-  float depthValue = abs(position.z);
+  float depthValue = abs(fragPosViewSpace.z);
 
   int layerToUse = -1;
   for (int i = 0; i < 4; i++)

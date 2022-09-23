@@ -25,9 +25,10 @@ struct ObjectBuffer
 struct CascadeShadowMapData
 {
   Matrix4 LightTransforms[4];
+  // Vector4 to ensure the correct padding is done. A float will be padded by 3 x floats.
+  Vector4 CascadePlaneDistances[4];
   Vector3 LightDirection;
   uint32 CascadeCount;
-  float32 CascadePlaneDistances[4];
 };
 
 class Renderer
