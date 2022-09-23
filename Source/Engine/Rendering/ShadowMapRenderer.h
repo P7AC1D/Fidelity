@@ -28,7 +28,7 @@ public:
                  const Vector3 &sceneMaxExtents, const Vector3 &sceneMinExtents);
 
   std::shared_ptr<RenderTarget> getShadowMapRto() { return _shadowMapRto; }
-  std::shared_ptr<GpuBuffer> getShadowBuffer() { return _shadowBufer; }
+  std::shared_ptr<GpuBuffer> getShadowBuffer() { return _cascadeShadowBuffer; }
 
 private:
   void writeObjectConstantData(std::shared_ptr<Drawable> drawable, const std::shared_ptr<Camera> &camera) const;
@@ -42,5 +42,5 @@ private:
   std::shared_ptr<PipelineState> _shadowMapPso;
   std::shared_ptr<GpuBuffer> _objectBuffer;
   std::shared_ptr<GpuBuffer> _transformsBuffer;
-  std::shared_ptr<GpuBuffer> _shadowBufer;
+  std::shared_ptr<GpuBuffer> _cascadeShadowBuffer;
 };

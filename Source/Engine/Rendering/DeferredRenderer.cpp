@@ -179,7 +179,7 @@ void DeferredRenderer::onInit(const std::shared_ptr<RenderDevice> &device)
     std::shared_ptr<ShaderParams> shaderParams(new ShaderParams());
     shaderParams->AddParam(ShaderParam("LightingConstantsBuffer", ShaderParamType::ConstBuffer, 0));
     shaderParams->AddParam(ShaderParam("LightingBuffer", ShaderParamType::ConstBuffer, 1));
-    shaderParams->AddParam(ShaderParam("ShadowMapBuffer", ShaderParamType::ConstBuffer, 2));
+    shaderParams->AddParam(ShaderParam("CascadeShadowMapBuffer", ShaderParamType::ConstBuffer, 2));
 
     shaderParams->AddParam(ShaderParam("AlbedoMap", ShaderParamType::Texture, 0));
     shaderParams->AddParam(ShaderParam("DepthMap", ShaderParamType::Texture, 1));

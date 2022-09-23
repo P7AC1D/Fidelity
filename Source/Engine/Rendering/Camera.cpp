@@ -30,7 +30,7 @@ void Camera::drawInspector()
 			setNear(nearClip);
 		}
 
-		if (ImGui::SliderFloat("Far Clip", &farClip, 0.1f, 100000.f))
+		if (ImGui::SliderFloat("Far Clip", &farClip, 0.1f, 10000.f))
 		{
 			setFar(farClip);
 		}

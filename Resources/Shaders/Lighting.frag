@@ -28,18 +28,19 @@ layout(std140) uniform LightingBuffer
   Light Lights[MAX_LIGHTS];
 } Lighting;
 
-layout(std140) uniform ShadowMapBuffer
+layout(std140) uniform CascadeShadowMapBuffer
 {
-  mat4 LightTransform;
+  mat4 LightTransforms[4];
   vec3 LightDirection;
-  float CameraFarPlane;
-} ShadowMapData;
+  int CascadeCount;
+  float CascadePlaneDistances[4];
+} CascadeShadowMapData;
 
 uniform sampler2D AlbedoMap;
 uniform sampler2D DepthMap;
 uniform sampler2D NormalMap;
 uniform sampler2D SpecularMap;
-uniform sampler2D ShadowMap;
+uniform sampler2DArray ShadowMap;
 
 layout(location = 0) in vec2 TexCoord;
 
@@ -47,21 +48,40 @@ layout(location = 0) out vec4 FinalColour;
 
 float calculateShadowFactor(vec3 fragPosWorldSpace, vec3 normalWorldSpace)
 {
-    vec4 fragPosLightSpace = ShadowMapData.LightTransform * vec4(fragPosWorldSpace, 1.0);
+    // Select which shadow map cascade to use
+    vec4 fragPosViewSpace = Constants.View * vec4(fragPosWorldSpace, 1.0);
+    float depthValue = abs(fragPosViewSpace.z);
+
+    int layerToUse = -1;
+    for (int i = 0; i < CascadeShadowMapData.CascadeCount; i++)
+    {
+      if (depthValue < CascadeShadowMapData.CascadePlaneDistances[i])
+      {
+        layerToUse = i;
+        break;
+      }
+    }
+
+    if (layerToUse == -1)
+    {
+      return 0.0f;
+    }
+
+    vec4 fragPosLightSpace = CascadeShadowMapData.LightTransforms[layerToUse] * vec4(fragPosWorldSpace, 1.0);
     vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
     projCoords = projCoords * 0.5 + 0.5;
 
     float currentDepth = projCoords.z;
     if (currentDepth > 1.0)
     {
-        return 0.0;
+        return 0.0f;
     }
 
     // Apply bias based on distance from far plane
     vec3 normal = normalize(normalWorldSpace);
-    float bias = max(0.05 * (1.0 - dot(normal, ShadowMapData.LightDirection)), 0.005);
+    float bias = max(0.05 * (1.0 - dot(normal, CascadeShadowMapData.LightDirection)), 0.005);
     const float biasModifier = 0.5f;
-    bias *= 1 / (ShadowMapData.CameraFarPlane * biasModifier);
+    bias *= 1 / (CascadeShadowMapData.CascadePlaneDistances[layerToUse] * biasModifier);
 
     // PCF
     float shadow = 0.0;
@@ -70,7 +90,7 @@ float calculateShadowFactor(vec3 fragPosWorldSpace, vec3 normalWorldSpace)
     {
         for(int y = -1; y <= 1; ++y)
         {
-            float pcfDepth = texture(ShadowMap, projCoords.xy + vec2(x, y) * texelSize).r;
+            float pcfDepth = texture(ShadowMap, vec3(projCoords.xy + vec2(x, y) * texelSize, layerToUse)).r;
             shadow += (currentDepth - bias) > pcfDepth ? 1.0 : 0.0;        
         }    
     }
@@ -93,6 +113,35 @@ void main()
   position = clip.xyz / clip.w;
 
   float shadowFactor = calculateShadowFactor(position, normal);
+
+  // ----------------
+  vec3 cascadeDebugColour = vec3(0.0,0.0,0.0);
+  vec4 fragPosViewSpace = Constants.View * vec4(position, 1.0);
+  float depthValue = abs(position.z);
+
+  int layerToUse = -1;
+  for (int i = 0; i < 4; i++)
+  {
+    if (depthValue < CascadeShadowMapData.CascadePlaneDistances[i])
+    {
+      layerToUse = i;
+      break;
+    }
+  }
+
+  if (layerToUse == 0)
+  {
+    cascadeDebugColour = vec3(1.0,0.0,0.0);
+  }
+  else if (layerToUse == 1)
+  {
+    cascadeDebugColour = vec3(0.0,1.0,0.0);
+  }
+  else if (layerToUse == 1)
+  {
+    cascadeDebugColour = vec3(0.0,0.0,1.0);
+  }
+  // -----------------
 
   vec3 ambient = albedo.rgb * Lighting.AmbientColour * Lighting.AmbientIntensity;
   vec3 finalColour = ambient;
@@ -118,8 +167,8 @@ void main()
       vec3 halfDir = normalize(lightDir + viewDir);
       float diffuseFactor = clamp(dot(lightDir, normal), 0.0f, 1.0f);
       float specularFactor = pow(max(dot(normal, halfDir), 0.0), specular.a * 255.0f);
-      finalColour += (1.0f - shadowFactor)* (albedo.rgb * diffuseFactor + specular.rgb * specularFactor) * Lighting.Lights[i].Colour * Lighting.Lights[i].Intensity; 
+      finalColour += /*(1.0f - shadowFactor) * */(albedo.rgb * diffuseFactor + specular.rgb * specularFactor) * Lighting.Lights[i].Colour * Lighting.Lights[i].Intensity; 
     }
   }
-  FinalColour = vec4(finalColour.rgb, 1.0f);
+  FinalColour = vec4(finalColour.rgb * cascadeDebugColour, 1.0f);
 }
