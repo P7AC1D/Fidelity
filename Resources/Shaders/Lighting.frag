@@ -34,6 +34,7 @@ layout(std140) uniform CascadeShadowMapBuffer
   float CascadePlaneDistances[4];
   vec3 LightDirection;
   int CascadeCount;
+  bool DrawLayers;
 } CascadeShadowMapData;
 
 uniform sampler2D AlbedoMap;
@@ -99,22 +100,8 @@ float calculateShadowFactor(vec3 fragPosWorldSpace, vec3 normalWorldSpace)
     return shadow;
 }
 
-void main()
+vec3 drawCascadeLayers(vec3 position)
 {
-  // Rebuild world position of fragment from frag-coord and depth texture
-  vec3 position = vec3((gl_FragCoord.x * Constants.PixelSize.x), (gl_FragCoord.y * Constants.PixelSize.y), 0.0f);
-  position.z = texture(DepthMap, position.xy).r;
-
-  vec3 normal = normalize(texture(NormalMap, TexCoord).xyz * 2.0f - 1.0f);
-  vec4 albedo = texture(AlbedoMap, TexCoord);
-  vec4 specular = texture(SpecularMap, TexCoord);
-
-  vec4 clip = Constants.ProjViewInv * vec4(position * 2.0f - 1.0f, 1.0f);
-  position = clip.xyz / clip.w;
-
-  float shadowFactor = calculateShadowFactor(position, normal);
-
-  // ----------------
   vec3 cascadeDebugColour = vec3(0.0,0.0,0.0);
   vec4 fragPosViewSpace = Constants.View * vec4(position, 1.0);
   float depthValue = abs(fragPosViewSpace.z);
@@ -137,12 +124,31 @@ void main()
   {
     cascadeDebugColour = vec3(0.0,1.0,0.0);
   }
-  else if (layerToUse == 1)
+  else if (layerToUse == 2)
   {
     cascadeDebugColour = vec3(0.0,0.0,1.0);
   }
-  // -----------------
+  else if (layerToUse == 2)
+  {
+    cascadeDebugColour = vec3(1.0,0.0,1.0);
+  }
+  return cascadeDebugColour;
+}
 
+void main()
+{
+  // Rebuild world position of fragment from frag-coord and depth texture
+  vec3 position = vec3((gl_FragCoord.x * Constants.PixelSize.x), (gl_FragCoord.y * Constants.PixelSize.y), 0.0f);
+  position.z = texture(DepthMap, position.xy).r;
+
+  vec3 normal = normalize(texture(NormalMap, TexCoord).xyz * 2.0f - 1.0f);
+  vec4 albedo = texture(AlbedoMap, TexCoord);
+  vec4 specular = texture(SpecularMap, TexCoord);
+
+  vec4 clip = Constants.ProjViewInv * vec4(position * 2.0f - 1.0f, 1.0f);
+  position = clip.xyz / clip.w;
+
+  float shadowFactor = calculateShadowFactor(position, normal);
   vec3 ambient = albedo.rgb * Lighting.AmbientColour * Lighting.AmbientIntensity;
   vec3 finalColour = ambient;
   vec3 viewDir = normalize(Constants.ViewPosition - position);
@@ -167,8 +173,15 @@ void main()
       vec3 halfDir = normalize(lightDir + viewDir);
       float diffuseFactor = clamp(dot(lightDir, normal), 0.0f, 1.0f);
       float specularFactor = pow(max(dot(normal, halfDir), 0.0), specular.a * 255.0f);
-      finalColour += /*(1.0f - shadowFactor) * */(albedo.rgb * diffuseFactor + specular.rgb * specularFactor) * Lighting.Lights[i].Colour * Lighting.Lights[i].Intensity; 
+      finalColour += (1.0f - shadowFactor) * (albedo.rgb * diffuseFactor + specular.rgb * specularFactor) * Lighting.Lights[i].Colour * Lighting.Lights[i].Intensity; 
     }
   }
-  FinalColour = vec4(finalColour.rgb * cascadeDebugColour, 1.0f);
+  if (CascadeShadowMapData.DrawLayers)
+  {
+    FinalColour = vec4(finalColour.rgb * drawCascadeLayers(position), 1.0f);
+  }
+  else
+  {
+    FinalColour = vec4(finalColour.rgb, 1.0f);
+  }
 }

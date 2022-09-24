@@ -131,42 +131,6 @@ void DebugRenderer::onInit(const std::shared_ptr<RenderDevice> &renderDevice)
     psDesc.EntryPoint = "main";
     psDesc.ShaderLang = ShaderLang::Glsl;
     psDesc.ShaderType = ShaderType::Pixel;
-    psDesc.Source = String::LoadFromFile("./Shaders/DepthDebugOrtho.frag");
-
-    std::vector<VertexLayoutDesc> vertexLayoutDesc{
-        VertexLayoutDesc(SemanticType::Position, SemanticFormat::Float2),
-        VertexLayoutDesc(SemanticType::TexCoord, SemanticFormat::Float2),
-    };
-
-    std::shared_ptr<ShaderParams> shaderParams(new ShaderParams());
-    shaderParams->AddParam(ShaderParam("QuadTexture", ShaderParamType::Texture, 0));
-    shaderParams->AddParam(ShaderParam("CameraBuffer", ShaderParamType::ConstBuffer, 0));
-
-    RasterizerStateDesc rasterizerStateDesc;
-    rasterizerStateDesc.CullMode = CullMode::None;
-
-    PipelineStateDesc pipelineDesc;
-    pipelineDesc.VS = renderDevice->CreateShader(vsDesc);
-    pipelineDesc.PS = renderDevice->CreateShader(psDesc);
-    pipelineDesc.BlendState = renderDevice->CreateBlendState(BlendStateDesc());
-    pipelineDesc.RasterizerState = renderDevice->CreateRasterizerState(rasterizerStateDesc);
-    pipelineDesc.DepthStencilState = renderDevice->CreateDepthStencilState(DepthStencilStateDesc());
-    pipelineDesc.VertexLayout = renderDevice->CreateVertexLayout(vertexLayoutDesc);
-    pipelineDesc.ShaderParams = shaderParams;
-
-    _depthDebugOrthoDrawPso = renderDevice->CreatePipelineState(pipelineDesc);
-  }
-  {
-    ShaderDesc vsDesc;
-    vsDesc.EntryPoint = "main";
-    vsDesc.ShaderLang = ShaderLang::Glsl;
-    vsDesc.ShaderType = ShaderType::Vertex;
-    vsDesc.Source = String::LoadFromFile("./Shaders/FSPassThrough.vert");
-
-    ShaderDesc psDesc;
-    psDesc.EntryPoint = "main";
-    psDesc.ShaderLang = ShaderLang::Glsl;
-    psDesc.ShaderType = ShaderType::Pixel;
     psDesc.Source = String::LoadFromFile("./Shaders/ShadowMapDebug.frag");
 
     std::vector<VertexLayoutDesc> vertexLayoutDesc{
@@ -369,15 +333,8 @@ void DebugRenderer::drawRenderTarget(std::shared_ptr<RenderDevice> renderDevice,
     }
     else if (renderTarget->GetTextureType() == TextureType::Texture2D)
     {
-      if (isOrthographicDepth)
-      {
-        renderDevice->SetPipelineState(_depthDebugOrthoDrawPso);
-      }
-      else
-      {
-        renderDevice->SetPipelineState(_depthDebugDrawPso);
-        renderDevice->SetConstantBuffer(0, _shadowMapDebugBuffer);
-      }
+      renderDevice->SetPipelineState(_depthDebugDrawPso);
+      renderDevice->SetConstantBuffer(0, _shadowMapDebugBuffer);
     }
     else
     {

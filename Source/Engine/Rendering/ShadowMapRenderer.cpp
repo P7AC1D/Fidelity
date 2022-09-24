@@ -21,9 +21,9 @@ struct LightDepthData
   Matrix4 LightTransform;
 };
 
-std::vector<float32> calculateCascadeLevels(float32 farPlane)
+std::vector<float32> calculateCascadeLevels(float32 farPlane, const std::vector<float32> &cascadeRatios)
 {
-  return std::move(std::vector<float32>{farPlane / 100.0f, farPlane / 10.f, farPlane / 5.0f, farPlane});
+  return std::move(std::vector<float32>{farPlane * cascadeRatios[0], farPlane * cascadeRatios[1], farPlane * cascadeRatios[2], farPlane});
 }
 
 float32 calculateCascadeRadius(const std::vector<Vector4> &frustrumCorners)
@@ -39,20 +39,20 @@ float32 calculateTexelsPerUnitInWorldSpace(float32 shadowMapResolution, float32 
   return shadowMapResolution / (cascadeRadius * 2.0f);
 }
 
-std::vector<Matrix4> calculateCameraCascadeProjections(const std::shared_ptr<Camera> &camera)
+std::vector<Matrix4> calculateCameraCascadeProjections(const std::shared_ptr<Camera> &camera, const std::vector<float32> &cascadeRatios)
 {
   Radian fov = camera->getFar();
   float32 aspect = camera->getAspectRatio();
   float32 nearPlane = camera->getNear();
   float32 farPlane = camera->getFar();
 
-  std::vector<float32> cascadeLevels(calculateCascadeLevels(farPlane));
+  std::vector<float32> cascadeLevels(calculateCascadeLevels(farPlane, cascadeRatios));
 
   std::vector<Matrix4> projections;
-  projections.push_back(Matrix4::Perspective(fov, aspect, nearPlane, cascadeLevels[0]));
-  projections.push_back(Matrix4::Perspective(fov, aspect, cascadeLevels[0], cascadeLevels[1]));
-  projections.push_back(Matrix4::Perspective(fov, aspect, cascadeLevels[1], cascadeLevels[2]));
   projections.push_back(Matrix4::Perspective(fov, aspect, cascadeLevels[2], farPlane));
+  projections.push_back(Matrix4::Perspective(fov, aspect, cascadeLevels[1], cascadeLevels[2]));
+  projections.push_back(Matrix4::Perspective(fov, aspect, cascadeLevels[0], cascadeLevels[1]));
+  projections.push_back(Matrix4::Perspective(fov, aspect, nearPlane, cascadeLevels[0]));
   return std::move(projections);
 }
 
@@ -123,10 +123,11 @@ Matrix4 calculateLightProjection(float32 radius, float32 zMulti)
 std::vector<Matrix4> calculateCascadeLightTransforms(const std::shared_ptr<Camera> &camera,
                                                      const std::shared_ptr<Light> &directionalLight,
                                                      uint32 shadowMapResolution,
+                                                     const std::vector<float32> &cascadeRatios,
                                                      float32 zMulti)
 {
   std::vector<Matrix4> results;
-  std::vector<Matrix4> projections = calculateCameraCascadeProjections(camera);
+  std::vector<Matrix4> projections = calculateCameraCascadeProjections(camera, cascadeRatios);
   for (uint32 i = 0; i < 4; i++)
   {
     auto frustrumCorners = calculateFrustrumCorners(camera->getView(), projections[i]);
@@ -139,8 +140,13 @@ std::vector<Matrix4> calculateCascadeLightTransforms(const std::shared_ptr<Camer
 
 ShadowMapRenderer::ShadowMapRenderer() : _zMulti(10.0),
                                          _shadowMapResolution(4096),
-                                         _cascadeCount(4)
+                                         _cascadeCount(4),
+                                         _drawCascadeLayers(false)
 {
+  _cascadeRatios.push_back(0.04f);
+  _cascadeRatios.push_back(0.14f);
+  _cascadeRatios.push_back(0.25f);
+  _cascadeRatios.push_back(0.50f);
 }
 
 void ShadowMapRenderer::onInit(const std::shared_ptr<RenderDevice> &renderDevice)
@@ -242,6 +248,22 @@ void ShadowMapRenderer::onDrawDebugUi()
       _shadowMapResolution = shadowMapResolution;
       _settingsModified = true;
     }
+
+    ImGui::Text("Cascade Ratios");
+    for (uint32 i = 0; i < _cascadeRatios.size(); i++)
+    {
+      float32 value = _cascadeRatios[i];
+      if (ImGui::DragFloat(std::string("Layer " + std::to_string(i)).c_str(), &value, 0.001f, 0.001f, 1.0f))
+      {
+        _cascadeRatios[i] = value;
+      }
+    }
+
+    bool shouldDrawCascadeLayers = _drawCascadeLayers;
+    if (ImGui::Checkbox("Draw Layers", &shouldDrawCascadeLayers))
+    {
+      _drawCascadeLayers = shouldDrawCascadeLayers;
+    }
   }
 }
 
@@ -290,7 +312,7 @@ void ShadowMapRenderer::drawFrame(const std::shared_ptr<RenderDevice> &renderDev
   renderDevice->SetRenderTarget(_shadowMapRto);
   renderDevice->ClearBuffers(RTT_Depth);
 
-  auto lightTransforms = calculateCascadeLightTransforms(camera, directionalLight, _shadowMapResolution, _zMulti);
+  auto lightTransforms = calculateCascadeLightTransforms(camera, directionalLight, _shadowMapResolution, _cascadeRatios, _zMulti);
 
   CascadeShadowMapData csmData;
   csmData.CascadeCount = lightTransforms.size();
@@ -299,8 +321,9 @@ void ShadowMapRenderer::drawFrame(const std::shared_ptr<RenderDevice> &renderDev
   csmData.LightTransforms[1] = lightTransforms[1];
   csmData.LightTransforms[2] = lightTransforms[2];
   csmData.LightTransforms[3] = lightTransforms[3];
+  csmData.DrawLayers = _drawCascadeLayers;
 
-  auto cascadeLevels = calculateCascadeLevels(camera->getFar());
+  auto cascadeLevels = calculateCascadeLevels(camera->getFar(), _cascadeRatios);
   csmData.CascadePlaneDistances[0].X = cascadeLevels[0];
   csmData.CascadePlaneDistances[1].X = cascadeLevels[1];
   csmData.CascadePlaneDistances[2].X = cascadeLevels[2];

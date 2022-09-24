@@ -29,6 +29,7 @@ struct CascadeShadowMapData
   Vector4 CascadePlaneDistances[4];
   Vector3 LightDirection;
   uint32 CascadeCount;
+  int32 DrawLayers;
 };
 
 class Renderer
