@@ -23,7 +23,7 @@ struct LightDepthData
 
 std::vector<float32> calculateCascadeLevels(float32 farPlane)
 {
-  return std::move(std::vector<float32>{farPlane / 250.0f, farPlane / 12.f, farPlane / 2.5f, farPlane});
+  return std::move(std::vector<float32>{farPlane / 100.0f, farPlane / 10.f, farPlane / 5.0f, farPlane});
 }
 
 float32 calculateCascadeRadius(const std::vector<Vector4> &frustrumCorners)
