@@ -20,6 +20,7 @@ public:
 	Light &setColour(const Colour &colour);
 	Light &setRadius(float32 radius);
 	Light &setLightType(LightType lightType);
+	Light &setIntensity(float32 intensity);
 
 	Matrix4 getMatrix() const { return _matrix; }
 	Vector3 getPosition() const { return _position; }
@@ -27,6 +28,8 @@ public:
 	Colour getColour() const { return _colour; }
 	float32 getRadius() const { return _radius; }
 	LightType getLightType() const { return _lightType; }
+	Vector3 getDirection() const { return _direction; }
+	float32 getIntensity() const { return _intensity; }
 
 private:
 	void onUpdate(float32 dt) override;
@@ -38,6 +41,8 @@ private:
 	Vector3 _position;
 	Quaternion _rotation;
 	Matrix4 _matrix;
+	Vector3 _direction;
+	float32 _intensity;
 
 	bool _modified;
 };

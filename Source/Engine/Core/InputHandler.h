@@ -1,10 +1,11 @@
 #pragma once
-#include "../Core/Types.hpp"
+#include <unordered_map>
+
+#include "../Maths/Vector2I.hpp"
+#include "Types.hpp"
 
 enum class Button
 {
-  _null,
-
   Key_Escape,
   Key_F1,
   Key_F2,
@@ -107,20 +108,35 @@ enum class Button
   Button_RMouse,
   Button_Mouse3,
   Button_Mouse4,
-  Button_Mouse5,
+  Button_Mouse5
+};
 
-  _count
+enum class ButtonState
+{
+  Pressed,
+  Released
 };
 
 enum class Axis
 {
-  _null,
-
   MouseXY,
-  MouseScrollXY,
-
-  _count
+  MouseScrollXY
 };
 
 Button GlfwKeyToButton(int32 button);
 Button GlfwMouseButtonToButton(int32 button);
+
+class InputHandler
+{
+public:
+  void setButtonState(Button button, ButtonState state);
+  void setAxisState(Axis axis, Vector2I axisState);
+
+  bool isButtonPressed(Button button) const;
+  bool isButtonReleased(Button button) const;
+  Vector2I getAxisState(Axis axis) const;
+
+private:
+  std::unordered_map<Button, ButtonState> _buttonStates;
+  std::unordered_map<Axis, Vector2I> _axesStates;
+};

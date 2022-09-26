@@ -35,7 +35,14 @@ std::vector<Vector3> AabbCoords = {
 
     Vector3(-1.0, -1.0, -1.0), Vector3(1.0, -1.0, -1.0)};
 
-DebugRenderer::DebugRenderer() : _debugDisplayType(DebugDisplayType::Disabled)
+struct ShadowMapDebugData
+{
+  float32 NearClip;
+  float32 FarClip;
+  uint32 Layer;
+};
+
+DebugRenderer::DebugRenderer() : _debugDisplayType(DebugDisplayType::Disabled), _shadowMapLayerToDraw(0)
 {
 }
 
@@ -97,7 +104,7 @@ void DebugRenderer::onInit(const std::shared_ptr<RenderDevice> &renderDevice)
 
     std::shared_ptr<ShaderParams> shaderParams(new ShaderParams());
     shaderParams->AddParam(ShaderParam("QuadTexture", ShaderParamType::Texture, 0));
-    shaderParams->AddParam(ShaderParam("FrameBuffer", ShaderParamType::ConstBuffer, 1));
+    shaderParams->AddParam(ShaderParam("CameraBuffer", ShaderParamType::ConstBuffer, 0));
 
     RasterizerStateDesc rasterizerStateDesc;
     rasterizerStateDesc.CullMode = CullMode::None;
@@ -118,13 +125,49 @@ void DebugRenderer::onInit(const std::shared_ptr<RenderDevice> &renderDevice)
     vsDesc.EntryPoint = "main";
     vsDesc.ShaderLang = ShaderLang::Glsl;
     vsDesc.ShaderType = ShaderType::Vertex;
+    vsDesc.Source = String::LoadFromFile("./Shaders/FSPassThrough.vert");
+
+    ShaderDesc psDesc;
+    psDesc.EntryPoint = "main";
+    psDesc.ShaderLang = ShaderLang::Glsl;
+    psDesc.ShaderType = ShaderType::Pixel;
+    psDesc.Source = String::LoadFromFile("./Shaders/ShadowMapDebug.frag");
+
+    std::vector<VertexLayoutDesc> vertexLayoutDesc{
+        VertexLayoutDesc(SemanticType::Position, SemanticFormat::Float2),
+        VertexLayoutDesc(SemanticType::TexCoord, SemanticFormat::Float2),
+    };
+
+    std::shared_ptr<ShaderParams> shaderParams(new ShaderParams());
+    shaderParams->AddParam(ShaderParam("ShadowMaps", ShaderParamType::Texture, 0));
+    shaderParams->AddParam(ShaderParam("ShadowMapDebugBuffer", ShaderParamType::ConstBuffer, 0));
+
+    RasterizerStateDesc rasterizerStateDesc;
+    rasterizerStateDesc.CullMode = CullMode::None;
+
+    PipelineStateDesc pipelineDesc;
+    pipelineDesc.VS = renderDevice->CreateShader(vsDesc);
+    pipelineDesc.PS = renderDevice->CreateShader(psDesc);
+    pipelineDesc.BlendState = renderDevice->CreateBlendState(BlendStateDesc());
+    pipelineDesc.RasterizerState = renderDevice->CreateRasterizerState(rasterizerStateDesc);
+    pipelineDesc.DepthStencilState = renderDevice->CreateDepthStencilState(DepthStencilStateDesc());
+    pipelineDesc.VertexLayout = renderDevice->CreateVertexLayout(vertexLayoutDesc);
+    pipelineDesc.ShaderParams = shaderParams;
+
+    _shadowMapDebugPso = renderDevice->CreatePipelineState(pipelineDesc);
+  }
+  {
+    ShaderDesc vsDesc;
+    vsDesc.EntryPoint = "main";
+    vsDesc.ShaderLang = ShaderLang::Glsl;
+    vsDesc.ShaderType = ShaderType::Vertex;
     vsDesc.Source = String::LoadFromFile("./Shaders/Basic.vert");
 
     ShaderDesc psDesc;
     psDesc.EntryPoint = "main";
     psDesc.ShaderLang = ShaderLang::Glsl;
     psDesc.ShaderType = ShaderType::Pixel;
-    psDesc.Source = String::LoadFromFile("./Shaders/Empty.frag");
+    psDesc.Source = String::LoadFromFile("./Shaders/Basic.frag");
 
     std::vector<VertexLayoutDesc> vertexLayoutDesc{
         VertexLayoutDesc(SemanticType::Position, SemanticFormat::Float3)};
@@ -161,12 +204,25 @@ void DebugRenderer::onInit(const std::shared_ptr<RenderDevice> &renderDevice)
   aabbBufferDesc.ByteCount = sizeof(ObjectBuffer);
   _aabbBuffer = renderDevice->CreateGpuBuffer(aabbBufferDesc);
 
+  GpuBufferDesc shadowMapDebugDataDesc;
+  shadowMapDebugDataDesc.BufferType = BufferType::Constant;
+  shadowMapDebugDataDesc.BufferUsage = BufferUsage::Stream;
+  shadowMapDebugDataDesc.ByteCount = sizeof(ShadowMapDebugData);
+  _shadowMapDebugBuffer = renderDevice->CreateGpuBuffer(shadowMapDebugDataDesc);
+
   VertexBufferDesc aabbVertexBuffDesc;
   aabbVertexBuffDesc.BufferUsage = BufferUsage::Default;
   aabbVertexBuffDesc.VertexCount = AabbCoords.size();
   aabbVertexBuffDesc.VertexSizeBytes = sizeof(Vector3) * AabbCoords.size();
   _aabbVertexBuffer = renderDevice->CreateVertexBuffer(aabbVertexBuffDesc);
   _aabbVertexBuffer->WriteData(0, sizeof(Vector3) * AabbCoords.size(), AabbCoords.data(), AccessType::WriteOnlyDiscardRange);
+
+  SamplerStateDesc noMipSamplerState;
+  noMipSamplerState.AddressingMode = AddressingMode{TextureAddressMode::Border, TextureAddressMode::Border, TextureAddressMode::Border};
+  noMipSamplerState.MinFiltering = TextureFilteringMode::None;
+  noMipSamplerState.MinFiltering = TextureFilteringMode::None;
+  noMipSamplerState.MipFiltering = TextureFilteringMode::None;
+  _noMipWithBorderSamplerState = renderDevice->CreateSamplerState(noMipSamplerState);
 }
 
 void DebugRenderer::onDrawDebugUi()
@@ -175,25 +231,41 @@ void DebugRenderer::onDrawDebugUi()
   {
     ImGui::Text("Debug Renderer");
 
-    std::vector<const char*> debugRenderingItems = { "Disabled", "Diffuse", "Normal", "Depth", "Emissive", "Specular" };
+    std::vector<const char *> debugRenderingItems = {"Disabled", "Shadow Map", "Diffuse", "Normal", "Depth"};
     static int debugRenderingCurrentItem = 0;
-    ImGui::Combo("Target", &debugRenderingCurrentItem, debugRenderingItems.data(), debugRenderingItems.size());
-    _debugDisplayType = static_cast<DebugDisplayType>(debugRenderingCurrentItem);
+    if (ImGui::Combo("Target", &debugRenderingCurrentItem, debugRenderingItems.data(), debugRenderingItems.size()))
+    {
+      _debugDisplayType = static_cast<DebugDisplayType>(debugRenderingCurrentItem);
+    }
+
+    if (_debugDisplayType == DebugDisplayType::ShadowMap)
+    {
+      int shadowMapLayerToDraw = _shadowMapLayerToDraw;
+      if (ImGui::SliderInt("Layer", &shadowMapLayerToDraw, 0, 3))
+      {
+        _shadowMapLayerToDraw = shadowMapLayerToDraw;
+      }
+    }
   }
 }
 
 void DebugRenderer::drawFrame(const std::shared_ptr<RenderDevice> &renderDevice,
                               const std::shared_ptr<RenderTarget> &gBuffer,
-                              const std::shared_ptr<RenderTarget> &lightBuffer,
-                              const std::shared_ptr<RenderTarget> &mergeBuffer,
+                              const std::shared_ptr<RenderTarget> &lightingBuffer,
+                              const std::shared_ptr<RenderTarget> &shadowMapBuffer,
                               const std::vector<std::shared_ptr<Drawable>> &aabbDrawables,
-                              const Camera &camera)
+                              const std::shared_ptr<Camera> &camera)
 {
   switch (_debugDisplayType)
   {
   case DebugDisplayType::Disabled:
   {
-    drawRenderTarget(renderDevice, mergeBuffer->GetColourTarget(0), camera);
+    drawRenderTarget(renderDevice, lightingBuffer->GetColourTarget(0), camera);
+    break;
+  }
+  case DebugDisplayType::ShadowMap:
+  {
+    drawRenderTarget(renderDevice, shadowMapBuffer->GetDepthStencilTarget(), camera, true);
     break;
   }
   case DebugDisplayType::Diffuse:
@@ -204,16 +276,6 @@ void DebugRenderer::drawFrame(const std::shared_ptr<RenderDevice> &renderDevice,
   case DebugDisplayType::Normal:
   {
     drawRenderTarget(renderDevice, gBuffer->GetColourTarget(1), camera);
-    break;
-  }
-  case DebugDisplayType::Emissive:
-  {
-    drawRenderTarget(renderDevice, lightBuffer->GetColourTarget(0), camera);
-    break;
-  }
-  case DebugDisplayType::Specular:
-  {
-    drawRenderTarget(renderDevice, lightBuffer->GetColourTarget(1), camera);
     break;
   }
   case DebugDisplayType::Depth:
@@ -228,7 +290,7 @@ void DebugRenderer::drawFrame(const std::shared_ptr<RenderDevice> &renderDevice,
 
 void DebugRenderer::drawAabb(const std::shared_ptr<RenderDevice> &renderDevice,
                              const std::vector<std::shared_ptr<Drawable>> &aabbDrawables,
-                             const Camera &camera)
+                             const std::shared_ptr<Camera> &camera)
 {
   renderDevice->SetPipelineState(_drawAabbPso);
   for (auto drawable : aabbDrawables)
@@ -237,8 +299,8 @@ void DebugRenderer::drawAabb(const std::shared_ptr<RenderDevice> &renderDevice,
 
     ObjectBuffer objectBufferData;
     objectBufferData.Model = Matrix4::Translation(drawable->getPosition()) * Matrix4::Scaling(aabb.GetHalfSize());
-    objectBufferData.ModelView = camera.getView() * objectBufferData.Model;
-    objectBufferData.ModelViewProjection = camera.getProj() * objectBufferData.ModelView;
+    objectBufferData.ModelView = camera->getView() * objectBufferData.Model;
+    objectBufferData.ModelViewProjection = camera->getProj() * objectBufferData.ModelView;
     _aabbBuffer->WriteData(0, sizeof(ObjectBuffer), &objectBufferData, AccessType::WriteOnlyDiscard);
 
     renderDevice->SetConstantBuffer(0, _aabbBuffer);
@@ -249,12 +311,14 @@ void DebugRenderer::drawAabb(const std::shared_ptr<RenderDevice> &renderDevice,
 
 void DebugRenderer::drawRenderTarget(std::shared_ptr<RenderDevice> renderDevice,
                                      std::shared_ptr<Texture> renderTarget,
-                                     const Camera &camera)
+                                     const std::shared_ptr<Camera> &camera,
+                                     bool isOrthographicDepth)
 {
-  CameraBufferData cameraBufferData;
-  cameraBufferData.FarClip = camera.getFar();
-  cameraBufferData.NearClip = camera.getNear();
-  _cameraBuffer->WriteData(0, sizeof(CameraBufferData), &cameraBufferData, AccessType::WriteOnlyDiscard);
+  ShadowMapDebugData shadowMapDebugData;
+  shadowMapDebugData.FarClip = camera->getFar();
+  shadowMapDebugData.NearClip = camera->getNear();
+  shadowMapDebugData.Layer = _shadowMapLayerToDraw;
+  _shadowMapDebugBuffer->WriteData(0, sizeof(ShadowMapDebugData), &shadowMapDebugData, AccessType::WriteOnlyDiscard);
 
   if (renderTarget->GetDesc().Usage == TextureUsage::RenderTarget)
   {
@@ -262,8 +326,20 @@ void DebugRenderer::drawRenderTarget(std::shared_ptr<RenderDevice> renderDevice,
   }
   else if (renderTarget->GetDesc().Usage == TextureUsage::Depth)
   {
-    renderDevice->SetConstantBuffer(0, _cameraBuffer);
-    renderDevice->SetPipelineState(_depthDebugDrawPso);
+    if (renderTarget->GetTextureType() == TextureType::Texture2DArray)
+    {
+      renderDevice->SetPipelineState(_shadowMapDebugPso);
+      renderDevice->SetConstantBuffer(0, _shadowMapDebugBuffer);
+    }
+    else if (renderTarget->GetTextureType() == TextureType::Texture2D)
+    {
+      renderDevice->SetPipelineState(_depthDebugDrawPso);
+      renderDevice->SetConstantBuffer(0, _shadowMapDebugBuffer);
+    }
+    else
+    {
+      return;
+    }
   }
   else
   {
@@ -273,7 +349,7 @@ void DebugRenderer::drawRenderTarget(std::shared_ptr<RenderDevice> renderDevice,
   renderDevice->SetRenderTarget(nullptr);
   renderDevice->ClearBuffers(RTT_Colour | RTT_Depth);
   renderDevice->SetTexture(0, renderTarget);
-  renderDevice->SetSamplerState(0, _noMipSamplerState);
+  renderDevice->SetSamplerState(0, _noMipWithBorderSamplerState);
   renderDevice->SetVertexBuffer(_fsQuadBuffer);
   renderDevice->Draw(6, 0);
 }

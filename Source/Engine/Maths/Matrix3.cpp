@@ -140,16 +140,6 @@ Matrix3 Matrix3::operator-(const Matrix3 &rhs) const
 
 Matrix3 Matrix3::operator*(const Matrix3 &rhs) const
 {
-  // Matrix3 result;
-  // for (uint32 row = 0; row < 3; ++row)
-  //{
-  //   for (uint32 col = 0; col < 3; ++col)
-  //   {
-  //     result._m[row][col] = _m[row][0] * rhs._m[0][col] + _m[row][1] * rhs._m[1][col] + _m[row][2] * rhs._m[2][col];
-  //   }
-  // }
-  // return result;
-
   Matrix3 result;
   result[0][0] = _m[0][0] * rhs._m[0][0] + _m[1][0] * rhs._m[0][1] + _m[2][0] * rhs._m[0][2];
   result[0][1] = _m[0][1] * rhs._m[0][0] + _m[1][1] * rhs._m[0][1] + _m[2][1] * rhs._m[0][2];
@@ -165,9 +155,9 @@ Matrix3 Matrix3::operator*(const Matrix3 &rhs) const
 
 Vector3 Matrix3::operator*(const Vector3 &rhs) const
 {
-  return Vector3(rhs[0] * _m[0][0] + rhs[1] * _m[0][1] + rhs[2] * _m[0][2],
-                 rhs[0] * _m[1][0] + rhs[1] * _m[1][1] + rhs[2] * _m[1][2],
-                 rhs[0] * _m[2][0] + rhs[1] * _m[2][1] + rhs[2] * _m[2][2]);
+  return Vector3(_m[0][0] * rhs.X + _m[1][0] * rhs.Y + _m[2][0] * rhs.Z,
+                 _m[0][1] * rhs.X + _m[1][1] * rhs.Y + _m[2][1] * rhs.Z,
+                 _m[0][2] * rhs.X + _m[1][2] * rhs.Y + _m[2][2] * rhs.Z);
 }
 
 Matrix3 &Matrix3::operator+=(float32 rhs)

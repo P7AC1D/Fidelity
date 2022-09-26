@@ -7,42 +7,55 @@
 
 #include "../UI/ImGui/imgui.h"
 #include "../Utility/ModelLoader.hpp"
+#include "../Rendering/Camera.h"
 #include "../Rendering/DeferredRenderer.h"
 #include "../Rendering/DebugRenderer.h"
 #include "../Rendering/Drawable.h"
 #include "../Rendering/Light.h"
+#include "../Rendering/ShadowMapRenderer.h"
 #include "../RenderApi/RenderDevice.hpp"
 #include "GameObject.h"
+#include "SceneGraph.h"
 
 static uint64 SELECTED_GAME_OBJECT_INDEX = -1;
 
+Scene::Scene() : _objectAddedToScene(false) {}
+
+Scene::~Scene() {}
+
 bool Scene::init(const Vector2I &windowDims, std::shared_ptr<RenderDevice> renderDevice)
 {
+  _sceneGraph.reset(new SceneGraph());
   createGameObject("root");
 
   _renderDevice = renderDevice;
   _deferredRenderer.reset(new DeferredRenderer(windowDims));
   _debugRenderer.reset(new DebugRenderer());
-  return _deferredRenderer->init(_renderDevice) && _debugRenderer->init(_renderDevice);
+  _shadowMapRenderer.reset(new ShadowMapRenderer());
+  return _deferredRenderer->init(_renderDevice) && _debugRenderer->init(_renderDevice) && _shadowMapRenderer->init(renderDevice);
 }
 
 GameObject &Scene::createGameObject(const std::string &name)
 {
   static uint64 index = 0;
 
-  _sceneGraph.insert(std::pair<uint64, std::vector<uint64>>(index, {}));
+  _sceneGraph->addNode(index);
   _gameObjects.insert(std::pair<uint64, GameObject>(index, std::move(GameObject(name, index))));
+  _objectAddedToScene = true;
   return _gameObjects[index++];
 }
 
 void Scene::addChildToNode(GameObject &parent, GameObject &child)
 {
-  _sceneGraph[parent.getIndex()].push_back(child.getIndex());
+  _sceneGraph->addChildToNode(parent.getIndex(), child.getIndex());
 }
 
 void Scene::update(float64 dt)
 {
-  _camera.update(dt);
+  for (auto &gameObject : _gameObjects)
+  {
+    gameObject.second.update(dt);
+  }
 
   for (auto componentType : _components)
   {
@@ -51,14 +64,9 @@ void Scene::update(float64 dt)
       component->update(dt);
     }
   }
-
-  for (auto &gameObject : _gameObjects)
-  {
-    gameObject.second.update(dt);
-  }
 }
 
-void Scene::drawFrame() const
+void Scene::drawFrame()
 {
   if (_renderDevice == nullptr || _deferredRenderer == nullptr)
   {
@@ -66,23 +74,36 @@ void Scene::drawFrame() const
     return;
   }
 
+  if (_objectAddedToScene)
+  {
+    calcSceneExtents();
+  }
+
   auto compare = [](DrawableSortMap a, DrawableSortMap b)
-  { return a.DistanceToCamera < b.DistanceToCamera; };
+  { return a.DistanceToCamera > b.DistanceToCamera; };
   std::multiset<DrawableSortMap, decltype(compare)> culledDrawables(compare);
 
-  auto findIter = _components.find(ComponentType::Drawable);
-  if (findIter == _components.end())
+  auto drawableFindIter = _components.find(ComponentType::Drawable);
+  if (drawableFindIter == _components.end())
   {
     return;
   }
 
-  std::vector<std::shared_ptr<Drawable>> aabbDrawables;
-  for (auto component : findIter->second)
+  auto cameraFindIter = _components.find(ComponentType::Camera);
+  if (cameraFindIter == _components.end())
+  {
+    return;
+  }
+
+  std::shared_ptr<Camera> camera(std::static_pointer_cast<Camera>(cameraFindIter->second[0]));
+  std::vector<std::shared_ptr<Drawable>>
+      aabbDrawables;
+  for (auto component : drawableFindIter->second)
   {
     auto drawable = std::dynamic_pointer_cast<Drawable>(component);
-    if (_camera.intersectsFrustrum(drawable->getAabb()))
+    if (camera->contains(drawable->getAabb()))
     {
-      culledDrawables.insert(DrawableSortMap(_camera.distanceFrom(drawable->getPosition()), drawable));
+      culledDrawables.insert(DrawableSortMap(camera->distanceFrom(drawable->getPosition()), drawable));
     }
 
     if (drawable->shouldDrawAabb())
@@ -99,13 +120,14 @@ void Scene::drawFrame() const
   }
 
   std::vector<std::shared_ptr<Drawable>> drawables;
-  for (auto culledDrawable : _components.find(ComponentType::Drawable)->second)
+  for (const auto &culledDrawable : culledDrawables)
   {
-    drawables.push_back(std::dynamic_pointer_cast<Drawable>(culledDrawable));
+    drawables.push_back(culledDrawable.ComponentPtr);
   }
 
-  _deferredRenderer->drawFrame(_renderDevice, aabbDrawables, drawables, lights, _camera);
-  _debugRenderer->drawFrame(_renderDevice, _deferredRenderer->getGbuffer(), _deferredRenderer->getLightPrepassBuffer(), _deferredRenderer->getMergePassBuffer(), aabbDrawables, _camera);
+  _shadowMapRenderer->drawFrame(_renderDevice, drawables, lights, camera, _sceneMaxExtents, _sceneMinExtents);
+  _deferredRenderer->drawFrame(_renderDevice, aabbDrawables, drawables, lights, _shadowMapRenderer->getShadowMapRto(), _shadowMapRenderer->getShadowBuffer(), camera);
+  _debugRenderer->drawFrame(_renderDevice, _deferredRenderer->getGbuffer(), _deferredRenderer->getLightingBuffer(), _shadowMapRenderer->getShadowMapRto(), aabbDrawables, camera);
 }
 
 void Scene::drawDebugUi()
@@ -115,6 +137,7 @@ void Scene::drawDebugUi()
   drawGameObjectInspector(SELECTED_GAME_OBJECT_INDEX);
   ImGui::EndChild();
 
+  _shadowMapRenderer->drawDebugUi();
   _deferredRenderer->drawDebugUi();
   _debugRenderer->drawDebugUi();
 }
@@ -125,7 +148,7 @@ void Scene::drawSceneGraphUi(uint64 nodeIndex)
 
   GameObject &gameObject = _gameObjects[nodeIndex];
 
-  if (_sceneGraph[nodeIndex].empty())
+  if (!_sceneGraph->doesNodeHaveChildren(nodeIndex))
   {
     flags |= ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen;
     ImGui::TreeNodeEx(gameObject.getName().c_str(), flags);
@@ -147,7 +170,7 @@ void Scene::drawSceneGraphUi(uint64 nodeIndex)
     }
     if (open)
     {
-      for (auto childNodeIndex : _sceneGraph[nodeIndex])
+      for (const auto &childNodeIndex : _sceneGraph->getNodeChildren(nodeIndex))
       {
         drawSceneGraphUi(childNodeIndex);
       }
@@ -180,5 +203,29 @@ void Scene::setAabbDrawOnGameObject(uint64 gameObjectIndex, bool enableAabbDraw)
   if (gameObject.hasComponent<Drawable>())
   {
     gameObject.getComponent<Drawable>().enableDrawAabb(enableAabbDraw);
+    return;
   }
+}
+
+void Scene::calcSceneExtents()
+{
+  auto findIter = _components.find(ComponentType::Drawable);
+  if (findIter == _components.end())
+  {
+    return;
+  }
+
+  Vector3 max(std::numeric_limits<float32>::min());
+  Vector3 min(std::numeric_limits<float32>::max());
+  for (const auto &component : findIter->second)
+  {
+    auto drawable = std::static_pointer_cast<Drawable>(component);
+    const Aabb &aabb = drawable->getAabb();
+    min = Math::Min(min, aabb.GetNegBounds());
+    max = Math::Max(max, aabb.GetPosBounds());
+  }
+
+  _sceneMaxExtents = std::move(max);
+  _sceneMinExtents = std::move(min);
+  _objectAddedToScene = false;
 }

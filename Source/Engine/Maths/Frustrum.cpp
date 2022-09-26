@@ -1,105 +1,39 @@
 #include "Frustrum.hpp"
 
+#include "../Rendering/Camera.h"
+#include "Math.hpp"
+
 Frustrum::Frustrum()
 {
 }
 
-Frustrum::Frustrum(const std::array<Plane, 6>& planes) : _planes(planes)
+Frustrum::Frustrum(const Camera &camera)
 {
+	const Transform &cameraTransform(camera.getParentTransform());
+	const float32 far = camera.getFar();
+	const Vector3 position = cameraTransform.getPosition();
+	const Vector3 forward = cameraTransform.getForward();
+	const Vector3 up = cameraTransform.getUp();
+	const Vector3 right = cameraTransform.getRight();
+
+	const float32 halfVSide = far * tanf(camera.getFov().InRadians() * .5f);
+	const float32 halfHSide = halfVSide * camera.getAspectRatio();
+
+	const Vector3 frontMultFar = far * forward;
+	_near = std::move(Plane(position + camera.getNear() * forward, forward));
+	_far = std::move(Plane(position + frontMultFar, -forward));
+	_right = std::move(Plane(position, Vector3::Cross(cameraTransform.getUp(), frontMultFar + right * halfHSide)));
+	_left = std::move(Plane(position, Vector3::Cross(frontMultFar - right * halfHSide, up)));
+	_top = std::move(Plane(position, Vector3::Cross(right, frontMultFar - up * halfVSide)));
+	_bottom = std::move(Plane(position, Vector3::Cross(frontMultFar + up * halfVSide, right)));
 }
 
-Frustrum::Frustrum(const Matrix4& viewProjection)
+bool Frustrum::contains(const Aabb &aabb) const
 {
-	// Taken from http://gamedevs.org/uploads/fast-extraction-viewing-frustum-planes-from-world-view-projection-matrix.pdf
-
-	// Left
-	{
-		Plane plane;
-		plane.Normal.X = viewProjection[3][0] + viewProjection[0][0];
-		plane.Normal.Y = viewProjection[3][1] + viewProjection[0][1];
-		plane.Normal.Z = viewProjection[3][2] + viewProjection[0][2];
-		plane.D        = viewProjection[3][3] + viewProjection[0][3];
-
-		_planes[0] = plane;
-	}
-
-	// Right
-	{
-		Plane plane;
-		plane.Normal.X = viewProjection[3][0] - viewProjection[0][0];
-		plane.Normal.Y = viewProjection[3][1] - viewProjection[0][1];
-		plane.Normal.Z = viewProjection[3][2] - viewProjection[0][2];
-		plane.D        = viewProjection[3][3] - viewProjection[0][3];
-
-		_planes[1] = plane;
-	}
-
-	// Top
-	{
-		Plane plane;
-		plane.Normal.X = viewProjection[3][0] - viewProjection[1][0];
-		plane.Normal.Y = viewProjection[3][1] - viewProjection[1][1];
-		plane.Normal.Z = viewProjection[3][2] - viewProjection[1][2];
-		plane.D        = viewProjection[3][3] - viewProjection[1][3];
-
-		_planes[2] = plane;
-	}
-
-	// Bottom
-	{
-		Plane plane;
-		plane.Normal.X = viewProjection[3][0] + viewProjection[1][0];
-		plane.Normal.Y = viewProjection[3][1] + viewProjection[1][1];
-		plane.Normal.Z = viewProjection[3][2] + viewProjection[1][2];
-		plane.D        = viewProjection[3][3] + viewProjection[1][3];
-
-		_planes[3] = plane;
-	}
-
-	// Near
-	{
-		Plane plane;
-		plane.Normal.X = viewProjection[3][0] + viewProjection[2][0];
-		plane.Normal.Y = viewProjection[3][1] + viewProjection[2][1];
-		plane.Normal.Z = viewProjection[3][2] + viewProjection[2][2];
-		plane.D        = viewProjection[3][3] + viewProjection[2][3];
-
-		_planes[4] = plane;
-	}
-
-	// Far
-	{
-		Plane plane;
-		plane.Normal.X = viewProjection[3][0] - viewProjection[2][0];
-		plane.Normal.Y = viewProjection[3][1] - viewProjection[2][1];
-		plane.Normal.Z = viewProjection[3][2] - viewProjection[2][2];
-		plane.D        = viewProjection[3][3] - viewProjection[2][3];
-
-		_planes[5] = plane;
-	}
-
-	for (uint64 i = 0; i < 6; i++)
-	{
-		float32 length = Vector3::Length(_planes[i].Normal);
-		_planes[i].Normal.X /= length;
-		_planes[i].Normal.Y /= length;
-		_planes[i].Normal.Z /= length;
-		_planes[i].D        /= length;
-	}
-}
-
-bool Frustrum::Intersects(const Aabb& box) const
-{
-	Vector3 center = box.GetCenter();
-	Vector3 extents = box.GetHalfSize();
-
-	for (auto& plane : _planes)
-	{
-		float32 signedDist = Vector3::Dot(center, plane.Normal) + plane.D;
-		if (signedDist < 0)
-		{
-			return false;
-		}
-	}
-	return true;
+	return aabb.isInFrustrumPlane(_near) &&
+				 aabb.isInFrustrumPlane(_far) &&
+				 aabb.isInFrustrumPlane(_left) &&
+				 aabb.isInFrustrumPlane(_right) &&
+				 aabb.isInFrustrumPlane(_top) &&
+				 aabb.isInFrustrumPlane(_bottom);
 }

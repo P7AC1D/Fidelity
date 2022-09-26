@@ -20,6 +20,7 @@ private:
   void SetTextureAddressingMode(AddressingMode addressingMode);
   void SetTextureMinMipFiltering(TextureFilteringMode minFilteringMode, TextureFilteringMode mipFilteringMode);
   void SetTextureMagFiltering(TextureFilteringMode textureFilteringMode);
+  void SetBorderColour(Colour borderColour);
   
 private:
   uint32 _id;

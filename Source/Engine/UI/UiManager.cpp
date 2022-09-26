@@ -70,7 +70,7 @@ void UiManager::Update(Scene &scene)
 		ImGui::Separator();
 		{
 			scene.drawDebugUi();
-		}		
+		}
 
 		ImGui::Separator();
 		{

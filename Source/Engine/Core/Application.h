@@ -11,10 +11,10 @@
 #include "Scene.h"
 #include "Maths.h"
 
-class EventDispatcher;
-class InputHandler;
 class Renderer;
 class RenderDevice;
+class Texture;
+class InputHandler;
 
 struct ApplicationDesc
 {
@@ -42,12 +42,14 @@ protected:
   float32 GetAverageTickMs(int32 dtMs);
   float32 GetAverageFps(int32 dtMs);
 
+  // TODO: Move this elsewhere
+  std::shared_ptr<Texture> LoadTextureFromFile(const std::string &path, bool generateMips, bool sRgb);
+
 private:
   bool Initialize();
   int32 GetTickDuration();
 
 protected:
-  std::unique_ptr<EventDispatcher> _eventDispatcher;
   std::shared_ptr<InputHandler> _inputHandler;
   std::shared_ptr<UiManager> _debugUi;
   std::shared_ptr<Renderer> _renderer;

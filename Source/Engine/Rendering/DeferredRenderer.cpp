@@ -39,25 +39,36 @@ struct MaterialBufferData
   int32 GreyscaleSpecular = 1;
 };
 
-struct PointLightConstantsBuffer
+struct LightingConstantsBuffer
 {
+  Matrix4 View;
   Matrix4 ProjViewInvs;
   Vector3 CameraPosition;
-  float32 _padding;
+  float32 FarPlane;
   Vector2 PixelSize;
 };
 
-struct PointLightBuffer
+struct LightData
 {
-  Matrix4 Model;
-  Matrix4 ModelView;
-  Matrix4 ModelViewProjection;
-  Vector4 Colour;
-  Vector3 Position;
-  float32 Radius;
+  Vector3 Colour = Vector3::Zero;
+  float32 Intensity = 0.0f;
+  Vector3 Position = Vector3::Zero;
+  float32 Radius = 0.0f;
+  Vector3 Direction = Vector3::Zero;
+  int32 LightType = 0;
 };
 
-DeferredRenderer::DeferredRenderer(const Vector2I &windowDims) : _windowDims(windowDims)
+static const int32 MAX_LIGHTS = 32;
+struct LightingBuffer
+{
+  Vector3 AmbientColour;
+  float32 AmbientIntensity;
+  LightData Lights[MAX_LIGHTS];
+};
+
+DeferredRenderer::DeferredRenderer(const Vector2I &windowDims) : _windowDims(windowDims),
+                                                                 _ambientColour(Colour::White),
+                                                                 _ambientIntensity(0.1f)
 {
 }
 
@@ -152,39 +163,37 @@ void DeferredRenderer::onInit(const std::shared_ptr<RenderDevice> &device)
     vsDesc.EntryPoint = "main";
     vsDesc.ShaderLang = ShaderLang::Glsl;
     vsDesc.ShaderType = ShaderType::Vertex;
-    vsDesc.Source = String::LoadFromFile("./Shaders/PointLights.vert");
+    vsDesc.Source = String::LoadFromFile("./Shaders/FSPassThrough.vert");
 
     ShaderDesc psDesc;
     psDesc.EntryPoint = "main";
     psDesc.ShaderLang = ShaderLang::Glsl;
     psDesc.ShaderType = ShaderType::Pixel;
-    psDesc.Source = String::LoadFromFile("./Shaders/PointLights.frag");
+    psDesc.Source = String::LoadFromFile("./Shaders/Lighting.frag");
 
     std::vector<VertexLayoutDesc> vertexLayoutDesc{
-        VertexLayoutDesc(SemanticType::Position, SemanticFormat::Float3),
-        VertexLayoutDesc(SemanticType::Normal, SemanticFormat::Float3),
+        VertexLayoutDesc(SemanticType::Position, SemanticFormat::Float2),
         VertexLayoutDesc(SemanticType::TexCoord, SemanticFormat::Float2),
-        VertexLayoutDesc(SemanticType::Tangent, SemanticFormat::Float3),
-        VertexLayoutDesc(SemanticType::Bitangent, SemanticFormat::Float3)};
+    };
 
     std::shared_ptr<ShaderParams> shaderParams(new ShaderParams());
-    shaderParams->AddParam(ShaderParam("ObjectBuffer", ShaderParamType::ConstBuffer, 0));
-    shaderParams->AddParam(ShaderParam("PointLightPassConstants", ShaderParamType::ConstBuffer, 1));
-    shaderParams->AddParam(ShaderParam("PointLightBuffer", ShaderParamType::ConstBuffer, 2));
-    shaderParams->AddParam(ShaderParam("DepthMap", ShaderParamType::Texture, 0));
-    shaderParams->AddParam(ShaderParam("NormalMap", ShaderParamType::Texture, 1));
-    shaderParams->AddParam(ShaderParam("SpecularMap", ShaderParamType::Texture, 2));
+    shaderParams->AddParam(ShaderParam("LightingConstantsBuffer", ShaderParamType::ConstBuffer, 0));
+    shaderParams->AddParam(ShaderParam("LightingBuffer", ShaderParamType::ConstBuffer, 1));
+    shaderParams->AddParam(ShaderParam("CascadeShadowMapBuffer", ShaderParamType::ConstBuffer, 2));
+
+    shaderParams->AddParam(ShaderParam("AlbedoMap", ShaderParamType::Texture, 0));
+    shaderParams->AddParam(ShaderParam("DepthMap", ShaderParamType::Texture, 1));
+    shaderParams->AddParam(ShaderParam("NormalMap", ShaderParamType::Texture, 2));
+    shaderParams->AddParam(ShaderParam("SpecularMap", ShaderParamType::Texture, 3));
+    shaderParams->AddParam(ShaderParam("ShadowMap", ShaderParamType::Texture, 4));
 
     RasterizerStateDesc rasterizerStateDesc{};
-    rasterizerStateDesc.CullMode = CullMode::Clockwise;
 
     DepthStencilStateDesc depthStencilStateDesc{};
     depthStencilStateDesc.DepthReadEnabled = false;
     depthStencilStateDesc.DepthWriteEnabled = false;
 
     BlendStateDesc blendStateDesc{};
-    blendStateDesc.RTBlendState[0].BlendEnabled = true;
-    blendStateDesc.RTBlendState[0].Blend = BlendDesc(BlendFactor::One, BlendFactor::One, BlendOperation::Add);
 
     PipelineStateDesc pipelineDesc;
     pipelineDesc.VS = device->CreateShader(vsDesc);
@@ -195,11 +204,7 @@ void DeferredRenderer::onInit(const std::shared_ptr<RenderDevice> &device)
     pipelineDesc.VertexLayout = device->CreateVertexLayout(vertexLayoutDesc);
     pipelineDesc.ShaderParams = shaderParams;
 
-    _lightPrePassCWPto = device->CreatePipelineState(pipelineDesc);
-
-    rasterizerStateDesc.CullMode = CullMode::CounterClockwise;
-    pipelineDesc.RasterizerState = device->CreateRasterizerState(rasterizerStateDesc);
-    _lightPrePassCCWPto = device->CreatePipelineState(pipelineDesc);
+    _lightingPto = device->CreatePipelineState(pipelineDesc);
   }
   {
     TextureDesc colourTexDesc;
@@ -211,79 +216,30 @@ void DeferredRenderer::onInit(const std::shared_ptr<RenderDevice> &device)
 
     RenderTargetDesc rtDesc;
     rtDesc.ColourTargets[0] = device->CreateTexture(colourTexDesc);
-    rtDesc.ColourTargets[1] = device->CreateTexture(colourTexDesc);
     rtDesc.Height = _windowDims.X;
     rtDesc.Width = _windowDims.Y;
 
-    _lightPrePassRto = device->CreateRenderTarget(rtDesc);
+    _lightingPassRto = device->CreateRenderTarget(rtDesc);
   }
-  GpuBufferDesc pointLightConstantsBufferDesc;
-  pointLightConstantsBufferDesc.BufferType = BufferType::Constant;
-  pointLightConstantsBufferDesc.BufferUsage = BufferUsage::Stream;
-  pointLightConstantsBufferDesc.ByteCount = sizeof(PointLightConstantsBuffer);
-  _pointLightConstantsBuffer = device->CreateGpuBuffer(pointLightConstantsBufferDesc);
+  GpuBufferDesc lightingConstantsBufferDesc;
+  lightingConstantsBufferDesc.BufferType = BufferType::Constant;
+  lightingConstantsBufferDesc.BufferUsage = BufferUsage::Stream;
+  lightingConstantsBufferDesc.ByteCount = sizeof(LightingConstantsBuffer);
+  _lightingConstantsBuffer = device->CreateGpuBuffer(lightingConstantsBufferDesc);
 
-  GpuBufferDesc pointLightBufferDesc;
-  pointLightBufferDesc.BufferType = BufferType::Constant;
-  pointLightBufferDesc.BufferUsage = BufferUsage::Stream;
-  pointLightBufferDesc.ByteCount = sizeof(PointLightBuffer);
-  _pointLightBuffer = device->CreateGpuBuffer(pointLightBufferDesc);
+  GpuBufferDesc lightingBufferDesc;
+  lightingBufferDesc.BufferType = BufferType::Constant;
+  lightingBufferDesc.BufferUsage = BufferUsage::Stream;
+  lightingBufferDesc.ByteCount = sizeof(LightingBuffer);
+  _lightingBuffer = device->CreateGpuBuffer(lightingBufferDesc);
 
-  _pointLightMesh = MeshFactory::CreateUvSphere();
-
-  {
-    ShaderDesc vsDesc;
-    vsDesc.EntryPoint = "main";
-    vsDesc.ShaderLang = ShaderLang::Glsl;
-    vsDesc.ShaderType = ShaderType::Vertex;
-    vsDesc.Source = String::LoadFromFile("./Shaders/FSPassThrough.vert");
-
-    ShaderDesc psDesc;
-    psDesc.EntryPoint = "main";
-    psDesc.ShaderLang = ShaderLang::Glsl;
-    psDesc.ShaderType = ShaderType::Pixel;
-    psDesc.Source = String::LoadFromFile("./Shaders/Merge.frag");
-
-    std::vector<VertexLayoutDesc> vertexLayoutDesc{
-        VertexLayoutDesc(SemanticType::Position, SemanticFormat::Float2),
-        VertexLayoutDesc(SemanticType::TexCoord, SemanticFormat::Float2),
-    };
-
-    std::shared_ptr<ShaderParams> shaderParams(new ShaderParams());
-    shaderParams->AddParam(ShaderParam("DiffuseMap", ShaderParamType::Texture, 0));
-    shaderParams->AddParam(ShaderParam("EmissiveMap", ShaderParamType::Texture, 1));
-    shaderParams->AddParam(ShaderParam("SpecularMap", ShaderParamType::Texture, 2));
-
-    RasterizerStateDesc rasterizerStateDesc;
-    rasterizerStateDesc.CullMode = CullMode::None;
-
-    PipelineStateDesc pipelineDesc;
-    pipelineDesc.VS = device->CreateShader(vsDesc);
-    pipelineDesc.PS = device->CreateShader(psDesc);
-    pipelineDesc.BlendState = device->CreateBlendState(BlendStateDesc());
-    pipelineDesc.RasterizerState = device->CreateRasterizerState(rasterizerStateDesc);
-    pipelineDesc.DepthStencilState = device->CreateDepthStencilState(DepthStencilStateDesc());
-    pipelineDesc.VertexLayout = device->CreateVertexLayout(vertexLayoutDesc);
-    pipelineDesc.ShaderParams = shaderParams;
-
-    _mergePso = device->CreatePipelineState(pipelineDesc);
-  }
-  {
-    TextureDesc colourTexDesc;
-    colourTexDesc.Width = _windowDims.X;
-    colourTexDesc.Height = _windowDims.Y;
-    colourTexDesc.Usage = TextureUsage::RenderTarget;
-    colourTexDesc.Type = TextureType::Texture2D;
-    colourTexDesc.Format = TextureFormat::RGB8;
-
-    RenderTargetDesc rtDesc;
-    rtDesc.ColourTargets[0] = device->CreateTexture(colourTexDesc);
-    rtDesc.ColourTargets[1] = device->CreateTexture(colourTexDesc);
-    rtDesc.Height = _windowDims.X;
-    rtDesc.Width = _windowDims.Y;
-
-    _mergePassRto = device->CreateRenderTarget(rtDesc);
-  }
+  SamplerStateDesc shadowMapSamplerStateDesc;
+  shadowMapSamplerStateDesc.AddressingMode = AddressingMode{TextureAddressMode::Border, TextureAddressMode::Border, TextureAddressMode::Clamp};
+  shadowMapSamplerStateDesc.MinFiltering = TextureFilteringMode::None;
+  shadowMapSamplerStateDesc.MinFiltering = TextureFilteringMode::None;
+  shadowMapSamplerStateDesc.MipFiltering = TextureFilteringMode::None;
+  shadowMapSamplerStateDesc.BorderColour = Colour::White;
+  _shadowMapSamplerState = device->CreateSamplerState(shadowMapSamplerStateDesc);
 }
 
 void DeferredRenderer::onDrawDebugUi()
@@ -291,25 +247,41 @@ void DeferredRenderer::onDrawDebugUi()
   ImGui::Separator();
   {
     ImGui::Text("Deferred Renderer");
-  }  
+
+    float32 rawCol[]{_ambientColour[0], _ambientColour[1], _ambientColour[2]};
+    if (ImGui::ColorEdit3("Ambient Colour", rawCol))
+    {
+      _ambientColour = Colour(rawCol[0] * 255, rawCol[1] * 255, rawCol[2] * 255);
+    }
+
+    float32 ambientIntensity = _ambientIntensity;
+    if (ImGui::SliderFloat("Ambient Intensity", &ambientIntensity, 0.0f, 1.0f))
+    {
+      _ambientIntensity = ambientIntensity;
+    }
+  }
 }
 
 void DeferredRenderer::drawFrame(std::shared_ptr<RenderDevice> renderDevice,
                                  const std::vector<std::shared_ptr<Drawable>> &aabbDrawables,
                                  const std::vector<std::shared_ptr<Drawable>> &drawables,
                                  const std::vector<std::shared_ptr<Light>> &lights,
-                                 const Camera &camera)
+                                 const std::shared_ptr<RenderTarget> &shadowMapRto,
+                                 const std::shared_ptr<GpuBuffer> &shadowMapBuffer,
+                                 const std::shared_ptr<Camera> &camera)
 {
-  renderDevice->ClearBuffers(RTT_Colour | RTT_Depth | RTT_Stencil);
+  ViewportDesc viewportDesc;
+  viewportDesc.Width = _windowDims.X;
+  viewportDesc.Height = _windowDims.Y;
+  renderDevice->SetViewport(viewportDesc);
 
   gbufferPass(renderDevice, drawables, camera);
-  lightPrePass(renderDevice, lights, camera);
-  mergePass(renderDevice);
+  lightingPass(renderDevice, lights, shadowMapRto, shadowMapBuffer, camera);
 }
 
 void DeferredRenderer::gbufferPass(std::shared_ptr<RenderDevice> device,
                                    const std::vector<std::shared_ptr<Drawable>> &drawables,
-                                   const Camera &camera)
+                                   const std::shared_ptr<Camera> &camera)
 {
   device->SetPipelineState(_gBufferPso);
   device->SetRenderTarget(_gBufferRto);
@@ -339,66 +311,54 @@ void DeferredRenderer::gbufferPass(std::shared_ptr<RenderDevice> device,
   }
 }
 
-void DeferredRenderer::lightPrePass(std::shared_ptr<RenderDevice> renderDevice,
+void DeferredRenderer::lightingPass(std::shared_ptr<RenderDevice> renderDevice,
                                     const std::vector<std::shared_ptr<Light>> &lights,
-                                    const Camera &camera)
+                                    const std::shared_ptr<RenderTarget> &shadowMapRto,
+                                    const std::shared_ptr<GpuBuffer> &shadowMapBuffer,
+                                    const std::shared_ptr<Camera> &camera)
 {
-  renderDevice->SetRenderTarget(_lightPrePassRto);
+  renderDevice->SetPipelineState(_lightingPto);
+  renderDevice->SetRenderTarget(_lightingPassRto);
   renderDevice->ClearBuffers(RTT_Colour);
-  renderDevice->SetTexture(0, _gBufferRto->GetDepthStencilTarget());
-  renderDevice->SetTexture(1, _gBufferRto->GetColourTarget(1));
-  renderDevice->SetTexture(2, _gBufferRto->GetColourTarget(2));
-  renderDevice->SetSamplerState(0, _noMipSamplerState);
-  renderDevice->SetSamplerState(1, _noMipSamplerState);
-  renderDevice->SetSamplerState(2, _noMipSamplerState);
-  renderDevice->SetConstantBuffer(1, _pointLightConstantsBuffer);
-  renderDevice->SetConstantBuffer(2, _pointLightBuffer);
-
-  Transform cameraTransform(camera.getTransformCopy());
-  PointLightConstantsBuffer pointLightConstantsBuffer;
-  pointLightConstantsBuffer.ProjViewInvs = (camera.getProj() * camera.getView()).Inverse();
-  pointLightConstantsBuffer.CameraPosition = cameraTransform.getPosition();
-  pointLightConstantsBuffer.PixelSize = Vector2(1.0f / _windowDims.X, 1.0f / _windowDims.Y);
-  _pointLightConstantsBuffer->WriteData(0, sizeof(PointLightConstantsBuffer), &pointLightConstantsBuffer, AccessType::WriteOnlyDiscard);
-
-  for (auto light : lights)
-  {
-    float32 distToLight = (light->getPosition() - cameraTransform.getPosition()).Length();
-    if (distToLight < light->getRadius())
-    {
-      renderDevice->SetPipelineState(_lightPrePassCWPto);
-    }
-    else
-    {
-      renderDevice->SetPipelineState(_lightPrePassCCWPto);
-    }
-
-    PointLightBuffer pointLightBuffer;
-    pointLightBuffer.Model = light->getMatrix();
-    pointLightBuffer.ModelView = camera.getView() * pointLightBuffer.Model;
-    pointLightBuffer.ModelViewProjection = camera.getProj() * pointLightBuffer.ModelView;
-    pointLightBuffer.Colour = light->getColour().ToVec3();
-    pointLightBuffer.Position = light->getPosition();
-    pointLightBuffer.Radius = light->getRadius();
-    _pointLightBuffer->WriteData(0, sizeof(PointLightBuffer), &pointLightBuffer, AccessType::WriteOnlyDiscard);
-
-    renderDevice->SetConstantBuffer(0, _pointLightBuffer);
-    renderDevice->SetVertexBuffer(_pointLightMesh->getVertexData(renderDevice));
-    renderDevice->SetIndexBuffer(_pointLightMesh->getIndexData(renderDevice));
-    renderDevice->DrawIndexed(_pointLightMesh->getIndexCount(), 0, 0);
-  }
-}
-
-void DeferredRenderer::mergePass(std::shared_ptr<RenderDevice> renderDevice)
-{
-  renderDevice->SetRenderTarget(_mergePassRto);
-  renderDevice->SetPipelineState(_mergePso);
   renderDevice->SetTexture(0, _gBufferRto->GetColourTarget(0));
-  renderDevice->SetTexture(1, _lightPrePassRto->GetColourTarget(0));
-  renderDevice->SetTexture(2, _lightPrePassRto->GetColourTarget(1));
+  renderDevice->SetTexture(1, _gBufferRto->GetDepthStencilTarget());
+  renderDevice->SetTexture(2, _gBufferRto->GetColourTarget(1));
+  renderDevice->SetTexture(3, _gBufferRto->GetColourTarget(2));
+  renderDevice->SetTexture(4, shadowMapRto->GetDepthStencilTarget());
   renderDevice->SetSamplerState(0, _noMipSamplerState);
   renderDevice->SetSamplerState(1, _noMipSamplerState);
   renderDevice->SetSamplerState(2, _noMipSamplerState);
+  renderDevice->SetSamplerState(3, _noMipSamplerState);
+  renderDevice->SetSamplerState(4, _shadowMapSamplerState);
+  renderDevice->SetConstantBuffer(0, _lightingConstantsBuffer);
+  renderDevice->SetConstantBuffer(1, _lightingBuffer);
+  renderDevice->SetConstantBuffer(2, shadowMapBuffer);
+
+  LightingConstantsBuffer lightingConstants;
+  lightingConstants.View = camera->getView();
+  lightingConstants.FarPlane = camera->getFar();
+  lightingConstants.ProjViewInvs = (camera->getProj() * camera->getView()).Inverse();
+  lightingConstants.CameraPosition = camera->getParentTransform().getPosition();
+  lightingConstants.PixelSize = Vector2(1.0f / _windowDims.X, 1.0f / _windowDims.Y);
+  _lightingConstantsBuffer->WriteData(0, sizeof(LightingConstantsBuffer), &lightingConstants, AccessType::WriteOnlyDiscard);
+
+  LightingBuffer lighting;
+  lighting.AmbientColour = _ambientColour.ToVec3();
+  lighting.AmbientIntensity = _ambientIntensity;
+  for (uint32 i = 0; i < lights.size(); i++)
+  {
+    auto light = lights[i];
+    LightData lightData;
+    lightData.Colour = light->getColour().ToVec3();
+    lightData.Direction = light->getDirection();
+    lightData.Intensity = light->getIntensity();
+    lightData.LightType = static_cast<int32>(light->getLightType());
+    lightData.Position = light->getPosition();
+    lightData.Radius = light->getRadius();
+    lighting.Lights[i] = lightData;
+  }
+  _lightingBuffer->WriteData(0, sizeof(LightingBuffer), &lighting, AccessType::WriteOnlyDiscard);
+
   renderDevice->SetVertexBuffer(_fsQuadBuffer);
   renderDevice->Draw(6, 0);
 }
@@ -438,11 +398,11 @@ void DeferredRenderer::writeMaterialConstantData(std::shared_ptr<RenderDevice> r
   _materialBuffer->WriteData(0, sizeof(MaterialBufferData), &matData, AccessType::WriteOnlyDiscard);
 }
 
-void DeferredRenderer::writeObjectConstantData(std::shared_ptr<Drawable> drawable, const Camera &camera) const
+void DeferredRenderer::writeObjectConstantData(std::shared_ptr<Drawable> drawable, const std::shared_ptr<Camera> &camera) const
 {
   ObjectBuffer objectBufferData;
   objectBufferData.Model = drawable->getMatrix();
-  objectBufferData.ModelView = camera.getView() * objectBufferData.Model;
-  objectBufferData.ModelViewProjection = camera.getProj() * objectBufferData.ModelView;
+  objectBufferData.ModelView = camera->getView() * objectBufferData.Model;
+  objectBufferData.ModelViewProjection = camera->getProj() * objectBufferData.ModelView;
   _objectBuffer->WriteData(0, sizeof(ObjectBuffer), &objectBufferData, AccessType::WriteOnlyDiscard);
 }

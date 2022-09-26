@@ -1,5 +1,6 @@
 #pragma once
 #include <functional>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -19,6 +20,7 @@ public:
 	GameObjectBuilder &withComponent(Component &component);
 	GameObjectBuilder &withScale(const Vector3 &scale);
 	GameObjectBuilder &withPosition(const Vector3 &position);
+	GameObjectBuilder &withTarget(const Vector3 &target);
 	GameObjectBuilder &withRotation(const Quaternion &rotation);
 
 	GameObject &build();
@@ -30,5 +32,6 @@ private:
 	Scene &_scene;
 	Vector3 _scale;
 	Vector3 _position;
+	std::optional<Vector3> _target;
 	Quaternion _rotation;
 };

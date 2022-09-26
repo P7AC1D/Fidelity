@@ -9,7 +9,8 @@ enum class ComponentType
 {
   Drawable,
   Light,
-  Generic
+  Generic,
+  Camera
 };
 
 class Component

@@ -9,7 +9,7 @@ layout(location = 0) out vec4 FinalColour;
 layout(std140) uniform CameraBuffer
 {
   float nearClip;
-	float farClip;
+  float farClip;
 } Camera;
 
 float LinearizeDepth(in vec2 uv)

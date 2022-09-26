@@ -41,6 +41,7 @@ void GLSamplerState::Initialize()
   SetTextureAddressingMode(GetAddressingMode());
   SetTextureMinMipFiltering(GetMinFilteringMode(), GetMipFilteringMode());
   SetTextureMagFiltering(GetMagFilteringMode());
+  SetBorderColour(GetBorderColour());
 }
 
 
@@ -128,4 +129,10 @@ void GLSamplerState::SetTextureMagFiltering(TextureFilteringMode textureFilterin
     default:
       break;
   }
+}
+
+void GLSamplerState::SetBorderColour(Colour borderColour)
+{
+  const float32 colour[4] = { borderColour[0], borderColour[1] , borderColour[2] , borderColour[3] };
+  GLCall(glSamplerParameterfv(_id, GL_TEXTURE_BORDER_COLOR, colour));
 }

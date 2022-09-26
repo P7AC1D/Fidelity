@@ -3,18 +3,23 @@
 #include "AABB.hpp"
 #include "Matrix4.hpp"
 #include "Plane.hpp"
+#include "Vector4.hpp"
+
+class Camera;
 
 class Frustrum
 {
 public:
 	Frustrum();
-	Frustrum(const std::array<Plane, 6>& planes);
-	Frustrum(const Matrix4& viewProjection);
+	Frustrum(const Camera &camera);
 
-	bool Intersects(const Aabb& box) const;
-
-	std::array<Plane, 6> GetPlanes() const { return _planes; }
+	bool contains(const Aabb &box) const;
 
 private:
-	std::array<Plane, 6> _planes;
+	Plane _left;
+	Plane _right;
+	Plane _top;
+	Plane _bottom;
+	Plane _far;
+	Plane _near;
 };

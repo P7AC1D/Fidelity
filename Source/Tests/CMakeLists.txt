@@ -7,3 +7,6 @@ source_group(Tests FILES ${TestsSrc})
 add_executable(Tests ${TestsSrc})
 
 target_link_libraries(Tests engine)
+target_link_libraries (Tests glm)
+
+target_include_directories(engine PUBLIC "${CMAKE_SOURCE_DIR}/Externals/glm/glm")

@@ -22,6 +22,16 @@ struct ObjectBuffer
   Matrix4 ModelViewProjection;
 };
 
+struct CascadeShadowMapData
+{
+  Matrix4 LightTransforms[4];
+  // Vector4 to ensure the correct padding is done. A float will be padded by 3 x floats.
+  Vector4 CascadePlaneDistances[4];
+  Vector3 LightDirection;
+  uint32 CascadeCount;
+  int32 DrawLayers;
+};
+
 class Renderer
 {
 public:
@@ -32,7 +42,9 @@ public:
   virtual void onDrawDebugUi() = 0;
 
 protected:
-  Renderer() = default;
+  Renderer();
+
+  bool _settingsModified;
 
   std::shared_ptr<GpuBuffer> _cameraBuffer;
 

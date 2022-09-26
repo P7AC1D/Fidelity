@@ -25,6 +25,9 @@ std::vector<FullscreenQuadVertex> FullscreenQuadVertices{
     FullscreenQuadVertex(Vector2(1.0f, 1.0f), Vector2(1.0f, 1.0f)),
     FullscreenQuadVertex(Vector2(-1.0f, 1.0f), Vector2(0.0f, 1.0f))};
 
+Renderer::Renderer() : _settingsModified(false)
+{}
+
 bool Renderer::init(const std::shared_ptr<RenderDevice> &renderDevice)
 {
   try

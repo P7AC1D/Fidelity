@@ -1,10 +1,14 @@
 #include "Test3D.h"
 
 #include <iomanip>
+#include <random>
 #include <sstream>
 
-static const float32 CAMERA_ROTATION_FACTOR = 0.005f;
+static const float32 CAMERA_ROTATION_FACTOR = 0.01f;
 static const float32 CAMERA_ZOOM_FACTOR = 0.01f;
+static const float32 CAMERA_LOOK_SENSITIVITY = 0.005f;
+static const float32 CAMERA_MOVE_FACTOR = 0.10f;
+static const float32 CAMERA_MOVE_SPRINT_FACTOR = 1.0f;
 
 Test3D::Test3D(const ApplicationDesc &desc) : Application(desc),
                                               _cameraTarget(Vector3::Zero)
@@ -13,12 +17,26 @@ Test3D::Test3D(const ApplicationDesc &desc) : Application(desc),
 
 void Test3D::OnStart()
 {
-  _scene.getCamera()
-      .setPerspective(Degree(67.67f), GetWidth(), GetHeight(), 0.1f, 10000.0f)
-      .getTransform()
-      .lookAt(Vector3(-400.0f, 500.0f, 20.0f), _cameraTarget);
-
   GameObject &root = _scene.getRoot();
+
+  _camera = &GameObjectBuilder(_scene)
+                 .withName("mainCamera")
+                 .withComponent(_scene.createComponent<Camera>()
+                                    .setPerspective(Degree(67.67f), GetWidth(), GetHeight(), 0.1f, 200.0f))
+                 .withPosition(Vector3(-15.0f, 17.0f, -11.0f))
+                 .withTarget(Vector3::Zero)
+                 .withRotation(Quaternion(Degree(-123.0f), Degree(36.0f), Degree(138.0f)))
+                 .build();
+  _scene.addChildToNode(root, *_camera);
+
+  _scene.addChildToNode(root, GameObjectBuilder(_scene)
+                                  .withName("directionalLight")
+                                  .withComponent(_scene.createComponent<Light>()
+                                                     .setLightType(LightType::Directional)
+                                                     .setColour(Colour(244, 233, 155))
+                                                     .setIntensity(0.5f))
+                                  .withRotation(Quaternion(Degree(-23), Degree(-73.f), Degree(26.0f)))
+                                  .build());
   _scene.addChildToNode(root, GameObjectBuilder(_scene)
                                   .withName("light1")
                                   .withComponent(_scene.createComponent<Light>()
@@ -40,46 +58,122 @@ void Test3D::OnStart()
                                                      .setRadius(300.0f))
                                   .withPosition(Vector3(-150.0f, 100.0f, 100.0f))
                                   .build());
-  _scene.addChildToNode(root, ModelLoader::FromFile(_scene, "./Models/Sponza/sponza.obj", true));
+  //_scene.addChildToNode(root, ModelLoader::FromFile(_scene, "./Models/Sponza/sponza.obj", true));
 
-  _inputHandler->BindButtonToState("ActivateCameraLook", Button::Button_LMouse);
-  _inputHandler->BindAxisToState("CameraZoom", Axis::MouseScrollXY);
-  _inputHandler->BindAxisToState("CameraLook", Axis::MouseXY);
+  std::shared_ptr<Material> material(new Material());
+  material->setDiffuseTexture(LoadTextureFromFile("./Textures/crate0_diffuse.png", true, true));
+  material->setNormalTexture(LoadTextureFromFile("./Textures/crate0_normal.png", false, false));
+  material->setSpecularTexture(LoadTextureFromFile("./Textures/crate0_bump.png", false, false));
 
-  _eventDispatcher->Register("CameraZoom", [&](const InputEvent &inputEvent, int32 dt)
-                             { ZoomCamera(static_cast<float32>(inputEvent.AxisPosDelta[1]), dt); });
+  std::random_device rd;
+  std::mt19937 gen(rd());
+  std::uniform_real_distribution<> dist(-25, 25);
+  for (uint32 i = 0; i < 100; i++)
+  {
+    _scene.addChildToNode(root, GameObjectBuilder(_scene)
+      .withName("cube" + std::to_string(i))
+      .withComponent(_scene.createComponent<Drawable>()
+        .setMesh(MeshFactory::CreateCube())
+        .setMaterial(material))
+      .withPosition(Vector3(dist(gen), std::fabsf(dist(gen)), dist(gen)))
+      .withRotation(Quaternion(Degree(dist(gen)), Degree(dist(gen)), Degree(dist(gen))))
+      .build());
+  }
 
-  _eventDispatcher->Register("CameraLook", [&](const InputEvent &inputEvent, int32 dt)
-                             {
-    if (_inputHandler->IsButtonStateActive("ActivateCameraLook"))
-    {
-      Radian yaw(static_cast<float32>(-inputEvent.AxisPosDelta[1]));
-      Radian pitch(static_cast<float32>(-inputEvent.AxisPosDelta[0]));
-      RotateCamera(yaw, pitch, dt);
-    } });
+  std::shared_ptr<Material> floorMaterial(new Material());
+  floorMaterial->setDiffuseTexture(LoadTextureFromFile("./Textures/brick_floor_tileable_Base_Color.jpg", true, true));
+  _scene.addChildToNode(root, GameObjectBuilder(_scene)
+                                  .withName("floor")
+                                  .withComponent(_scene.createComponent<Drawable>()
+                                                     .setMesh(MeshFactory::CreatePlane(100))
+                                                     .setMaterial(floorMaterial))
+                                  .withPosition(Vector3(50, -5, 50))
+                                  .withScale(Vector3(100, 100, 100))
+                                  .build());
 }
 
 void Test3D::OnUpdate(uint32 dtMs)
 {
-  std::stringstream ss;
-  ss.precision(4);
-  ss << GetAverageFps(dtMs) << " FPS " << GetAverageTickMs(dtMs) << " ms";
+  Vector2I scrollDelta(_inputHandler->getAxisState(Axis::MouseScrollXY));
+  ZoomCamera(scrollDelta[1], dtMs);
+
+  Vector2I currMousePos(_inputHandler->getAxisState(Axis::MouseXY));
+  Vector2I mousePosDelta = _lastMousePos - currMousePos;
+
+  if (_inputHandler->isButtonPressed(Button::Key_W))
+  {
+    float32 deltaX = static_cast<float32>(dtMs) * (_inputHandler->isButtonPressed(Button::Key_LShift) ? CAMERA_MOVE_SPRINT_FACTOR : CAMERA_MOVE_FACTOR);
+    TranslateCamera(deltaX, 0.0f);
+  }
+  else if (_inputHandler->isButtonPressed(Button::Key_S))
+  {
+    float32 deltaX = static_cast<float32>(dtMs) * (_inputHandler->isButtonPressed(Button::Key_LShift) ? CAMERA_MOVE_SPRINT_FACTOR : CAMERA_MOVE_FACTOR);
+    TranslateCamera(-deltaX, 0.0f);
+  }
+
+  if (_inputHandler->isButtonPressed(Button::Key_D))
+  {
+    float32 deltaY = static_cast<float32>(dtMs) * (_inputHandler->isButtonPressed(Button::Key_LShift) ? CAMERA_MOVE_SPRINT_FACTOR : CAMERA_MOVE_FACTOR);
+    TranslateCamera(0.0f, deltaY);
+  }
+  else if (_inputHandler->isButtonPressed(Button::Key_A))
+  {
+    float32 deltaY = static_cast<float32>(dtMs) * (_inputHandler->isButtonPressed(Button::Key_LShift) ? CAMERA_MOVE_SPRINT_FACTOR : CAMERA_MOVE_FACTOR);
+    TranslateCamera(0.0f, -deltaY);
+  }
+
+  if (_inputHandler->isButtonPressed(Button::Button_LMouse))
+  {
+    RotateCamera(mousePosDelta[0], mousePosDelta[1], dtMs);
+  }
+  else if (_inputHandler->isButtonPressed(Button::Button_RMouse))
+  {
+    FpsCameraLook(mousePosDelta[0], mousePosDelta[1], dtMs);
+  }
+
+  _lastMousePos = currMousePos;
 }
 
-void Test3D::RotateCamera(const Degree &deltaX, const Degree &deltaY, int32 dtMs)
+void Test3D::FpsCameraLook(int32 deltaX, int32 deltaY, uint32 dtMs)
 {
-  Transform &cameraTransform = _scene.getCamera().getTransform();
+  if (deltaX == 0 && deltaY == 0)
+  {
+    return;
+  }
+
+  Transform &cameraTransform = _camera->transform();
+  float32 velocity(CAMERA_LOOK_SENSITIVITY * static_cast<float32>(dtMs));
+  Quaternion qPitch(Vector3(1.0f, 0.0f, 0.0f), -velocity * deltaY);
+  Quaternion qYaw(Vector3(0.0f, 1.0f, 0.0f), -velocity * deltaX);
+
+  cameraTransform.setRotation(qPitch * cameraTransform.getRotation() * qYaw);
+  _cameraTarget = cameraTransform.getForward();
+}
+
+void Test3D::RotateCamera(int32 deltaX, int32 deltaY, uint32 dtMs)
+{
+  if (deltaX == 0 && deltaY == 0)
+  {
+    return;
+  }
+
+  Transform &cameraTransform = _camera->transform();
   float32 velocity(CAMERA_ROTATION_FACTOR * static_cast<float32>(dtMs));
-  Quaternion pitch(cameraTransform.getRight(), velocity * deltaX.InRadians());
-  Quaternion yaw(cameraTransform.getUp(), velocity * deltaY.InRadians());
+  Quaternion pitch(cameraTransform.getRight(), velocity * deltaY);
+  Quaternion yaw(cameraTransform.getUp(), velocity * deltaX);
   Quaternion rotation(pitch * yaw);
   Vector3 newPosition(rotation.Rotate(cameraTransform.getPosition()));
-  cameraTransform.lookAt(newPosition, _cameraTarget);
+  cameraTransform.lookAt(newPosition, cameraTransform.getForward());
 }
 
-void Test3D::ZoomCamera(float32 delta, int32 dtMs)
+void Test3D::ZoomCamera(int32 delta, uint32 dtMs)
 {
-  Transform &cameraTransform = _scene.getCamera().getTransform();
+  if (delta == 0)
+  {
+    return;
+  }
+
+  Transform &cameraTransform = _camera->transform();
   Vector3 cameraForward = cameraTransform.getForward();
   Vector3 cameraPostion = cameraTransform.getPosition();
 
@@ -94,4 +188,17 @@ void Test3D::ZoomCamera(float32 delta, int32 dtMs)
     newPosition = _cameraTarget + cameraForward * 0.1f;
   }
   cameraTransform.lookAt(newPosition, _cameraTarget);
+}
+
+void Test3D::TranslateCamera(float32 forward, float32 right)
+{
+  if (forward == 0.0f && right == 0.0f)
+  {
+    return;
+  }
+
+  Transform &cameraTransform = _camera->transform();
+  Vector3 cameraForward = cameraTransform.getForward();
+  Vector3 cameraRight = cameraTransform.getRight();
+  cameraTransform.translate(-cameraForward * forward + cameraRight * right);
 }

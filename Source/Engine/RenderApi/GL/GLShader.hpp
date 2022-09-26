@@ -5,35 +5,36 @@
 
 class GLShader : public Shader
 {
-  friend class GLRenderDevice;
-  
-public:
-  ~GLShader();
-  
-  uint32 GetId() const { return _id; }
-  
-  void Compile() override;
+	friend class GLRenderDevice;
 
-	bool HasUniform(const std::string& name) const;
-  
-  void BindUniformBlock(const std::string& name, uint32 bindingPoint);
-	void BindTextureUnit(const std::string& name, uint32 textureUnit);
-  
+public:
+	~GLShader();
+
+	uint32 GetId() const { return _id; }
+
+	void Compile() override;
+
+	bool HasUniform(const std::string &name) const;
+
+	void BindUniformBlock(const std::string &name, uint32 bindingPoint);
+	void BindTextureUnit(const std::string &name, uint32 textureUnit);
+
 private:
-  GLShader(const ShaderDesc& desc);
+	GLShader(const ShaderDesc &desc);
 
 	void AttachHeaderFiles();
-  std::string GetShaderLog();
-  
-	uint32 GetUniformLocation(const std::string& name);
+	std::string GetShaderLog();
+
+	uint32 GetUniformLocation(const std::string &name);
 
 	void BuildUniformDefinitions();
 	void BuildUniformBlockDefinitions();
-  
+
 private:
 	enum class UniformType
 	{
 		Sampler2D,
+		Sampler2DArray,
 		SamplerCube,
 		UniformBlock
 	};
@@ -45,7 +46,7 @@ private:
 		UniformType Type;
 	};
 
-  uint32 _id;
+	uint32 _id;
 	std::unordered_map<std::string, Uniform> _uniforms;
 	std::unordered_map<uint32, uint32> _assignedBindingPoints;
 	std::unordered_map<uint32, uint32> _assignedTextureSlots;

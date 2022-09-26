@@ -1,6 +1,25 @@
 #include "Math.hpp"
 
 #include "Vector3.hpp"
+#include "Vector4.hpp"
+
+float32 Math::InverseSqrt(float32 value)
+{
+  union
+  {
+    float32 f;
+    uint32 i;
+  } conv;
+
+  float32 x2;
+  const float32 threehalfs = 1.5F;
+
+  x2 = value * 0.5F;
+  conv.f = value;
+  conv.i = 0x5f3759df - (conv.i >> 1);
+  conv.f = conv.f * (threehalfs - (x2 * conv.f * conv.f));
+  return conv.f;
+}
 
 float32 Math::Sin(const Radian &angle)
 {
@@ -53,9 +72,19 @@ Vector3 Math::Min(Vector3 a, Vector3 b)
   return Vector3(std::fmin(a.X, b.X), std::fmin(a.Y, b.Y), std::fmin(a.Z, b.Z));
 }
 
+Vector4 Math::Min(Vector4 a, Vector4 b)
+{
+  return Vector4(std::fmin(a.X, b.X), std::fmin(a.Y, b.Y), std::fmin(a.Z, b.Z), std::fmin(a.W, b.W));
+}
+
 Vector3 Math::Max(Vector3 a, Vector3 b)
 {
   return Vector3(std::fmax(a.X, b.X), std::fmax(a.Y, b.Y), std::fmax(a.Z, b.Z));
+}
+
+Vector4 Math::Max(Vector4 a, Vector4 b)
+{
+  return Vector4(std::fmax(a.X, b.X), std::fmax(a.Y, b.Y), std::fmax(a.Z, b.Z), std::fmax(a.W, b.W));
 }
 
 Vector3 Math::Abs(Vector3 a)

@@ -6,19 +6,24 @@
 #include <unordered_map>
 #include <vector>
 
-#include "../Rendering/Camera.h"
 #include "Component.h"
 #include "Maths.h"
 #include "Types.hpp"
 
+class Camera;
+class Drawable;
 class GameObject;
 class DeferredRenderer;
 class DebugRenderer;
 class RenderDevice;
+class SceneGraph;
+class ShadowMapRenderer;
 
 class Scene
 {
 public:
+  Scene();
+  virtual ~Scene();
   bool init(const Vector2I &windowDims, std::shared_ptr<RenderDevice> renderDevice);
 
   template <typename T>
@@ -31,10 +36,9 @@ public:
   void addChildToNode(GameObject &parent, GameObject &child);
 
   void update(float64 dt);
-  void drawFrame() const;
+  void drawFrame();
   void drawDebugUi();
 
-  Camera &getCamera() { return _camera; }
   GameObject &getRoot() { return _gameObjects[0]; }
 
   // TODO Remove this and better abstract dependenciexc
@@ -44,27 +48,31 @@ private:
   void drawSceneGraphUi(uint64 nodeIndex);
   void drawGameObjectInspector(uint64 selectedGameObjectIndex);
   void setAabbDrawOnGameObject(uint64 gameObjectIndex, bool enableAabbDraw);
+  void calcSceneExtents();
 
   struct DrawableSortMap
   {
     float32 DistanceToCamera;
-    std::shared_ptr<Component> ComponentPtr;
+    std::shared_ptr<Drawable> ComponentPtr;
 
-    DrawableSortMap(float32 distance, std::shared_ptr<Component> component) : DistanceToCamera(distance),
-                                                                              ComponentPtr(component)
+    DrawableSortMap(float32 distance, std::shared_ptr<Drawable> component) : DistanceToCamera(distance),
+                                                                             ComponentPtr(component)
     {
     }
   };
 
-  std::map<uint64, std::vector<uint64>> _sceneGraph;
+  bool _objectAddedToScene;
+  Vector3 _sceneMaxExtents;
+  Vector3 _sceneMinExtents;
 
-  std::unordered_map<ComponentType, std::vector<std::shared_ptr<Component>>>
-      _components;
+  std::unique_ptr<SceneGraph> _sceneGraph;
+  // TODO: Remove pointers here so that its a true data-driven design
+  std::unordered_map<ComponentType, std::vector<std::shared_ptr<Component>>> _components;
   std::map<uint64, GameObject> _gameObjects;
-  Camera _camera;
 
   std::shared_ptr<DeferredRenderer> _deferredRenderer;
   std::shared_ptr<DebugRenderer> _debugRenderer;
+  std::shared_ptr<ShadowMapRenderer> _shadowMapRenderer;
   std::shared_ptr<RenderDevice> _renderDevice;
 };
 

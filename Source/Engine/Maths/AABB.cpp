@@ -1,12 +1,13 @@
 #include "AABB.hpp"
 
+#include "Plane.hpp"
 #include "Vector4.hpp"
 
 Aabb::Aabb()
 {
 }
 
-Aabb::Aabb(const Vector3& posBounds, const Vector3& negBounds) : _posBounds(posBounds), _negBounds(negBounds)
+Aabb::Aabb(const Vector3 &posBounds, const Vector3 &negBounds) : _posBounds(posBounds), _negBounds(negBounds)
 {
 }
 
@@ -28,4 +29,15 @@ Vector3 Aabb::GetHalfSize() const
 float32 Aabb::GetRadius() const
 {
 	return Vector3::Length(GetHalfSize());
+}
+
+bool Aabb::isInFrustrumPlane(const Plane &plane) const
+{
+	const Vector3 planeNormal(plane.getNormal());
+	const Vector3 extents(GetHalfSize());
+
+	const float32 r = extents.X * std::abs(planeNormal.X) +
+										extents.Y * std::abs(planeNormal.Y) + extents.Z * std::abs(planeNormal.Z);
+
+	return -r <= plane.getSignedDistance(GetCenter());
 }

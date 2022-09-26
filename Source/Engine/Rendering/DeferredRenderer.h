@@ -31,38 +31,40 @@ public:
                  const std::vector<std::shared_ptr<Drawable>> &aabbDrawables,
                  const std::vector<std::shared_ptr<Drawable>> &drawables,
                  const std::vector<std::shared_ptr<Light>> &lights,
-                 const Camera &camera);
+                 const std::shared_ptr<RenderTarget> &shadowMapRto,
+                 const std::shared_ptr<GpuBuffer> &shadowMapBuffer,
+                 const std::shared_ptr<Camera> &camera);
 
   std::shared_ptr<RenderTarget> getGbuffer() { return _gBufferRto; }
-  std::shared_ptr<RenderTarget> getLightPrepassBuffer() { return _lightPrePassRto; }
-  std::shared_ptr<RenderTarget> getMergePassBuffer() { return _mergePassRto; }
+  std::shared_ptr<RenderTarget> getLightingBuffer() { return _lightingPassRto; }
 
 private:
   void gbufferPass(std::shared_ptr<RenderDevice> renderDevice,
                    const std::vector<std::shared_ptr<Drawable>> &drawables,
-                   const Camera &camera);
+                   const std::shared_ptr<Camera> &camera);
 
-  void lightPrePass(std::shared_ptr<RenderDevice> renderDevice,
+  void lightingPass(std::shared_ptr<RenderDevice> renderDevice,
                     const std::vector<std::shared_ptr<Light>> &lights,
-                    const Camera &camera);
-
-  void mergePass(std::shared_ptr<RenderDevice> renderDevice);
+                    const std::shared_ptr<RenderTarget> &shadowMapRto,
+                    const std::shared_ptr<GpuBuffer> &shadowMapBuffer,
+                    const std::shared_ptr<Camera> &camera);
 
   void writeMaterialConstantData(std::shared_ptr<RenderDevice> renderDevice,
                                  std::shared_ptr<Material> material) const;
-  void writeObjectConstantData(std::shared_ptr<Drawable> drawable, const Camera &camera) const;
+  void writeObjectConstantData(std::shared_ptr<Drawable> drawable, const std::shared_ptr<Camera> &camera) const;
 
   Vector2I _windowDims;
+  Colour _ambientColour;
+  float32 _ambientIntensity;
 
   std::shared_ptr<PipelineState> _mergePso;
-  std::shared_ptr<PipelineState> _lightPrePassCWPto, _lightPrePassCCWPto;
   std::shared_ptr<PipelineState> _gBufferPso;
-  std::shared_ptr<RenderTarget> _lightPrePassRto;
-  std::shared_ptr<RenderTarget> _mergePassRto;
+  std::shared_ptr<PipelineState> _lightingPto;
+  std::shared_ptr<RenderTarget> _lightingPassRto;
   std::shared_ptr<RenderTarget> _gBufferRto;
   std::shared_ptr<GpuBuffer> _materialBuffer;
   std::shared_ptr<GpuBuffer> _objectBuffer;
-  std::shared_ptr<GpuBuffer> _pointLightConstantsBuffer;
-  std::shared_ptr<GpuBuffer> _pointLightBuffer;
-  std::shared_ptr<StaticMesh> _pointLightMesh;
+  std::shared_ptr<GpuBuffer> _lightingConstantsBuffer;
+  std::shared_ptr<GpuBuffer> _lightingBuffer;
+  std::shared_ptr<SamplerState> _shadowMapSamplerState;
 };

@@ -7,46 +7,21 @@
 void AttachDepthStencilTexture(const std::shared_ptr<Texture>& texture)
 {
   auto glTexture = std::dynamic_pointer_cast<GLTexture>(texture);
-  auto textureDesc = glTexture->GetDesc();
-  switch (textureDesc.Type)
+  const auto& textureDesc = glTexture->GetDesc(); 
+  if (textureDesc.Usage == TextureUsage::Depth)
   {
-    case TextureType::Texture2D:
-      if (textureDesc.Usage == TextureUsage::Depth)
-      {
-        GLCall(glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, glTexture->GetId(), 0));
-      }
-      else if (textureDesc.Usage == TextureUsage::DepthStencil)
-      {
-        GLCall(glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, glTexture->GetId(), 0));
-        GLCall(glFramebufferTexture2D(GL_FRAMEBUFFER, GL_STENCIL_ATTACHMENT, GL_TEXTURE_2D, glTexture->GetId(), 0));
-      }
-      break;
-    default:
-      throw std::runtime_error("Unsupported TextureType for depth-stencil target attachment");
+    GLCall(glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, glTexture->GetId(), 0));
+  }
+  else if (textureDesc.Usage == TextureUsage::DepthStencil)
+  {
+    GLCall(glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, glTexture->GetId(), 0));
   }
 }
 
 void AttachColourTexture(const std::shared_ptr<Texture>& texture, uint32 attachmentIndex)
 {
   auto glTexture = std::dynamic_pointer_cast<GLTexture>(texture);
-  auto textureDesc = glTexture->GetDesc();
-  switch (textureDesc.Type)
-  {
-    case TextureType::Texture1D:
-      GLCall(glFramebufferTexture1D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + attachmentIndex, GL_TEXTURE_1D, glTexture->GetId(), 0));
-      break;
-    case TextureType::Texture2D:
-      GLCall(glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + attachmentIndex, GL_TEXTURE_2D, glTexture->GetId(), 0));
-      break;
-    case TextureType::TextureCube:
-      GLCall(glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + attachmentIndex, glTexture->GetId(), 0));
-      break;
-    case TextureType::Texture1DArray:
-    case TextureType::Texture2DArray:
-    case TextureType::Texture3D:
-    default:
-      throw std::runtime_error("Unsupported TextureType for colour target attachment");
-  }
+  GLCall(glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + attachmentIndex, glTexture->GetId(), 0));
   GLCall(glReadBuffer(GL_COLOR_ATTACHMENT0 + attachmentIndex));
 }
 

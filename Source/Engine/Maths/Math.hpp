@@ -6,6 +6,7 @@
 #include "Radian.hpp"
 
 class Vector3;
+class Vector4;
 
 class Math
 {
@@ -15,6 +16,8 @@ public:
   static constexpr float32 HalfPi = (float32)(0.5f * Pi);
   static constexpr float32 Deg2Rad = Pi / 180.0f;
   static constexpr float32 Rad2Deg = 180.0f / Pi;
+
+  static float32 InverseSqrt(float32 value);
 
   static float32 Sin(const Radian &angle);
   static float32 Cos(const Radian &angle);
@@ -29,6 +32,8 @@ public:
   static float32 Abs(float32 value);
 
   static Vector3 Min(Vector3 a, Vector3 b);
+  static Vector4 Min(Vector4 a, Vector4 b);
   static Vector3 Max(Vector3 a, Vector3 b);
+  static Vector4 Max(Vector4 a, Vector4 b);
   static Vector3 Abs(Vector3 a);
 };
