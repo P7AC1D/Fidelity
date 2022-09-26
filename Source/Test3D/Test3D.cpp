@@ -1,6 +1,7 @@
 #include "Test3D.h"
 
 #include <iomanip>
+#include <random>
 #include <sstream>
 
 static const float32 CAMERA_ROTATION_FACTOR = 0.01f;
@@ -21,7 +22,7 @@ void Test3D::OnStart()
   _camera = &GameObjectBuilder(_scene)
                  .withName("mainCamera")
                  .withComponent(_scene.createComponent<Camera>()
-                                    .setPerspective(Degree(67.67f), GetWidth(), GetHeight(), 0.1f, 5000.0f))
+                                    .setPerspective(Degree(67.67f), GetWidth(), GetHeight(), 0.1f, 200.0f))
                  .withPosition(Vector3(-15.0f, 17.0f, -11.0f))
                  .withTarget(Vector3::Zero)
                  .withRotation(Quaternion(Degree(-123.0f), Degree(36.0f), Degree(138.0f)))
@@ -64,29 +65,20 @@ void Test3D::OnStart()
   material->setNormalTexture(LoadTextureFromFile("./Textures/crate0_normal.png", false, false));
   material->setSpecularTexture(LoadTextureFromFile("./Textures/crate0_bump.png", false, false));
 
-  _scene.addChildToNode(root, GameObjectBuilder(_scene)
-                                  .withName("cube1")
-                                  .withComponent(_scene.createComponent<Drawable>()
-                                                     .setMesh(MeshFactory::CreateCube())
-                                                     .setMaterial(material))
-                                  .withPosition(Vector3(0, 1, 0))
-                                  .build());
-
-  _scene.addChildToNode(root, GameObjectBuilder(_scene)
-                                  .withName("cube2")
-                                  .withComponent(_scene.createComponent<Drawable>()
-                                                     .setMesh(MeshFactory::CreateCube())
-                                                     .setMaterial(material))
-                                  .withPosition(Vector3(-6, 3.5, 7))
-                                  .build());
-
-  _scene.addChildToNode(root, GameObjectBuilder(_scene)
-                                  .withName("cube3")
-                                  .withComponent(_scene.createComponent<Drawable>()
-                                                     .setMesh(MeshFactory::CreateCube())
-                                                     .setMaterial(material))
-                                  .withPosition(Vector3(6, 1.3, 5.4))
-                                  .build());
+  std::random_device rd;
+  std::mt19937 gen(rd());
+  std::uniform_real_distribution<> dist(-25, 25);
+  for (uint32 i = 0; i < 100; i++)
+  {
+    _scene.addChildToNode(root, GameObjectBuilder(_scene)
+      .withName("cube" + std::to_string(i))
+      .withComponent(_scene.createComponent<Drawable>()
+        .setMesh(MeshFactory::CreateCube())
+        .setMaterial(material))
+      .withPosition(Vector3(dist(gen), std::fabsf(dist(gen)), dist(gen)))
+      .withRotation(Quaternion(Degree(dist(gen)), Degree(dist(gen)), Degree(dist(gen))))
+      .build());
+  }
 
   std::shared_ptr<Material> floorMaterial(new Material());
   floorMaterial->setDiffuseTexture(LoadTextureFromFile("./Textures/brick_floor_tileable_Base_Color.jpg", true, true));

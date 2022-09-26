@@ -56,16 +56,18 @@ float calculateShadowFactor(vec3 fragPosWorldSpace, vec3 normalWorldSpace)
     int layerToUse = -1;
     for (int i = 0; i < CascadeShadowMapData.CascadeCount; i++)
     {
-      if (depthValue < CascadeShadowMapData.CascadePlaneDistances[i])
+      vec4 fragPosLightSpace = CascadeShadowMapData.LightTransforms[i] * vec4(fragPosWorldSpace, 1.0);
+      vec3 shadowCoord = fragPosLightSpace.xyz / fragPosLightSpace.w;
+      shadowCoord = shadowCoord * 0.5 + 0.5;
+
+      if (clamp(shadowCoord.x, 0.0f, 1.0f) == shadowCoord.x && 
+          clamp(shadowCoord.y, 0.0f, 1.0f) == shadowCoord.y && 
+          clamp(shadowCoord.z, 0.0f, 1.0f) == shadowCoord.z && 
+          depthValue < CascadeShadowMapData.CascadePlaneDistances[i])
       {
         layerToUse = i;
         break;
       }
-    }
-
-    if (layerToUse == -1)
-    {
-      return 0.0f;
     }
 
     vec4 fragPosLightSpace = CascadeShadowMapData.LightTransforms[layerToUse] * vec4(fragPosWorldSpace, 1.0);

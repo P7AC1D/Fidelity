@@ -49,10 +49,10 @@ std::vector<Matrix4> calculateCameraCascadeProjections(const std::shared_ptr<Cam
   std::vector<float32> cascadeLevels(calculateCascadeLevels(farPlane, cascadeRatios));
 
   std::vector<Matrix4> projections;
-  projections.push_back(Matrix4::Perspective(fov, aspect, cascadeLevels[2], farPlane));
-  projections.push_back(Matrix4::Perspective(fov, aspect, cascadeLevels[1], cascadeLevels[2]));
-  projections.push_back(Matrix4::Perspective(fov, aspect, cascadeLevels[0], cascadeLevels[1]));
   projections.push_back(Matrix4::Perspective(fov, aspect, nearPlane, cascadeLevels[0]));
+  projections.push_back(Matrix4::Perspective(fov, aspect, cascadeLevels[0], cascadeLevels[1]));
+  projections.push_back(Matrix4::Perspective(fov, aspect, cascadeLevels[1], cascadeLevels[2]));
+  projections.push_back(Matrix4::Perspective(fov, aspect, cascadeLevels[2], farPlane));
   return std::move(projections);
 }
 
@@ -84,6 +84,7 @@ std::vector<Vector4> calculateFrustrumCorners(const Matrix4 &view, const Matrix4
   for (uint32 i = 0; i < 8; i++)
   {
     frustrumCorners[i] = projViewInvs * frustrumCorners[i];
+    frustrumCorners[i] = frustrumCorners[i] / frustrumCorners[i].W;
   }
 
   return std::move(frustrumCorners);
@@ -138,15 +139,15 @@ std::vector<Matrix4> calculateCascadeLightTransforms(const std::shared_ptr<Camer
   return std::move(results);
 }
 
-ShadowMapRenderer::ShadowMapRenderer() : _zMulti(10.0),
+ShadowMapRenderer::ShadowMapRenderer() : _zMulti(3.0),
                                          _shadowMapResolution(4096),
                                          _cascadeCount(4),
                                          _drawCascadeLayers(false)
 {
-  _cascadeRatios.push_back(0.04f);
-  _cascadeRatios.push_back(0.14f);
-  _cascadeRatios.push_back(0.25f);
-  _cascadeRatios.push_back(0.50f);
+  _cascadeRatios.push_back(0.1f);
+  _cascadeRatios.push_back(0.2f);
+  _cascadeRatios.push_back(0.3f);
+  _cascadeRatios.push_back(0.4f);
 }
 
 void ShadowMapRenderer::onInit(const std::shared_ptr<RenderDevice> &renderDevice)
