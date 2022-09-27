@@ -41,22 +41,22 @@ void Test3D::OnStart()
                                   .withName("light1")
                                   .withComponent(_scene.createComponent<Light>()
                                                      .setColour(Colour(150, 25, 25))
-                                                     .setRadius(300.0f))
-                                  .withPosition(Vector3(0.0f, 100.0f, 0.0f))
+                                                     .setRadius(10.0f))
+                                  .withPosition(Vector3(0.0f, 1.0f, 0.0f))
                                   .build());
   _scene.addChildToNode(root, GameObjectBuilder(_scene)
                                   .withName("light2")
                                   .withComponent(_scene.createComponent<Light>()
                                                      .setColour(Colour(25, 150, 25))
-                                                     .setRadius(300.0f))
-                                  .withPosition(Vector3(-150.0f, 100.0f, -100.0f))
+                                                     .setRadius(100.0f))
+                                  .withPosition(Vector3(-1.5f, 1.0f, -1.0f))
                                   .build());
   _scene.addChildToNode(root, GameObjectBuilder(_scene)
                                   .withName("light3")
                                   .withComponent(_scene.createComponent<Light>()
                                                      .setColour(Colour(25, 25, 100))
-                                                     .setRadius(300.0f))
-                                  .withPosition(Vector3(-150.0f, 100.0f, 100.0f))
+                                                     .setRadius(10.0f))
+                                  .withPosition(Vector3(-1.5f, 1.0f, 1.0f))
                                   .build());
   //_scene.addChildToNode(root, ModelLoader::FromFile(_scene, "./Models/Sponza/sponza.obj", true));
 
