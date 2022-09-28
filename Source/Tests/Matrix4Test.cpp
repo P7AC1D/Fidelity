@@ -1,5 +1,6 @@
 #include "catch.hpp"
 
+#include <glm/gtx/matrix_decompose.hpp>
 #include <glm/gtx/transform.hpp>
 #include <glm/gtx/quaternion.hpp>
 
@@ -539,4 +540,34 @@ TEST_CASE("MATRIX PERSPECTIVE")
   REQUIRE(result[3][1] == Approx(expected[3][1]));
   REQUIRE(result[3][2] == Approx(expected[3][2]));
   REQUIRE(result[3][3] == Approx(expected[3][3]));
+}
+
+TEST_CASE("MATRIX DECOMPOSITION")
+{
+  Matrix4 transform = Matrix4::Translation(Vector3(1, 2, 3)) * Matrix4::Scaling(Vector3(3, 2, 5)) * Matrix4::Rotation(Quaternion(Vector3(0, 0, 1), Degree(30.0f)));
+
+  Vector3 resultTranslation;
+  Vector3 resultScale;
+  Matrix3 resultRotation;
+  transform.Decompose(resultTranslation, resultScale, resultRotation);
+
+  Matrix3 expectedRotation = Matrix4::Rotation(Quaternion(Vector3(0, 0, 1), Degree(30.0f)));
+
+  REQUIRE(resultTranslation.X == Approx(1));
+  REQUIRE(resultTranslation.Y == Approx(2));
+  REQUIRE(resultTranslation.Z == Approx(3));
+
+  REQUIRE(resultScale.X == Approx(3));
+  REQUIRE(resultScale.Y == Approx(2));
+  REQUIRE(resultScale.Z == Approx(5));
+
+  REQUIRE(resultRotation[0][0] == Approx(expectedRotation[0][0]));
+  REQUIRE(resultRotation[1][0] == Approx(expectedRotation[1][0]));
+  REQUIRE(resultRotation[2][0] == Approx(expectedRotation[2][0]));
+  REQUIRE(resultRotation[0][1] == Approx(expectedRotation[0][1]));
+  REQUIRE(resultRotation[1][1] == Approx(expectedRotation[1][1]));
+  REQUIRE(resultRotation[2][1] == Approx(expectedRotation[2][1]));
+  REQUIRE(resultRotation[0][2] == Approx(expectedRotation[0][2]));
+  REQUIRE(resultRotation[1][2] == Approx(expectedRotation[1][2]));
+  REQUIRE(resultRotation[2][2] == Approx(expectedRotation[2][2]));
 }

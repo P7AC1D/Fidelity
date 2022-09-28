@@ -29,6 +29,8 @@ public:
           float32 m, float32 n, float32 o, float32 p);
   explicit Matrix4(const Quaternion &qat);
 
+  void Decompose(Vector3& position, Vector3& scale, Matrix3& rotationMatrix) const;
+
   Matrix4 operator+(float32 rhs) const;
   Matrix4 operator-(float32 rhs) const;
   Matrix4 operator*(float32 rhs) const;

@@ -8,12 +8,16 @@ Transform::Transform() : _scale(Vector3::Identity),
 {
 }
 
-Transform::Transform(const Matrix4 &mat) : _scale(Vector3::Identity),
-                                           _position(Vector3::Zero),
-                                           _rotation(Quaternion::Identity),
-                                           _transform(mat),
+Transform::Transform(const Matrix4 &mat) : _transform(mat),
                                            _modified(true)
 {
+  Vector3 translation;
+  Vector3 scale;
+  Matrix3 rotation;
+  mat.Decompose(translation, scale, rotation);
+  _position = translation;
+  _scale = scale;
+  _rotation = rotation;
 }
 
 void Transform::update(float32 dt)

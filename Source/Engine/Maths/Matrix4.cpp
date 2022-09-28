@@ -154,6 +154,29 @@ Matrix4::Matrix4(const Quaternion &qat)
   *this = Matrix4(Matrix3(qat));
 }
 
+void Matrix4::Decompose(Vector3& position, Vector3& scale, Matrix3& rotationMatrix) const
+{
+  position.X = _m[3][0];
+  position.Y = _m[3][1];
+  position.Z = _m[3][2];
+
+  scale.X = Vector3(_m[0][0], _m[1][0], _m[2][0]).Length();
+  scale.Y = Vector3(_m[0][1], _m[1][1], _m[2][1]).Length();
+  scale.Z = Vector3(_m[0][2], _m[1][2], _m[2][2]).Length();
+
+  rotationMatrix[0][0] = _m[0][0] / scale.X;
+  rotationMatrix[0][1] = _m[0][1] / scale.Y;
+  rotationMatrix[0][2] = _m[0][2] / scale.Z;
+  
+  rotationMatrix[1][0] = _m[1][0] / scale.X;
+  rotationMatrix[1][1] = _m[1][1] / scale.Y;
+  rotationMatrix[1][2] = _m[1][2] / scale.Z;
+
+  rotationMatrix[2][0] = _m[2][0] / scale.X;
+  rotationMatrix[2][1] = _m[2][1] / scale.Y;
+  rotationMatrix[2][2] = _m[2][2] / scale.Z;
+}
+
 Matrix4 Matrix4::operator+(float32 rhs) const
 {
   Matrix4 mat;
