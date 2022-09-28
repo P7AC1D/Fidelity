@@ -3,6 +3,7 @@
 #include <string>
 #include <list>
 #include <stdexcept>
+#include <vector>
 
 #include "Component.h"
 #include "Transform.h"
@@ -18,34 +19,39 @@ public:
   void drawInspector();
 
   GameObject &addComponent(Component &component);
+  GameObject &addChildNode(GameObject &gameObject);
   template <typename T>
   T &getComponent();
   template <typename T>
   bool hasComponent();
 
-  Transform &transform() { return _transform; }
-  const Transform &getTransform() const { return _transform; }
+  Transform &transform() { return _localTransform; }
+  const Transform &getLocalTransform() const { return _localTransform; }
+  const Transform &getGlobalTransform() const { return _globalTransform; }
 
   std::string getName() const { return _name; }
 
   uint64 getIndex() const { return _index; }
 
 protected:
-  Transform _transform;
+  Transform _localTransform, _globalTransform;
+  GameObject *_parent;
   std::string _name;
   uint64 _index;
 
 private:
+  void updateChildNodeTransforms(float32 dt);
   void notifyComponents() const;
 
   std::list<Component *> _components;
+  std::list<GameObject *> _childNodes;
 };
 
 template <typename T>
 T &GameObject::getComponent()
 {
-  std::list<Component *>::iterator iter = std::find_if(_components.begin(), _components.end(), [](Component *c)
-                                                       { return dynamic_cast<T *>(c) != nullptr; });
+  auto iter = std::find_if(_components.begin(), _components.end(), [](Component *c)
+                           { return dynamic_cast<T *>(c) != nullptr; });
 
   if (iter == _components.end())
   {

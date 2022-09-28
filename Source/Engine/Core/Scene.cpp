@@ -17,7 +17,7 @@
 #include "GameObject.h"
 #include "SceneGraph.h"
 
-static uint64 SELECTED_GAME_OBJECT_INDEX = -1;
+static int64 SELECTED_GAME_OBJECT_INDEX = -1;
 
 Scene::Scene() : _objectAddedToScene(false) {}
 
@@ -48,6 +48,7 @@ GameObject &Scene::createGameObject(const std::string &name)
 void Scene::addChildToNode(GameObject &parent, GameObject &child)
 {
   _sceneGraph->addChildToNode(parent.getIndex(), child.getIndex());
+  parent.addChildNode(child);
 }
 
 void Scene::update(float64 dt)
@@ -142,7 +143,7 @@ void Scene::drawDebugUi()
   _debugRenderer->drawDebugUi();
 }
 
-void Scene::drawSceneGraphUi(uint64 nodeIndex)
+void Scene::drawSceneGraphUi(int64 nodeIndex)
 {
   ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick | (SELECTED_GAME_OBJECT_INDEX == nodeIndex ? ImGuiTreeNodeFlags_Selected : 0);
 
@@ -179,7 +180,7 @@ void Scene::drawSceneGraphUi(uint64 nodeIndex)
   }
 }
 
-void Scene::drawGameObjectInspector(uint64 selectedGameObjectIndex)
+void Scene::drawGameObjectInspector(int64 selectedGameObjectIndex)
 {
   if (selectedGameObjectIndex == -1)
   {
@@ -197,13 +198,17 @@ void Scene::drawGameObjectInspector(uint64 selectedGameObjectIndex)
   ImGui::End();
 }
 
-void Scene::setAabbDrawOnGameObject(uint64 gameObjectIndex, bool enableAabbDraw)
+void Scene::setAabbDrawOnGameObject(int64 gameObjectIndex, bool enableAabbDraw)
 {
+  if (gameObjectIndex == -1)
+  {
+    return;
+  }
+
   GameObject &gameObject = _gameObjects[gameObjectIndex];
   if (gameObject.hasComponent<Drawable>())
   {
     gameObject.getComponent<Drawable>().enableDrawAabb(enableAabbDraw);
-    return;
   }
 }
 

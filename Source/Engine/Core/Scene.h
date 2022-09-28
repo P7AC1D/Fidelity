@@ -45,9 +45,9 @@ public:
   std::shared_ptr<RenderDevice> getRenderDevice() { return _renderDevice; }
 
 private:
-  void drawSceneGraphUi(uint64 nodeIndex);
-  void drawGameObjectInspector(uint64 selectedGameObjectIndex);
-  void setAabbDrawOnGameObject(uint64 gameObjectIndex, bool enableAabbDraw);
+  void drawSceneGraphUi(int64 nodeIndex);
+  void drawGameObjectInspector(int64 selectedGameObjectIndex);
+  void setAabbDrawOnGameObject(int64 gameObjectIndex, bool enableAabbDraw);
   void calcSceneExtents();
 
   struct DrawableSortMap

@@ -99,9 +99,9 @@ void Camera::onUpdate(float32 dt)
 
 void Camera::onNotify(const GameObject &gameObject)
 {
-	Transform transform(gameObject.getTransform());
+	Transform transform(gameObject.getLocalTransform());
 	updateView(transform);
-	_parentTransform = transform;
+	_transform = transform;
 }
 
 void Camera::updateView(const Transform &transform)
@@ -128,5 +128,5 @@ bool Camera::contains(const Aabb &aabb) const
 
 float32 Camera::distanceFrom(const Vector3 &position) const
 {
-	return (_parentTransform.getPosition() - position).Length();
+	return (_transform.getPosition() - position).Length();
 }

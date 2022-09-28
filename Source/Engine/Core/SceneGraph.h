@@ -7,13 +7,13 @@
 class SceneGraph
 {
 public:
-  void addNode(uint64 gameObjectId);
-  void addChildToNode(uint64 parentGameObjectId, uint64 childGameObjectId);
+  void addNode(int64 gameObjectId);
+  void addChildToNode(int64 parentGameObjectId, int64 childGameObjectId);
 
-  bool doesNodeHaveChildren(uint64 parentGameObjectId) const;
+  bool doesNodeHaveChildren(int64 parentGameObjectId) const;
 
-  const std::vector<uint64> &getNodeChildren(uint64 parentGameObjectId) const;
+  const std::vector<int64> &getNodeChildren(int64 parentGameObjectId) const;
 
 private:
-  std::map<uint64, std::vector<uint64>> _sceneGraph;
+  std::map<int64, std::vector<int64>> _sceneGraph;
 };

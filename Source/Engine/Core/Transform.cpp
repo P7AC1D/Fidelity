@@ -83,3 +83,12 @@ void Transform::updateTransform()
   Matrix4 rotation = Matrix4::Rotation(_rotation);
   _transform = translation * scale * rotation;
 }
+
+Transform Transform::operator*(const Transform &rhs) const
+{
+  Transform result;
+  result.setPosition(_position + rhs._position);
+  result.setScale(_scale * rhs._scale);
+  result.setRotation(_rotation * rhs._rotation);
+  return result;
+}

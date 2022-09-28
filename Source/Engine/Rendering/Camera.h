@@ -30,7 +30,7 @@ public:
   float32 getNear() const { return _near; }
   float32 getFar() const { return _far; }
   float32 getAspectRatio() const { return _width / static_cast<float32>(_height); }
-  const Transform &getParentTransform() const { return _parentTransform; }
+  const Transform &getParentTransform() const { return _transform; }
 
   const Frustrum &getFustrum() const { return _frustrum; }
 
@@ -55,7 +55,7 @@ private:
   Matrix4 _view;
   Matrix4 _proj;
 
-  Transform _parentTransform;
+  Transform _transform;
 
   Frustrum _frustrum;
 };

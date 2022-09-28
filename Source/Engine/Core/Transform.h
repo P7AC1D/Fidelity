@@ -32,6 +32,8 @@ public:
 
   bool modified() const { return _modified; }
 
+  Transform operator*(const Transform &rhs) const;
+
 private:
   void updateTransform();
 

@@ -28,7 +28,7 @@ void Light::drawInspector()
 		if (ImGui::SliderFloat("Radius", &radius, 0.0f, 1000.0f))
 		{
 			setRadius(radius);
-		}		
+		}
 	}
 
 	float32 intensity = _intensity;
@@ -79,7 +79,7 @@ void Light::onUpdate(float32 dt)
 
 void Light::onNotify(const GameObject &gameObject)
 {
-	Transform transform = gameObject.getTransform();
+	Transform transform = gameObject.getGlobalTransform();
 	_position = transform.getPosition();
 	_rotation = transform.getRotation();
 	_direction = _rotation.Rotate(Vector3(0, -1, 0));

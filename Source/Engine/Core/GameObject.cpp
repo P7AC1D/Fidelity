@@ -9,15 +9,31 @@ GameObject::GameObject() : _index(0)
 {
 }
 
-GameObject::GameObject(const std::string &name, uint64 index) : _name(name), _index(index)
+GameObject::GameObject(const std::string &name, uint64 index) : _name(name), _index(index), _parent(nullptr)
 {
 }
 
 void GameObject::update(float32 dt)
 {
-	if (_transform.modified())
+	if (_localTransform.modified())
 	{
-		_transform.update(dt);
+		if (_parent == nullptr)
+		{
+			_globalTransform = _localTransform;
+		}
+		else
+		{
+			_globalTransform = _parent->getLocalTransform() * _localTransform;
+		}
+
+		_localTransform.update(dt);
+		updateChildNodeTransforms(dt);
+		notifyComponents();
+	}
+
+	if (_globalTransform.modified())
+	{
+		_globalTransform.update(dt);
 		notifyComponents();
 	}
 }
@@ -30,27 +46,27 @@ void GameObject::drawInspector()
 
 	ImGui::Text("Transform");
 	{
-		Vector3 position = _transform.getPosition();
+		Vector3 position = _localTransform.getPosition();
 		float32 pos[]{position.X, position.Y, position.Z};
 		if (ImGui::DragFloat3("Position", pos, 0.1f))
 		{
-			_transform.translate(Vector3(position.X - pos[0], position.Y - pos[1], position.Z - pos[2]));
+			_localTransform.translate(Vector3(position.X - pos[0], position.Y - pos[1], position.Z - pos[2]));
 		}
 	}
 	{
-		Vector3 scale = _transform.getScale();
+		Vector3 scale = _localTransform.getScale();
 		float32 scl[]{scale.X, scale.Y, scale.Z};
 		if (ImGui::DragFloat3("Scale", scl, 0.1f))
 		{
-			_transform.scale(Vector3(scale.X - scl[0], scale.Y - scl[1], scale.Z - scl[2]));
+			_localTransform.scale(Vector3(scale.X - scl[0], scale.Y - scl[1], scale.Z - scl[2]));
 		}
 	}
 	{
-		auto euler = _transform.getRotation().ToEuler();
+		auto euler = _localTransform.getRotation().ToEuler();
 		float32 angles[3] = {euler[0].InDegrees(), euler[1].InDegrees(), euler[2].InDegrees()};
 		if (ImGui::DragFloat3("Orientation", angles, 1.0f, -180.0f, 180.0f))
 		{
-			_transform.rotate(Quaternion(euler[0] - Degree(angles[0]), euler[1] - Degree(angles[1]), euler[2] - Degree(angles[2])));
+			_localTransform.rotate(Quaternion(euler[0] - Degree(angles[0]), euler[1] - Degree(angles[1]), euler[2] - Degree(angles[2])));
 		}
 	}
 
@@ -64,6 +80,21 @@ GameObject &GameObject::addComponent(Component &component)
 {
 	_components.push_back(&component);
 	return *this;
+}
+
+GameObject &GameObject::addChildNode(GameObject &gameObject)
+{
+	gameObject._parent = this;
+	_childNodes.push_back(&gameObject);
+	return *this;
+}
+
+void GameObject::updateChildNodeTransforms(float32 dt)
+{
+	for (auto childNode : _childNodes)
+	{
+		childNode->_globalTransform = _localTransform * childNode->_localTransform;
+	}
 }
 
 void GameObject::notifyComponents() const

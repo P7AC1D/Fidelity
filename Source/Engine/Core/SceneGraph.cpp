@@ -1,16 +1,16 @@
 #include "SceneGraph.h"
 
-void SceneGraph::addNode(uint64 gameObjectId)
+void SceneGraph::addNode(int64 gameObjectId)
 {
-  _sceneGraph.insert(std::pair<uint64, std::vector<uint64>>(gameObjectId, {}));
+  _sceneGraph.insert(std::pair<int64, std::vector<int64>>(gameObjectId, {}));
 }
 
-void SceneGraph::addChildToNode(uint64 parentGameObjectId, uint64 childGameObjectId)
+void SceneGraph::addChildToNode(int64 parentGameObjectId, int64 childGameObjectId)
 {
   _sceneGraph[parentGameObjectId].push_back(childGameObjectId);
 }
 
-bool SceneGraph::doesNodeHaveChildren(uint64 parentGameObjectId) const
+bool SceneGraph::doesNodeHaveChildren(int64 parentGameObjectId) const
 {
   auto iter = _sceneGraph.find(parentGameObjectId);
   if (iter == _sceneGraph.end())
@@ -20,12 +20,12 @@ bool SceneGraph::doesNodeHaveChildren(uint64 parentGameObjectId) const
   return !iter->second.empty();
 }
 
-const std::vector<uint64> &SceneGraph::getNodeChildren(uint64 parentGameObjectId) const
+const std::vector<int64> &SceneGraph::getNodeChildren(int64 parentGameObjectId) const
 {
   auto iter = _sceneGraph.find(parentGameObjectId);
   if (iter == _sceneGraph.end())
   {
-    return std::move(std::vector<uint64>());
+    return std::move(std::vector<int64>());
   }
   return iter->second;
 }

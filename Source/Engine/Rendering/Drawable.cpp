@@ -140,7 +140,7 @@ void Drawable::onUpdate(float32 dt)
 
 void Drawable::onNotify(const GameObject &gameObject)
 {
-	Transform transform(gameObject.getTransform());
+	Transform transform(gameObject.getGlobalTransform());
 	_scale = transform.getScale();
 	_rotation = transform.getRotation();
 	_position = transform.getPosition();
