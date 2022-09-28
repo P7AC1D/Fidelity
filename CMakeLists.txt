@@ -10,6 +10,7 @@ find_package(Vulkan REQUIRED)
 
 add_subdirectory ("Source/Engine")
 add_subdirectory ("Source/Test3D")
+add_subdirectory ("Source/Sponza")
 add_subdirectory ("Source/Tests")
 
 add_subdirectory ("Externals/glfw")

@@ -250,20 +250,23 @@ void ShadowMapRenderer::onDrawDebugUi()
       _settingsModified = true;
     }
 
-    ImGui::Text("Cascade Ratios");
-    for (uint32 i = 0; i < _cascadeRatios.size(); i++)
-    {
-      float32 value = _cascadeRatios[i];
-      if (ImGui::DragFloat(std::string("Layer " + std::to_string(i)).c_str(), &value, 0.001f, 0.001f, 1.0f))
-      {
-        _cascadeRatios[i] = value;
-      }
-    }
-
     bool shouldDrawCascadeLayers = _drawCascadeLayers;
-    if (ImGui::Checkbox("Draw Layers", &shouldDrawCascadeLayers))
+    if (ImGui::Checkbox("Draw Cascade Layers", &shouldDrawCascadeLayers))
     {
       _drawCascadeLayers = shouldDrawCascadeLayers;
+    }
+
+    if (ImGui::TreeNodeEx("Cascade Ratios", ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick))
+    {
+      for (uint32 i = 0; i < _cascadeRatios.size(); i++)
+      {
+        float32 value = _cascadeRatios[i];
+        if (ImGui::DragFloat(std::string("Layer " + std::to_string(i)).c_str(), &value, 0.001f, 0.001f, 1.0f))
+        {
+          _cascadeRatios[i] = value;
+        }
+      }
+      ImGui::TreePop();
     }
   }
 }

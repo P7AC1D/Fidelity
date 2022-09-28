@@ -23,6 +23,7 @@ std::shared_ptr<ImageData> ImageLoader::LoadFromFile(const std::string& filePath
   int32 width;
   int32 height;
   int32 channelCount;
+  stbi_set_flip_vertically_on_load(true);
   ubyte* rawData = stbi_load(filePath.c_str(), &width, &height, &channelCount, 0);
   if (!rawData)
   {
