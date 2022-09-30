@@ -6,9 +6,9 @@
 
 static const float32 CAMERA_ROTATION_FACTOR = 0.01f;
 static const float32 CAMERA_ZOOM_FACTOR = 0.01f;
-static const float32 CAMERA_LOOK_SENSITIVITY = 0.005f;
-static const float32 CAMERA_MOVE_FACTOR = 0.10f;
-static const float32 CAMERA_MOVE_SPRINT_FACTOR = 1.0f;
+static const float32 CAMERA_LOOK_SENSITIVITY = 0.001f;
+static const float32 CAMERA_MOVE_FACTOR = 0.05f;
+static const float32 CAMERA_MOVE_SPRINT_FACTOR = 0.1f;
 
 Test3D::Test3D(const ApplicationDesc &desc) : Application(desc),
                                               _cameraTarget(Vector3::Zero)
