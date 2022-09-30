@@ -402,12 +402,12 @@ void DeferredRenderer::lightingPass(std::shared_ptr<RenderDevice> renderDevice,
   renderDevice->SetTexture(1, _gBufferRto->GetDepthStencilTarget());
   renderDevice->SetTexture(2, _gBufferRto->GetColourTarget(1));
   renderDevice->SetTexture(3, _gBufferRto->GetColourTarget(2));
-  renderDevice->SetTexture(4, shadowMapRto->GetDepthStencilTarget());
+  renderDevice->SetTexture(4, _shadowsRto->GetColourTarget(0));
   renderDevice->SetSamplerState(0, _noMipSamplerState);
   renderDevice->SetSamplerState(1, _noMipSamplerState);
   renderDevice->SetSamplerState(2, _noMipSamplerState);
   renderDevice->SetSamplerState(3, _noMipSamplerState);
-  renderDevice->SetSamplerState(4, _shadowMapSamplerState);
+  renderDevice->SetSamplerState(4, _noMipSamplerState);
   renderDevice->SetConstantBuffer(0, _lightingConstantsBuffer);
   renderDevice->SetConstantBuffer(1, _lightingBuffer);
   renderDevice->SetConstantBuffer(2, shadowMapBuffer);

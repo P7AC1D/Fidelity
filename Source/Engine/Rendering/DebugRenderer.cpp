@@ -42,6 +42,11 @@ struct ShadowMapDebugData
   uint32 Layer;
 };
 
+struct FullscreenQuadData
+{
+  int32 SingleChannel;
+};
+
 DebugRenderer::DebugRenderer() : _debugDisplayType(DebugDisplayType::Disabled), _shadowMapLayerToDraw(0)
 {
 }
@@ -69,6 +74,7 @@ void DebugRenderer::onInit(const std::shared_ptr<RenderDevice> &renderDevice)
     std::shared_ptr<ShaderParams> shaderParams(new ShaderParams());
     shaderParams->AddParam(ShaderParam("QuadTexture", ShaderParamType::Texture, 0));
     shaderParams->AddParam(ShaderParam("CameraBuffer", ShaderParamType::ConstBuffer, 0));
+    shaderParams->AddParam(ShaderParam("FullscreenQuadBuffer", ShaderParamType::ConstBuffer, 1));
 
     RasterizerStateDesc rasterizerStateDesc;
     rasterizerStateDesc.CullMode = CullMode::None;
@@ -210,6 +216,12 @@ void DebugRenderer::onInit(const std::shared_ptr<RenderDevice> &renderDevice)
   shadowMapDebugDataDesc.ByteCount = sizeof(ShadowMapDebugData);
   _shadowMapDebugBuffer = renderDevice->CreateGpuBuffer(shadowMapDebugDataDesc);
 
+  GpuBufferDesc fullscreenQuadDataDesc;
+  fullscreenQuadDataDesc.BufferType = BufferType::Constant;
+  fullscreenQuadDataDesc.BufferUsage = BufferUsage::Stream;
+  fullscreenQuadDataDesc.ByteCount = sizeof(FullscreenQuadData);
+  _fullscreenQuadBuffer = renderDevice->CreateGpuBuffer(fullscreenQuadDataDesc);
+
   VertexBufferDesc aabbVertexBuffDesc;
   aabbVertexBuffDesc.BufferUsage = BufferUsage::Default;
   aabbVertexBuffDesc.VertexCount = AabbCoords.size();
@@ -231,14 +243,14 @@ void DebugRenderer::onDrawDebugUi()
   {
     ImGui::Text("Debug Renderer");
 
-    std::vector<const char *> debugRenderingItems = {"Disabled", "Shadow Map", "Diffuse", "Normal", "Depth"};
+    std::vector<const char *> debugRenderingItems = {"Disabled", "Shadow Depth", "Diffuse", "Normal", "Depth", "Shadows"};
     static int debugRenderingCurrentItem = 0;
     if (ImGui::Combo("Target", &debugRenderingCurrentItem, debugRenderingItems.data(), debugRenderingItems.size()))
     {
       _debugDisplayType = static_cast<DebugDisplayType>(debugRenderingCurrentItem);
     }
 
-    if (_debugDisplayType == DebugDisplayType::ShadowMap)
+    if (_debugDisplayType == DebugDisplayType::ShadowDepth)
     {
       int shadowMapLayerToDraw = _shadowMapLayerToDraw;
       if (ImGui::SliderInt("Layer", &shadowMapLayerToDraw, 0, 3))
@@ -250,9 +262,10 @@ void DebugRenderer::onDrawDebugUi()
 }
 
 void DebugRenderer::drawFrame(const std::shared_ptr<RenderDevice> &renderDevice,
-                              const std::shared_ptr<RenderTarget> &gBuffer,
-                              const std::shared_ptr<RenderTarget> &lightingBuffer,
-                              const std::shared_ptr<RenderTarget> &shadowMapBuffer,
+                              const std::shared_ptr<RenderTarget> &gBufferRto,
+                              const std::shared_ptr<RenderTarget> &shadowRto,
+                              const std::shared_ptr<RenderTarget> &lightingRto,
+                              const std::shared_ptr<RenderTarget> &shadowMapRto,
                               const std::vector<std::shared_ptr<Drawable>> &aabbDrawables,
                               const std::shared_ptr<Camera> &camera)
 {
@@ -260,27 +273,32 @@ void DebugRenderer::drawFrame(const std::shared_ptr<RenderDevice> &renderDevice,
   {
   case DebugDisplayType::Disabled:
   {
-    drawRenderTarget(renderDevice, lightingBuffer->GetColourTarget(0), camera);
+    drawRenderTarget(renderDevice, lightingRto->GetColourTarget(0), camera);
     break;
   }
-  case DebugDisplayType::ShadowMap:
+  case DebugDisplayType::ShadowDepth:
   {
-    drawRenderTarget(renderDevice, shadowMapBuffer->GetDepthStencilTarget(), camera, true);
+    drawRenderTarget(renderDevice, shadowMapRto->GetDepthStencilTarget(), camera);
     break;
   }
   case DebugDisplayType::Diffuse:
   {
-    drawRenderTarget(renderDevice, gBuffer->GetColourTarget(0), camera);
+    drawRenderTarget(renderDevice, gBufferRto->GetColourTarget(0), camera);
     break;
   }
   case DebugDisplayType::Normal:
   {
-    drawRenderTarget(renderDevice, gBuffer->GetColourTarget(1), camera);
+    drawRenderTarget(renderDevice, gBufferRto->GetColourTarget(1), camera);
     break;
   }
   case DebugDisplayType::Depth:
   {
-    drawRenderTarget(renderDevice, gBuffer->GetDepthStencilTarget(), camera);
+    drawRenderTarget(renderDevice, gBufferRto->GetDepthStencilTarget(), camera);
+    break;
+  }
+  case DebugDisplayType::Shadows:
+  {
+    drawRenderTarget(renderDevice, shadowRto->GetColourTarget(0), camera, true);
     break;
   }
   }
@@ -312,13 +330,18 @@ void DebugRenderer::drawAabb(const std::shared_ptr<RenderDevice> &renderDevice,
 void DebugRenderer::drawRenderTarget(std::shared_ptr<RenderDevice> renderDevice,
                                      std::shared_ptr<Texture> renderTarget,
                                      const std::shared_ptr<Camera> &camera,
-                                     bool isOrthographicDepth)
+                                     bool singleChannelImage)
 {
   ShadowMapDebugData shadowMapDebugData;
   shadowMapDebugData.FarClip = camera->getFar();
   shadowMapDebugData.NearClip = camera->getNear();
   shadowMapDebugData.Layer = _shadowMapLayerToDraw;
   _shadowMapDebugBuffer->WriteData(0, sizeof(ShadowMapDebugData), &shadowMapDebugData, AccessType::WriteOnlyDiscard);
+
+  FullscreenQuadData fullscreenQuadData;
+  fullscreenQuadData.SingleChannel = singleChannelImage;
+  _fullscreenQuadBuffer->WriteData(0, sizeof(FullscreenQuadData), &fullscreenQuadData, AccessType::WriteOnlyDiscard);
+  renderDevice->SetConstantBuffer(1, _fullscreenQuadBuffer);
 
   if (renderTarget->GetDesc().Usage == TextureUsage::RenderTarget)
   {

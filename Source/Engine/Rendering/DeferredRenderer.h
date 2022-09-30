@@ -36,6 +36,7 @@ public:
                  const std::shared_ptr<Camera> &camera);
 
   std::shared_ptr<RenderTarget> getGbuffer() { return _gBufferRto; }
+  std::shared_ptr<RenderTarget> getShadowRto() { return _shadowsRto; }
   std::shared_ptr<RenderTarget> getLightingBuffer() { return _lightingPassRto; }
 
 private:
