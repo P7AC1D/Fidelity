@@ -43,6 +43,10 @@ private:
                    const std::vector<std::shared_ptr<Drawable>> &drawables,
                    const std::shared_ptr<Camera> &camera);
 
+  void shadowPass(const std::shared_ptr<RenderDevice> &renderDevice,
+                  const std::shared_ptr<RenderTarget> &shadowMapRto,
+                  const std::shared_ptr<GpuBuffer> &shadowMapBuffer);
+
   void lightingPass(std::shared_ptr<RenderDevice> renderDevice,
                     const std::vector<std::shared_ptr<Light>> &lights,
                     const std::shared_ptr<RenderTarget> &shadowMapRto,
@@ -57,11 +61,8 @@ private:
   Colour _ambientColour;
   float32 _ambientIntensity;
 
-  std::shared_ptr<PipelineState> _mergePso;
-  std::shared_ptr<PipelineState> _gBufferPso;
-  std::shared_ptr<PipelineState> _lightingPto;
-  std::shared_ptr<RenderTarget> _lightingPassRto;
-  std::shared_ptr<RenderTarget> _gBufferRto;
+  std::shared_ptr<PipelineState> _gBufferPso, _shadowsPso, _lightingPto;
+  std::shared_ptr<RenderTarget> _gBufferRto, _shadowsRto, _lightingPassRto;
   std::shared_ptr<GpuBuffer> _materialBuffer;
   std::shared_ptr<GpuBuffer> _objectBuffer;
   std::shared_ptr<GpuBuffer> _lightingConstantsBuffer;
