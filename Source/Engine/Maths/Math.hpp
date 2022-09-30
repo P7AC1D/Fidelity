@@ -31,6 +31,7 @@ public:
   static float32 Clamp(float32 value, float32 min, float32 max);
   static float32 Abs(float32 value);
 
+  static Vector3 Clamp(const Vector3& a, float32 min, float32 max);
   static Vector3 Min(Vector3 a, Vector3 b);
   static Vector4 Min(Vector4 a, Vector4 b);
   static Vector3 Max(Vector3 a, Vector3 b);

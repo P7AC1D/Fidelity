@@ -1,5 +1,9 @@
 #include "Transform.h"
 
+#include <limits>
+
+#include "../Maths/Math.hpp"
+
 Transform::Transform() : _scale(Vector3::Identity),
                          _position(Vector3::Zero),
                          _rotation(Quaternion::Identity),
@@ -46,6 +50,8 @@ Transform &Transform::rotate(const Quaternion &rotation)
 Transform &Transform::scale(const Vector3 &scale)
 {
   _scale += scale;
+  _scale = Math::Clamp(_scale, 0.01f, std::numeric_limits<float32>::max());
+
   _modified = true;
   return *this;
 }

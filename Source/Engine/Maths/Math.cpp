@@ -1,5 +1,7 @@
 #include "Math.hpp"
 
+#include <algorithm>
+
 #include "Vector3.hpp"
 #include "Vector4.hpp"
 
@@ -65,6 +67,15 @@ float32 Math::Clamp(float32 value, float32 min, float32 max)
 float32 Math::Abs(float32 value)
 {
   return std::fabs(value);
+}
+
+Vector3 Math::Clamp(const Vector3& a, float32 min, float32 max)
+{
+  return Vector3(
+    std::clamp(a.X, min, max),
+    std::clamp(a.Y, min, max),
+    std::clamp(a.Z, min, max)
+  );
 }
 
 Vector3 Math::Min(Vector3 a, Vector3 b)
