@@ -5,7 +5,9 @@
 #include "../Core/Types.hpp"
 
 class GpuBuffer;
+class PipelineState;
 class RenderDevice;
+class RenderTarget;
 class SamplerState;
 class VertexBuffer;
 
@@ -32,6 +34,13 @@ struct CascadeShadowMapData
   int32 DrawLayers;
 };
 
+struct BlurBuffer
+{
+  float32 ScreenWidth;
+  float32 ScreenHeight;
+  float32 BlurAmount;
+};
+
 class Renderer
 {
 public:
@@ -46,10 +55,11 @@ protected:
 
   bool _settingsModified;
 
-  std::shared_ptr<GpuBuffer> _cameraBuffer;
+  std::shared_ptr<PipelineState> _downsamplePso, _verticalBlurPso, _horizontalBlurPso;
 
-  std::shared_ptr<SamplerState> _basicSamplerState;
-  std::shared_ptr<SamplerState> _noMipSamplerState;
+  std::shared_ptr<GpuBuffer> _cameraBuffer, _blurBuffer;
+
+  std::shared_ptr<SamplerState> _basicSamplerState, _noMipSamplerState;
 
   std::shared_ptr<VertexBuffer> _fsQuadBuffer;
 };
