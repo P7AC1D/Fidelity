@@ -18,10 +18,11 @@ class VertexBuffer;
 enum class DebugDisplayType
 {
   Disabled,
-  ShadowMap,
+  ShadowDepth,
   Diffuse,
   Normal,
-  Depth
+  Depth,
+  Shadows,
 };
 
 class DebugRenderer : public Renderer
@@ -33,9 +34,10 @@ public:
   void onDrawDebugUi() override;
 
   void drawFrame(const std::shared_ptr<RenderDevice> &renderDevice,
-                 const std::shared_ptr<RenderTarget> &gBuffer,
-                 const std::shared_ptr<RenderTarget> &lightingBuffer,
-                 const std::shared_ptr<RenderTarget> &shadowMapBuffer,
+                 const std::shared_ptr<RenderTarget> &gBufferRto,
+                 const std::shared_ptr<RenderTarget> &shadowRto,
+                 const std::shared_ptr<RenderTarget> &lightingRto,
+                 const std::shared_ptr<RenderTarget> &shadowMapRto,
                  const std::vector<std::shared_ptr<Drawable>> &aabbDrawables,
                  const std::shared_ptr<Camera> &camera);
 
@@ -47,7 +49,7 @@ private:
   void drawRenderTarget(std::shared_ptr<RenderDevice> renderDevice,
                         std::shared_ptr<Texture> renderTarget,
                         const std::shared_ptr<Camera> &camera,
-                        bool isOrthographicDepth = false);
+                        bool singleChannelImage = false);
 
   DebugDisplayType _debugDisplayType;
   int32 _shadowMapLayerToDraw;
@@ -61,6 +63,7 @@ private:
   std::shared_ptr<SamplerState> _noMipWithBorderSamplerState;
 
   std::shared_ptr<GpuBuffer> _aabbBuffer;
+  std::shared_ptr<GpuBuffer> _fullscreenQuadBuffer;
   std::shared_ptr<GpuBuffer> _shadowMapDebugBuffer;
   std::shared_ptr<VertexBuffer> _aabbVertexBuffer;
 };

@@ -68,7 +68,9 @@ struct LightingBuffer
 
 DeferredRenderer::DeferredRenderer(const Vector2I &windowDims) : _windowDims(windowDims),
                                                                  _ambientColour(Colour::White),
-                                                                 _ambientIntensity(0.1f)
+                                                                 _ambientIntensity(0.1f),
+                                                                 _softShadowsBlurIntensity(0.5f),
+                                                                 _softShadows(true)
 {
 }
 
@@ -119,6 +121,81 @@ void DeferredRenderer::onInit(const std::shared_ptr<RenderDevice> &device)
     pipelineDesc.ShaderParams = shaderParams;
 
     _gBufferPso = device->CreatePipelineState(pipelineDesc);
+  }
+  {
+    ShaderDesc vsDesc;
+    vsDesc.EntryPoint = "main";
+    vsDesc.ShaderLang = ShaderLang::Glsl;
+    vsDesc.ShaderType = ShaderType::Vertex;
+    vsDesc.Source = String::LoadFromFile("./Shaders/FSPassThrough.vert");
+
+    ShaderDesc psDesc;
+    psDesc.EntryPoint = "main";
+    psDesc.ShaderLang = ShaderLang::Glsl;
+    psDesc.ShaderType = ShaderType::Pixel;
+    psDesc.Source = String::LoadFromFile("./Shaders/Shadows.frag");
+
+    std::vector<VertexLayoutDesc> vertexLayoutDesc{
+        VertexLayoutDesc(SemanticType::Position, SemanticFormat::Float2),
+        VertexLayoutDesc(SemanticType::TexCoord, SemanticFormat::Float2),
+    };
+
+    std::shared_ptr<ShaderParams> shaderParams(new ShaderParams());
+    shaderParams->AddParam(ShaderParam("LightingConstantsBuffer", ShaderParamType::ConstBuffer, 0));
+    shaderParams->AddParam(ShaderParam("CascadeShadowMapBuffer", ShaderParamType::ConstBuffer, 2));
+    shaderParams->AddParam(ShaderParam("DepthMap", ShaderParamType::Texture, 0));
+    shaderParams->AddParam(ShaderParam("NormalMap", ShaderParamType::Texture, 1));
+    shaderParams->AddParam(ShaderParam("ShadowMap", ShaderParamType::Texture, 2));
+
+    RasterizerStateDesc rasterizerStateDesc{};
+    BlendStateDesc blendStateDesc{};
+
+    DepthStencilStateDesc depthStencilStateDesc{};
+    depthStencilStateDesc.DepthReadEnabled = false;
+    depthStencilStateDesc.DepthWriteEnabled = false;
+
+    PipelineStateDesc pipelineDesc;
+    pipelineDesc.VS = device->CreateShader(vsDesc);
+    pipelineDesc.PS = device->CreateShader(psDesc);
+    pipelineDesc.BlendState = device->CreateBlendState(blendStateDesc);
+    pipelineDesc.RasterizerState = device->CreateRasterizerState(rasterizerStateDesc);
+    pipelineDesc.DepthStencilState = device->CreateDepthStencilState(depthStencilStateDesc);
+    pipelineDesc.VertexLayout = device->CreateVertexLayout(vertexLayoutDesc);
+    pipelineDesc.ShaderParams = shaderParams;
+
+    _shadowsPso = device->CreatePipelineState(pipelineDesc);
+  }
+  {
+    TextureDesc colourTexDesc;
+    colourTexDesc.Width = _windowDims.X;
+    colourTexDesc.Height = _windowDims.Y;
+    colourTexDesc.Usage = TextureUsage::RenderTarget;
+    colourTexDesc.Type = TextureType::Texture2D;
+    colourTexDesc.Format = TextureFormat::R8;
+
+    RenderTargetDesc rtDesc;
+    rtDesc.ColourTargets[0] = device->CreateTexture(colourTexDesc);
+    rtDesc.Height = _windowDims.X;
+    rtDesc.Width = _windowDims.Y;
+
+    _shadowsRto = device->CreateRenderTarget(rtDesc);
+  }
+  {
+    TextureDesc colourTexDesc;
+    colourTexDesc.Width = _windowDims.X;
+    colourTexDesc.Height = _windowDims.Y;
+    colourTexDesc.Usage = TextureUsage::RenderTarget;
+    colourTexDesc.Type = TextureType::Texture2D;
+    colourTexDesc.Format = TextureFormat::R8;
+
+    RenderTargetDesc rtDesc;
+    rtDesc.ColourTargets[0] = device->CreateTexture(colourTexDesc);
+    rtDesc.Height = _windowDims.X / 2.0f;
+    rtDesc.Width = _windowDims.Y / 2.0f;
+
+    _shadowDownsampledRto = device->CreateRenderTarget(rtDesc);
+    _shadowHorizontalBlurRto = device->CreateRenderTarget(rtDesc);
+    _shadowVerticalBlurRto = device->CreateRenderTarget(rtDesc);
   }
   {
     TextureDesc colourTexDesc;
@@ -259,6 +336,19 @@ void DeferredRenderer::onDrawDebugUi()
     {
       _ambientIntensity = ambientIntensity;
     }
+
+    ImGui::Text("Soft Shadows");
+    bool softShadowsEnabled = _softShadows;
+    if (ImGui::Checkbox("Enabled", &softShadowsEnabled))
+    {
+      _softShadows = softShadowsEnabled;
+    }
+
+    float32 softShadowsBlurIntensity = _softShadowsBlurIntensity;
+    if (ImGui::SliderFloat("Blur Intensity", &softShadowsBlurIntensity, 0.0f, 1.0f))
+    {
+      _softShadowsBlurIntensity = softShadowsBlurIntensity;
+    }
   }
 }
 
@@ -276,6 +366,11 @@ void DeferredRenderer::drawFrame(std::shared_ptr<RenderDevice> renderDevice,
   renderDevice->SetViewport(viewportDesc);
 
   gbufferPass(renderDevice, drawables, camera);
+  shadowPass(renderDevice, shadowMapRto, shadowMapBuffer);
+  if (_softShadows)
+  {
+    shadowBlurPass(renderDevice);
+  }
   lightingPass(renderDevice, lights, shadowMapRto, shadowMapBuffer, camera);
 }
 
@@ -311,6 +406,63 @@ void DeferredRenderer::gbufferPass(std::shared_ptr<RenderDevice> device,
   }
 }
 
+void DeferredRenderer::shadowPass(const std::shared_ptr<RenderDevice> &renderDevice,
+                                  const std::shared_ptr<RenderTarget> &shadowMapRto,
+                                  const std::shared_ptr<GpuBuffer> &shadowMapBuffer)
+{
+  renderDevice->SetPipelineState(_shadowsPso);
+  renderDevice->SetRenderTarget(_shadowsRto);
+  renderDevice->ClearBuffers(RTT_Colour);
+  renderDevice->SetTexture(0, _gBufferRto->GetDepthStencilTarget());
+  renderDevice->SetTexture(1, _gBufferRto->GetColourTarget(1));
+  renderDevice->SetTexture(2, shadowMapRto->GetDepthStencilTarget());
+  renderDevice->SetConstantBuffer(0, _lightingConstantsBuffer);
+  renderDevice->SetConstantBuffer(2, shadowMapBuffer);
+  renderDevice->SetSamplerState(0, _noMipSamplerState);
+  renderDevice->SetSamplerState(1, _noMipSamplerState);
+  renderDevice->SetSamplerState(2, _shadowMapSamplerState);
+  renderDevice->SetVertexBuffer(_fsQuadBuffer);
+  renderDevice->Draw(6, 0);
+}
+
+void DeferredRenderer::shadowBlurPass(const std::shared_ptr<RenderDevice> &renderDevice)
+{
+  BlurBufferData blurBufferData;
+  blurBufferData.BlurAmount = _softShadowsBlurIntensity;
+  blurBufferData.ScreenHeight = _windowDims.Y;
+  blurBufferData.ScreenWidth = _windowDims.X;
+  _blurBuffer->WriteData(0, sizeof(BlurBufferData), &blurBufferData, AccessType::WriteOnlyDiscard);
+
+  shadowHorizontalBlurPass(renderDevice, _shadowsRto, _shadowHorizontalBlurRto);
+  shadowVerticalBlurPass(renderDevice, _shadowHorizontalBlurRto, _shadowsRto);
+}
+
+void DeferredRenderer::shadowHorizontalBlurPass(const std::shared_ptr<RenderDevice> &renderDevice,
+                                                const std::shared_ptr<RenderTarget> &input,
+                                                const std::shared_ptr<RenderTarget> &output)
+{
+  renderDevice->SetPipelineState(_horizontalBlurPso);
+  renderDevice->SetRenderTarget(output);
+  renderDevice->SetTexture(0, input->GetColourTarget(0));
+  renderDevice->SetConstantBuffer(0, _blurBuffer);
+  renderDevice->SetSamplerState(0, _noMipSamplerState);
+  renderDevice->SetVertexBuffer(_fsQuadBuffer);
+  renderDevice->Draw(6, 0);
+}
+
+void DeferredRenderer::shadowVerticalBlurPass(const std::shared_ptr<RenderDevice> &renderDevice,
+                                              const std::shared_ptr<RenderTarget> &input,
+                                              const std::shared_ptr<RenderTarget> &output)
+{
+  renderDevice->SetPipelineState(_verticalBlurPso);
+  renderDevice->SetRenderTarget(output);
+  renderDevice->SetTexture(0, input->GetColourTarget(0));
+  renderDevice->SetConstantBuffer(0, _blurBuffer);
+  renderDevice->SetSamplerState(0, _noMipSamplerState);
+  renderDevice->SetVertexBuffer(_fsQuadBuffer);
+  renderDevice->Draw(6, 0);
+}
+
 void DeferredRenderer::lightingPass(std::shared_ptr<RenderDevice> renderDevice,
                                     const std::vector<std::shared_ptr<Light>> &lights,
                                     const std::shared_ptr<RenderTarget> &shadowMapRto,
@@ -324,12 +476,12 @@ void DeferredRenderer::lightingPass(std::shared_ptr<RenderDevice> renderDevice,
   renderDevice->SetTexture(1, _gBufferRto->GetDepthStencilTarget());
   renderDevice->SetTexture(2, _gBufferRto->GetColourTarget(1));
   renderDevice->SetTexture(3, _gBufferRto->GetColourTarget(2));
-  renderDevice->SetTexture(4, shadowMapRto->GetDepthStencilTarget());
+  renderDevice->SetTexture(4, _shadowsRto->GetColourTarget(0));
   renderDevice->SetSamplerState(0, _noMipSamplerState);
   renderDevice->SetSamplerState(1, _noMipSamplerState);
   renderDevice->SetSamplerState(2, _noMipSamplerState);
   renderDevice->SetSamplerState(3, _noMipSamplerState);
-  renderDevice->SetSamplerState(4, _shadowMapSamplerState);
+  renderDevice->SetSamplerState(4, _noMipSamplerState);
   renderDevice->SetConstantBuffer(0, _lightingConstantsBuffer);
   renderDevice->SetConstantBuffer(1, _lightingBuffer);
   renderDevice->SetConstantBuffer(2, shadowMapBuffer);

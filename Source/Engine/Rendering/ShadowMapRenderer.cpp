@@ -145,9 +145,9 @@ ShadowMapRenderer::ShadowMapRenderer() : _zMulti(3.0),
                                          _drawCascadeLayers(false)
 {
   _cascadeRatios.push_back(0.1f);
-  _cascadeRatios.push_back(0.2f);
   _cascadeRatios.push_back(0.3f);
-  _cascadeRatios.push_back(0.4f);
+  _cascadeRatios.push_back(0.5f);
+  _cascadeRatios.push_back(0.7f);
 }
 
 void ShadowMapRenderer::onInit(const std::shared_ptr<RenderDevice> &renderDevice)
