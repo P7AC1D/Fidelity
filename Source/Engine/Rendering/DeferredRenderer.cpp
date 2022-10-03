@@ -68,7 +68,8 @@ struct LightingBuffer
 
 DeferredRenderer::DeferredRenderer(const Vector2I &windowDims) : _windowDims(windowDims),
                                                                  _ambientColour(Colour::White),
-                                                                 _ambientIntensity(0.1f)
+                                                                 _ambientIntensity(0.1f),
+                                                                 _softShadowsBlurIntensity(0.5f)
 {
 }
 
@@ -170,7 +171,6 @@ void DeferredRenderer::onInit(const std::shared_ptr<RenderDevice> &device)
     colourTexDesc.Usage = TextureUsage::RenderTarget;
     colourTexDesc.Type = TextureType::Texture2D;
     colourTexDesc.Format = TextureFormat::R8;
-    colourTexDesc.MipLevels = 2;
 
     RenderTargetDesc rtDesc;
     rtDesc.ColourTargets[0] = device->CreateTexture(colourTexDesc);
@@ -181,8 +181,8 @@ void DeferredRenderer::onInit(const std::shared_ptr<RenderDevice> &device)
   }
   {
     TextureDesc colourTexDesc;
-    colourTexDesc.Width = _windowDims.X / 2.0f;
-    colourTexDesc.Height = _windowDims.Y / 2.0f;
+    colourTexDesc.Width = _windowDims.X;
+    colourTexDesc.Height = _windowDims.Y;
     colourTexDesc.Usage = TextureUsage::RenderTarget;
     colourTexDesc.Type = TextureType::Texture2D;
     colourTexDesc.Format = TextureFormat::R8;
@@ -193,6 +193,8 @@ void DeferredRenderer::onInit(const std::shared_ptr<RenderDevice> &device)
     rtDesc.Width = _windowDims.Y / 2.0f;
 
     _shadowDownsampledRto = device->CreateRenderTarget(rtDesc);
+    _shadowHorizontalBlurRto = device->CreateRenderTarget(rtDesc);
+    _shadowVerticalBlurRto = device->CreateRenderTarget(rtDesc);
   }
   {
     TextureDesc colourTexDesc;
@@ -333,6 +335,13 @@ void DeferredRenderer::onDrawDebugUi()
     {
       _ambientIntensity = ambientIntensity;
     }
+
+    ImGui::Text("Soft Shadows");
+    float32 softShadowsBlurIntensity = _softShadowsBlurIntensity;
+    if (ImGui::SliderFloat("Blur Intensity", &softShadowsBlurIntensity, 0.0f, 1.0f))
+    {
+      _softShadowsBlurIntensity = softShadowsBlurIntensity;
+    }
   }
 }
 
@@ -351,7 +360,7 @@ void DeferredRenderer::drawFrame(std::shared_ptr<RenderDevice> renderDevice,
 
   gbufferPass(renderDevice, drawables, camera);
   shadowPass(renderDevice, shadowMapRto, shadowMapBuffer);
-  //shadowBlurPass(renderDevice);
+  shadowBlurPass(renderDevice);
   lightingPass(renderDevice, lights, shadowMapRto, shadowMapBuffer, camera);
 }
 
@@ -408,61 +417,37 @@ void DeferredRenderer::shadowPass(const std::shared_ptr<RenderDevice> &renderDev
 
 void DeferredRenderer::shadowBlurPass(const std::shared_ptr<RenderDevice> &renderDevice)
 {
-  ViewportDesc viewportDesc;
-  viewportDesc.Width = _windowDims.X / 2.0f;
-  viewportDesc.Height = _windowDims.Y / 2.0f;
-  renderDevice->SetViewport(viewportDesc);
+  BlurBufferData blurBufferData;
+  blurBufferData.BlurAmount = _softShadowsBlurIntensity;
+  blurBufferData.ScreenHeight = _windowDims.Y;
+  blurBufferData.ScreenWidth = _windowDims.X;
+  _blurBuffer->WriteData(0, sizeof(BlurBufferData), &blurBufferData, AccessType::WriteOnlyDiscard);
 
-  shadowDownsamplePass(renderDevice);
-  shadowHorizontalBlurPass(renderDevice);
-  shadowVerticalBlurPass(renderDevice);
-
-  viewportDesc.Width = _windowDims.X;
-  viewportDesc.Height = _windowDims.Y;
-  renderDevice->SetViewport(viewportDesc);
-
-  shadowUpsamplePass(renderDevice);
+  shadowHorizontalBlurPass(renderDevice, _shadowsRto, _shadowHorizontalBlurRto);
+  shadowVerticalBlurPass(renderDevice, _shadowHorizontalBlurRto, _shadowsRto);
 }
 
-void DeferredRenderer::shadowDownsamplePass(const std::shared_ptr<RenderDevice> &renderDevice)
-{
-  renderDevice->SetPipelineState(_downsamplePso);
-  renderDevice->SetRenderTarget(_shadowDownsampledRto);
-  renderDevice->ClearBuffers(RTT_Colour);
-  renderDevice->SetTexture(0, _shadowsRto->GetColourTarget(0));
-  renderDevice->SetSamplerState(0, _noMipSamplerState);
-  renderDevice->SetVertexBuffer(_fsQuadBuffer);
-  renderDevice->Draw(6, 0);
-}
-
-void DeferredRenderer::shadowHorizontalBlurPass(const std::shared_ptr<RenderDevice> &renderDevice)
+void DeferredRenderer::shadowHorizontalBlurPass(const std::shared_ptr<RenderDevice> &renderDevice,
+                                                const std::shared_ptr<RenderTarget> &input,
+                                                const std::shared_ptr<RenderTarget> &output)
 {
   renderDevice->SetPipelineState(_horizontalBlurPso);
-  renderDevice->SetRenderTarget(_shadowDownsampledRto);
-  renderDevice->ClearBuffers(RTT_Colour);
-  renderDevice->SetTexture(0, _shadowDownsampledRto->GetColourTarget(0));
+  renderDevice->SetRenderTarget(output);
+  renderDevice->SetTexture(0, input->GetColourTarget(0));
+  renderDevice->SetConstantBuffer(0, _blurBuffer);
   renderDevice->SetSamplerState(0, _noMipSamplerState);
   renderDevice->SetVertexBuffer(_fsQuadBuffer);
   renderDevice->Draw(6, 0);
 }
 
-void DeferredRenderer::shadowVerticalBlurPass(const std::shared_ptr<RenderDevice> &renderDevice)
+void DeferredRenderer::shadowVerticalBlurPass(const std::shared_ptr<RenderDevice> &renderDevice,
+                                              const std::shared_ptr<RenderTarget> &input,
+                                              const std::shared_ptr<RenderTarget> &output)
 {
   renderDevice->SetPipelineState(_verticalBlurPso);
-  renderDevice->SetRenderTarget(_shadowDownsampledRto);
-  renderDevice->ClearBuffers(RTT_Colour);
-  renderDevice->SetTexture(0, _shadowDownsampledRto->GetColourTarget(0));
-  renderDevice->SetSamplerState(0, _noMipSamplerState);
-  renderDevice->SetVertexBuffer(_fsQuadBuffer);
-  renderDevice->Draw(6, 0);
-}
-
-void DeferredRenderer::shadowUpsamplePass(const std::shared_ptr<RenderDevice> &renderDevice)
-{
-  renderDevice->SetPipelineState(_downsamplePso);
-  renderDevice->SetRenderTarget(_shadowsRto);
-  renderDevice->ClearBuffers(RTT_Colour);
-  renderDevice->SetTexture(0, _shadowDownsampledRto->GetColourTarget(0));
+  renderDevice->SetRenderTarget(output);
+  renderDevice->SetTexture(0, input->GetColourTarget(0));
+  renderDevice->SetConstantBuffer(0, _blurBuffer);
   renderDevice->SetSamplerState(0, _noMipSamplerState);
   renderDevice->SetVertexBuffer(_fsQuadBuffer);
   renderDevice->Draw(6, 0);

@@ -34,7 +34,7 @@ struct CascadeShadowMapData
   int32 DrawLayers;
 };
 
-struct BlurBuffer
+struct BlurBufferData
 {
   float32 ScreenWidth;
   float32 ScreenHeight;
@@ -55,7 +55,7 @@ protected:
 
   bool _settingsModified;
 
-  std::shared_ptr<PipelineState> _downsamplePso, _verticalBlurPso, _horizontalBlurPso;
+  std::shared_ptr<PipelineState> _verticalBlurPso, _horizontalBlurPso;
 
   std::shared_ptr<GpuBuffer> _cameraBuffer, _blurBuffer;
 

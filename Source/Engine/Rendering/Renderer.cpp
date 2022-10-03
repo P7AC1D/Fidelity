@@ -54,42 +54,6 @@ bool Renderer::init(const std::shared_ptr<RenderDevice> &renderDevice)
       psDesc.EntryPoint = "main";
       psDesc.ShaderLang = ShaderLang::Glsl;
       psDesc.ShaderType = ShaderType::Pixel;
-      psDesc.Source = String::LoadFromFile("./Shaders/TexturedQuad.frag");
-
-      std::vector<VertexLayoutDesc> vertexLayoutDesc{
-          VertexLayoutDesc(SemanticType::Position, SemanticFormat::Float2),
-          VertexLayoutDesc(SemanticType::TexCoord, SemanticFormat::Float2),
-      };
-
-      std::shared_ptr<ShaderParams> shaderParams(new ShaderParams());
-      shaderParams->AddParam(ShaderParam("TextureMap", ShaderParamType::Texture, 0));
-
-      DepthStencilStateDesc depthStencilStateDesc{};
-      depthStencilStateDesc.DepthReadEnabled = false;
-      depthStencilStateDesc.DepthWriteEnabled = false;
-
-      PipelineStateDesc pipelineDesc;
-      pipelineDesc.VS = renderDevice->CreateShader(vsDesc);
-      pipelineDesc.PS = renderDevice->CreateShader(psDesc);
-      pipelineDesc.BlendState = renderDevice->CreateBlendState(BlendStateDesc{});
-      pipelineDesc.RasterizerState = renderDevice->CreateRasterizerState(RasterizerStateDesc{});
-      pipelineDesc.DepthStencilState = renderDevice->CreateDepthStencilState(depthStencilStateDesc);
-      pipelineDesc.VertexLayout = renderDevice->CreateVertexLayout(vertexLayoutDesc);
-      pipelineDesc.ShaderParams = shaderParams;
-
-      _downsamplePso = renderDevice->CreatePipelineState(pipelineDesc);
-    }
-    {
-      ShaderDesc vsDesc;
-      vsDesc.EntryPoint = "main";
-      vsDesc.ShaderLang = ShaderLang::Glsl;
-      vsDesc.ShaderType = ShaderType::Vertex;
-      vsDesc.Source = String::LoadFromFile("./Shaders/FSPassThrough.vert");
-
-      ShaderDesc psDesc;
-      psDesc.EntryPoint = "main";
-      psDesc.ShaderLang = ShaderLang::Glsl;
-      psDesc.ShaderType = ShaderType::Pixel;
       psDesc.Source = String::LoadFromFile("./Shaders/VerticalBlur.frag");
 
       std::vector<VertexLayoutDesc> vertexLayoutDesc{
@@ -99,6 +63,7 @@ bool Renderer::init(const std::shared_ptr<RenderDevice> &renderDevice)
 
       std::shared_ptr<ShaderParams> shaderParams(new ShaderParams());
       shaderParams->AddParam(ShaderParam("TextureMap", ShaderParamType::Texture, 0));
+      shaderParams->AddParam(ShaderParam("BlurBuffer", ShaderParamType::ConstBuffer, 0));
 
       DepthStencilStateDesc depthStencilStateDesc{};
       depthStencilStateDesc.DepthReadEnabled = false;
@@ -149,7 +114,7 @@ bool Renderer::init(const std::shared_ptr<RenderDevice> &renderDevice)
     GpuBufferDesc blurBufferDesc;
     blurBufferDesc.BufferType = BufferType::Constant;
     blurBufferDesc.BufferUsage = BufferUsage::Stream;
-    blurBufferDesc.ByteCount = sizeof(CameraBufferData);
+    blurBufferDesc.ByteCount = sizeof(BlurBufferData);
     _blurBuffer = renderDevice->CreateGpuBuffer(blurBufferDesc);
 
     onInit(renderDevice);
