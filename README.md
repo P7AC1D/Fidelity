@@ -1,13 +1,24 @@
 # Fidelity Engine
+My personal OpenGL based 3D rendering engine to learn and implement graphics algorithms and optimisations.
+
 ## Features
--  Deferred Rendering
+- Deferred Rendering Pipeline
+- Cascaded Shadow Maps for Directional Lights
+- Scenegraph with Frustrum Culling
+- Editor UI for Debugging
 
 ## Future Work
 - [x] Orthographic Shadow Mapping
-- [ ] Perspective Shadow Mapping for Point Lights
+- [ ] Soft Shadows
+- [ ] Point Light Shadow Maps
 - [ ] Screen space ambient occlusion
-- [ ] Screen space reflecton
-- [ ] Physicaly based rendering
+- [ ] Screen space reflection
+- [ ] Motion Blur
+- [ ] Depth of Field
+- [ ] FXAA
+- [ ] HDR Tone Mapping
+- [ ] Physically based rendering
+- [ ] Clustered Shading 
 
 
 ## References
@@ -15,3 +26,5 @@
 * https://learnopengl.com/
 #### Shadow Mapping
 * https://alextardif.com/shadowmapping.html
+#### Clustered Shading
+* http://www.aortiz.me/2018/12/21/CG.html
