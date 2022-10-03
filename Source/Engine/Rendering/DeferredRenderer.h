@@ -71,6 +71,7 @@ private:
   Colour _ambientColour;
   float32 _ambientIntensity;
   float32 _softShadowsBlurIntensity;
+  bool _softShadows;
 
   std::shared_ptr<PipelineState> _gBufferPso, _shadowsPso, _lightingPto;
   std::shared_ptr<RenderTarget> _gBufferRto, _shadowsRto, _lightingPassRto, _shadowDownsampledRto, _shadowHorizontalBlurRto, _shadowVerticalBlurRto;

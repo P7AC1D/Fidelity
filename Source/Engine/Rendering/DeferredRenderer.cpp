@@ -69,7 +69,8 @@ struct LightingBuffer
 DeferredRenderer::DeferredRenderer(const Vector2I &windowDims) : _windowDims(windowDims),
                                                                  _ambientColour(Colour::White),
                                                                  _ambientIntensity(0.1f),
-                                                                 _softShadowsBlurIntensity(0.5f)
+                                                                 _softShadowsBlurIntensity(0.5f),
+                                                                 _softShadows(true)
 {
 }
 
@@ -337,6 +338,12 @@ void DeferredRenderer::onDrawDebugUi()
     }
 
     ImGui::Text("Soft Shadows");
+    bool softShadowsEnabled = _softShadows;
+    if (ImGui::Checkbox("Enabled", &softShadowsEnabled))
+    {
+      _softShadows = softShadowsEnabled;
+    }
+
     float32 softShadowsBlurIntensity = _softShadowsBlurIntensity;
     if (ImGui::SliderFloat("Blur Intensity", &softShadowsBlurIntensity, 0.0f, 1.0f))
     {
@@ -360,7 +367,10 @@ void DeferredRenderer::drawFrame(std::shared_ptr<RenderDevice> renderDevice,
 
   gbufferPass(renderDevice, drawables, camera);
   shadowPass(renderDevice, shadowMapRto, shadowMapBuffer);
-  shadowBlurPass(renderDevice);
+  if (_softShadows)
+  {
+    shadowBlurPass(renderDevice);
+  }
   lightingPass(renderDevice, lights, shadowMapRto, shadowMapBuffer, camera);
 }
 
