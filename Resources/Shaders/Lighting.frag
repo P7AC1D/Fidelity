@@ -87,7 +87,7 @@ void main()
   // Rebuild world position of fragment from frag-coord and depth texture
   vec3 position = vec3((gl_FragCoord.x * Constants.PixelSize.x), (gl_FragCoord.y * Constants.PixelSize.y), 0.0f);
   position.z = texture(DepthMap, position.xy).r;  
-  float shadowFactor = texture(ShadowMap, position.xy).r;
+  float shadowFactor = texture(ShadowMap, TexCoord).r;
 
   vec3 normal = normalize(texture(NormalMap, TexCoord).xyz * 2.0f - 1.0f);
   vec4 albedo = texture(AlbedoMap, TexCoord);

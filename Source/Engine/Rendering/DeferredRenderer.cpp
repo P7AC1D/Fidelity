@@ -366,6 +366,15 @@ void DeferredRenderer::drawFrame(std::shared_ptr<RenderDevice> renderDevice,
   renderDevice->SetViewport(viewportDesc);
 
   gbufferPass(renderDevice, drawables, camera);
+
+  LightingConstantsBuffer lightingConstants;
+  lightingConstants.View = camera->getView();
+  lightingConstants.FarPlane = camera->getFar();
+  lightingConstants.ProjViewInvs = (camera->getProj() * camera->getView()).Inverse();
+  lightingConstants.CameraPosition = camera->getParentTransform().getPosition();
+  lightingConstants.PixelSize = Vector2(1.0f / _windowDims.X, 1.0f / _windowDims.Y);
+  _lightingConstantsBuffer->WriteData(0, sizeof(LightingConstantsBuffer), &lightingConstants, AccessType::WriteOnlyDiscard);
+
   shadowPass(renderDevice, shadowMapRto, shadowMapBuffer);
   if (_softShadows)
   {
@@ -485,14 +494,6 @@ void DeferredRenderer::lightingPass(std::shared_ptr<RenderDevice> renderDevice,
   renderDevice->SetConstantBuffer(0, _lightingConstantsBuffer);
   renderDevice->SetConstantBuffer(1, _lightingBuffer);
   renderDevice->SetConstantBuffer(2, shadowMapBuffer);
-
-  LightingConstantsBuffer lightingConstants;
-  lightingConstants.View = camera->getView();
-  lightingConstants.FarPlane = camera->getFar();
-  lightingConstants.ProjViewInvs = (camera->getProj() * camera->getView()).Inverse();
-  lightingConstants.CameraPosition = camera->getParentTransform().getPosition();
-  lightingConstants.PixelSize = Vector2(1.0f / _windowDims.X, 1.0f / _windowDims.Y);
-  _lightingConstantsBuffer->WriteData(0, sizeof(LightingConstantsBuffer), &lightingConstants, AccessType::WriteOnlyDiscard);
 
   LightingBuffer lighting;
   lighting.AmbientColour = _ambientColour.ToVec3();
