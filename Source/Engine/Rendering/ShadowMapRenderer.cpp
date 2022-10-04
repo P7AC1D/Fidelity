@@ -26,12 +26,19 @@ std::vector<float32> calculateCascadeLevels(float32 farPlane, const std::vector<
   return std::move(std::vector<float32>{farPlane * cascadeRatios[0], farPlane * cascadeRatios[1], farPlane * cascadeRatios[2], farPlane});
 }
 
-float32 calculateCascadeRadius(const std::vector<Vector4> &frustrumCorners)
+float32 calculateCascadeRadius(const std::vector<Vector3> &frustrumCorners, const Vector3 &frustrumCenter)
 {
   Assert::ThrowIfFalse(frustrumCorners.size() == 8, "Invalid size of supplied frustrum corners.");
 
-  float32 length = (frustrumCorners[0] - frustrumCorners[6]).Length();
-  return length / 2.0f;
+  float32 sphereRadius = 0.0f;
+  for (uint32 i = 0; i < 8; i++)
+  {
+    float32 dist = (frustrumCorners[i] - frustrumCenter).Length();
+    sphereRadius = std::max(sphereRadius, dist);
+  }
+
+  sphereRadius = std::ceil(sphereRadius * 16.0f) / 16.0f;
+  return sphereRadius;
 }
 
 float32 calculateTexelsPerUnitInWorldSpace(float32 shadowMapResolution, float32 cascadeRadius)
@@ -41,7 +48,7 @@ float32 calculateTexelsPerUnitInWorldSpace(float32 shadowMapResolution, float32 
 
 std::vector<Matrix4> calculateCameraCascadeProjections(const std::shared_ptr<Camera> &camera, const std::vector<float32> &cascadeRatios)
 {
-  Radian fov = camera->getFar();
+  Radian fov = camera->getFov();
   float32 aspect = camera->getAspectRatio();
   float32 nearPlane = camera->getNear();
   float32 farPlane = camera->getFar();
@@ -56,19 +63,19 @@ std::vector<Matrix4> calculateCameraCascadeProjections(const std::shared_ptr<Cam
   return std::move(projections);
 }
 
-Vector3 calculateFrustrumCenter(const std::vector<Vector4> &frustrumCorners)
+Vector3 calculateFrustrumCenter(const std::vector<Vector3> &frustrumCorners)
 {
   Vector3 center(Vector3::Zero);
   for (uint32 i = 0; i < 0; ++i)
   {
-    center = center + Vector3(frustrumCorners[i][0], frustrumCorners[i][1], frustrumCorners[i][2]);
+    center = center + frustrumCorners[i];
   }
   return center * (1.0f / 8.0f);
 }
 
-std::vector<Vector4> calculateFrustrumCorners(const Matrix4 &view, const Matrix4 &projection)
+std::vector<Vector3> calculateFrustrumCorners(const Matrix4 &view, const Matrix4 &projection)
 {
-  std::vector<Vector4> frustrumCorners = {
+  std::vector<Vector4> frustrumCornersVS = {
       Vector4(-1.0f, 1.0f, 0.0f, 1.0f),
       Vector4(1.0f, 1.0f, 0.0f, 1.0f),
       Vector4(1.0f, -1.0f, 0.0f, 1.0f),
@@ -81,22 +88,26 @@ std::vector<Vector4> calculateFrustrumCorners(const Matrix4 &view, const Matrix4
   Matrix4 projView(projection * view);
   Matrix4 projViewInvs(projView.Inverse());
 
+  std::vector<Vector3> frustrumCornersWS;
   for (uint32 i = 0; i < 8; i++)
   {
-    frustrumCorners[i] = projViewInvs * frustrumCorners[i];
-    frustrumCorners[i] = frustrumCorners[i] / frustrumCorners[i].W;
+    Vector4 point = projViewInvs * frustrumCornersVS[i];
+    point = point / point.W;
+
+    frustrumCornersWS.push_back(Vector3(point.X, point.Y, point.Z));
   }
 
-  return std::move(frustrumCorners);
+  return frustrumCornersWS;
 }
 
-Matrix4 calculateLightView(const std::vector<Vector4> &frustrumCorners,
-                           const std::shared_ptr<Light> &directionalLight,
+Matrix4 calculateLightView(const std::shared_ptr<Light> &directionalLight,
+                           Vector3 & fustrumCenter,
+                           float32 radius,
                            float32 shadowMapResolution)
 {
   // To reduce shadow shimmering when moving the camera
   // 1. Scale light view by a radius to ensure constant size
-  const float32 radius = calculateCascadeRadius(frustrumCorners);
+
   const float32 texelsPerUnit = calculateTexelsPerUnitInWorldSpace(shadowMapResolution, radius);
   const Vector3 lightDirection = directionalLight->getDirection();
 
@@ -106,13 +117,12 @@ Matrix4 calculateLightView(const std::vector<Vector4> &frustrumCorners,
   Matrix4 lookAtInv(lookAt.Inverse());
 
   // 2. Move center in texel-size increments; Transform back into original space using inverse.
-  Vector3 fustrumCenter = calculateFrustrumCenter(frustrumCorners);
   fustrumCenter = lookAt * fustrumCenter;
   fustrumCenter.X = std::floorf(fustrumCenter.X);
   fustrumCenter.Y = std::floorf(fustrumCenter.Y);
   fustrumCenter = lookAtInv * fustrumCenter;
 
-  Vector3 eye = fustrumCenter - (lightDirection * radius * 2.0f);
+  Vector3 eye = fustrumCenter - (lightDirection * radius);
   return Matrix4::LookAt(eye, fustrumCenter, Vector3::Up);
 }
 
@@ -132,11 +142,14 @@ std::vector<Matrix4> calculateCascadeLightTransforms(const std::shared_ptr<Camer
   for (uint32 i = 0; i < 4; i++)
   {
     auto frustrumCorners = calculateFrustrumCorners(camera->getView(), projections[i]);
-    Matrix4 lightView = calculateLightView(frustrumCorners, directionalLight, shadowMapResolution);
-    Matrix4 lightProjection = calculateLightProjection(calculateCascadeRadius(frustrumCorners), zMulti);
+    Vector3 fustrumCenter = calculateFrustrumCenter(frustrumCorners);
+    const float32 radius = calculateCascadeRadius(frustrumCorners, fustrumCenter);
+
+    Matrix4 lightView = calculateLightView(directionalLight, fustrumCenter, radius, shadowMapResolution);
+    Matrix4 lightProjection = calculateLightProjection(radius, zMulti);
     results.push_back(lightProjection * lightView);
   }
-  return std::move(results);
+  return results;
 }
 
 ShadowMapRenderer::ShadowMapRenderer() : _zMulti(3.0),

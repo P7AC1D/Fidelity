@@ -6,7 +6,7 @@
 
 static const float32 CAMERA_ROTATION_FACTOR = 0.01f;
 static const float32 CAMERA_ZOOM_FACTOR = 0.01f;
-static const float32 CAMERA_LOOK_SENSITIVITY = 0.005f;
+static const float32 CAMERA_LOOK_SENSITIVITY = 0.001f;
 static const float32 CAMERA_MOVE_FACTOR = 0.10f;
 static const float32 CAMERA_MOVE_SPRINT_FACTOR = 1.0f;
 
@@ -22,7 +22,7 @@ void Sponza::OnStart()
   _camera = &GameObjectBuilder(_scene)
                  .withName("mainCamera")
                  .withComponent(_scene.createComponent<Camera>()
-                                    .setPerspective(Degree(67.67f), GetWidth(), GetHeight(), 0.1f, 300.0f))
+                                    .setPerspective(Degree(67.67f), GetWidth(), GetHeight(), 0.1f, 500.0f))
                  .withPosition(Vector3(-15.0f, 17.0f, -11.0f))
                  .withTarget(Vector3::Zero)
                  .withRotation(Quaternion(Degree(-123.0f), Degree(36.0f), Degree(138.0f)))
@@ -59,7 +59,7 @@ void Sponza::OnStart()
                                   .withPosition(Vector3(-1.5f, 1.0f, 1.0f))
                                   .build());
 
-  auto& sponzaNode = ModelLoader::FromFile(_scene, "./Models/Sponza/sponza.obj", true);
+  auto &sponzaNode = ModelLoader::FromFile(_scene, "./Models/Sponza/sponza.obj", true);
   sponzaNode.transform().setScale(Vector3(0.1, 0.1, 0.1));
   _scene.addChildToNode(root, sponzaNode);
 }

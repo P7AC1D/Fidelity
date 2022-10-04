@@ -1,5 +1,14 @@
 #version 410
 
+const vec3 sampleOffsetDirections[20] = vec3[]
+(
+   vec3( 1,  1,  1), vec3( 1, -1,  1), vec3(-1, -1,  1), vec3(-1,  1,  1), 
+   vec3( 1,  1, -1), vec3( 1, -1, -1), vec3(-1, -1, -1), vec3(-1,  1, -1),
+   vec3( 1,  1,  0), vec3( 1, -1,  0), vec3(-1, -1,  0), vec3(-1,  1,  0),
+   vec3( 1,  0,  1), vec3(-1,  0,  1), vec3( 1,  0, -1), vec3(-1,  0, -1),
+   vec3( 0,  1,  1), vec3( 0, -1,  1), vec3( 0, -1, -1), vec3( 0,  1, -1)
+);
+
 layout(std140) uniform LightingConstantsBuffer
 {
   mat4 View;
@@ -67,16 +76,12 @@ float calculateShadowFactor(vec3 fragPosWorldSpace, vec3 normalWorldSpace)
 
     // PCF
     float shadow = 0.0;
-    vec2 texelSize = 1.0 / vec2(textureSize(ShadowMap, 0));
-    for(int x = -1; x <= 1; ++x)
+    vec2 texelSize = 1.0 / textureSize(ShadowMap, 0).xy;
+    for (int i = 0; i < 9; i++)
     {
-        for(int y = -1; y <= 1; ++y)
-        {
-            float pcfDepth = texture(ShadowMap, vec3(projCoords.xy + vec2(x, y) * texelSize, layerToUse)).r;
-            shadow += (currentDepth - bias) > pcfDepth ? 1.0 : 0.0;        
-        }    
+      float pcfDepth = texture(ShadowMap, vec3(projCoords.xy + sampleOffsetDirections[i].xy * texelSize, layerToUse)).r;
+      shadow += (currentDepth - bias) > pcfDepth ? 0.111111 : 0.0;  
     }
-    shadow /= 9.0;
         
     return shadow;
 }
