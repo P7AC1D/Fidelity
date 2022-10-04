@@ -38,6 +38,30 @@ float32 Math::Tan(const Radian &angle)
   return std::tanf(angle.InRadians());
 }
 
+float32 Math::RoundToEven(float32 val)
+{
+  float32 integerPart;
+  float32 fractionalPart = std::modf(val, &integerPart);
+  int32 integer = static_cast<int32>(val);
+
+  if (fractionalPart > static_cast<float32>(0.5f) || fractionalPart < static_cast<float32>(0.5f))
+  {
+    return round(val);
+  }
+  else if ((integer % 2) == 0)
+  {
+    return integerPart;
+  }
+  else if (val <= static_cast<float32>(0))
+  {
+    return integerPart - static_cast<float32>(1);
+  }
+  else
+  {
+    return integerPart + static_cast<float32>(1);
+  }
+}
+
 Radian Math::ASin(float32 value)
 {
   return Radian(std::asinf(value));
@@ -69,13 +93,12 @@ float32 Math::Abs(float32 value)
   return std::fabs(value);
 }
 
-Vector3 Math::Clamp(const Vector3& a, float32 min, float32 max)
+Vector3 Math::Clamp(const Vector3 &a, float32 min, float32 max)
 {
   return Vector3(
-    std::clamp(a.X, min, max),
-    std::clamp(a.Y, min, max),
-    std::clamp(a.Z, min, max)
-  );
+      std::clamp(a.X, min, max),
+      std::clamp(a.Y, min, max),
+      std::clamp(a.Z, min, max));
 }
 
 Vector3 Math::Min(Vector3 a, Vector3 b)
@@ -101,4 +124,14 @@ Vector4 Math::Max(Vector4 a, Vector4 b)
 Vector3 Math::Abs(Vector3 a)
 {
   return Vector3(std::fabs(a.X), std::fabs(a.Y), std::fabs(a.Z));
+}
+
+Vector3 Math::RoundToEven(const Vector3 &vec)
+{
+  return Vector3(RoundToEven(vec.X), RoundToEven(vec.Y), RoundToEven(vec.Z));
+}
+
+Vector4 Math::RoundToEven(const Vector4 &vec)
+{
+  return Vector4(RoundToEven(vec.X), RoundToEven(vec.Y), RoundToEven(vec.Z), RoundToEven(vec.W));
 }

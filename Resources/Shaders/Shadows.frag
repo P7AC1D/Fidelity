@@ -58,6 +58,14 @@ float calculateShadowFactor(vec3 fragPosWorldSpace, vec3 normalWorldSpace)
       }
     }
 
+    // Calculates the offset to use for sampling the shadow map, based on the surface normal
+    float nDotL = clamp(dot(normalWorldSpace, CascadeShadowMapData.LightDirection), 0.0f, 1.0f);
+    vec2 shadowMapSize = textureSize(ShadowMap, 0).xy;
+    float texelSize = 1.0f / shadowMapSize.x;
+    float nmlOffsetScale = clamp(1.0f - nDotL, 0.0f, 1.0f);
+    vec3 shadowPosOffset = texelSize * nmlOffsetScale * normalWorldSpace * 10.f;
+    fragPosWorldSpace += shadowPosOffset;
+
     vec4 fragPosLightSpace = CascadeShadowMapData.LightTransforms[layerToUse] * vec4(fragPosWorldSpace, 1.0);
     vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
     projCoords = projCoords * 0.5 + 0.5;
@@ -76,7 +84,6 @@ float calculateShadowFactor(vec3 fragPosWorldSpace, vec3 normalWorldSpace)
 
     // PCF
     float shadow = 0.0;
-    vec2 texelSize = 1.0 / textureSize(ShadowMap, 0).xy;
     for (int i = 0; i < 9; i++)
     {
       float pcfDepth = texture(ShadowMap, vec3(projCoords.xy + sampleOffsetDirections[i].xy * texelSize, layerToUse)).r;

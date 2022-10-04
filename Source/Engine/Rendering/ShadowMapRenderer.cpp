@@ -66,7 +66,7 @@ std::vector<Matrix4> calculateCameraCascadeProjections(const std::shared_ptr<Cam
 Vector3 calculateFrustrumCenter(const std::vector<Vector3> &frustrumCorners)
 {
   Vector3 center(Vector3::Zero);
-  for (uint32 i = 0; i < 0; ++i)
+  for (uint32 i = 0; i < 8; ++i)
   {
     center = center + frustrumCorners[i];
   }
@@ -101,7 +101,7 @@ std::vector<Vector3> calculateFrustrumCorners(const Matrix4 &view, const Matrix4
 }
 
 Matrix4 calculateLightView(const std::shared_ptr<Light> &directionalLight,
-                           Vector3 & fustrumCenter,
+                           Vector3 &fustrumCenter,
                            float32 radius,
                            float32 shadowMapResolution)
 {
@@ -137,17 +137,39 @@ std::vector<Matrix4> calculateCascadeLightTransforms(const std::shared_ptr<Camer
                                                      const std::vector<float32> &cascadeRatios,
                                                      float32 zMulti)
 {
+  const uint32 cascadeCount = 4;
+
   std::vector<Matrix4> results;
   std::vector<Matrix4> projections = calculateCameraCascadeProjections(camera, cascadeRatios);
-  for (uint32 i = 0; i < 4; i++)
+  for (uint32 i = 0; i < cascadeCount; i++)
   {
     auto frustrumCorners = calculateFrustrumCorners(camera->getView(), projections[i]);
-    Vector3 fustrumCenter = calculateFrustrumCenter(frustrumCorners);
-    const float32 radius = calculateCascadeRadius(frustrumCorners, fustrumCenter);
+    Vector3 frustrumCenter = calculateFrustrumCenter(frustrumCorners);
+    const float32 radius = calculateCascadeRadius(frustrumCorners, frustrumCenter);
 
-    Matrix4 lightView = calculateLightView(directionalLight, fustrumCenter, radius, shadowMapResolution);
-    Matrix4 lightProjection = calculateLightProjection(radius, zMulti);
-    results.push_back(lightProjection * lightView);
+    Vector3 maxExtents(radius, radius, radius);
+    Vector3 minExtents = -maxExtents;
+    Vector3 cascadeExtents = maxExtents - minExtents;
+
+    Vector3 lightDirection = -directionalLight->getDirection();
+    Vector3 shadowCameraPos = frustrumCenter + lightDirection * -minExtents.Z;
+    Matrix4 shadowCameraView = Matrix4::LookAt(shadowCameraPos, frustrumCenter, Vector3::Up);
+
+    Matrix4 shadowCameraProj = Matrix4::Orthographic(-radius, radius, -radius, radius, -cascadeExtents.Z, cascadeExtents.Z);
+    Matrix4 shadowMatrix = shadowCameraProj * shadowCameraView;
+    Vector4 shadowOrigin(0.0f, 0.0f, 0.0f, 1.0f);
+    shadowOrigin = shadowMatrix * shadowOrigin;
+    shadowOrigin = shadowOrigin * shadowMapResolution / 2.0f;
+
+    Vector4 roundedOrigin = Math::RoundToEven(shadowOrigin);
+    Vector4 roundedOffset = roundedOrigin - shadowOrigin;
+    roundedOffset = roundedOffset * (2.0f / shadowMapResolution);
+    roundedOffset.Z = 0.0f;
+    roundedOffset.W = 0.0f;
+
+    shadowCameraProj[3] += roundedOffset;
+
+    results.push_back(shadowCameraProj * shadowCameraView);
   }
   return results;
 }
