@@ -24,6 +24,7 @@ My personal OpenGL based 3D rendering engine to learn and implement graphics alg
 ## References
 #### General
 * https://learnopengl.com/
+* https://blogs.igalia.com/itoral/2018/04/17/frame-analysis-of-a-rendering-of-the-sponza-model/
 #### Shadow Mapping
 * https://alextardif.com/shadowmapping.html
 * https://therealmjp.github.io/posts/shadow-maps/
