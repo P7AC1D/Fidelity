@@ -26,6 +26,7 @@ My personal OpenGL based 3D rendering engine to learn and implement graphics alg
 * https://learnopengl.com/
 #### Shadow Mapping
 * https://alextardif.com/shadowmapping.html
+* https://therealmjp.github.io/posts/shadow-maps/
 * https://learn.microsoft.com/en-us/windows/win32/dxtecharts/common-techniques-to-improve-shadow-depth-maps
 #### Clustered Shading
 * http://www.aortiz.me/2018/12/21/CG.html
