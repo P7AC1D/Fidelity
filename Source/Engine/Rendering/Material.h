@@ -17,6 +17,7 @@ public:
   Material &setDiffuseTexture(const std::shared_ptr<Texture> &diffuseTexture);
   Material &setNormalTexture(const std::shared_ptr<Texture> &normalTexture);
   Material &setSpecularTexture(const std::shared_ptr<Texture> &specularTexture);
+  Material &setOpacityTexture(const std::shared_ptr<Texture> &opacityTexture);
 
   uint32 getId() const { return _id; }
   Colour getAmbientColour() const { return _ambientColour; }
@@ -27,10 +28,12 @@ public:
   std::shared_ptr<Texture> getDiffuseTexture() const { return _diffuseTexture; }
   std::shared_ptr<Texture> getNormalTexture() const { return _normalTexture; }
   std::shared_ptr<Texture> getSpecularTexture() const { return _specularTexture; }
+  std::shared_ptr<Texture> getOpacityTexture() const { return _opacityTexture; }
 
   bool hasDiffuseTexture() const { return _diffuseTexture != nullptr; }
   bool hasNormalTexture() const { return _normalTexture != nullptr; }
   bool hasSpecularTexture() const { return _specularTexture != nullptr; }
+  bool hasOpacityTexture() const { return _opacityTexture != nullptr; }
 
 private:
   uint32 _id;

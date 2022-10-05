@@ -47,3 +47,9 @@ Material &Material::setSpecularTexture(const std::shared_ptr<Texture> &specularT
   _specularTexture = specularTexture;
   return *this;
 }
+
+Material &Material::setOpacityTexture(const std::shared_ptr<Texture> &opacityTexture)
+{
+  _opacityTexture = opacityTexture;
+  return *this;
+}

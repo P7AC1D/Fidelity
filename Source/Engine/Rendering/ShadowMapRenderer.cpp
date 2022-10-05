@@ -74,13 +74,14 @@ std::vector<Vector3> calculateFrustrumCorners(const Matrix4 &view, const Matrix4
 }
 
 ShadowMapRenderer::ShadowMapRenderer() : _zMulti(3.0),
-                                         _shadowMapResolution(4096),
+                                         _shadowMapResolution(2048),
                                          _cascadeCount(4),
                                          _drawCascadeLayers(false),
                                          _sampleCount(16.0f),
                                          _sampleSpread(700.0f),
                                          _minCascadeDistance(0.0f),
-                                         _maxCascadeDistance(1.0f)
+                                         _maxCascadeDistance(1.0f),
+                                         _cascadeLambda(0.4f)
 {
 }
 
@@ -194,6 +195,12 @@ void ShadowMapRenderer::onDrawDebugUi()
     if (ImGui::SliderFloat("Sample Spread", &sampleSpread, 1.0f, 1000.0f))
     {
       _sampleSpread = sampleSpread;
+    }
+
+    float32 cascadeLambda = _cascadeLambda;
+    if (ImGui::SliderFloat("Cascade Lambda", &cascadeLambda, 0.01f, 1.0f))
+    {
+      _cascadeLambda = cascadeLambda;
     }
 
     bool shouldDrawCascadeLayers = _drawCascadeLayers;
@@ -310,7 +317,7 @@ std::vector<float32> ShadowMapRenderer::calculateCascadeLevels(float32 nearClip,
     float32 p = (i + 1) / static_cast<float32>(_cascadeCount);
     float32 log = minZ * std::pow(ratio, p);
     float32 uniform = minZ + range * p;
-    float32 d = 0.5 * (log - uniform) + uniform;
+    float32 d = _cascadeLambda * (log - uniform) + uniform;
     cascadeSplits.push_back(d);
   }
 
