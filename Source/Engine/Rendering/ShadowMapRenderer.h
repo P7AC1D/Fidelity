@@ -37,7 +37,6 @@ private:
 
   void writeObjectConstantData(std::shared_ptr<Drawable> drawable, const std::shared_ptr<Camera> &camera) const;
 
-  float32 _zMulti;
   int32 _shadowMapResolution;
   uint32 _cascadeCount;
   bool _drawCascadeLayers;
@@ -46,7 +45,7 @@ private:
   float32 _minCascadeDistance, _maxCascadeDistance;
   float32 _cascadeLambda;
 
-  std::shared_ptr<Texture> _shadowCubeMap;
+  std::shared_ptr<Texture> _shadowCubeMap, _randomRotationsMap;
   std::shared_ptr<RenderTarget> _shadowMapRto;
   std::shared_ptr<PipelineState> _shadowMapPso;
   std::shared_ptr<GpuBuffer> _objectBuffer;

@@ -73,8 +73,7 @@ std::vector<Vector3> calculateFrustrumCorners(const Matrix4 &view, const Matrix4
   return frustrumCornersWS;
 }
 
-ShadowMapRenderer::ShadowMapRenderer() : _zMulti(3.0),
-                                         _shadowMapResolution(2048),
+ShadowMapRenderer::ShadowMapRenderer() : _shadowMapResolution(2048),
                                          _cascadeCount(4),
                                          _drawCascadeLayers(false),
                                          _sampleCount(16.0f),
@@ -171,12 +170,6 @@ void ShadowMapRenderer::onDrawDebugUi()
   ImGui::Separator();
   {
     ImGui::Text("Shadow Map Renderer");
-
-    float32 zMultiple = _zMulti;
-    if (ImGui::DragFloat("Z-Multiple", &zMultiple, 0.1f, 0.1f, 1000.0f))
-    {
-      _zMulti = zMultiple;
-    }
 
     int shadowMapResolution = _shadowMapResolution;
     if (ImGui::SliderInt("Resolution", &shadowMapResolution, 256, 8192))

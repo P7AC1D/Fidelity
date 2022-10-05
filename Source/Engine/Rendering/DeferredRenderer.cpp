@@ -23,6 +23,7 @@
 #include "Material.h"
 #include "StaticMesh.h"
 
+const static uint32 RANDOM_ROTATION_TEXTURE_SIZE = 64;
 struct MaterialBufferData
 {
   struct TextureMapFlagData
@@ -144,6 +145,7 @@ void DeferredRenderer::onInit(const std::shared_ptr<RenderDevice> &device)
     shaderParams->AddParam(ShaderParam("DepthMap", ShaderParamType::Texture, 0));
     shaderParams->AddParam(ShaderParam("NormalMap", ShaderParamType::Texture, 1));
     shaderParams->AddParam(ShaderParam("ShadowMap", ShaderParamType::Texture, 2));
+    shaderParams->AddParam(ShaderParam("RandomRotationsMap", ShaderParamType::Texture, 3));
 
     RasterizerStateDesc rasterizerStateDesc{};
     BlendStateDesc blendStateDesc{};
@@ -298,6 +300,25 @@ void DeferredRenderer::onInit(const std::shared_ptr<RenderDevice> &device)
   shadowMapSamplerStateDesc.MipFiltering = TextureFilteringMode::None;
   shadowMapSamplerStateDesc.BorderColour = Colour::White;
   _shadowMapSamplerState = device->CreateSamplerState(shadowMapSamplerStateDesc);
+
+  TextureDesc randomRotationsDesc;
+  randomRotationsDesc.Width = RANDOM_ROTATION_TEXTURE_SIZE;
+  randomRotationsDesc.Height = RANDOM_ROTATION_TEXTURE_SIZE;
+  randomRotationsDesc.Usage = TextureUsage::Default;
+  randomRotationsDesc.Type = TextureType::Texture2D;
+  randomRotationsDesc.Format = TextureFormat::R8;
+  _randomRotationsMap = device->CreateTexture(randomRotationsDesc);
+
+  ubyte randomValues[RANDOM_ROTATION_TEXTURE_SIZE * RANDOM_ROTATION_TEXTURE_SIZE];
+  srand(0);
+  for (uint32 i = 0; i < RANDOM_ROTATION_TEXTURE_SIZE * RANDOM_ROTATION_TEXTURE_SIZE; i++)
+  {
+    randomValues[i] = static_cast<ubyte>((rand() / static_cast<float32>(RAND_MAX)) * 255.0f);
+  }
+
+  std::shared_ptr<ImageData> imageData(new ImageData(RANDOM_ROTATION_TEXTURE_SIZE, RANDOM_ROTATION_TEXTURE_SIZE, 1, ImageFormat::R8));
+  imageData->WriteData(randomValues);
+  _randomRotationsMap->WriteData(0, 0, imageData);
 }
 
 void DeferredRenderer::onDrawDebugUi()
@@ -389,11 +410,13 @@ void DeferredRenderer::shadowPass(const std::shared_ptr<RenderDevice> &renderDev
   renderDevice->SetTexture(0, _gBufferRto->GetDepthStencilTarget());
   renderDevice->SetTexture(1, _gBufferRto->GetColourTarget(1));
   renderDevice->SetTexture(2, shadowMapRto->GetDepthStencilTarget());
+  renderDevice->SetTexture(3, _randomRotationsMap);
   renderDevice->SetConstantBuffer(0, _lightingConstantsBuffer);
   renderDevice->SetConstantBuffer(2, shadowMapBuffer);
   renderDevice->SetSamplerState(0, _noMipSamplerState);
   renderDevice->SetSamplerState(1, _noMipSamplerState);
   renderDevice->SetSamplerState(2, _shadowMapSamplerState);
+  renderDevice->SetSamplerState(3, _noMipSamplerState);
   renderDevice->SetVertexBuffer(_fsQuadBuffer);
   renderDevice->Draw(6, 0);
 }

@@ -1,5 +1,7 @@
 #version 410
 
+const float Pi2 = 6.283185307f;
+
 const vec3 sampleOffsetDirections[20] = vec3[]
 (
    vec3( 1,  1,  1), vec3( 1, -1,  1), vec3(-1, -1,  1), vec3(-1,  1,  1), 
@@ -100,20 +102,26 @@ layout(std140) uniform CascadeShadowMapBuffer
 uniform sampler2D DepthMap;
 uniform sampler2D NormalMap;
 uniform sampler2DArray ShadowMap;
+uniform sampler2D RandomRotationsMap;
 
 layout(location = 0) in vec2 TexCoord;
 
 layout(location = 0) out float Shadows;
 
 float sampleShadowMapPcf(vec2 shadowCoords, float shadowDepth, float texelSize, int cascadeLayer, float bias);
-float sampleShadowMapPoissonDisc(vec2 shadowCoords, float shadowDepth, float texelSize, int cascadeLayer, float bias);
 
-float sampleShadowMapPoissonDisc(vec2 shadowCoords, float shadowDepth, float texelSize, int cascadeLayer, float bias)
+float sampleShadowMapPoissonDisc(vec2 shadowCoords, float shadowDepth, float texelSize, int cascadeLayer, float bias, ivec2 screenPos)
 {
+  ivec2 randomRotationsSize = textureSize(RandomRotationsMap, 0);
+  vec2 randomSamplePos = screenPos % randomRotationsSize;
+  float theta = texture(RandomRotationsMap, randomSamplePos).r * Pi2;
+  mat2 randomRotations = mat2(vec2(cos(theta), -sin(theta)),
+                              vec2(sin(theta), cos(theta)));
+
   float result = 0.0;
   for (int i = 0; i < CascadeShadowMapData.SampleCount; i++)
   {
-    result += sampleShadowMapPcf(shadowCoords + PoissonSamples[i] / CascadeShadowMapData.SampleSpread, shadowDepth, texelSize, cascadeLayer, bias);
+    result += sampleShadowMapPcf(shadowCoords + (randomRotations * PoissonSamples[i]) / CascadeShadowMapData.SampleSpread, shadowDepth, texelSize, cascadeLayer, bias);
   }
   result /= CascadeShadowMapData.SampleCount;
   return result;
@@ -131,7 +139,7 @@ float sampleShadowMapPcf(vec2 shadowCoords, float shadowDepth, float texelSize, 
   return shadow;
 }
 
-float calculateShadowFactor(vec3 fragPosWorldSpace, vec3 normalWorldSpace)
+float calculateShadowFactor(vec3 fragPosWorldSpace, vec3 normalWorldSpace, ivec2 screenPos)
 {
     // Select which shadow map cascade to use
     vec4 fragPosViewSpace = Constants.View * vec4(fragPosWorldSpace, 1.0);
@@ -178,7 +186,7 @@ float calculateShadowFactor(vec3 fragPosWorldSpace, vec3 normalWorldSpace)
     const float biasModifier = 0.5f;
     bias *= 1 / (CascadeShadowMapData.CascadePlaneDistances[layerToUse] * biasModifier);
 
-    return sampleShadowMapPoissonDisc(projCoords.xy, currentDepth, texelSize, layerToUse, bias);
+    return sampleShadowMapPoissonDisc(projCoords.xy, currentDepth, texelSize, layerToUse, bias, screenPos);
 }
 
 void main()
@@ -192,6 +200,6 @@ void main()
   vec4 clip = Constants.ProjViewInv * vec4(position * 2.0f - 1.0f, 1.0f);
   position = clip.xyz / clip.w;
 
-  float shadowFactor = calculateShadowFactor(position, normal);
+  float shadowFactor = calculateShadowFactor(position, normal, ivec2(TexCoord));
   Shadows = (1.0f - shadowFactor);
 }
