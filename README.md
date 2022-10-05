@@ -8,8 +8,8 @@ My personal OpenGL based 3D rendering engine to learn and implement graphics alg
 - Editor UI for Debugging
 
 ## Future Work
-- [x] Orthographic Shadow Mapping
-- [x] Soft Shadows
+- [x] Cascaded Shadow Maps for Directional Lights
+- [x] Soft Shadows using Poisson disc sampling and PCF
 - [ ] Point Light Shadow Maps
 - [ ] Screen space ambient occlusion
 - [ ] Screen space reflection
