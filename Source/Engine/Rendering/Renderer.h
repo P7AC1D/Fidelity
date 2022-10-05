@@ -32,6 +32,8 @@ struct CascadeShadowMapData
   Vector3 LightDirection;
   uint32 CascadeCount;
   int32 DrawLayers;
+  int32 SampleCount;
+  float32 SampleSpread;
 };
 
 struct BlurBufferData

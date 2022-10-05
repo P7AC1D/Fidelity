@@ -177,7 +177,9 @@ std::vector<Matrix4> calculateCascadeLightTransforms(const std::shared_ptr<Camer
 ShadowMapRenderer::ShadowMapRenderer() : _zMulti(3.0),
                                          _shadowMapResolution(4096),
                                          _cascadeCount(4),
-                                         _drawCascadeLayers(false)
+                                         _drawCascadeLayers(false),
+                                         _sampleCount(16.0f),
+                                         _sampleSpread(700.0f)
 {
   _cascadeRatios.push_back(0.1f);
   _cascadeRatios.push_back(0.3f);
@@ -285,6 +287,18 @@ void ShadowMapRenderer::onDrawDebugUi()
       _settingsModified = true;
     }
 
+    int sampleCount = _sampleCount;
+    if (ImGui::SliderInt("Sample Count", &sampleCount, 1, 64))
+    {
+      _sampleCount = sampleCount;
+    }
+
+    int sampleSpread = _sampleSpread;
+    if (ImGui::SliderFloat("Sample Spread", &_sampleSpread, 1.0f, 1000.0f))
+    {
+      _sampleSpread = sampleSpread;
+    }
+
     bool shouldDrawCascadeLayers = _drawCascadeLayers;
     if (ImGui::Checkbox("Draw Cascade Layers", &shouldDrawCascadeLayers))
     {
@@ -361,6 +375,8 @@ void ShadowMapRenderer::drawFrame(const std::shared_ptr<RenderDevice> &renderDev
   csmData.LightTransforms[2] = lightTransforms[2];
   csmData.LightTransforms[3] = lightTransforms[3];
   csmData.DrawLayers = _drawCascadeLayers;
+  csmData.SampleCount = _sampleCount;
+  csmData.SampleSpread = _sampleSpread;
 
   auto cascadeLevels = calculateCascadeLevels(camera->getFar(), _cascadeRatios);
   csmData.CascadePlaneDistances[0].X = cascadeLevels[0];
