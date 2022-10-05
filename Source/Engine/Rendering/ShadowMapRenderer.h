@@ -31,15 +31,19 @@ public:
   std::shared_ptr<GpuBuffer> getShadowBuffer() { return _cascadeShadowBuffer; }
 
 private:
+  std::vector<Matrix4> calculateCameraCascadeProjections(const std::shared_ptr<Camera> &camera);
+  std::vector<float32> calculateCascadeLevels(float32 nearClip, float32 farClip);
+  std::vector<Matrix4> calculateCascadeLightTransforms(const std::shared_ptr<Camera> &camera, const std::shared_ptr<Light> &directionalLight);
+
   void writeObjectConstantData(std::shared_ptr<Drawable> drawable, const std::shared_ptr<Camera> &camera) const;
 
   float32 _zMulti;
   int32 _shadowMapResolution;
   uint32 _cascadeCount;
-  std::vector<float32> _cascadeRatios;
   bool _drawCascadeLayers;
   uint32 _sampleCount;
   float32 _sampleSpread;
+  float32 _minCascadeDistance, _maxCascadeDistance;
 
   std::shared_ptr<Texture> _shadowCubeMap;
   std::shared_ptr<RenderTarget> _shadowMapRto;
