@@ -32,6 +32,8 @@ struct CascadeShadowMapData
   Vector3 LightDirection;
   uint32 CascadeCount;
   int32 DrawLayers;
+  int32 SampleCount;
+  float32 SampleSpread;
 };
 
 struct BlurBufferData
@@ -55,9 +57,7 @@ protected:
 
   bool _settingsModified;
 
-  std::shared_ptr<PipelineState> _verticalBlurPso, _horizontalBlurPso;
-
-  std::shared_ptr<GpuBuffer> _cameraBuffer, _blurBuffer;
+  std::shared_ptr<GpuBuffer> _cameraBuffer;
 
   std::shared_ptr<SamplerState> _basicSamplerState, _noMipSamplerState;
 

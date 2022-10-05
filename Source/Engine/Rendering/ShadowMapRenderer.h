@@ -38,6 +38,8 @@ private:
   uint32 _cascadeCount;
   std::vector<float32> _cascadeRatios;
   bool _drawCascadeLayers;
+  uint32 _sampleCount;
+  float32 _sampleSpread;
 
   std::shared_ptr<Texture> _shadowCubeMap;
   std::shared_ptr<RenderTarget> _shadowMapRto;
