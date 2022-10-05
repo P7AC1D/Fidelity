@@ -57,9 +57,7 @@ protected:
 
   bool _settingsModified;
 
-  std::shared_ptr<PipelineState> _verticalBlurPso, _horizontalBlurPso;
-
-  std::shared_ptr<GpuBuffer> _cameraBuffer, _blurBuffer;
+  std::shared_ptr<GpuBuffer> _cameraBuffer;
 
   std::shared_ptr<SamplerState> _basicSamplerState, _noMipSamplerState;
 

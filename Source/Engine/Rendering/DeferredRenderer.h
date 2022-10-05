@@ -48,15 +48,6 @@ private:
                   const std::shared_ptr<RenderTarget> &shadowMapRto,
                   const std::shared_ptr<GpuBuffer> &shadowMapBuffer);
 
-  void shadowBlurPass(const std::shared_ptr<RenderDevice> &renderDevice);
-
-  void shadowHorizontalBlurPass(const std::shared_ptr<RenderDevice> &renderDevice,
-                                const std::shared_ptr<RenderTarget> &input,
-                                const std::shared_ptr<RenderTarget> &output);
-  void shadowVerticalBlurPass(const std::shared_ptr<RenderDevice> &renderDevice,
-                              const std::shared_ptr<RenderTarget> &input,
-                              const std::shared_ptr<RenderTarget> &output);
-
   void lightingPass(std::shared_ptr<RenderDevice> renderDevice,
                     const std::vector<std::shared_ptr<Light>> &lights,
                     const std::shared_ptr<RenderTarget> &shadowMapRto,
@@ -70,11 +61,9 @@ private:
   Vector2I _windowDims;
   Colour _ambientColour;
   float32 _ambientIntensity;
-  float32 _softShadowsBlurIntensity;
-  bool _softShadows;
 
   std::shared_ptr<PipelineState> _gBufferPso, _shadowsPso, _lightingPto;
-  std::shared_ptr<RenderTarget> _gBufferRto, _shadowsRto, _lightingPassRto, _shadowDownsampledRto, _shadowHorizontalBlurRto, _shadowVerticalBlurRto;
+  std::shared_ptr<RenderTarget> _gBufferRto, _shadowsRto, _lightingPassRto;
   std::shared_ptr<GpuBuffer> _materialBuffer;
   std::shared_ptr<GpuBuffer> _objectBuffer;
   std::shared_ptr<GpuBuffer> _lightingConstantsBuffer;
