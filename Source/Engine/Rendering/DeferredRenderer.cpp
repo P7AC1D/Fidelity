@@ -406,7 +406,6 @@ void DeferredRenderer::shadowPass(const std::shared_ptr<RenderDevice> &renderDev
 {
   renderDevice->SetPipelineState(_shadowsPso);
   renderDevice->SetRenderTarget(_shadowsRto);
-  renderDevice->ClearBuffers(RTT_Colour);
   renderDevice->SetTexture(0, _gBufferRto->GetDepthStencilTarget());
   renderDevice->SetTexture(1, _gBufferRto->GetColourTarget(1));
   renderDevice->SetTexture(2, shadowMapRto->GetDepthStencilTarget());
@@ -429,7 +428,6 @@ void DeferredRenderer::lightingPass(std::shared_ptr<RenderDevice> renderDevice,
 {
   renderDevice->SetPipelineState(_lightingPto);
   renderDevice->SetRenderTarget(_lightingPassRto);
-  renderDevice->ClearBuffers(RTT_Colour);
   renderDevice->SetTexture(0, _gBufferRto->GetColourTarget(0));
   renderDevice->SetTexture(1, _gBufferRto->GetDepthStencilTarget());
   renderDevice->SetTexture(2, _gBufferRto->GetColourTarget(1));

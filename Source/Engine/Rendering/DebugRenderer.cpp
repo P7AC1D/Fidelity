@@ -243,7 +243,7 @@ void DebugRenderer::onDrawDebugUi()
   {
     ImGui::Text("Debug Renderer");
 
-    std::vector<const char *> debugRenderingItems = {"Disabled", "Shadow Depth", "Diffuse", "Normal", "Depth", "Shadows"};
+    std::vector<const char *> debugRenderingItems = {"Disabled", "Shadow Depth", "Diffuse", "Normal", "Specular", "Depth", "Shadows"};
     static int debugRenderingCurrentItem = 0;
     if (ImGui::Combo("Target", &debugRenderingCurrentItem, debugRenderingItems.data(), debugRenderingItems.size()))
     {
@@ -289,6 +289,11 @@ void DebugRenderer::drawFrame(const std::shared_ptr<RenderDevice> &renderDevice,
   case DebugDisplayType::Normal:
   {
     drawRenderTarget(renderDevice, gBufferRto->GetColourTarget(1), camera);
+    break;
+  }
+  case DebugDisplayType::Specular:
+  {
+    drawRenderTarget(renderDevice, gBufferRto->GetColourTarget(2), camera);
     break;
   }
   case DebugDisplayType::Depth:

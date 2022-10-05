@@ -21,6 +21,7 @@ enum class DebugDisplayType
   ShadowDepth,
   Diffuse,
   Normal,
+  Specular,
   Depth,
   Shadows,
 };
