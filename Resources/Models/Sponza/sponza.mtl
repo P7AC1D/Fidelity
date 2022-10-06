@@ -15,6 +15,7 @@ newmtl leaf
 	map_Ks textures/sponza_thorn_spec.png
 	map_Ka textures/sponza_thorn_diff.png
 	map_Kd textures/sponza_thorn_diff.png
+	map_d textures/sponza_thorn_mask.png
 	norm textures/sponza_thorn_ddn.tga
 
 newmtl vase_round
@@ -45,6 +46,7 @@ newmtl Material__57
 	Ks 0.000 0.000 0.000
 	Ke 0.0000 0.0000 0.0000
 	map_Ks textures/vase_plant_spec.png
+	map_d textures/vase_plant_mask.png
 	map_Ka textures/vase_plant.png
 	map_Kd textures/vase_plant.png
 
@@ -271,7 +273,7 @@ newmtl fabric_g
 	Kd 1 1 1
 	Ks 0.0000 0.0000 0.0000
 	Ke 0.0000 0.0000 0.0000
-	map_Ks textures/sponza_fabric_spec.png
+	map_Ks textures/sponza_curtain_spec.png
 	map_Ka textures/sponza_curtain_blue_diff.png
 	map_Kd textures/sponza_curtain_blue_diff.png
 
@@ -286,6 +288,7 @@ newmtl fabric_c
 	Kd 1 1 1
 	Ks 0.0000 0.0000 0.0000
 	Ke 0.0000 0.0000 0.0000
+	map_Ks textures/sponza_curtain_spec.png
 	map_Ka textures/sponza_curtain_diff.png
 	map_Kd textures/sponza_curtain_diff.png
 
@@ -300,6 +303,7 @@ newmtl fabric_f
 	Kd 1 1 1
 	Ks 0.0000 0.0000 0.0000
 	Ke 0.0000 0.0000 0.0000
+	map_Ks textures/sponza_curtain_spec.png
 	map_Ka textures/sponza_curtain_green_diff.png
 	map_Kd textures/sponza_curtain_green_diff.png
 
@@ -332,7 +336,6 @@ newmtl vase_hanging
 	Ke 0.0000 0.0000 0.0000
 	map_Ka textures/vase_hanging.png
 	map_Kd textures/vase_hanging.png
-	map_Ks textures/vase_hanging.png
 
 newmtl vase
 	Ns 10.0000

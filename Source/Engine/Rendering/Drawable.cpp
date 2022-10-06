@@ -50,7 +50,7 @@ void Drawable::drawInspector()
 		material->setSpecularExponent(specular);
 	}
 	{
-		std::vector<const char *> debugRenderingItems = {"Diffuse", "Normal", "Specular"};
+		std::vector<const char *> debugRenderingItems = {"Diffuse", "Normal", "Specular", "Opacity"};
 		static int debugRenderingCurrentItem = 0;
 
 		ImGui::Combo("Texture", &debugRenderingCurrentItem, debugRenderingItems.data(), debugRenderingItems.size());
@@ -99,6 +99,23 @@ void Drawable::drawInspector()
 			UiManager::AddTexture(reinterpret_cast<uint64>(&specularTexture), specularTexture);
 			ImGui::Image(
 					&specularTexture,
+					ImVec2(200, 200),
+					ImVec2(0.0f, 0.0f),
+					ImVec2(1.0f, 1.0f),
+					ImVec4(1.0f, 1.0f, 1.0f, 1.0f),
+					ImVec4(1.0f, 1.0f, 1.0f, 0.5f));
+		}
+		else if (debugRenderingCurrentItem == 3)
+		{
+			auto opacityTexture = material->getOpacityTexture();
+			if (opacityTexture == nullptr)
+			{
+				return;
+			}
+
+			UiManager::AddTexture(reinterpret_cast<uint64>(&opacityTexture), opacityTexture);
+			ImGui::Image(
+					&opacityTexture,
 					ImVec2(200, 200),
 					ImVec2(0.0f, 0.0f),
 					ImVec2(1.0f, 1.0f),

@@ -136,6 +136,17 @@ std::shared_ptr<Material> BuildMaterial(std::shared_ptr<RenderDevice> renderDevi
       material->setSpecularTexture(specularTexture);
     }
   }
+
+  if (aiMaterial->GetTextureCount(aiTextureType_OPACITY) > 0)
+  {
+    aiString opacityTexturePath;
+    aiMaterial->GetTexture(aiTextureType_OPACITY, 0, &opacityTexturePath);
+    if (opacityTexturePath.length != 0)
+    {
+      auto opacityTexture = TextureLoader::LoadFromFile2D(renderDevice, filePath + opacityTexturePath.C_Str());
+      material->setOpacityTexture(opacityTexture);
+    }
+  }
   return material;
 }
 

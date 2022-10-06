@@ -45,7 +45,7 @@ private:
   float32 _minCascadeDistance, _maxCascadeDistance;
   float32 _cascadeLambda;
 
-  std::shared_ptr<Texture> _shadowCubeMap, _randomRotationsMap;
+  std::shared_ptr<Texture> _shadowCubeMap;
   std::shared_ptr<RenderTarget> _shadowMapRto;
   std::shared_ptr<PipelineState> _shadowMapPso;
   std::shared_ptr<GpuBuffer> _objectBuffer;

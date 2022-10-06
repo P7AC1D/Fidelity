@@ -112,6 +112,7 @@ float sampleShadowMapPcf(vec2 shadowCoords, float shadowDepth, float texelSize, 
 
 float sampleShadowMapPoissonDisc(vec2 shadowCoords, float shadowDepth, float texelSize, int cascadeLayer, float bias, ivec2 screenPos)
 {
+  // Calculate random rotations for use when sampling the poisson disc
   ivec2 randomRotationsSize = textureSize(RandomRotationsMap, 0);
   vec2 randomSamplePos = screenPos % randomRotationsSize;
   float theta = texture(RandomRotationsMap, randomSamplePos).r * Pi2;
@@ -129,6 +130,7 @@ float sampleShadowMapPoissonDisc(vec2 shadowCoords, float shadowDepth, float tex
 
 float sampleShadowMapPcf(vec2 shadowCoords, float shadowDepth, float texelSize, int cascadeLayer, float bias)
 {
+  // Sample shadow map using percentage closer filtering with 8 samples.
   float shadow = 0.0;
   for (int i = 0; i < 9; i++)
   {
