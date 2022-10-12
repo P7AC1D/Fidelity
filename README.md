@@ -1,5 +1,5 @@
 # Fidelity Engine
-Fidelity is a real-time 3D rendering engine built in OpenGL 4.1 and written for Windows and OXS. It will probably build for Linux but I have not attempted this yet.
+Fidelity is a real-time 3D rendering engine built in OpenGL 4.1 and written for Windows and OSX. It will probably build for Linux but I have not attempted this yet.
 The goal of this project is to implement an easy to use rendering engine to learn the latest graphics rendering techniques and optimization.
 It is still under heavy development so expect bugs and performance issues.
 
