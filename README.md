@@ -8,7 +8,7 @@ My personal OpenGL based 3D rendering engine to learn and implement graphics alg
 - Editor UI for Debugging
 
 ## Images
-![Sponza Scene](/Resources/Screenshots/sponza_1.png, "Sponza 1")
+![](https://gitlab.com/placid07/Fidelity/-/blob/master/Resources/Screenshots/sponza_1.png)
 
 ## Future Work
 - [x] Cascaded Shadow Maps for Directional Lights
