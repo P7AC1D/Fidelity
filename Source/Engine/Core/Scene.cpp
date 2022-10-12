@@ -141,6 +141,27 @@ void Scene::drawDebugUi()
   _shadowMapRenderer->drawDebugUi();
   _deferredRenderer->drawDebugUi();
   _debugRenderer->drawDebugUi();
+
+  ImGui::Separator();
+  {
+    std::vector<RenderPassTimings> renderPassTimings;
+    std::vector<RenderPassTimings> shadowRenderPassTimings(_shadowMapRenderer->getRenderPassTimings());
+    std::vector<RenderPassTimings> deferredRenderPassTimings(_deferredRenderer->getRenderPassTimings());
+    renderPassTimings.insert(renderPassTimings.end(), shadowRenderPassTimings.begin(), shadowRenderPassTimings.end());
+    renderPassTimings.insert(renderPassTimings.end(), deferredRenderPassTimings.begin(), deferredRenderPassTimings.end());
+
+    if (ImGui::CollapsingHeader("Frame Profiler"))
+    {
+      float32 totalDuration = 0.0;
+      for (auto &timings : renderPassTimings)
+      {
+        float32 duration = static_cast<float32>(timings.Duration) * 1e-6f;
+        ImGui::Text("%s: (%.3f ms)", timings.Name.c_str(), duration);
+        totalDuration += duration;
+      }
+      ImGui::Text("All: (%.3f ms)", totalDuration);
+    }
+  }
 }
 
 void Scene::drawSceneGraphUi(int64 nodeIndex)

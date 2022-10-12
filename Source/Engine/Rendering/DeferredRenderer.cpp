@@ -1,5 +1,6 @@
 #include "DeferredRenderer.h"
 
+#include <chrono>
 #include <iostream>
 #include <random>
 
@@ -90,6 +91,10 @@ DeferredRenderer::DeferredRenderer(const Vector2I &windowDims) : _windowDims(win
                                                                  _ssaoRadius(0.5f),
                                                                  _ssaoEnabled(true)
 {
+  _renderPassTimings.push_back({0, "G-Buffer"});
+  _renderPassTimings.push_back({0, "Shadow Merge"});
+  _renderPassTimings.push_back({0, "SSAO"});
+  _renderPassTimings.push_back({0, "Lighting"});
 }
 
 void DeferredRenderer::onInit(const std::shared_ptr<RenderDevice> &device)
@@ -550,7 +555,6 @@ void DeferredRenderer::drawFrame(std::shared_ptr<RenderDevice> renderDevice,
 
   shadowPass(renderDevice, shadowMapRto, shadowMapBuffer);
   ssaoPass(renderDevice, camera);
-  ssaoBlurPass(renderDevice, camera);
   lightingPass(renderDevice, lights, shadowMapRto, shadowMapBuffer, camera);
 }
 
@@ -558,6 +562,8 @@ void DeferredRenderer::gbufferPass(std::shared_ptr<RenderDevice> device,
                                    const std::vector<std::shared_ptr<Drawable>> &drawables,
                                    const std::shared_ptr<Camera> &camera)
 {
+  std::chrono::time_point start = std::chrono::high_resolution_clock::now();
+
   device->SetPipelineState(_gBufferPso);
   device->SetRenderTarget(_gBufferRto);
   device->ClearBuffers(RTT_Colour | RTT_Depth | RTT_Stencil);
@@ -584,12 +590,17 @@ void DeferredRenderer::gbufferPass(std::shared_ptr<RenderDevice> device,
       device->Draw(mesh->getVertexCount(), 0);
     }
   }
+
+  std::chrono::time_point end = std::chrono::high_resolution_clock::now();
+  _renderPassTimings[0].Duration = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
 }
 
 void DeferredRenderer::shadowPass(const std::shared_ptr<RenderDevice> &renderDevice,
                                   const std::shared_ptr<RenderTarget> &shadowMapRto,
                                   const std::shared_ptr<GpuBuffer> &shadowMapBuffer)
 {
+  std::chrono::time_point start = std::chrono::high_resolution_clock::now();
+
   renderDevice->SetPipelineState(_shadowsPso);
   renderDevice->SetRenderTarget(_shadowsRto);
   renderDevice->SetTexture(0, _gBufferRto->GetDepthStencilTarget());
@@ -604,11 +615,16 @@ void DeferredRenderer::shadowPass(const std::shared_ptr<RenderDevice> &renderDev
   renderDevice->SetSamplerState(3, _noMipSamplerState);
   renderDevice->SetVertexBuffer(_fsQuadBuffer);
   renderDevice->Draw(6, 0);
+
+  std::chrono::time_point end = std::chrono::high_resolution_clock::now();
+  _renderPassTimings[1].Duration = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
 }
 
 void DeferredRenderer::ssaoPass(const std::shared_ptr<RenderDevice> &renderDevice,
                                 const std::shared_ptr<Camera> &camera)
 {
+  std::chrono::time_point start = std::chrono::high_resolution_clock::now();
+
   writeSsaoConstantData(renderDevice, camera);
 
   renderDevice->SetPipelineState(_ssaoPso);
@@ -623,11 +639,7 @@ void DeferredRenderer::ssaoPass(const std::shared_ptr<RenderDevice> &renderDevic
   renderDevice->SetConstantBuffer(0, _ssaoConstantsBuffer);
   renderDevice->SetVertexBuffer(_fsQuadBuffer);
   renderDevice->Draw(6, 0);
-}
 
-void DeferredRenderer::ssaoBlurPass(const std::shared_ptr<RenderDevice> &renderDevice,
-                                    const std::shared_ptr<Camera> &camera)
-{
   renderDevice->SetPipelineState(_ssaoBlurPso);
   renderDevice->SetRenderTarget(_ssaoBlurRto);
   renderDevice->ClearBuffers(RTT_Colour);
@@ -635,6 +647,9 @@ void DeferredRenderer::ssaoBlurPass(const std::shared_ptr<RenderDevice> &renderD
   renderDevice->SetSamplerState(0, _noMipSamplerState);
   renderDevice->SetVertexBuffer(_fsQuadBuffer);
   renderDevice->Draw(6, 0);
+
+  std::chrono::time_point end = std::chrono::high_resolution_clock::now();
+  _renderPassTimings[2].Duration = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
 }
 
 void DeferredRenderer::lightingPass(std::shared_ptr<RenderDevice> renderDevice,
@@ -643,6 +658,8 @@ void DeferredRenderer::lightingPass(std::shared_ptr<RenderDevice> renderDevice,
                                     const std::shared_ptr<GpuBuffer> &shadowMapBuffer,
                                     const std::shared_ptr<Camera> &camera)
 {
+  std::chrono::time_point start = std::chrono::high_resolution_clock::now();
+
   renderDevice->SetPipelineState(_lightingPto);
   renderDevice->SetRenderTarget(_lightingPassRto);
   renderDevice->SetTexture(0, _gBufferRto->GetColourTarget(0));
@@ -680,6 +697,9 @@ void DeferredRenderer::lightingPass(std::shared_ptr<RenderDevice> renderDevice,
 
   renderDevice->SetVertexBuffer(_fsQuadBuffer);
   renderDevice->Draw(6, 0);
+
+  std::chrono::time_point end = std::chrono::high_resolution_clock::now();
+  _renderPassTimings[3].Duration = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
 }
 
 void DeferredRenderer::writeMaterialConstantData(std::shared_ptr<RenderDevice> renderDevice, std::shared_ptr<Material> material) const

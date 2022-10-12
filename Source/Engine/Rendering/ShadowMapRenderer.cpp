@@ -14,6 +14,7 @@
 #include "StaticMesh.h"
 
 #include <algorithm>
+#include <chrono>
 #include <cmath>
 
 struct LightDepthData
@@ -82,6 +83,7 @@ ShadowMapRenderer::ShadowMapRenderer() : _shadowMapResolution(2048),
                                          _maxCascadeDistance(1.0f),
                                          _cascadeLambda(0.4f)
 {
+  _renderPassTimings.push_back({0, "Shadow Depth"});
 }
 
 void ShadowMapRenderer::onInit(const std::shared_ptr<RenderDevice> &renderDevice)
@@ -233,6 +235,8 @@ void ShadowMapRenderer::drawFrame(const std::shared_ptr<RenderDevice> &renderDev
     _settingsModified = false;
   }
 
+  std::chrono::time_point start = std::chrono::high_resolution_clock::now();
+
   // TODO: Should either support one direction light or multiple
   std::shared_ptr<Light> directionalLight;
   for (auto light : lights)
@@ -296,6 +300,9 @@ void ShadowMapRenderer::drawFrame(const std::shared_ptr<RenderDevice> &renderDev
       renderDevice->Draw(mesh->getVertexCount(), 0);
     }
   }
+
+  std::chrono::time_point end = std::chrono::high_resolution_clock::now();
+  _renderPassTimings[0].Duration = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
 }
 
 std::vector<float32> ShadowMapRenderer::calculateCascadeLevels(float32 nearClip, float32 farClip)

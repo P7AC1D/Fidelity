@@ -1,5 +1,7 @@
 #pragma once
 #include <memory>
+#include <string>
+#include <vector>
 
 #include "../Core/Maths.h"
 #include "../Core/Types.hpp"
@@ -10,6 +12,12 @@ class RenderDevice;
 class RenderTarget;
 class SamplerState;
 class VertexBuffer;
+
+struct RenderPassTimings
+{
+  uint64 Duration;
+  std::string Name;
+};
 
 struct CameraBufferData
 {
@@ -49,6 +57,8 @@ public:
   bool init(const std::shared_ptr<RenderDevice> &renderDevice);
   void drawDebugUi();
 
+  const std::vector<RenderPassTimings> &getRenderPassTimings() const { return _renderPassTimings; }
+
   virtual void onInit(const std::shared_ptr<RenderDevice> &renderDevice) = 0;
   virtual void onDrawDebugUi() = 0;
 
@@ -56,10 +66,9 @@ protected:
   Renderer();
 
   bool _settingsModified;
+  std::vector<RenderPassTimings> _renderPassTimings;
 
   std::shared_ptr<GpuBuffer> _cameraBuffer;
-
   std::shared_ptr<SamplerState> _basicSamplerState, _noMipSamplerState;
-
   std::shared_ptr<VertexBuffer> _fsQuadBuffer;
 };

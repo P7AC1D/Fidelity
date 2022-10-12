@@ -51,8 +51,6 @@ private:
 
   void ssaoPass(const std::shared_ptr<RenderDevice> &renderDevice,
                 const std::shared_ptr<Camera> &camera);
-  void ssaoBlurPass(const std::shared_ptr<RenderDevice> &renderDevice,
-                    const std::shared_ptr<Camera> &camera);
 
   void lightingPass(std::shared_ptr<RenderDevice> renderDevice,
                     const std::vector<std::shared_ptr<Light>> &lights,

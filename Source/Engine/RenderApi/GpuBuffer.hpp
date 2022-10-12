@@ -39,7 +39,7 @@ enum class AccessType
   ReadWrite,
   WriteOnlyDiscard,
   WriteOnlyDiscardRange,
-  WriteOnlyNoOverWrite,
+  WriteOnlyUnsynchronized,
 };
 
 struct GpuBufferDesc

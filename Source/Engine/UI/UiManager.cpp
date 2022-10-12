@@ -61,34 +61,30 @@ void UiManager::Update(Scene &scene)
 	{
 		bool displayDebugWindow = true;
 		ImGui::SetNextWindowPos(ImVec2(0, 0));
-		if (!ImGui::Begin("Scene", &displayDebugWindow, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoMove))
+		if (ImGui::Begin("Scene", &displayDebugWindow, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoMove))
 		{
-			ImGui::End();
-			return;
-		}
+			ImGui::Separator();
+			{
+				scene.drawDebugUi();
+			}
 
-		ImGui::Separator();
-		{
-			scene.drawDebugUi();
-		}
+			ImGui::Separator();
+			{
+				ImGui::Checkbox("Demo Window", &show_demo_window);
+			}
 
-		ImGui::Separator();
-		{
-			ImGui::Checkbox("Demo Window", &show_demo_window);
-		}
+			ImGui::Separator();
+			{
+				ImGui::Text("(%.1f FPS)", ImGui::GetIO().Framerate);
+			}
 
-		ImGui::Separator();
-		{
-			ImGui::Text("%.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
+			if (show_demo_window)
+			{
+				ImGui::SetNextWindowPos(ImVec2(650, 20), ImGuiCond_FirstUseEver);
+				ImGui::ShowDemoWindow(&show_demo_window);
+			}
 		}
-
 		ImGui::End();
-	}
-
-	if (show_demo_window)
-	{
-		ImGui::SetNextWindowPos(ImVec2(650, 20), ImGuiCond_FirstUseEver);
-		ImGui::ShowDemoWindow(&show_demo_window);
 	}
 
 	ImGui::EndFrame();
