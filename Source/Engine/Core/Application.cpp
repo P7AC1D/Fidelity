@@ -272,7 +272,7 @@ Button GlfwKeyToButton(int32 button)
     return Button::Key_NumReturn;
     // case GLFW_KEY_KP_PERIOD: return Button::Key_NumPeriod;
   default:
-    throw std::runtime_error("Unsupported GLFW button");
+    return Button::Unknown;
   }
 }
 

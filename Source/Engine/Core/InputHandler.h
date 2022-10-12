@@ -108,7 +108,8 @@ enum class Button
   Button_RMouse,
   Button_Mouse3,
   Button_Mouse4,
-  Button_Mouse5
+  Button_Mouse5,
+    Unknown
 };
 
 enum class ButtonState
