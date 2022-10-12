@@ -36,5 +36,7 @@ It is still under heavy development so expect bugs and performance issues.
 * https://alextardif.com/shadowmapping.html
 * https://therealmjp.github.io/posts/shadow-maps/
 * https://learn.microsoft.com/en-us/windows/win32/dxtecharts/common-techniques-to-improve-shadow-depth-maps
+#### Screen Space Ambient Occlusion
+* http://john-chapman-graphics.blogspot.com/2013/01/ssao-tutorial.html
 #### Clustered Shading
 * http://www.aortiz.me/2018/12/21/CG.html
