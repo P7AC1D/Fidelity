@@ -37,6 +37,7 @@ public:
 
   std::shared_ptr<RenderTarget> getGbuffer() { return _gBufferRto; }
   std::shared_ptr<RenderTarget> getShadowRto() { return _shadowsRto; }
+  std::shared_ptr<RenderTarget> getSsaoRto() { return _ssaoBlurRto; }
   std::shared_ptr<RenderTarget> getLightingBuffer() { return _lightingPassRto; }
 
 private:
@@ -48,6 +49,11 @@ private:
                   const std::shared_ptr<RenderTarget> &shadowMapRto,
                   const std::shared_ptr<GpuBuffer> &shadowMapBuffer);
 
+  void ssaoPass(const std::shared_ptr<RenderDevice> &renderDevice,
+                const std::shared_ptr<Camera> &camera);
+  void ssaoBlurPass(const std::shared_ptr<RenderDevice> &renderDevice,
+                    const std::shared_ptr<Camera> &camera);
+
   void lightingPass(std::shared_ptr<RenderDevice> renderDevice,
                     const std::vector<std::shared_ptr<Light>> &lights,
                     const std::shared_ptr<RenderTarget> &shadowMapRto,
@@ -57,17 +63,25 @@ private:
   void writeMaterialConstantData(std::shared_ptr<RenderDevice> renderDevice,
                                  std::shared_ptr<Material> material) const;
   void writeObjectConstantData(std::shared_ptr<Drawable> drawable, const std::shared_ptr<Camera> &camera) const;
+  void writeSsaoNoiseTexture(const std::shared_ptr<RenderDevice> &renderDevice) const;
+  void writeSsaoConstantData(const std::shared_ptr<RenderDevice> &renderDevice,
+                             const std::shared_ptr<Camera> &camera) const;
 
   Vector2I _windowDims;
   Colour _ambientColour;
   float32 _ambientIntensity;
 
-  std::shared_ptr<PipelineState> _gBufferPso, _shadowsPso, _lightingPto;
-  std::shared_ptr<RenderTarget> _gBufferRto, _shadowsRto, _lightingPassRto;
+  uint32 _ssaoSamples;
+  float32 _ssaoBias;
+  float32 _ssaoRadius;
+  bool _ssaoEnabled;
+
+  std::shared_ptr<PipelineState> _gBufferPso, _shadowsPso, _ssaoPso, _ssaoBlurPso, _lightingPto;
+  std::shared_ptr<RenderTarget> _gBufferRto, _shadowsRto, _ssaoRto, _ssaoBlurRto, _lightingPassRto;
   std::shared_ptr<GpuBuffer> _materialBuffer;
   std::shared_ptr<GpuBuffer> _objectBuffer;
   std::shared_ptr<GpuBuffer> _lightingConstantsBuffer;
-  std::shared_ptr<GpuBuffer> _lightingBuffer;
-  std::shared_ptr<SamplerState> _shadowMapSamplerState;
-  std::shared_ptr<Texture> _randomRotationsMap;
+  std::shared_ptr<GpuBuffer> _lightingBuffer, _ssaoConstantsBuffer;
+  std::shared_ptr<SamplerState> _shadowMapSamplerState, _ssaoNoiseSampler;
+  std::shared_ptr<Texture> _randomRotationsMap, _ssaoNoiseTexture;
 };

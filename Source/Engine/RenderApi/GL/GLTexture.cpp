@@ -40,6 +40,13 @@ void GetInternalPixelFormat(TextureFormat textureFormat, GLenum &internalFormat,
     type = GL_FLOAT;
     break;
   }
+  case TextureFormat::RGB32F:
+  {
+    internalFormat = GL_RGB32F;
+    format = GL_RGB;
+    type = GL_FLOAT;
+    break;
+  }
   case TextureFormat::RGBA16F:
   {
     internalFormat = GL_RGBA16F;
@@ -166,6 +173,47 @@ void GLTexture::WriteData(uint32 mipLevel, uint32 face, const std::shared_ptr<Im
     break;
   case TextureType::TextureCube:
     GLCall(glTexSubImage2D(target, mipLevel, data->GetLeft(), 0, data->GetWidth(), face, format, type, &pixelData[0]));
+    break;
+  default:
+    throw std::runtime_error("Unsupported TextureType");
+  }
+  GLCall(glBindTexture(target, previouslyBoundTexture));
+}
+
+void GLTexture::WriteData(uint32 mipLevel, uint32 face, uint32 xStart, uint32 xCount, uint32 yStart, uint32 yCount, uint32 zStart, uint32 zCount, void *data)
+{
+  ASSERT_TRUE(_desc.Width <= xCount - xStart, "Width pixel data count exceeds texture width.");
+  ASSERT_TRUE(_desc.Height <= yCount - yStart, "Height pixel data count exceeds texture width.");
+
+  GLenum internalFormat;
+  GLenum format;
+  GLenum type;
+  GetInternalPixelFormat(_desc.Format, internalFormat, format, type, _gammaCorrected);
+  GLenum target = GetTextureTarget(_desc.Type);
+
+  GLint previouslyBoundTexture = 0;
+  GLCall(glGetIntegerv(GetTextureBindingTarget(_desc.Type), &previouslyBoundTexture));
+
+  GLCall(glBindTexture(target, _id));
+  switch (_desc.Type)
+  {
+  case TextureType::Texture1D:
+    GLCall(glTexSubImage1D(target, mipLevel, xStart, xCount, format, type, data));
+    break;
+  case TextureType::Texture1DArray:
+    GLCall(glTexSubImage2D(target, mipLevel, xStart, yStart, xCount, yCount, format, type, data));
+    break;
+  case TextureType::Texture2D:
+    GLCall(glTexSubImage2D(target, mipLevel, xStart, yStart, xCount, yCount, format, type, data));
+    break;
+  case TextureType::Texture2DArray:
+    GLCall(glTexSubImage3D(target, mipLevel, xStart, yStart, zStart, xCount, yCount, zCount, format, type, data));
+    break;
+  case TextureType::Texture3D:
+    GLCall(glTexSubImage3D(target, mipLevel, xStart, yStart, zStart, xCount, yCount, zCount, format, type, data));
+    break;
+  case TextureType::TextureCube:
+    GLCall(glTexSubImage2D(target, mipLevel, xStart, 0, yStart, face, format, type, data));
     break;
   default:
     throw std::runtime_error("Unsupported TextureType");

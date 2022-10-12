@@ -85,7 +85,7 @@ layout(std140) uniform LightingConstantsBuffer
   mat4 ProjViewInv;
   vec3 ViewPosition;
   float FarPlane;
-  vec2 PixelSize;
+  bool SsaoEnabled;
 } Constants;
 
 layout(std140) uniform CascadeShadowMapBuffer
@@ -193,10 +193,12 @@ float calculateShadowFactor(vec3 fragPosWorldSpace, vec3 normalWorldSpace, ivec2
 
 void main()
 {
-  // Rebuild world position of fragment from frag-coord and depth texture
-  vec3 position = vec3((gl_FragCoord.x * Constants.PixelSize.x), (gl_FragCoord.y * Constants.PixelSize.y), 0.0f);
+  // Rebuild position of fragment from frag-coord and depth texture
+  vec2 windowDimensions = textureSize(NormalMap, 0);
+  vec3 position = vec3((gl_FragCoord.x / windowDimensions.x), (gl_FragCoord.y / windowDimensions.y), 0.0f);
   position.z = texture(DepthMap, position.xy).r;
 
+  // transform normal vector to range [-1,1]
   vec3 normal = normalize(texture(NormalMap, TexCoord).xyz * 2.0f - 1.0f);
 
   vec4 clip = Constants.ProjViewInv * vec4(position * 2.0f - 1.0f, 1.0f);

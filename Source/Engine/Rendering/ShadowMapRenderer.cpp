@@ -169,7 +169,7 @@ void ShadowMapRenderer::onDrawDebugUi()
 {
   ImGui::Separator();
   {
-    ImGui::Text("Shadow Map Renderer");
+    ImGui::Text("Shadows");
 
     int shadowMapResolution = _shadowMapResolution;
     if (ImGui::SliderInt("Resolution", &shadowMapResolution, 256, 8192))
@@ -189,15 +189,19 @@ void ShadowMapRenderer::onDrawDebugUi()
     {
       _sampleSpread = sampleSpread;
     }
+  }
+  ImGui::Separator();
+  {
+    ImGui::Text("Cascaded Shadow Maps");
 
     float32 cascadeLambda = _cascadeLambda;
-    if (ImGui::SliderFloat("Cascade Lambda", &cascadeLambda, 0.01f, 1.0f))
+    if (ImGui::SliderFloat("Lambda", &cascadeLambda, 0.01f, 1.0f))
     {
       _cascadeLambda = cascadeLambda;
     }
 
     bool shouldDrawCascadeLayers = _drawCascadeLayers;
-    if (ImGui::Checkbox("Draw Cascade Layers", &shouldDrawCascadeLayers))
+    if (ImGui::Checkbox("Draw Layers", &shouldDrawCascadeLayers))
     {
       _drawCascadeLayers = shouldDrawCascadeLayers;
     }

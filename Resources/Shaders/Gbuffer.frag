@@ -76,5 +76,7 @@ void main()
   Diffuse.a = 1.0f;
   Specular.rgb = CalculateSpecular(specularSample, Material.SpecularColour, Material.Enabled.Specular);
   Specular.a = 1.0f;
+
+  // Transforms normals from [-1,1] to [0,1].
   Normal = vec4(CalculateNormal(normalSample, vec4(fsIn.Normal, 0.0f), Material.Enabled.Normal).xyz * 0.5f + 0.5f, 1.0f);
 }

@@ -1,92 +1,73 @@
 #version 410
-const int MaxKernelSize = 64;
-struct DirectionalLightData
-{
-  vec4 Colour;
-  vec3 Direction;
-  float Intensity;
-};
+const uint MaxKernelSize = 512;
 
-struct AmbientLightData
+layout(std140) uniform SsaoConstantsBuffer
 {
-  vec4 Colour;
-  float Intensity;
-  float SpecularExponent;
-  bool SsaoEnabled;
-};
-
-struct SsaoDetailsData
-{
-  vec4 Samples[MaxKernelSize];
-  int KernelSize;
-  int QuadWidth;
-  int QuadHeight;
+  mat4 View;
+  mat4 Projection;
+  mat4 ProjectionInv;
+  vec4 NoiseSamples[MaxKernelSize];
+  uint KernelSize;
   float Radius;
   float Bias;
-  float _paddingA;
-  float _paddingB;
-  float _paddingC;
-};
-
-struct HdrData
-{
-  bool Enabled;
-  float Exposure;
-  float _paddingA;
-  float _paddingB;
-};
-
-layout(std140) uniform FrameBuffer
-{
-  mat4 Projection;
-  mat4 View;
-  mat4 ViewInvs; 
-  DirectionalLightData DirectionalLight;
-  vec4 ViewPos;
-  AmbientLightData AmbientLight;  
-  SsaoDetailsData SsaoDetails;  
-  HdrData Hdr;
-  float nearClip;
-	float farClip;
-} Frame;
+} SsaoConstants;
 
 layout(location = 0) in vec2 TexCoord;
 
-out float FragColour;
+out float Occulsion;
 
-uniform sampler2D PositionMap;
+uniform sampler2D DepthMap;
 uniform sampler2D NormalMap;
 uniform sampler2D NoiseMap;
+uniform sampler2D PositionMap;
+
+vec3 calculatePositionVS(vec2 screenCoords)
+{
+  vec2 windowDimensions = textureSize(NormalMap, 0);
+  vec3 fragPos = vec3((gl_FragCoord.x / windowDimensions.x), (gl_FragCoord.y / windowDimensions.y), 0.0f);
+  fragPos.z = texture(DepthMap, fragPos.xy).r;
+  vec4 fragPosProjected = SsaoConstants.ProjectionInv * vec4(fragPos * 2.0f - 1.0f, 1.0f);
+  fragPosProjected.xyz / fragPosProjected.w;
+  return fragPosProjected.xyz;
+}
 
 void main()
 {
-  vec2 noiseScale = vec2(Frame.SsaoDetails.QuadWidth / 4.0f, Frame.SsaoDetails.QuadHeight / 4.0f);
-  
-  vec3 position = texture(PositionMap, TexCoord).rgb;
-  vec3 normal = normalize(texture(NormalMap, TexCoord).rgb);
-  vec3 randomVec = normalize(texture(NoiseMap, TexCoord * noiseScale).rgb);
-  
-  vec3 tangent = normalize(randomVec - normal * dot(randomVec, normal));
-  vec3 bitangent = cross(normal, tangent);
-  mat3 tbn = mat3(tangent, bitangent, normal);
-  
-  float occlusion = 0.0f;
-  for (int i = 0; i < Frame.SsaoDetails.KernelSize; i++)
+  // Calculate fragment position in view-space from depth and fragment sceen-space position.
+  vec3 positionVS = calculatePositionVS(gl_FragCoord.xy);
+
+  // transform normal vector to range [-1,1]
+  vec3 normalWS = normalize(texture(NormalMap, TexCoord).xyz * 2.0f - 1.0f);
+  vec3 normalVS = (SsaoConstants.View * vec4(normalWS, 0.0f)).xyz;
+
+  // tile noise texture over screen
+  ivec2 screenSize = textureSize(DepthMap, 0);
+  vec2 noiseScale = vec2(screenSize.x / 4.0, screenSize.y / 4.0); 
+  vec3 randomVec = normalize(texture(NoiseMap, TexCoord * noiseScale).xyz);
+
+  // Calc tangent -> view space transform
+  vec3 tangent = normalize(randomVec - normalVS * dot(randomVec, normalVS));
+  vec3 bitangent = cross(normalVS, tangent);
+  mat3 transform = mat3(tangent, bitangent, normalVS);
+
+  float occlusion = 0.0;
+  for (uint i = 0; i < SsaoConstants.KernelSize; ++i)
   {
-    vec3 noiseSample = tbn * Frame.SsaoDetails.Samples[i].xyz;
-    noiseSample = position + noiseSample * Frame.SsaoDetails.Radius;
-    
-    vec4 offset = vec4(noiseSample, 1.0f);
-    offset = Frame.Projection * offset;
+    vec3 samplePositionVs = transform * SsaoConstants.NoiseSamples[i].xyz;
+    samplePositionVs = positionVS + samplePositionVs * SsaoConstants.Radius;
+
+    // Transform view-space position to clip-space
+    vec4 offset = vec4(samplePositionVs, 1.0);
+    offset = SsaoConstants.Projection * offset;
     offset.xyz /= offset.w;
-    offset.xyz = offset.xyz * 0.5f + 0.5f;
-    
-    float sampleDepth = texture(PositionMap, offset.xy).z;
-    
-    float rangeCheck = smoothstep(0.0f, 1.0f, Frame.SsaoDetails.Radius / abs(position.z - sampleDepth));
-    occlusion += (sampleDepth >= noiseSample.z + Frame.SsaoDetails.Bias ? 1.0f : 0.0f) * rangeCheck;
+    offset.xyz  = offset.xyz * 0.5f + 0.5f;
+
+    float sampleDepth = calculatePositionVS(offset.xy).z;
+
+    float rangeCheck = smoothstep(0.0, 1.0, SsaoConstants.Radius / abs(positionVS.z - sampleDepth));
+    occlusion += (sampleDepth >= samplePositionVs.z + SsaoConstants.Bias ? 1.0f : 0.0f) * rangeCheck;
   }
-  occlusion = 1.0f - (occlusion / Frame.SsaoDetails.KernelSize);
-  
-  FragColour = occlusion;
+  occlusion = 1.0 - (occlusion / SsaoConstants.KernelSize);
+
+  Occulsion = occlusion;
 }

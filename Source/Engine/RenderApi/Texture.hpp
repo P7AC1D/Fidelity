@@ -15,6 +15,8 @@ enum class TextureFormat
   /// 16-bit red, green and blue channels stored as a signed floats.
   RGB16F,
   /// 16-bit red, green, blue and alpha channels stored as a signed floats.
+  RGB32F,
+  /// 32-bit red, green, blue and alpha channels stored as a signed floats.
   RGBA16F,
   /// 32-bit depth channel stored as unsigned bytes.
   D32,
@@ -70,6 +72,7 @@ public:
   bool IsInitialized() const { return _isInitialized; }
 
   virtual void WriteData(uint32 mipLevel, uint32 face, const std::shared_ptr<ImageData> &data) = 0;
+  virtual void WriteData(uint32 mipLevel, uint32 face, uint32 xStart, uint32 xCount, uint32 yStart, uint32 yCount, uint32 zStart, uint32 zCount, void* data) = 0;
   virtual void GenerateMips() = 0;
 
 protected:

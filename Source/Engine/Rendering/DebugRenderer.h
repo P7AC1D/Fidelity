@@ -24,6 +24,7 @@ enum class DebugDisplayType
   Specular,
   Depth,
   Shadows,
+  Occulsion,
 };
 
 class DebugRenderer : public Renderer
@@ -39,6 +40,7 @@ public:
                  const std::shared_ptr<RenderTarget> &shadowRto,
                  const std::shared_ptr<RenderTarget> &lightingRto,
                  const std::shared_ptr<RenderTarget> &shadowMapRto,
+                 const std::shared_ptr<RenderTarget> &ssaoRto,
                  const std::vector<std::shared_ptr<Drawable>> &aabbDrawables,
                  const std::shared_ptr<Camera> &camera);
 

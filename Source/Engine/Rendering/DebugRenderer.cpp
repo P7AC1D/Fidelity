@@ -241,9 +241,9 @@ void DebugRenderer::onDrawDebugUi()
 {
   ImGui::Separator();
   {
-    ImGui::Text("Debug Renderer");
+    ImGui::Text("Visualize Render Pass");
 
-    std::vector<const char *> debugRenderingItems = {"Disabled", "Shadow Depth", "Diffuse", "Normal", "Specular", "Depth", "Shadows"};
+    std::vector<const char *> debugRenderingItems = {"Disabled", "Shadow Depth", "Diffuse", "Normal", "Specular", "Depth", "Shadows", "Occulsion"};
     static int debugRenderingCurrentItem = 0;
     if (ImGui::Combo("Target", &debugRenderingCurrentItem, debugRenderingItems.data(), debugRenderingItems.size()))
     {
@@ -266,6 +266,7 @@ void DebugRenderer::drawFrame(const std::shared_ptr<RenderDevice> &renderDevice,
                               const std::shared_ptr<RenderTarget> &shadowRto,
                               const std::shared_ptr<RenderTarget> &lightingRto,
                               const std::shared_ptr<RenderTarget> &shadowMapRto,
+                              const std::shared_ptr<RenderTarget> &ssaoRto,
                               const std::vector<std::shared_ptr<Drawable>> &aabbDrawables,
                               const std::shared_ptr<Camera> &camera)
 {
@@ -304,6 +305,11 @@ void DebugRenderer::drawFrame(const std::shared_ptr<RenderDevice> &renderDevice,
   case DebugDisplayType::Shadows:
   {
     drawRenderTarget(renderDevice, shadowRto->GetColourTarget(0), camera, true);
+    break;
+  }
+  case DebugDisplayType::Occulsion:
+  {
+    drawRenderTarget(renderDevice, ssaoRto->GetColourTarget(0), camera, true);
     break;
   }
   }

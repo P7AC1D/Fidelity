@@ -25,7 +25,7 @@ void Light::drawInspector()
 	float32 radius = _radius;
 	if (_lightType == LightType::Point)
 	{
-		if (ImGui::SliderFloat("Radius", &radius, 0.0f, 1000.0f))
+		if (ImGui::SliderFloat("Radius", &radius, 0.0f, 200.0f))
 		{
 			setRadius(radius);
 		}

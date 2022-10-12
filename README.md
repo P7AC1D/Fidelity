@@ -11,7 +11,7 @@ My personal OpenGL based 3D rendering engine to learn and implement graphics alg
 - [x] Cascaded Shadow Maps for Directional Lights
 - [x] Soft Shadows using Poisson disc sampling and PCF
 - [ ] Point Light Shadow Maps
-- [ ] Screen space ambient occlusion
+- [x] Screen space ambient occlusion
 - [ ] Screen space reflection
 - [ ] Motion Blur
 - [ ] Depth of Field

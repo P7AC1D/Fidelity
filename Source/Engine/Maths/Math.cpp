@@ -5,6 +5,11 @@
 #include "Vector3.hpp"
 #include "Vector4.hpp"
 
+float32 Math::Lerp(float32 a, float32 b, float32 t)
+{
+  return a + t * (b - a);
+}
+
 float32 Math::InverseSqrt(float32 value)
 {
   union

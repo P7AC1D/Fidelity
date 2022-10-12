@@ -23,9 +23,9 @@ void Sponza::OnStart()
                  .withName("mainCamera")
                  .withComponent(_scene.createComponent<Camera>()
                                     .setPerspective(Degree(67.67f), GetWidth(), GetHeight(), 0.1f, 500.0f))
-                 .withPosition(Vector3(-15.0f, 17.0f, -11.0f))
+                 .withPosition(Vector3(-105.0f, 70.0f, 9.0f))
                  .withTarget(Vector3::Zero)
-                 .withRotation(Quaternion(Degree(-123.0f), Degree(36.0f), Degree(138.0f)))
+                 .withRotation(Quaternion(Degree(59.552), Degree(53.438), Degree(53.802)))
                  .build();
   _scene.addChildToNode(root, *_camera);
 
@@ -35,28 +35,28 @@ void Sponza::OnStart()
                                                      .setLightType(LightType::Directional)
                                                      .setColour(Colour(244, 233, 155))
                                                      .setIntensity(0.5f))
-                                  .withRotation(Quaternion(Degree(-23), Degree(-73.f), Degree(26.0f)))
+                                  .withRotation(Quaternion(Degree(36.139), Degree(-72.174), Degree(-30.861f)))
                                   .build());
   _scene.addChildToNode(root, GameObjectBuilder(_scene)
                                   .withName("light1")
                                   .withComponent(_scene.createComponent<Light>()
                                                      .setColour(Colour(150, 25, 25))
-                                                     .setRadius(25.0f))
-                                  .withPosition(Vector3(0.0f, 1.0f, 0.0f))
+                                                     .setRadius(70.0f))
+                                  .withPosition(Vector3(95.0f, 8.0f, 0.0f))
                                   .build());
   _scene.addChildToNode(root, GameObjectBuilder(_scene)
                                   .withName("light2")
                                   .withComponent(_scene.createComponent<Light>()
                                                      .setColour(Colour(25, 150, 25))
-                                                     .setRadius(25.0f))
-                                  .withPosition(Vector3(-1.5f, 1.0f, -1.0f))
+                                                     .setRadius(70.0f))
+                                  .withPosition(Vector3(-51.0f, 8.0f, 0.0f))
                                   .build());
   _scene.addChildToNode(root, GameObjectBuilder(_scene)
                                   .withName("light3")
                                   .withComponent(_scene.createComponent<Light>()
                                                      .setColour(Colour(25, 25, 100))
-                                                     .setRadius(25.0f))
-                                  .withPosition(Vector3(-1.5f, 1.0f, 1.0f))
+                                                     .setRadius(70.0f))
+                                  .withPosition(Vector3(12.0f, 8.0f, 0.0f))
                                   .build());
 
   auto &sponzaNode = ModelLoader::FromFile(_scene, "./Models/Sponza/sponza.obj", true);
@@ -66,9 +66,6 @@ void Sponza::OnStart()
 
 void Sponza::OnUpdate(uint32 dtMs)
 {
-  Vector2I scrollDelta(_inputHandler->getAxisState(Axis::MouseScrollXY));
-  ZoomCamera(scrollDelta[1], dtMs);
-
   Vector2I currMousePos(_inputHandler->getAxisState(Axis::MouseXY));
   Vector2I mousePosDelta = _lastMousePos - currMousePos;
 
@@ -94,11 +91,7 @@ void Sponza::OnUpdate(uint32 dtMs)
     TranslateCamera(0.0f, -deltaY);
   }
 
-  if (_inputHandler->isButtonPressed(Button::Button_LMouse))
-  {
-    RotateCamera(mousePosDelta[0], mousePosDelta[1], dtMs);
-  }
-  else if (_inputHandler->isButtonPressed(Button::Button_RMouse))
+  if (_inputHandler->isButtonPressed(Button::Button_RMouse))
   {
     FpsCameraLook(mousePosDelta[0], mousePosDelta[1], dtMs);
   }

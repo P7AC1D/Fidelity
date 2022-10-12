@@ -18,7 +18,7 @@ layout(std140) uniform LightingConstantsBuffer
   mat4 ProjViewInv;
   vec3 ViewPosition;
   float FarPlane;
-  vec2 PixelSize;
+  bool SsaoEnabled;
 } Constants;
 
 layout(std140) uniform LightingBuffer
@@ -42,6 +42,7 @@ uniform sampler2D DepthMap;
 uniform sampler2D NormalMap;
 uniform sampler2D SpecularMap;
 uniform sampler2D ShadowMap;
+uniform sampler2D OcculusionMap;
 
 layout(location = 0) in vec2 TexCoord;
 
@@ -82,21 +83,35 @@ vec3 drawCascadeLayers(vec3 position)
   return cascadeDebugColour;
 }
 
+vec3 calculatePositionWS(vec2 screenCoords)
+{
+  vec2 windowDimensions = textureSize(NormalMap, 0);
+  vec3 fragPos = vec3((gl_FragCoord.x / windowDimensions.x), (gl_FragCoord.y / windowDimensions.y), 0.0f);
+  fragPos.z = texture(DepthMap, fragPos.xy).r;
+  vec4 fragPosProjected = Constants.ProjViewInv * vec4(fragPos * 2.0f - 1.0f, 1.0f);
+  fragPos = fragPosProjected.xyz / fragPosProjected.w;
+  return fragPos.xyz;
+}
+
 void main()
 {
   // Rebuild world position of fragment from frag-coord and depth texture
-  vec3 position = vec3((gl_FragCoord.x * Constants.PixelSize.x), (gl_FragCoord.y * Constants.PixelSize.y), 0.0f);
-  position.z = texture(DepthMap, position.xy).r;  
-  float shadowFactor = texture(ShadowMap, TexCoord).r;
+  vec3 position = calculatePositionWS(gl_FragCoord.xy);
+  vec2 windowDimensions = textureSize(NormalMap, 0);
 
+  // transform normal vector to range [-1,1]
   vec3 normal = normalize(texture(NormalMap, TexCoord).xyz * 2.0f - 1.0f);
   vec4 albedo = texture(AlbedoMap, TexCoord);
   vec4 specular = texture(SpecularMap, TexCoord);
+  float occlusion = texture(OcculusionMap, TexCoord).r;
+  float shadowFactor = texture(ShadowMap, TexCoord).r;
 
-  vec4 clip = Constants.ProjViewInv * vec4(position * 2.0f - 1.0f, 1.0f);
-  position = clip.xyz / clip.w;
+  if (Constants.SsaoEnabled == false)
+  {
+    occlusion = 1.0f;
+  }
 
-  vec3 ambient = albedo.rgb * Lighting.AmbientColour * Lighting.AmbientIntensity;
+  vec3 ambient = albedo.rgb * Lighting.AmbientColour * Lighting.AmbientIntensity * occlusion;
   vec3 finalColour = ambient;
   vec3 viewDir = normalize(Constants.ViewPosition - position);
   for (int i = 0; i < 4; i++)

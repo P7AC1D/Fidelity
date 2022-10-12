@@ -17,6 +17,8 @@ public:
   static constexpr float32 Deg2Rad = Pi / 180.0f;
   static constexpr float32 Rad2Deg = 180.0f / Pi;
 
+  static float32 Lerp(float32 a, float32 b, float32 t);
+
   static float32 InverseSqrt(float32 value);
 
   static float32 Sin(const Radian &angle);
