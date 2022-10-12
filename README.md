@@ -7,8 +7,8 @@ My personal OpenGL based 3D rendering engine to learn and implement graphics alg
 - Scenegraph with Frustrum Culling
 - Editor UI for Debugging
 
-## Images
-![](https://gitlab.com/placid07/Fidelity/-/blob/master/Resources/Screenshots/sponza_1.png)
+## Screenshots
+![](./Resources/Screenshots/sponza_1.png)
 
 ## Future Work
 - [x] Cascaded Shadow Maps for Directional Lights
