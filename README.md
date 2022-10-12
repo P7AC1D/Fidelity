@@ -1,9 +1,12 @@
 # Fidelity Engine
-My personal OpenGL based 3D rendering engine to learn and implement graphics algorithms and optimisations.
+Fidelity is a real-time 3D rendering engine built in OpenGL 4.1 and written for Windows and OXS. It will probably build for Linux but I have not attempted this yet.
+The goal of this project is to implement an easy to use rendering engine to learn the latest graphics rendering techniques and optimization.
+It is still under heavy development so expect bugs and performance issues.
 
 ## Features
 - Deferred Rendering Pipeline
 - Cascaded Shadow Maps for Directional Lights
+- Screen space ambient occlusion
 - Scenegraph with Frustrum Culling
 - Editor UI for Debugging
 
@@ -13,8 +16,9 @@ My personal OpenGL based 3D rendering engine to learn and implement graphics alg
 ## Future Work
 - [x] Cascaded Shadow Maps for Directional Lights
 - [x] Soft Shadows using Poisson disc sampling and PCF
-- [ ] Point Light Shadow Maps
 - [x] Screen space ambient occlusion
+- [ ] Performance Improvements
+- [ ] Point Light Shadow Maps
 - [ ] Screen space reflection
 - [ ] Motion Blur
 - [ ] Depth of Field
