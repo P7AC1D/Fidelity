@@ -11,6 +11,7 @@ Camera::Camera() : _width(1280),
 									 _view(Matrix4::Identity),
 									 _proj(Matrix4::Identity),
 									 _modified(true),
+									 _fixFrustrum(false),
 									 Component(ComponentType::Camera)
 {
 	updateProjection();
@@ -38,6 +39,13 @@ void Camera::drawInspector()
 		if (ImGui::SliderFloat("Field-of-view", &fovY, 1.f, 180.f))
 		{
 			setFov(fovY);
+		}
+
+		bool fixFrustrum = _fixFrustrum;
+		if (ImGui::Checkbox("Fix Frustrum", &fixFrustrum))
+		{
+			_fixFrustrum = fixFrustrum;
+			_fixedFrustrum = _frustrum;
 		}
 	}
 }
@@ -124,6 +132,11 @@ void Camera::updateProjection()
 
 bool Camera::contains(const Aabb &aabb, const Transform &transform) const
 {
+	if (_fixFrustrum)
+	{
+		return _fixedFrustrum.contains(aabb, transform);
+	}
+
 	return _frustrum.contains(aabb, transform);
 }
 

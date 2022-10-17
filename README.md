@@ -17,7 +17,6 @@ It is still under heavy development so expect bugs and performance issues.
 - [x] Cascaded Shadow Maps for Directional Lights
 - [x] Soft Shadows using Poisson disc sampling and PCF
 - [x] Screen space ambient occlusion
-- [ ] Performance Improvements
 - [ ] Point Light Shadow Maps
 - [ ] Screen space reflection
 - [ ] Motion Blur

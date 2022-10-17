@@ -45,6 +45,7 @@ private:
   void updateProjection();
 
   bool _modified;
+  bool _fixFrustrum;
 
   int32 _width;
   int32 _height;
@@ -57,5 +58,5 @@ private:
 
   Transform _transform;
 
-  Frustrum _frustrum;
+  Frustrum _frustrum, _fixedFrustrum;
 };
