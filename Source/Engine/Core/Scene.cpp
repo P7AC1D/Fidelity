@@ -1,5 +1,7 @@
 #include "Scene.h"
 
+#include <algorithm>
+#include <chrono>
 #include <iostream>
 #include <set>
 #include <string>
@@ -86,18 +88,20 @@ void Scene::drawFrame()
   }
 
   std::shared_ptr<Camera> camera(std::static_pointer_cast<Camera>(cameraFindIter->second[0]));
-  std::vector<std::shared_ptr<Drawable>> aabbDrawables, allDrawables, culledDrawables;
+  std::vector<std::shared_ptr<Drawable>> aabbDrawables, allDrawables, opaqueDrawables, transparentDrawables;
   for (auto component : drawableFindIter->second)
   {
     auto drawable = std::dynamic_pointer_cast<Drawable>(component);
-    // if (drawable->getMaterial()->hasOpacityTexture())
-    // {
-    //   continue;
-    // }
-
     if (camera->contains(drawable->getAabb(), Transform(drawable->getMatrix())))
     {
-      culledDrawables.push_back(drawable);
+      if (drawable->getMaterial()->hasOpacityTexture())
+      {
+        transparentDrawables.push_back(drawable);
+      }
+      else
+      {
+        opaqueDrawables.push_back(drawable);
+      }
     }
 
     if (drawable->shouldDrawAabb())
@@ -108,7 +112,7 @@ void Scene::drawFrame()
     allDrawables.push_back(drawable);
   }
 
-  std::sort(culledDrawables.begin(), culledDrawables.end(), [&](const std::shared_ptr<Drawable> &a, const std::shared_ptr<Drawable> &b) -> bool
+  std::sort(opaqueDrawables.begin(), opaqueDrawables.end(), [&](const std::shared_ptr<Drawable> &a, const std::shared_ptr<Drawable> &b) -> bool
             { return camera->distanceFrom(a->getPosition()) < camera->distanceFrom(b->getPosition()); });
 
   std::vector<std::shared_ptr<Light>> lights;
@@ -120,7 +124,13 @@ void Scene::drawFrame()
 
   std::chrono::time_point end = std::chrono::high_resolution_clock::now();
   _scenePrepDuration = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
-  _renderer->drawFrame(_renderDevice, aabbDrawables, culledDrawables, allDrawables, lights, camera);
+  _renderer->drawFrame(_renderDevice,
+                       aabbDrawables,
+                       opaqueDrawables,
+                       transparentDrawables,
+                       allDrawables,
+                       lights,
+                       camera);
 }
 
 void Scene::drawDebugUi()

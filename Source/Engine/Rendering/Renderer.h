@@ -45,7 +45,8 @@ public:
 
   void drawFrame(const std::shared_ptr<RenderDevice> &renderDevice,
                  const std::vector<std::shared_ptr<Drawable>> &aabbDrawables,
-                 const std::vector<std::shared_ptr<Drawable>> &culledDrawables,
+                 const std::vector<std::shared_ptr<Drawable>> &opaqueDrawables,
+                 const std::vector<std::shared_ptr<Drawable>> &transparentDrawables,
                  const std::vector<std::shared_ptr<Drawable>> &allDrawables,
                  const std::vector<std::shared_ptr<Light>> &lights,
                  const std::shared_ptr<Camera> &camera);
@@ -59,6 +60,7 @@ private:
 
   void initDirectionalLightDepthPass(const std::shared_ptr<RenderDevice> &renderDevice);
   void initGbufferPass(const std::shared_ptr<RenderDevice> &renderDevice);
+  void initTransparencyPass(const std::shared_ptr<RenderDevice> &renderDevice);
   void initShadowPass(const std::shared_ptr<RenderDevice> &renderDevice);
   void initSsaoPass(const std::shared_ptr<RenderDevice> &renderDevice);
   void initLightingPass(const std::shared_ptr<RenderDevice> &renderDevice);
@@ -71,6 +73,9 @@ private:
   void gbufferPass(std::shared_ptr<RenderDevice> renderDevice,
                    const std::vector<std::shared_ptr<Drawable>> &drawables,
                    const std::shared_ptr<Camera> &camera);
+  void transparencyPass(const std::shared_ptr<RenderDevice> &renderDevice,
+                        const std::vector<std::shared_ptr<Drawable>> &transparentDrawables,
+                        const std::shared_ptr<Camera> &camera);
   void shadowPass(const std::shared_ptr<RenderDevice> &renderDevice);
   void ssaoPass(const std::shared_ptr<RenderDevice> &renderDevice,
                 const std::shared_ptr<Camera> &camera);
@@ -136,8 +141,8 @@ private:
   std::vector<RenderPassTimings> _renderPassTimings;
 
   std::shared_ptr<GpuBuffer> _perObjectBuffer, _perFrameBuffer, _ssaoConstantsBuffer, _shadowMapDebugBuffer, _fullscreenQuadBuffer;
-  std::shared_ptr<RenderTarget> _shadowMapRto, _gBufferRto, _shadowsRto, _ssaoRto, _ssaoBlurRto, _lightingPassRto;
-  std::shared_ptr<PipelineState> _shadowMapPso, _gBufferPso, _shadowsPso, _ssaoPso, _ssaoBlurPso, _lightingPso, _drawAabbPso, _gbufferDebugDrawPso, _depthDebugDrawPso, _shadowMapDebugPso;
+  std::shared_ptr<RenderTarget> _shadowMapRto, _gBufferRto, _transparencyRto, _shadowsRto, _ssaoRto, _ssaoBlurRto, _lightingPassRto;
+  std::shared_ptr<PipelineState> _shadowMapPso, _gBufferPso, _transparencyPso, _shadowsPso, _ssaoPso, _ssaoBlurPso, _lightingPso, _drawAabbPso, _gbufferDebugDrawPso, _depthDebugDrawPso, _shadowMapDebugPso;
   std::shared_ptr<SamplerState> _basicSamplerState, _noMipSamplerState, _shadowMapSamplerState, _ssaoNoiseSampler, _noMipWithBorderSamplerState;
   std::shared_ptr<VertexBuffer> _fsQuadVertexBuffer, _aabbVertexBuffer;
   std::shared_ptr<Texture> _randomRotationsMap, _ssaoNoiseTexture;
