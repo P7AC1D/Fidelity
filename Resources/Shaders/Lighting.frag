@@ -1,6 +1,7 @@
 #version 410
 
-const int MAX_LIGHTS = 32;
+const int MAX_LIGHTS = 1024;
+const int MAX_CASCADE_LAYERS = 8;
 
 struct Light
 {
@@ -8,34 +9,32 @@ struct Light
   float Intensity;
   vec3 Position;
   float Radius;
-  vec3 Direction;
-  int LightType; // 0 - Point; 1 - Directional
 };
 
-layout(std140) uniform LightingConstantsBuffer
+layout(std140) uniform PerFrameBuffer
 {
-  mat4 View;
+  mat4 CascadeLightTransforms[MAX_CASCADE_LAYERS];
+  mat4 View;  
+  mat4 Proj;
+  mat4 ProjInv;
   mat4 ProjViewInv;
   vec3 ViewPosition;
   float FarPlane;
+  vec3 LightDirection;   // ---- Directional Light ----
   bool SsaoEnabled;
-} Constants;
-
-layout(std140) uniform LightingBuffer
-{
+  vec3 LightColour;      // ---- Directional Light ----
+  float LightIntensity;  // ---- Directional Light ----
+  // ---------------------------
   vec3 AmbientColour;
   float AmbientIntensity;
+  uint CascadeLayerCount;  
+  bool DrawCascadeLayers;
+  uint ShadowSampleCount;
+  float ShadowSampleSpread;
   Light Lights[MAX_LIGHTS];
-} Lighting;
-
-layout(std140) uniform CascadeShadowMapBuffer
-{
-  mat4 LightTransforms[4];
-  float CascadePlaneDistances[4];
-  vec3 LightDirection;
-  int CascadeCount;
-  bool DrawLayers;
-} CascadeShadowMapData;
+  float CascadePlaneDistances[MAX_CASCADE_LAYERS];
+  uint LightCount;
+} Constants;
 
 uniform sampler2D AlbedoMap;
 uniform sampler2D DepthMap;
@@ -57,7 +56,7 @@ vec3 drawCascadeLayers(vec3 position)
   int layerToUse = -1;
   for (int i = 0; i < 4; i++)
   {
-    if (depthValue < CascadeShadowMapData.CascadePlaneDistances[i])
+    if (depthValue < Constants.CascadePlaneDistances[i])
     {
       layerToUse = i;
       break;
@@ -111,34 +110,31 @@ void main()
     occlusion = 1.0f;
   }
 
-  vec3 ambient = albedo.rgb * Lighting.AmbientColour * Lighting.AmbientIntensity * occlusion;
+  vec3 ambient = albedo.rgb * Constants.AmbientColour * Constants.AmbientIntensity * occlusion;
   vec3 finalColour = ambient;
   vec3 viewDir = normalize(Constants.ViewPosition - position);
-  for (int i = 0; i < 4; i++)
+
+  vec3 lightDir = normalize(-Constants.LightDirection);
+  vec3 halfDir = normalize(lightDir + viewDir);
+  float diffuseFactor = clamp(dot(lightDir, normal), 0.0f, 1.0f);
+  float specularFactor = pow(max(dot(normal, halfDir), 0.0), specular.a * 255.0f);
+  finalColour += shadowFactor * (albedo.rgb * diffuseFactor + specular.rgb * specularFactor) * Constants.LightColour * Constants.LightIntensity; 
+
+  for (int i = 0; i < Constants.LightCount; i++)
   {
-    if (Lighting.Lights[i].LightType == 0)
+    float distance = length(Constants.Lights[i].Position - position);
+    float attenuation = 1.0f - clamp(distance / Constants.Lights[i].Radius, 0.0f, 1.0f);
+    if (attenuation > 0.0f)
     {
-      float distance = length(Lighting.Lights[i].Position - position);
-      float attenuation = 1.0f - clamp(distance / Lighting.Lights[i].Radius, 0.0f, 1.0f);
-      if (attenuation > 0.0f)
-      {
-        vec3 lightDir = normalize(Lighting.Lights[i].Position - position);
-        vec3 halfDir = normalize(lightDir + viewDir);
-        float diffuseFactor = clamp(dot(lightDir, normal), 0.0f, 1.0f) * attenuation;
-        float specularFactor = pow(max(dot(normal, halfDir), 0.0), specular.a * 255.0f) * attenuation;
-        finalColour += (albedo.rgb * diffuseFactor + specular.rgb * specularFactor) * Lighting.Lights[i].Colour * Lighting.Lights[i].Intensity; 
-      }
-    }
-    else if (Lighting.Lights[i].LightType == 1)
-    {
-      vec3 lightDir = normalize(-Lighting.Lights[i].Direction);
+      vec3 lightDir = normalize(Constants.Lights[i].Position - position);
       vec3 halfDir = normalize(lightDir + viewDir);
-      float diffuseFactor = clamp(dot(lightDir, normal), 0.0f, 1.0f);
-      float specularFactor = pow(max(dot(normal, halfDir), 0.0), specular.a * 255.0f);
-      finalColour += shadowFactor * (albedo.rgb * diffuseFactor + specular.rgb * specularFactor) * Lighting.Lights[i].Colour * Lighting.Lights[i].Intensity; 
+      float diffuseFactor = clamp(dot(lightDir, normal), 0.0f, 1.0f) * attenuation;
+      float specularFactor = pow(max(dot(normal, halfDir), 0.0), specular.a * 255.0f) * attenuation;
+      finalColour += (albedo.rgb * diffuseFactor + specular.rgb * specularFactor) * Constants.Lights[i].Colour * Constants.Lights[i].Intensity; 
     }
   }
-  if (CascadeShadowMapData.DrawLayers)
+
+  if (Constants.DrawCascadeLayers)
   {
     FinalColour = vec4(finalColour.rgb * drawCascadeLayers(position), 1.0f);
   }

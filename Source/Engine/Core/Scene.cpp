@@ -8,18 +8,17 @@
 #include "../UI/ImGui/imgui.h"
 #include "../Utility/ModelLoader.hpp"
 #include "../Rendering/Camera.h"
-#include "../Rendering/DeferredRenderer.h"
-#include "../Rendering/DebugRenderer.h"
+#include "../Rendering/Renderer.h"
 #include "../Rendering/Drawable.h"
+#include "../Rendering/Material.h"
 #include "../Rendering/Light.h"
-#include "../Rendering/ShadowMapRenderer.h"
 #include "../RenderApi/RenderDevice.hpp"
 #include "GameObject.h"
 #include "SceneGraph.h"
 
 static int64 SELECTED_GAME_OBJECT_INDEX = -1;
 
-Scene::Scene() : _objectAddedToScene(false) {}
+Scene::Scene() : _objectAddedToScene(false), _scenePrepDuration(0) {}
 
 Scene::~Scene() {}
 
@@ -29,10 +28,8 @@ bool Scene::init(const Vector2I &windowDims, std::shared_ptr<RenderDevice> rende
   createGameObject("root");
 
   _renderDevice = renderDevice;
-  _deferredRenderer.reset(new DeferredRenderer(windowDims));
-  _debugRenderer.reset(new DebugRenderer());
-  _shadowMapRenderer.reset(new ShadowMapRenderer());
-  return _deferredRenderer->init(_renderDevice) && _debugRenderer->init(_renderDevice) && _shadowMapRenderer->init(renderDevice);
+  _renderer.reset(new Renderer(windowDims));
+  return _renderer->init(_renderDevice);
 }
 
 GameObject &Scene::createGameObject(const std::string &name)
@@ -69,20 +66,12 @@ void Scene::update(float64 dt)
 
 void Scene::drawFrame()
 {
-  if (_renderDevice == nullptr || _deferredRenderer == nullptr)
+  std::chrono::time_point start = std::chrono::high_resolution_clock::now();
+  if (_renderDevice == nullptr || _renderer == nullptr)
   {
     std::cerr << "Renderer not initialized." << std::endl;
     return;
   }
-
-  if (_objectAddedToScene)
-  {
-    calcSceneExtents();
-  }
-
-  auto compare = [](DrawableSortMap a, DrawableSortMap b)
-  { return a.DistanceToCamera > b.DistanceToCamera; };
-  std::multiset<DrawableSortMap, decltype(compare)> culledDrawables(compare);
 
   auto drawableFindIter = _components.find(ComponentType::Drawable);
   if (drawableFindIter == _components.end())
@@ -97,21 +86,30 @@ void Scene::drawFrame()
   }
 
   std::shared_ptr<Camera> camera(std::static_pointer_cast<Camera>(cameraFindIter->second[0]));
-  std::vector<std::shared_ptr<Drawable>>
-      aabbDrawables;
+  std::vector<std::shared_ptr<Drawable>> aabbDrawables, allDrawables, culledDrawables;
   for (auto component : drawableFindIter->second)
   {
     auto drawable = std::dynamic_pointer_cast<Drawable>(component);
-    if (camera->contains(drawable->getAabb()))
+    // if (drawable->getMaterial()->hasOpacityTexture())
+    // {
+    //   continue;
+    // }
+
+    if (camera->contains(drawable->getAabb(), Transform(drawable->getMatrix())))
     {
-      culledDrawables.insert(DrawableSortMap(camera->distanceFrom(drawable->getPosition()), drawable));
+      culledDrawables.push_back(drawable);
     }
 
     if (drawable->shouldDrawAabb())
     {
       aabbDrawables.push_back(drawable);
     }
+
+    allDrawables.push_back(drawable);
   }
+
+  std::sort(culledDrawables.begin(), culledDrawables.end(), [&](const std::shared_ptr<Drawable> &a, const std::shared_ptr<Drawable> &b) -> bool
+            { return camera->distanceFrom(a->getPosition()) < camera->distanceFrom(b->getPosition()); });
 
   std::vector<std::shared_ptr<Light>> lights;
   for (auto component : _components.find(ComponentType::Light)->second)
@@ -120,15 +118,9 @@ void Scene::drawFrame()
     lights.push_back(light);
   }
 
-  std::vector<std::shared_ptr<Drawable>> drawables;
-  for (const auto &culledDrawable : culledDrawables)
-  {
-    drawables.push_back(culledDrawable.ComponentPtr);
-  }
-
-  _shadowMapRenderer->drawFrame(_renderDevice, drawables, lights, camera, _sceneMaxExtents, _sceneMinExtents);
-  _deferredRenderer->drawFrame(_renderDevice, aabbDrawables, drawables, lights, _shadowMapRenderer->getShadowMapRto(), _shadowMapRenderer->getShadowBuffer(), camera);
-  _debugRenderer->drawFrame(_renderDevice, _deferredRenderer->getGbuffer(), _deferredRenderer->getShadowRto(), _deferredRenderer->getLightingBuffer(), _shadowMapRenderer->getShadowMapRto(), _deferredRenderer->getSsaoRto(), aabbDrawables, camera);
+  std::chrono::time_point end = std::chrono::high_resolution_clock::now();
+  _scenePrepDuration = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
+  _renderer->drawFrame(_renderDevice, aabbDrawables, culledDrawables, allDrawables, lights, camera);
 }
 
 void Scene::drawDebugUi()
@@ -138,22 +130,16 @@ void Scene::drawDebugUi()
   drawGameObjectInspector(SELECTED_GAME_OBJECT_INDEX);
   ImGui::EndChild();
 
-  _shadowMapRenderer->drawDebugUi();
-  _deferredRenderer->drawDebugUi();
-  _debugRenderer->drawDebugUi();
+  _renderer->drawDebugUi();
 
   ImGui::Separator();
   {
-    std::vector<RenderPassTimings> renderPassTimings;
-    std::vector<RenderPassTimings> shadowRenderPassTimings(_shadowMapRenderer->getRenderPassTimings());
-    std::vector<RenderPassTimings> deferredRenderPassTimings(_deferredRenderer->getRenderPassTimings());
-    renderPassTimings.insert(renderPassTimings.end(), shadowRenderPassTimings.begin(), shadowRenderPassTimings.end());
-    renderPassTimings.insert(renderPassTimings.end(), deferredRenderPassTimings.begin(), deferredRenderPassTimings.end());
-
     if (ImGui::CollapsingHeader("Frame Profiler"))
     {
-      float32 totalDuration = 0.0;
-      for (auto &timings : renderPassTimings)
+      float32 scenePrepDuration = static_cast<float32>(_scenePrepDuration) * 1e-6f;
+      ImGui::Text("Scene Prep: (%.3f ms)", scenePrepDuration);
+      float32 totalDuration = scenePrepDuration;
+      for (auto &timings : _renderer->getRenderPassTimings())
       {
         float32 duration = static_cast<float32>(timings.Duration) * 1e-6f;
         ImGui::Text("%s: (%.3f ms)", timings.Name.c_str(), duration);
@@ -231,27 +217,4 @@ void Scene::setAabbDrawOnGameObject(int64 gameObjectIndex, bool enableAabbDraw)
   {
     gameObject.getComponent<Drawable>().enableDrawAabb(enableAabbDraw);
   }
-}
-
-void Scene::calcSceneExtents()
-{
-  auto findIter = _components.find(ComponentType::Drawable);
-  if (findIter == _components.end())
-  {
-    return;
-  }
-
-  Vector3 max(std::numeric_limits<float32>::min());
-  Vector3 min(std::numeric_limits<float32>::max());
-  for (const auto &component : findIter->second)
-  {
-    auto drawable = std::static_pointer_cast<Drawable>(component);
-    const Aabb &aabb = drawable->getAabb();
-    min = Math::Min(min, aabb.GetNegBounds());
-    max = Math::Max(max, aabb.GetPosBounds());
-  }
-
-  _sceneMaxExtents = std::move(max);
-  _sceneMinExtents = std::move(min);
-  _objectAddedToScene = false;
 }

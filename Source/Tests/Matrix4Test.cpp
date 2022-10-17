@@ -571,3 +571,8 @@ TEST_CASE("MATRIX DECOMPOSITION")
   REQUIRE(resultRotation[1][2] == Approx(expectedRotation[1][2]));
   REQUIRE(resultRotation[2][2] == Approx(expectedRotation[2][2]));
 }
+
+TEST_CASE("MATRIX$_DIRECTIONAL_VECTORS")
+{
+  Matrix4 transform = Matrix4::Translation(Vector3(1, 2, 3)) * Matrix4::Scaling(Vector3(3, 2, 5)) * Matrix4::Rotation(Quaternion(Vector3(0, 0, 1), Degree(30.0f)));
+}

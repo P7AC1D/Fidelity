@@ -120,6 +120,7 @@ void *GLGpuBuffer::MapRange(uint64 byteOffset, uint64 byteCount, AccessType acce
   }
 
   void *buffer = nullptr;
+
   GLCall2(glMapBufferRange(target, byteOffset, byteCount, access), buffer);
   ASSERT_FALSE(buffer == nullptr, "Could not map buffer");
   return buffer;

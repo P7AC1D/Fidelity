@@ -10,6 +10,8 @@
 
 #include "../../Core/Types.hpp"
 
+#define NDEBUG
+
 #ifdef __clang__
 #define ASSERT(x) if (!(x)) __asm__("int $3");
 #endif

@@ -113,6 +113,7 @@ void Camera::updateView(const Transform &transform)
 	translation[3][2] = -translation[3][2];
 
 	_view = rotation * translation;
+	_frustrum = Frustrum(*this);
 }
 
 void Camera::updateProjection()
@@ -121,9 +122,9 @@ void Camera::updateProjection()
 	_frustrum = Frustrum(*this);
 }
 
-bool Camera::contains(const Aabb &aabb) const
+bool Camera::contains(const Aabb &aabb, const Transform &transform) const
 {
-	return _frustrum.contains(aabb);
+	return _frustrum.contains(aabb, transform);
 }
 
 float32 Camera::distanceFrom(const Vector3 &position) const

@@ -6,11 +6,19 @@ layout(location = 2) in vec2 aTexCoord;
 layout(location = 3) in vec3 aTangent;
 layout(location = 4) in vec3 aBitangent;
 
-layout(std140) uniform ObjectBuffer
+layout(std140) uniform PerObjectBuffer
 {
   mat4 Model;
   mat4 ModelView;
   mat4 ModelViewProjection;
+  bool DiffuseEnabled;
+  bool NormalEnabled;
+  bool SpecularEnabled;
+  bool OpacityEnabled;
+  vec4 AmbientColour;
+  vec4 DiffuseColour;
+  vec4 SpecularColour;
+  float SpecularExponent;
 } Object;
 
 struct Output

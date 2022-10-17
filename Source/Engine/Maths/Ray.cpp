@@ -11,7 +11,7 @@ Ray::Ray(const Vector3 &position, const Vector3 &direction) : _position(position
 
 bool Ray::Intersects(const Aabb &aabb) const
 {
-  Vector3 size(aabb.GetSize());
+  Vector3 size(aabb.getExtents());
   std::vector<Plane> planes;
   planes.reserve(6);
 
@@ -25,7 +25,7 @@ bool Ray::Intersects(const Aabb &aabb) const
   for (auto &plane : planes)
   {
     Vector3 normal(plane.getNormal());
-    float32 t = -(Vector3::Dot(_position, normal) + plane.getDistance()) / (Vector3::Dot(_direction, normal));
+    float32 t = -(Vector3::Dot(_position, normal) + plane.getD()) / (Vector3::Dot(_direction, normal));
     if (t > 0.0f)
     {
       return true;

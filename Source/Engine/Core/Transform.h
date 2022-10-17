@@ -26,9 +26,9 @@ public:
   Vector3 getScale() const { return _scale; }
   Matrix4 getMatrix() const { return _transform; }
 
-  Vector3 getForward() const { return Vector3(_transform[0][2], _transform[1][2], _transform[2][2]); }
-  Vector3 getUp() const { return Vector3(_transform[0][1], _transform[1][1], _transform[2][1]); }
-  Vector3 getRight() const { return Vector3(_transform[0][0], _transform[1][0], _transform[2][0]); }
+  Vector3 getForward() const { return Vector3::Normalize(Vector3(_transform[0][2], _transform[1][2], _transform[2][2])); }
+  Vector3 getUp() const { return Vector3::Normalize(Vector3(_transform[0][1], _transform[1][1], _transform[2][1])); }
+  Vector3 getRight() const { return Vector3::Normalize(Vector3(_transform[0][0], _transform[1][0], _transform[2][0])); }
 
   bool modified() const { return _modified; }
 

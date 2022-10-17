@@ -166,8 +166,8 @@ void Drawable::onNotify(const GameObject &gameObject)
 
 void Drawable::updateAabb(Vector3 scalingDelta, Quaternion rotationDelta)
 {
-	Vector3 min(_initAabb.GetNegBounds());
-	Vector3 max(_initAabb.GetPosBounds());
+	Vector3 min(_initAabb.getMin());
+	Vector3 max(_initAabb.getMax());
 	Vector3 newMin(0);
 	Vector3 newMax(0);
 

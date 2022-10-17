@@ -13,11 +13,9 @@
 class Camera;
 class Drawable;
 class GameObject;
-class DeferredRenderer;
-class DebugRenderer;
+class Renderer;
 class RenderDevice;
 class SceneGraph;
-class ShadowMapRenderer;
 
 class Scene
 {
@@ -48,7 +46,6 @@ private:
   void drawSceneGraphUi(int64 nodeIndex);
   void drawGameObjectInspector(int64 selectedGameObjectIndex);
   void setAabbDrawOnGameObject(int64 gameObjectIndex, bool enableAabbDraw);
-  void calcSceneExtents();
 
   struct DrawableSortMap
   {
@@ -62,17 +59,14 @@ private:
   };
 
   bool _objectAddedToScene;
-  Vector3 _sceneMaxExtents;
-  Vector3 _sceneMinExtents;
+  uint64 _scenePrepDuration;
 
   std::unique_ptr<SceneGraph> _sceneGraph;
   // TODO: Remove pointers here so that its a true data-driven design
   std::unordered_map<ComponentType, std::vector<std::shared_ptr<Component>>> _components;
   std::map<uint64, GameObject> _gameObjects;
 
-  std::shared_ptr<DeferredRenderer> _deferredRenderer;
-  std::shared_ptr<DebugRenderer> _debugRenderer;
-  std::shared_ptr<ShadowMapRenderer> _shadowMapRenderer;
+  std::shared_ptr<Renderer> _renderer;
   std::shared_ptr<RenderDevice> _renderDevice;
 };
 

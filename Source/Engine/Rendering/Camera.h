@@ -34,7 +34,7 @@ public:
 
   const Frustrum &getFustrum() const { return _frustrum; }
 
-  bool contains(const Aabb &aabb) const;
+  bool contains(const Aabb &aabb, const Transform &transform) const;
   float32 distanceFrom(const Vector3 &position) const;
 
 private:

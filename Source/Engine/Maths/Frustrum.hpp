@@ -6,6 +6,7 @@
 #include "Vector4.hpp"
 
 class Camera;
+class Transform;
 
 class Frustrum
 {
@@ -13,7 +14,7 @@ public:
 	Frustrum();
 	Frustrum(const Camera &camera);
 
-	bool contains(const Aabb &box) const;
+	bool contains(const Aabb &box, const Transform &transform) const;
 
 private:
 	Plane _left;

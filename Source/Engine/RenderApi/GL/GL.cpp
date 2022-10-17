@@ -11,23 +11,29 @@ std::string GLErrorToStr(GLenum error)
 {
   switch (error)
   {
-    case GL_INVALID_ENUM: return "GL_INVALID_ENUM";
-    case GL_INVALID_VALUE: return "GL_INVALID_VALUE";
-    case GL_INVALID_OPERATION: return "GL_INVALID_OPERATION";
-    case GL_OUT_OF_MEMORY: return "GL_OUT_OF_MEMORY";
-    case GL_INVALID_FRAMEBUFFER_OPERATION: return "GL_INVALID_FRAMEBUFFER_OPERATION";
+  case GL_INVALID_ENUM:
+    return "GL_INVALID_ENUM";
+  case GL_INVALID_VALUE:
+    return "GL_INVALID_VALUE";
+  case GL_INVALID_OPERATION:
+    return "GL_INVALID_OPERATION";
+  case GL_OUT_OF_MEMORY:
+    return "GL_OUT_OF_MEMORY";
+  case GL_INVALID_FRAMEBUFFER_OPERATION:
+    return "GL_INVALID_FRAMEBUFFER_OPERATION";
   }
   return std::to_string(static_cast<uint32>(error));
 }
 
 void GLClearError()
 {
-  while (glGetError() != GL_NO_ERROR);
+  while (glGetError() != GL_NO_ERROR)
+    ;
 }
 
-bool GLLogCall(const byte* function, const byte* file, int line)
+bool GLLogCall(const byte *function, const byte *file, int line)
 {
-  //std::cout << "Calling OpenGL function: " << function << " " << file << ":" << line << std::endl;
+  // std::cout << "Calling OpenGL function: " << function << " " << file << ":" << line << std::endl;
   while (GLenum error = glGetError())
   {
     auto glError = GLErrorToStr(error);

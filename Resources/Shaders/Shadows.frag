@@ -1,5 +1,7 @@
 #version 410
 
+const int MAX_LIGHTS = 1024;
+const int MAX_CASCADE_LAYERS = 8;
 const float Pi2 = 6.283185307f;
 
 const vec3 sampleOffsetDirections[20] = vec3[]
@@ -79,25 +81,38 @@ const vec2 PoissonSamples[64] = vec2[]
     vec2(-0.1020106f, 0.6724468f)
 );
 
-layout(std140) uniform LightingConstantsBuffer
+struct Light
 {
+  vec3 Colour;
+  float Intensity;
+  vec3 Position;
+  float Radius;
+};
+
+layout(std140) uniform PerFrameBuffer
+{
+  mat4 CascadeLightTransforms[MAX_CASCADE_LAYERS];
   mat4 View;
+  mat4 Proj;
+  mat4 ProjInv;
   mat4 ProjViewInv;
   vec3 ViewPosition;
   float FarPlane;
+  vec3 LightDirection;   // ---- Directional Light ----
   bool SsaoEnabled;
+  vec3 LightColour;      // ---- Directional Light ----
+  float LightIntensity;  // ---- Directional Light ----
+  // ---------------------------
+  vec3 AmbientColour;
+  float AmbientIntensity;
+  uint CascadeLayerCount;  
+  bool DrawCascadeLayers;
+  uint ShadowSampleCount;
+  float ShadowSampleSpread;
+  Light Lights[MAX_LIGHTS];
+  float CascadePlaneDistances[MAX_CASCADE_LAYERS];
+  uint LightCount;
 } Constants;
-
-layout(std140) uniform CascadeShadowMapBuffer
-{
-  mat4 LightTransforms[4];
-  float CascadePlaneDistances[4];
-  vec3 LightDirection;
-  int CascadeCount;
-  bool DrawLayers;
-  int SampleCount;
-  float SampleSpread;
-} CascadeShadowMapData;
 
 uniform sampler2D DepthMap;
 uniform sampler2D NormalMap;
@@ -107,26 +122,6 @@ uniform sampler2D RandomRotationsMap;
 layout(location = 0) in vec2 TexCoord;
 
 layout(location = 0) out float Shadows;
-
-float sampleShadowMapPcf(vec2 shadowCoords, float shadowDepth, float texelSize, int cascadeLayer, float bias);
-
-float sampleShadowMapPoissonDisc(vec2 shadowCoords, float shadowDepth, float texelSize, int cascadeLayer, float bias, ivec2 screenPos)
-{
-  // Calculate random rotations for use when sampling the poisson disc
-  ivec2 randomRotationsSize = textureSize(RandomRotationsMap, 0);
-  vec2 randomSamplePos = screenPos % randomRotationsSize;
-  float theta = texture(RandomRotationsMap, randomSamplePos).r * Pi2;
-  mat2 randomRotations = mat2(vec2(cos(theta), -sin(theta)),
-                              vec2(sin(theta), cos(theta)));
-
-  float result = 0.0;
-  for (int i = 0; i < CascadeShadowMapData.SampleCount; i++)
-  {
-    result += sampleShadowMapPcf(shadowCoords + (randomRotations * PoissonSamples[i]) / CascadeShadowMapData.SampleSpread, shadowDepth, texelSize, cascadeLayer, bias);
-  }
-  result /= CascadeShadowMapData.SampleCount;
-  return result;
-}
 
 float sampleShadowMapPcf(vec2 shadowCoords, float shadowDepth, float texelSize, int cascadeLayer, float bias)
 {
@@ -141,6 +136,24 @@ float sampleShadowMapPcf(vec2 shadowCoords, float shadowDepth, float texelSize, 
   return shadow;
 }
 
+float sampleShadowMapPoissonDisc(vec2 shadowCoords, float shadowDepth, float texelSize, int cascadeLayer, float bias, ivec2 screenPos)
+{
+  // Calculate random rotations for use when sampling the poisson disc
+  ivec2 randomRotationsSize = textureSize(RandomRotationsMap, 0);
+  vec2 randomSamplePos = screenPos % randomRotationsSize;
+  float theta = texture(RandomRotationsMap, randomSamplePos).r * Pi2;
+  mat2 randomRotations = mat2(vec2(cos(theta), -sin(theta)),
+                              vec2(sin(theta), cos(theta)));
+
+  float result = 0.0;
+  for (int i = 0; i < Constants.ShadowSampleCount; i++)
+  {
+    result += sampleShadowMapPcf(shadowCoords + (randomRotations * PoissonSamples[i]) / Constants.ShadowSampleSpread, shadowDepth, texelSize, cascadeLayer, bias);
+  }
+  result /= Constants.ShadowSampleCount;
+  return result;
+}
+
 float calculateShadowFactor(vec3 fragPosWorldSpace, vec3 normalWorldSpace, ivec2 screenPos)
 {
     // Select which shadow map cascade to use
@@ -148,16 +161,16 @@ float calculateShadowFactor(vec3 fragPosWorldSpace, vec3 normalWorldSpace, ivec2
     float depthValue = abs(fragPosViewSpace.z);
 
     int layerToUse = -1;
-    for (int i = 0; i < CascadeShadowMapData.CascadeCount; i++)
+    for (int i = 0; i < Constants.CascadeLayerCount; i++)
     {
-      vec4 fragPosLightSpace = CascadeShadowMapData.LightTransforms[i] * vec4(fragPosWorldSpace, 1.0);
+      vec4 fragPosLightSpace = Constants.CascadeLightTransforms[i] * vec4(fragPosWorldSpace, 1.0);
       vec3 shadowCoord = fragPosLightSpace.xyz / fragPosLightSpace.w;
       shadowCoord = shadowCoord * 0.5 + 0.5;
 
       if (clamp(shadowCoord.x, 0.0f, 1.0f) == shadowCoord.x && 
           clamp(shadowCoord.y, 0.0f, 1.0f) == shadowCoord.y && 
           clamp(shadowCoord.z, 0.0f, 1.0f) == shadowCoord.z && 
-          depthValue < CascadeShadowMapData.CascadePlaneDistances[i])
+          depthValue < Constants.CascadePlaneDistances[i])
       {
         layerToUse = i;
         break;
@@ -165,14 +178,14 @@ float calculateShadowFactor(vec3 fragPosWorldSpace, vec3 normalWorldSpace, ivec2
     }
 
     // Calculates the offset to use for sampling the shadow map, based on the surface normal
-    float nDotL = clamp(dot(normalWorldSpace, CascadeShadowMapData.LightDirection), 0.0f, 1.0f);
+    float nDotL = clamp(dot(normalWorldSpace, Constants.LightDirection), 0.0f, 1.0f);
     vec2 shadowMapSize = textureSize(ShadowMap, 0).xy;
     float texelSize = 1.0f / shadowMapSize.x;
     float nmlOffsetScale = clamp(1.0f - nDotL, 0.0f, 1.0f);
     vec3 shadowPosOffset = texelSize * nmlOffsetScale * normalWorldSpace * 10.f;
     fragPosWorldSpace += shadowPosOffset;
 
-    vec4 fragPosLightSpace = CascadeShadowMapData.LightTransforms[layerToUse] * vec4(fragPosWorldSpace, 1.0);
+    vec4 fragPosLightSpace = Constants.CascadeLightTransforms[layerToUse] * vec4(fragPosWorldSpace, 1.0);
     vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
     projCoords = projCoords * 0.5 + 0.5;
 
@@ -184,9 +197,9 @@ float calculateShadowFactor(vec3 fragPosWorldSpace, vec3 normalWorldSpace, ivec2
 
     // Apply bias based on distance from far plane
     vec3 normal = normalize(normalWorldSpace);
-    float bias = max(0.05 * (1.0 - dot(normal, CascadeShadowMapData.LightDirection)), 0.005);
+    float bias = max(0.05 * (1.0 - dot(normal, Constants.LightDirection)), 0.005);
     const float biasModifier = 0.5f;
-    bias *= 1 / (CascadeShadowMapData.CascadePlaneDistances[layerToUse] * biasModifier);
+    bias *= 1 / (Constants.CascadePlaneDistances[layerToUse] * biasModifier);
 
     return sampleShadowMapPoissonDisc(projCoords.xy, currentDepth, texelSize, layerToUse, bias, screenPos);
 }

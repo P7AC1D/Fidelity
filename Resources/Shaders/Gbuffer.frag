@@ -1,21 +1,19 @@
 #version 410
 
-struct TextureMapFlags
+layout(std140) uniform PerObjectBuffer
 {
-  bool Diffuse;
-  bool Normal;
-  bool Specular;
-  bool Opacity;
-};
-
-layout(std140) uniform MaterialBuffer
-{
-  TextureMapFlags Enabled;
+  mat4 Model;
+  mat4 ModelView;
+  mat4 ModelViewProjection;
+  bool DiffuseEnabled;
+  bool NormalEnabled;
+  bool SpecularEnabled;
+  bool OpacityEnabled;
   vec4 AmbientColour;
   vec4 DiffuseColour;
   vec4 SpecularColour;
   float SpecularExponent;
-} Material;
+} Object;
 
 struct Input
 {
@@ -72,11 +70,11 @@ void main()
   vec4 opacitySample = texture(OpacityMap, fsIn.TexCoord);
   vec4 specularSample = texture(SpecularMap, fsIn.TexCoord);
 
-  Diffuse.rgb = CalculateDiffuse(diffuseSample, Material.DiffuseColour, Material.Enabled.Diffuse);
+  Diffuse.rgb = CalculateDiffuse(diffuseSample, Object.DiffuseColour, Object.DiffuseEnabled);
   Diffuse.a = 1.0f;
-  Specular.rgb = CalculateSpecular(specularSample, Material.SpecularColour, Material.Enabled.Specular);
+  Specular.rgb = CalculateSpecular(specularSample, Object.SpecularColour, Object.SpecularEnabled);
   Specular.a = 1.0f;
 
   // Transforms normals from [-1,1] to [0,1].
-  Normal = vec4(CalculateNormal(normalSample, vec4(fsIn.Normal, 0.0f), Material.Enabled.Normal).xyz * 0.5f + 0.5f, 1.0f);
+  Normal = vec4(CalculateNormal(normalSample, vec4(fsIn.Normal, 0.0f), Object.NormalEnabled).xyz * 0.5f + 0.5f, 1.0f);
 }

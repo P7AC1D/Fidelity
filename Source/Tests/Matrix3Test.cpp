@@ -329,4 +329,22 @@ TEST_CASE("Matrix3 Mathematical Operators")
     REQUIRE(matC[2][1] == expectedC[2][1]);
     REQUIRE(matC[2][2] == expectedC[2][2]);
   }
+
+  SECTION("Look-At")
+  {
+    Vector3 from(0.0f, 0.0f, 0.0f);
+    Vector3 to(1.0f, 1.0f, 1.0f);
+    glm::mat3 expected = glm::lookAt(glm::vec3(from.X, from.Y, from.Z), glm::vec3(to.X, to.Y, to.Z), glm::vec3(0.0f, 1.0f, 0.0f));
+    Matrix3 result = Matrix3::LookAt(from, to, Vector3::Up);
+
+    REQUIRE(result[0][0] == Approx(expected[0][0]).margin(0.001f));
+    REQUIRE(result[0][1] == Approx(expected[0][1]).margin(0.001f));
+    REQUIRE(result[0][2] == Approx(expected[0][2]).margin(0.001f));
+    REQUIRE(result[1][0] == Approx(expected[1][0]).margin(0.001f));
+    REQUIRE(result[1][1] == Approx(expected[1][1]).margin(0.001f));
+    REQUIRE(result[1][2] == Approx(expected[1][2]).margin(0.001f));
+    REQUIRE(result[2][0] == Approx(expected[2][0]).margin(0.001f));
+    REQUIRE(result[2][1] == Approx(expected[2][1]).margin(0.001f));
+    REQUIRE(result[2][2] == Approx(expected[2][2]).margin(0.001f));
+  }
 }

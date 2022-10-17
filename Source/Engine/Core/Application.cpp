@@ -303,31 +303,38 @@ Application::~Application()
 
 int32 Application::Run()
 {
-  if (!Initialize())
+  try
   {
-    return -1;
-  }
-  _isRunning = true;
-  OnStart();
-
-  while (_isRunning)
-  {
-    uint32 dtMs = GetTickDuration();
-
-    if (glfwWindowShouldClose(_window))
+    if (!Initialize())
     {
-      _isRunning = false;
-      return 0;
+      return -1;
     }
+    _isRunning = true;
+    OnStart();
 
-    _scene.update(dtMs);
-    _scene.drawFrame();
-    _debugUi->Update(_scene);
+    while (_isRunning)
+    {
+      uint32 dtMs = GetTickDuration();
 
-    OnUpdate(dtMs);
+      if (glfwWindowShouldClose(_window))
+      {
+        _isRunning = false;
+        return 0;
+      }
 
-    glfwSwapBuffers(_window);
-    glfwPollEvents();
+      _scene.update(dtMs);
+      _scene.drawFrame();
+      _debugUi->Update(_scene);
+
+      OnUpdate(dtMs);
+
+      glfwSwapBuffers(_window);
+      glfwPollEvents();
+    }
+  }
+  catch (const std::exception &e)
+  {
+    std::cerr << e.what() << '\n';
   }
 
   return 0;

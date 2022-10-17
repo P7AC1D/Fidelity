@@ -1,5 +1,6 @@
 #include "Frustrum.hpp"
 
+#include "../Core/Transform.h"
 #include "../Rendering/Camera.h"
 #include "Math.hpp"
 
@@ -9,31 +10,60 @@ Frustrum::Frustrum()
 
 Frustrum::Frustrum(const Camera &camera)
 {
+	// Taken from https://www.lighthouse3d.com/tutorials/view-frustum-culling/geometric-approach-extracting-the-planes/
+
 	const Transform &cameraTransform(camera.getParentTransform());
-	const float32 far = camera.getFar();
-	const Vector3 position = cameraTransform.getPosition();
-	const Vector3 forward = cameraTransform.getForward();
-	const Vector3 up = cameraTransform.getUp();
-	const Vector3 right = cameraTransform.getRight();
+	Vector3 position = cameraTransform.getPosition();
+	// Negated here as the camera's forward vector actually points in the oposite direction
+	Vector3 forward = -Vector3::Normalize(cameraTransform.getForward());
+	Vector3 up = Vector3::Normalize(cameraTransform.getUp());
+	Vector3 right = Vector3::Normalize(cameraTransform.getRight());
+	float32 zFar = camera.getFar();
+	float32 zNear = camera.getNear();
+	float32 nearHeight = 2.0f * tanf(camera.getFov().InRadians() * 0.5f) * zNear;
+	float32 nearWidth = nearHeight * camera.getAspectRatio();
+	float32 farHeight = 2.0f * tanf(camera.getFov().InRadians() * 0.5f) * zFar;
+	float32 farWidth = farHeight * camera.getAspectRatio();
 
-	const float32 halfVSide = far * tanf(camera.getFov().InRadians() * .5f);
-	const float32 halfHSide = halfVSide * camera.getAspectRatio();
+	// Calculate the center of the far plane by taking the position and scaling the forward vector by the distance to the far plane.
+	Vector3 zFarCenter = position + forward * zFar;
+	// Similarly, we calculate the center of the near plane.
+	Vector3 zNearCenter = position + forward * zNear;
 
-	const Vector3 frontMultFar = far * forward;
-	_near = std::move(Plane(position + camera.getNear() * forward, forward));
-	_far = std::move(Plane(position + frontMultFar, -forward));
-	_right = std::move(Plane(position, Vector3::Cross(cameraTransform.getUp(), frontMultFar + right * halfHSide)));
-	_left = std::move(Plane(position, Vector3::Cross(frontMultFar - right * halfHSide, up)));
-	_top = std::move(Plane(position, Vector3::Cross(right, frontMultFar - up * halfVSide)));
-	_bottom = std::move(Plane(position, Vector3::Cross(frontMultFar + up * halfVSide, right)));
+	// Build planes with inwards facing normals and the position of the camera as it is present in all top, bottom, left and right planes.
+	_near = Plane(forward, zNearCenter);
+	_far = Plane(-forward, zFarCenter);
+	_right = Plane(Vector3::Cross(up, zNearCenter + (right * nearWidth * 0.5f) - position), position);
+	_left = Plane(Vector3::Cross(zNearCenter - (right * nearWidth * 0.5f) - position, up), position);
+	_bottom = Plane(Vector3::Cross(right, zNearCenter - (up * nearHeight * 0.5f) - position), position);
+	_top = Plane(Vector3::Cross(zNearCenter + (up * nearHeight * 0.5f) - position, right), position);
 }
 
-bool Frustrum::contains(const Aabb &aabb) const
+bool Frustrum::contains(const Aabb &aabb, const Transform &transform) const
 {
-	return aabb.isInFrustrumPlane(_near) &&
-				 aabb.isInFrustrumPlane(_far) &&
-				 aabb.isInFrustrumPlane(_left) &&
-				 aabb.isInFrustrumPlane(_right) &&
-				 aabb.isInFrustrumPlane(_top) &&
-				 aabb.isInFrustrumPlane(_bottom);
+	Vector3 extents(aabb.getExtents());
+	Vector3 globalCenter(Matrix4::Translation(transform.getPosition()) * Matrix4::Scaling(aabb.getExtents()) * aabb.getCenter());
+
+	Vector3 right(transform.getRight() * extents.X);
+	Vector3 up(transform.getUp() * extents.Y);
+	Vector3 forward(transform.getForward() * extents.Z);
+
+	Vector3 globalExtents(std::abs(Vector3::Dot(Vector3{1.f, 0.f, 0.f}, right)) +
+														std::abs(Vector3::Dot(Vector3{1.f, 0.f, 0.f}, up)) +
+														std::abs(Vector3::Dot(Vector3{1.f, 0.f, 0.f}, forward)),
+												std::abs(Vector3::Dot(Vector3{0.f, 1.f, 0.f}, right)) +
+														std::abs(Vector3::Dot(Vector3{0.f, 1.f, 0.f}, up)) +
+														std::abs(Vector3::Dot(Vector3{0.f, 1.f, 0.f}, forward)),
+												std::abs(Vector3::Dot(Vector3{0.f, 0.f, 1.f}, right)) +
+														std::abs(Vector3::Dot(Vector3{0.f, 0.f, 1.f}, up)) +
+														std::abs(Vector3::Dot(Vector3{0.f, 0.f, 1.f}, forward)));
+
+	Aabb globalAabb(globalCenter, globalExtents.X, globalExtents.Y, globalExtents.Z);
+
+	return globalAabb.isOnOrForwardPlane(_near) &&
+				 globalAabb.isOnOrForwardPlane(_far) &&
+				 globalAabb.isOnOrForwardPlane(_right) &&
+				 globalAabb.isOnOrForwardPlane(_left) &&
+				 globalAabb.isOnOrForwardPlane(_top) &&
+				 globalAabb.isOnOrForwardPlane(_bottom);
 }
