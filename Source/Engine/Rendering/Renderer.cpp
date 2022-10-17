@@ -219,6 +219,7 @@ Renderer::Renderer(const Vector2I &windowDims) : _windowDims(windowDims),
 {
   _renderPassTimings.push_back({0, "Shadow Depth"});
   _renderPassTimings.push_back({0, "G-Buffer"});
+  _renderPassTimings.push_back({0, "Transparency"});
   _renderPassTimings.push_back({0, "Shadow Merge"});
   _renderPassTimings.push_back({0, "SSAO"});
   _renderPassTimings.push_back({0, "Lighting"});
@@ -248,6 +249,7 @@ bool Renderer::init(const std::shared_ptr<RenderDevice> &renderDevice)
 
     initDirectionalLightDepthPass(renderDevice);
     initGbufferPass(renderDevice);
+    initTransparencyPass(renderDevice);
     initShadowPass(renderDevice);
     initSsaoPass(renderDevice);
     initLightingPass(renderDevice);
@@ -407,7 +409,8 @@ void Renderer::initConstantBuffers(const std::shared_ptr<RenderDevice> &renderDe
 
 void Renderer::drawFrame(const std::shared_ptr<RenderDevice> &renderDevice,
                          const std::vector<std::shared_ptr<Drawable>> &aabbDrawables,
-                         const std::vector<std::shared_ptr<Drawable>> &culledDrawables,
+                         const std::vector<std::shared_ptr<Drawable>> &opaqueDrawables,
+                         const std::vector<std::shared_ptr<Drawable>> &transparentDrawables,
                          const std::vector<std::shared_ptr<Drawable>> &allDrawables,
                          const std::vector<std::shared_ptr<Light>> &lights,
                          const std::shared_ptr<Camera> &camera)
@@ -426,7 +429,8 @@ void Renderer::drawFrame(const std::shared_ptr<RenderDevice> &renderDevice,
   writePerFrameConstantData(camera, directionalLight, lights);
 
   directionalLightDepthPass(renderDevice, allDrawables, directionalLight, camera);
-  gbufferPass(renderDevice, culledDrawables, camera);
+  gbufferPass(renderDevice, opaqueDrawables, camera);
+  transparencyPass(renderDevice, transparentDrawables, camera);
   shadowPass(renderDevice);
   ssaoPass(renderDevice, camera);
   lightingPass(renderDevice, lights, camera);
@@ -613,8 +617,6 @@ void Renderer::initGbufferPass(const std::shared_ptr<RenderDevice> &renderDevice
   rasterizerStateDesc.CullMode = CullMode::CounterClockwise;
 
   BlendStateDesc blendStateDesc{};
-  blendStateDesc.RTBlendState[0].BlendEnabled = true;
-  blendStateDesc.RTBlendState[0].BlendAlpha = BlendDesc(BlendFactor::SrcAlpha, BlendFactor::InvSrcAlpha, BlendOperation::Add);
 
   PipelineStateDesc pipelineDesc;
   pipelineDesc.VS = renderDevice->CreateShader(vsDesc);
@@ -652,6 +654,53 @@ void Renderer::initGbufferPass(const std::shared_ptr<RenderDevice> &renderDevice
   rtDesc.Width = _windowDims.Y;
 
   _gBufferRto = renderDevice->CreateRenderTarget(rtDesc);
+}
+
+void Renderer::initTransparencyPass(const std::shared_ptr<RenderDevice> &renderDevice)
+{
+  ShaderDesc vsDesc;
+  vsDesc.EntryPoint = "main";
+  vsDesc.ShaderLang = ShaderLang::Glsl;
+  vsDesc.ShaderType = ShaderType::Vertex;
+  vsDesc.Source = String::LoadFromFile("./Shaders/Gbuffer.vert");
+
+  ShaderDesc psDesc;
+  psDesc.EntryPoint = "main";
+  psDesc.ShaderLang = ShaderLang::Glsl;
+  psDesc.ShaderType = ShaderType::Pixel;
+  psDesc.Source = String::LoadFromFile("./Shaders/GbufferTransparency.frag");
+
+  std::vector<VertexLayoutDesc> vertexLayoutDesc{
+      VertexLayoutDesc(SemanticType::Position, SemanticFormat::Float3),
+      VertexLayoutDesc(SemanticType::Normal, SemanticFormat::Float3),
+      VertexLayoutDesc(SemanticType::TexCoord, SemanticFormat::Float2),
+      VertexLayoutDesc(SemanticType::Tangent, SemanticFormat::Float3),
+      VertexLayoutDesc(SemanticType::Bitangent, SemanticFormat::Float3)};
+
+  std::shared_ptr<ShaderParams> shaderParams(new ShaderParams());
+  shaderParams->AddParam(ShaderParam("PerObjectBuffer", ShaderParamType::ConstBuffer, 0));
+  shaderParams->AddParam(ShaderParam("DiffuseMap", ShaderParamType::Texture, 0));
+  shaderParams->AddParam(ShaderParam("NormalMap", ShaderParamType::Texture, 1));
+  shaderParams->AddParam(ShaderParam("SpecularMap", ShaderParamType::Texture, 2));
+  shaderParams->AddParam(ShaderParam("OpacityMap", ShaderParamType::Texture, 3));
+
+  RasterizerStateDesc rasterizerStateDesc;
+  rasterizerStateDesc.CullMode = CullMode::CounterClockwise;
+
+  BlendStateDesc blendStateDesc{};
+  blendStateDesc.RTBlendState[0].BlendEnabled = true;
+  blendStateDesc.RTBlendState[0].BlendAlpha = BlendDesc(BlendFactor::SrcAlpha, BlendFactor::InvSrcAlpha, BlendOperation::Add);
+
+  PipelineStateDesc pipelineDesc;
+  pipelineDesc.VS = renderDevice->CreateShader(vsDesc);
+  pipelineDesc.PS = renderDevice->CreateShader(psDesc);
+  pipelineDesc.BlendState = renderDevice->CreateBlendState(blendStateDesc);
+  pipelineDesc.RasterizerState = renderDevice->CreateRasterizerState(rasterizerStateDesc);
+  pipelineDesc.DepthStencilState = renderDevice->CreateDepthStencilState(DepthStencilStateDesc());
+  pipelineDesc.VertexLayout = renderDevice->CreateVertexLayout(vertexLayoutDesc);
+  pipelineDesc.ShaderParams = shaderParams;
+
+  _transparencyPso = renderDevice->CreatePipelineState(pipelineDesc);
 }
 
 void Renderer::initShadowPass(const std::shared_ptr<RenderDevice> &renderDevice)
@@ -1098,6 +1147,42 @@ void Renderer::gbufferPass(std::shared_ptr<RenderDevice> renderDevice,
       renderDevice->SetTexture(2, material->getSpecularTexture());
       renderDevice->SetSamplerState(2, _noMipSamplerState);
     }
+
+    drawDrawable(renderDevice, drawable, material, camera);
+  }
+
+  std::chrono::time_point end = std::chrono::high_resolution_clock::now();
+  _renderPassTimings[1].Duration = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
+}
+
+void Renderer::transparencyPass(const std::shared_ptr<RenderDevice> &renderDevice,
+                                const std::vector<std::shared_ptr<Drawable>> &transparentDrawables,
+                                const std::shared_ptr<Camera> &camera)
+{
+  std::chrono::time_point start = std::chrono::high_resolution_clock::now();
+
+  renderDevice->SetPipelineState(_transparencyPso);
+  renderDevice->SetRenderTarget(_gBufferRto);
+  renderDevice->SetConstantBuffer(0, _perObjectBuffer);
+
+  for (const auto &drawable : transparentDrawables)
+  {
+    std::shared_ptr<Material> material(drawable->getMaterial());
+    if (material->hasDiffuseTexture())
+    {
+      renderDevice->SetTexture(0, material->getDiffuseTexture());
+      renderDevice->SetSamplerState(0, _basicSamplerState);
+    }
+    if (material->hasNormalTexture())
+    {
+      renderDevice->SetTexture(1, material->getNormalTexture());
+      renderDevice->SetSamplerState(1, _noMipSamplerState);
+    }
+    if (material->hasSpecularTexture())
+    {
+      renderDevice->SetTexture(2, material->getSpecularTexture());
+      renderDevice->SetSamplerState(2, _noMipSamplerState);
+    }
     if (material->hasOpacityTexture())
     {
       renderDevice->SetTexture(3, material->getOpacityTexture());
@@ -1108,7 +1193,7 @@ void Renderer::gbufferPass(std::shared_ptr<RenderDevice> renderDevice,
   }
 
   std::chrono::time_point end = std::chrono::high_resolution_clock::now();
-  _renderPassTimings[1].Duration = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
+  _renderPassTimings[2].Duration = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
 }
 
 void Renderer::shadowPass(const std::shared_ptr<RenderDevice> &renderDevice)
@@ -1130,7 +1215,7 @@ void Renderer::shadowPass(const std::shared_ptr<RenderDevice> &renderDevice)
   renderDevice->Draw(6, 0);
 
   std::chrono::time_point end = std::chrono::high_resolution_clock::now();
-  _renderPassTimings[2].Duration = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
+  _renderPassTimings[3].Duration = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
 }
 
 void Renderer::ssaoPass(const std::shared_ptr<RenderDevice> &renderDevice,
@@ -1164,7 +1249,7 @@ void Renderer::ssaoPass(const std::shared_ptr<RenderDevice> &renderDevice,
   renderDevice->Draw(6, 0);
 
   std::chrono::time_point end = std::chrono::high_resolution_clock::now();
-  _renderPassTimings[3].Duration = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
+  _renderPassTimings[4].Duration = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
 }
 
 void Renderer::lightingPass(std::shared_ptr<RenderDevice> renderDevice,
@@ -1193,7 +1278,7 @@ void Renderer::lightingPass(std::shared_ptr<RenderDevice> renderDevice,
   renderDevice->Draw(6, 0);
 
   std::chrono::time_point end = std::chrono::high_resolution_clock::now();
-  _renderPassTimings[4].Duration = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
+  _renderPassTimings[5].Duration = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
 }
 
 void Renderer::debugPass(const std::shared_ptr<RenderDevice> &renderDevice,
