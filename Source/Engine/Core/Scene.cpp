@@ -1,5 +1,7 @@
 #include "Scene.h"
 
+#include <algorithm>
+#include <chrono>
 #include <iostream>
 #include <set>
 #include <string>
