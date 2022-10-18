@@ -27,7 +27,7 @@
   x;              \
   ASSERT(glLogCall(#x, __FILE__, __LINE__))
 #else
-#define GLCall(x) x;
+#define glCall(x) x;
 #endif
 
 #ifdef NDEBUG

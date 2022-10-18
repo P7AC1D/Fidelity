@@ -321,7 +321,7 @@ void Renderer::drawDebugUi()
     if (ImGui::SliderInt("Resolution", &shadowMapResolution, 256, 8192))
     {
       _shadowMapResolution = shadowMapResolution;
-      _settingsModified = true;
+      _shadowResolutionChanged = true;
     }
 
     int sampleCount = _shadowSampleCount;
