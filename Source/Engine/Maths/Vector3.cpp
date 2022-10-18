@@ -268,6 +268,14 @@ Vector3 operator-(float32 lhs, const Vector3 &rhs)
   return Vector3(x, y, z);
 }
 
+Vector3 operator/(float32 lhs, const Vector3 &rhs)
+{
+  float32 x = lhs / rhs.X;
+  float32 y = lhs / rhs.Y;
+  float32 z = lhs / rhs.Z;
+  return Vector3(x, y, z);
+}
+
 Vector3 operator*(float32 lhs, const Vector3 &rhs)
 {
   float32 x = lhs * rhs.X;

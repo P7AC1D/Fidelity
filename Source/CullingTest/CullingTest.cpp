@@ -57,8 +57,7 @@ void CullingTest::onStart()
 
 void CullingTest::onUpdate(uint32 dtMs)
 {
-  Vector2I currMousePos(_inputHandler->getAxisState(Axis::MouseXY));
-  Vector2I mousePosDelta = _lastMousePos - currMousePos;
+  Vector2I mousePosDelta = _lastMousePos - _currentMousePos;
 
   if (_inputHandler->isButtonPressed(Button::Key_W))
   {
@@ -86,6 +85,4 @@ void CullingTest::onUpdate(uint32 dtMs)
   {
     fpsCameraLook(mousePosDelta[0], mousePosDelta[1], dtMs);
   }
-
-  _lastMousePos = currMousePos;
 }

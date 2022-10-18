@@ -20,12 +20,37 @@
 
 static int64 SELECTED_GAME_OBJECT_INDEX = -1;
 
-Scene::Scene() : _objectAddedToScene(false), _scenePrepDuration(0) {}
+/// @brief Builds a projected ray in world space from the a set of mouse coordinates in screen space.
+/// @param mouseCoords The current mouse coordinates in screen space.
+/// @param windowDims The current window's dimensions.
+/// @param camera The current active camera.
+/// @return The projected ray in world space.
+Ray buildRayFromMouseCoords(const Vector2I &mouseCoords, const Vector2I &windowDims, const Camera &camera)
+{
+  float32 x = (static_cast<float32>(mouseCoords.X) / windowDims.X) * 2.f - 1.f;
+  float32 y = 1.0f - (static_cast<float32>(mouseCoords.Y) / windowDims.Y) * 2.f;
+
+  // We want our ray's z to point forwards - this is usually the negative z direction in OpenGL style.
+  Vector4 rayClip(x, y, -1.0f, 1.0f);
+
+  Vector4 rayView = camera.getProj().Inverse() * rayClip;
+  rayView.Z = -1.0f;
+  rayView.W = 0.0f;
+
+  Vector3 rayWorld = Vector3(camera.getView().Inverse() * rayView);
+  rayWorld.Normalize();
+
+  return Ray(camera.getParentTransform().getPosition(), rayWorld);
+}
+
+Scene::Scene() : _objectAddedToScene(false),
+                 _scenePrepDuration(0) {}
 
 Scene::~Scene() {}
 
 bool Scene::init(const Vector2I &windowDims, std::shared_ptr<RenderDevice> renderDevice)
 {
+  _windowDims = windowDims;
   _sceneGraph.reset(new SceneGraph());
   createGameObject("root");
 
@@ -88,7 +113,7 @@ void Scene::drawFrame()
   }
 
   std::shared_ptr<Camera> camera(std::static_pointer_cast<Camera>(cameraFindIter->second[0]));
-  std::vector<std::shared_ptr<Drawable>> aabbDrawables, allDrawables, opaqueDrawables, transparentDrawables;
+  std::vector<std::shared_ptr<Drawable>> aabbDrawables, allDrawables, opaqueDrawables, transparentDrawables, mousePickedDrawables;
   for (auto component : drawableFindIter->second)
   {
     auto drawable = std::dynamic_pointer_cast<Drawable>(component);
@@ -102,6 +127,14 @@ void Scene::drawFrame()
       {
         opaqueDrawables.push_back(drawable);
       }
+
+      Ray ray = buildRayFromMouseCoords(_mouseCoordinates, _windowDims, *camera.get());
+
+      Vector3 extents(drawable->getAabb().getExtents());
+      if (ray.Intersects(Aabb(drawable->getPosition(), extents.X, extents.Y, extents.Z)))
+      {
+        mousePickedDrawables.push_back(drawable);
+      }
     }
 
     if (drawable->shouldDrawAabb())
@@ -110,6 +143,14 @@ void Scene::drawFrame()
     }
 
     allDrawables.push_back(drawable);
+  }
+
+  std::sort(mousePickedDrawables.begin(), mousePickedDrawables.end(), [&](const std::shared_ptr<Drawable> &a, const std::shared_ptr<Drawable> &b) -> bool
+            { return camera->distanceFrom(a->getPosition()) < camera->distanceFrom(b->getPosition()); });
+
+  if (!mousePickedDrawables.empty())
+  {
+    aabbDrawables.push_back(mousePickedDrawables[0]);
   }
 
   std::sort(opaqueDrawables.begin(), opaqueDrawables.end(), [&](const std::shared_ptr<Drawable> &a, const std::shared_ptr<Drawable> &b) -> bool

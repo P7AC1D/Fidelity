@@ -33,6 +33,8 @@ public:
 
   void addChildToNode(GameObject &parent, GameObject &child);
 
+  void setMouseCoordinates(const Vector2I &coords) { _mouseCoordinates = coords; }
+
   void update(float64 dt);
   void drawFrame();
   void drawDebugUi();
@@ -60,6 +62,8 @@ private:
 
   bool _objectAddedToScene;
   uint64 _scenePrepDuration;
+  Vector2I _mouseCoordinates;
+  Vector2I _windowDims;
 
   std::unique_ptr<SceneGraph> _sceneGraph;
   // TODO: Remove pointers here so that its a true data-driven design

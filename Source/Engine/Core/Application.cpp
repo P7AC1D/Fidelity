@@ -322,11 +322,19 @@ int32 Application::run()
         return 0;
       }
 
+      _currentMousePos = _inputHandler->getAxisState(Axis::MouseXY);
+
+      // To handle DPI scaling where the window size is not the same as the framebuffer size
+      _scene.setMouseCoordinates(Vector2I(_windowToFramebufferRatio * static_cast<float32>(_currentMousePos.X),
+                                          _windowToFramebufferRatio * static_cast<float32>(_currentMousePos.Y)));
+
       _scene.update(dtMs);
       _scene.drawFrame();
       _debugUi->update(_scene);
 
       onUpdate(dtMs);
+
+      _lastMousePos = _currentMousePos;
 
       glfwSwapBuffers(_window);
       glfwPollEvents();
@@ -343,7 +351,8 @@ int32 Application::run()
 Application::Application(ApplicationDesc desc) : _inputHandler(new InputHandler()),
                                                  _mouseFocus(true),
                                                  _desc(std::move(desc)),
-                                                 _cameraTarget(Vector3::Zero)
+                                                 _cameraTarget(Vector3::Zero),
+                                                 _windowToFramebufferRatio(1.0f)
 {
   INPUT_HANDLER = _inputHandler;
 }
@@ -400,6 +409,8 @@ bool Application::initialize()
 
   int fbWidth, fbHeight;
   glfwGetFramebufferSize(_window, &fbWidth, &fbHeight);
+
+  _windowToFramebufferRatio = std::ceilf(static_cast<float32>(fbWidth) / _desc.Width);
 
   glfwSetWindowUserPointer(_window, this);
   glfwMakeContextCurrent(_window);

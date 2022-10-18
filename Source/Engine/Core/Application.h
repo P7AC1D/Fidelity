@@ -57,7 +57,7 @@ protected:
   void fpsCameraLook(int32 deltaX, int32 deltaY, uint32 dtMs);
   void translateCamera(float32 forward, float32 right);
 
-  Vector2I _lastMousePos;
+  Vector2I _lastMousePos, _currentMousePos;
   Vector3 _cameraTarget;
   GameObject *_camera;
 
@@ -73,4 +73,5 @@ private:
   Vector2I _cursorPosition;
   GLFWwindow *_window;
   std::shared_ptr<RenderDevice> _renderDevice;
+  float32 _windowToFramebufferRatio;
 };
