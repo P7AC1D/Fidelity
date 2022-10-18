@@ -1,24 +1,23 @@
-#include "Sponza.h"
+#include "CullingTest.h"
 
 #include <iomanip>
 #include <random>
 #include <sstream>
 
-Sponza::Sponza(const ApplicationDesc &desc) : Application(desc)
+CullingTest::CullingTest(const ApplicationDesc &desc) : Application(desc)
 {
 }
 
-void Sponza::onStart()
+void CullingTest::onStart()
 {
   GameObject &root = _scene.getRoot();
 
   _camera = &GameObjectBuilder(_scene)
                  .withName("mainCamera")
                  .withComponent(_scene.createComponent<Camera>()
-                                    .setPerspective(Degree(67.67f), getWidth(), getHeight(), 0.1f, 500.0f))
-                 .withPosition(Vector3(-105.0f, 70.0f, 9.0f))
+                                    .setPerspective(Degree(67.67f), getWidth(), getHeight(), 0.1f, 100.0f))
+                 .withPosition(Vector3(0.0f, 0.0f, 0.0f))
                  .withTarget(Vector3::Zero)
-                 .withRotation(Quaternion(Degree(59.552), Degree(53.438), Degree(53.802)))
                  .build();
   _scene.addChildToNode(root, *_camera);
 
@@ -30,34 +29,32 @@ void Sponza::onStart()
                                                      .setIntensity(0.5f))
                                   .withRotation(Quaternion(Degree(36.139), Degree(-72.174), Degree(-30.861f)))
                                   .build());
-  _scene.addChildToNode(root, GameObjectBuilder(_scene)
-                                  .withName("light1")
-                                  .withComponent(_scene.createComponent<Light>()
-                                                     .setColour(Colour(150, 25, 25))
-                                                     .setRadius(70.0f))
-                                  .withPosition(Vector3(95.0f, 8.0f, 0.0f))
-                                  .build());
-  _scene.addChildToNode(root, GameObjectBuilder(_scene)
-                                  .withName("light2")
-                                  .withComponent(_scene.createComponent<Light>()
-                                                     .setColour(Colour(25, 150, 25))
-                                                     .setRadius(70.0f))
-                                  .withPosition(Vector3(-51.0f, 8.0f, 0.0f))
-                                  .build());
-  _scene.addChildToNode(root, GameObjectBuilder(_scene)
-                                  .withName("light3")
-                                  .withComponent(_scene.createComponent<Light>()
-                                                     .setColour(Colour(25, 25, 100))
-                                                     .setRadius(70.0f))
-                                  .withPosition(Vector3(12.0f, 8.0f, 0.0f))
-                                  .build());
 
-  auto &sponzaNode = ModelLoader::fromFile(_scene, "./Models/Sponza/sponza.obj", true);
-  sponzaNode.transform().setScale(Vector3(0.1, 0.1, 0.1));
-  _scene.addChildToNode(root, sponzaNode);
+  std::shared_ptr<Material> material(new Material());
+  material->setDiffuseTexture(loadTextureFromFile("./Textures/crate0_diffuse.png", true, true));
+  material->setNormalTexture(loadTextureFromFile("./Textures/crate0_normal.png", false, false));
+  material->setSpecularTexture(loadTextureFromFile("./Textures/crate0_bump.png", false, false));
+
+  uint32 count = 0;
+  for (int32 i = -10; i < 10; i++)
+  {
+    for (int32 j = -10; j < 10; j++)
+    {
+      for (int32 k = -10; k < 10; k++)
+      {
+        _scene.addChildToNode(root, GameObjectBuilder(_scene)
+                                        .withName("cube" + std::to_string(count++))
+                                        .withComponent(_scene.createComponent<Drawable>()
+                                                           .setMesh(MeshFactory::createCube())
+                                                           .setMaterial(material))
+                                        .withPosition(Vector3(3 * i, 3 * j, 3 * k))
+                                        .build());
+      }
+    }
+  }
 }
 
-void Sponza::onUpdate(uint32 dtMs)
+void CullingTest::onUpdate(uint32 dtMs)
 {
   Vector2I currMousePos(_inputHandler->getAxisState(Axis::MouseXY));
   Vector2I mousePosDelta = _lastMousePos - currMousePos;

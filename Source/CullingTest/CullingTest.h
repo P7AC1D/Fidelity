@@ -5,10 +5,10 @@
 
 class GameObject;
 
-class Sponza : public Application
+class CullingTest : public Application
 {
 public:
-  Sponza(const ApplicationDesc &desc);
+  CullingTest(const ApplicationDesc &desc);
 
   void onStart() override;
   void onUpdate(uint32 dtMs) override;

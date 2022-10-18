@@ -342,7 +342,8 @@ int32 Application::run()
 
 Application::Application(ApplicationDesc desc) : _inputHandler(new InputHandler()),
                                                  _mouseFocus(true),
-                                                 _desc(std::move(desc))
+                                                 _desc(std::move(desc)),
+                                                 _cameraTarget(Vector3::Zero)
 {
   INPUT_HANDLER = _inputHandler;
 }
@@ -446,4 +447,73 @@ int32 Application::getTickDuration()
   lastTimeInSeconds = currentTimeInSeconds;
   dtMs = dt * 1000; // convert to mili-seconds
   return dtMs;
+}
+
+void Application::fpsCameraLook(int32 deltaX, int32 deltaY, uint32 dtMs)
+{
+  if (deltaX == 0 && deltaY == 0)
+  {
+    return;
+  }
+
+  Transform &cameraTransform = _camera->transform();
+  float32 velocity(CAMERA_LOOK_SENSITIVITY * static_cast<float32>(dtMs));
+  Quaternion qPitch(Vector3(1.0f, 0.0f, 0.0f), -velocity * deltaY);
+  Quaternion qYaw(Vector3(0.0f, 1.0f, 0.0f), -velocity * deltaX);
+
+  cameraTransform.setRotation(qPitch * cameraTransform.getRotation() * qYaw);
+  _cameraTarget = cameraTransform.getForward();
+}
+
+void Application::rotateCamera(int32 deltaX, int32 deltaY, uint32 dtMs)
+{
+  if (deltaX == 0 && deltaY == 0)
+  {
+    return;
+  }
+
+  Transform &cameraTransform = _camera->transform();
+  float32 velocity(CAMERA_ROTATION_FACTOR * static_cast<float32>(dtMs));
+  Quaternion pitch(cameraTransform.getRight(), velocity * deltaY);
+  Quaternion yaw(cameraTransform.getUp(), velocity * deltaX);
+  Quaternion rotation(pitch * yaw);
+  Vector3 newPosition(rotation.Rotate(cameraTransform.getPosition()));
+  cameraTransform.lookAt(newPosition, cameraTransform.getForward());
+}
+
+void Application::zoomCamera(int32 delta, uint32 dtMs)
+{
+  if (delta == 0)
+  {
+    return;
+  }
+
+  Transform &cameraTransform = _camera->transform();
+  Vector3 cameraForward = cameraTransform.getForward();
+  Vector3 cameraPostion = cameraTransform.getPosition();
+
+  float32 distanceToTarget = Vector3::Length(cameraPostion - _cameraTarget);
+  float32 velocity(CAMERA_ZOOM_FACTOR * distanceToTarget * static_cast<float32>(dtMs));
+  Vector3 newPosition(cameraPostion + cameraForward * velocity * -delta);
+
+  Vector3 cameraToOldPos(cameraPostion - _cameraTarget);
+  Vector3 cameraToNewPos(newPosition - _cameraTarget);
+  if (Vector3::Dot(cameraToNewPos, cameraToOldPos) < 0.0f)
+  {
+    newPosition = _cameraTarget + cameraForward * 0.1f;
+  }
+  cameraTransform.lookAt(newPosition, _cameraTarget);
+}
+
+void Application::translateCamera(float32 forward, float32 right)
+{
+  if (forward == 0.0f && right == 0.0f)
+  {
+    return;
+  }
+
+  Transform &cameraTransform = _camera->transform();
+  Vector3 cameraForward = cameraTransform.getForward();
+  Vector3 cameraRight = cameraTransform.getRight();
+  cameraTransform.translate(-cameraForward * forward + cameraRight * right);
 }

@@ -1,14 +1,14 @@
 #include <memory>
 
 #include "../Engine/Core/Application.h"
-#include "Test3D.h"
+#include "CullingTest.h"
 
 int main()
 {
   ApplicationDesc applicationDesc;
-  applicationDesc.Name = "Test3D";
+  applicationDesc.Name = "CullingTest";
   applicationDesc.Width = 1920;
   applicationDesc.Height = 1080;
-  Application *sdlApp = new Test3D(applicationDesc);
+  Application *sdlApp = new CullingTest(applicationDesc);
   return sdlApp->run();
 }
