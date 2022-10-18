@@ -4,11 +4,9 @@
 class Assert
 {
 public:
-  static void ThrowIfTrue(bool condition, const std::string &errorMessage);
-  static void ThrowIfFalse(bool condition, const std::string &errorMessage);
+  static void throwIfTrue(bool condition, const std::string &errorMessage);
+  static void throwIfFalse(bool condition, const std::string &errorMessage);
 };
-
-//#define ASSERT_ENABLED
 
 #ifdef _DEBUG
 #define NDEBUG

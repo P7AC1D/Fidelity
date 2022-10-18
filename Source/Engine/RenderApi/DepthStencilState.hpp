@@ -54,12 +54,12 @@ struct DepthStencilStateDesc
 class DepthStencilState
 {
   friend class RenderDevice;
-  
+
 public:
-  const DepthStencilStateDesc& GetDesc() { return _desc; }
+  const DepthStencilStateDesc &getDesc() { return _desc; }
 
 protected:
-  DepthStencilState(const DepthStencilStateDesc& desc): _desc(desc) {}
+  DepthStencilState(const DepthStencilStateDesc &desc) : _desc(desc) {}
 
 protected:
   DepthStencilStateDesc _desc;

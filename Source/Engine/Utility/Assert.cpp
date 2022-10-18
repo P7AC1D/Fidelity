@@ -1,7 +1,7 @@
 #include "Assert.hpp"
 #include <stdexcept>
 
-void Assert::ThrowIfTrue(bool condition, const std::string& errorMessage)
+void Assert::throwIfTrue(bool condition, const std::string &errorMessage)
 {
   if (condition)
   {
@@ -9,7 +9,7 @@ void Assert::ThrowIfTrue(bool condition, const std::string& errorMessage)
   }
 }
 
-void Assert::ThrowIfFalse(bool condition, const std::string& errorMessage)
+void Assert::throwIfFalse(bool condition, const std::string &errorMessage)
 {
   if (!condition)
   {

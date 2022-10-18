@@ -3,7 +3,7 @@
 #include "../../Utility/Assert.hpp"
 #include "GL.hpp"
 
-void GetInternalPixelFormat(TextureFormat textureFormat, GLenum &internalFormat, GLenum &format, GLenum &type, bool gammaCorrected)
+void getInternalPixelFormat(TextureFormat textureFormat, GLenum &internalFormat, GLenum &format, GLenum &type, bool gammaCorrected)
 {
   switch (textureFormat)
   {
@@ -87,7 +87,7 @@ void GetInternalPixelFormat(TextureFormat textureFormat, GLenum &internalFormat,
   }
 }
 
-GLenum GetTextureTarget(TextureType textureType)
+GLenum getTextureTarget(TextureType textureType)
 {
   switch (textureType)
   {
@@ -108,7 +108,7 @@ GLenum GetTextureTarget(TextureType textureType)
   }
 }
 
-GLenum GetTextureBindingTarget(TextureType textureType)
+GLenum getTextureBindingTarget(TextureType textureType)
 {
   switch (textureType)
   {
@@ -133,54 +133,54 @@ GLTexture::~GLTexture()
 {
   if (_id != 0)
   {
-    GLCall(glDeleteTextures(1, &_id));
+    glCall(glDeleteTextures(1, &_id));
   }
 }
 
-void GLTexture::WriteData(uint32 mipLevel, uint32 face, const std::shared_ptr<ImageData> &data)
+void GLTexture::writeData(uint32 mipLevel, uint32 face, const std::shared_ptr<ImageData> &data)
 {
-  ASSERT_TRUE(_desc.Width == data->GetWidth(), "Image width must be consistent with Texture");
-  ASSERT_TRUE(_desc.Height == data->GetHeight(), "Image height must be consistent with Texture");
-  ASSERT_TRUE(_desc.Depth == data->GetDepth(), "Image depth must be consistent with Texture");
+  ASSERT_TRUE(_desc.Width == data->getWidth(), "Image width must be consistent with Texture");
+  ASSERT_TRUE(_desc.Height == data->getHeight(), "Image height must be consistent with Texture");
+  ASSERT_TRUE(_desc.Depth == data->getDepth(), "Image depth must be consistent with Texture");
 
   GLenum internalFormat;
   GLenum format;
   GLenum type;
-  GetInternalPixelFormat(_desc.Format, internalFormat, format, type, _gammaCorrected);
-  GLenum target = GetTextureTarget(_desc.Type);
-  const auto &pixelData = data->GetPixelData();
+  getInternalPixelFormat(_desc.Format, internalFormat, format, type, _gammaCorrected);
+  GLenum target = getTextureTarget(_desc.Type);
+  const auto &pixelData = data->getPixelData();
 
   GLint previouslyBoundTexture = 0;
-  GLCall(glGetIntegerv(GetTextureBindingTarget(_desc.Type), &previouslyBoundTexture));
+  glCall(glGetIntegerv(getTextureBindingTarget(_desc.Type), &previouslyBoundTexture));
 
-  GLCall(glBindTexture(target, _id));
+  glCall(glBindTexture(target, _id));
   switch (_desc.Type)
   {
   case TextureType::Texture1D:
-    GLCall(glTexSubImage1D(target, mipLevel, data->GetLeft(), data->GetWidth(), format, type, &pixelData[0]));
+    glCall(glTexSubImage1D(target, mipLevel, data->getLeft(), data->getWidth(), format, type, &pixelData[0]));
     break;
   case TextureType::Texture1DArray:
-    GLCall(glTexSubImage2D(target, mipLevel, data->GetLeft(), 0, data->GetWidth(), face, format, type, &pixelData[0]));
+    glCall(glTexSubImage2D(target, mipLevel, data->getLeft(), 0, data->getWidth(), face, format, type, &pixelData[0]));
     break;
   case TextureType::Texture2D:
-    GLCall(glTexSubImage2D(target, mipLevel, data->GetLeft(), data->GetBottom(), data->GetWidth(), data->GetHeight(), format, type, &pixelData[0]));
+    glCall(glTexSubImage2D(target, mipLevel, data->getLeft(), data->getBottom(), data->getWidth(), data->getHeight(), format, type, &pixelData[0]));
     break;
   case TextureType::Texture2DArray:
-    GLCall(glTexSubImage3D(target, mipLevel, data->GetLeft(), data->GetBottom(), 0, data->GetWidth(), data->GetHeight(), face, format, type, &pixelData[0]));
+    glCall(glTexSubImage3D(target, mipLevel, data->getLeft(), data->getBottom(), 0, data->getWidth(), data->getHeight(), face, format, type, &pixelData[0]));
     break;
   case TextureType::Texture3D:
-    GLCall(glTexSubImage3D(target, mipLevel, data->GetLeft(), data->GetBottom(), data->GetBack(), data->GetWidth(), data->GetHeight(), data->GetDepth(), format, type, &pixelData[0]));
+    glCall(glTexSubImage3D(target, mipLevel, data->getLeft(), data->getBottom(), data->getBack(), data->getWidth(), data->getHeight(), data->getDepth(), format, type, &pixelData[0]));
     break;
   case TextureType::TextureCube:
-    GLCall(glTexSubImage2D(target, mipLevel, data->GetLeft(), 0, data->GetWidth(), face, format, type, &pixelData[0]));
+    glCall(glTexSubImage2D(target, mipLevel, data->getLeft(), 0, data->getWidth(), face, format, type, &pixelData[0]));
     break;
   default:
     throw std::runtime_error("Unsupported TextureType");
   }
-  GLCall(glBindTexture(target, previouslyBoundTexture));
+  glCall(glBindTexture(target, previouslyBoundTexture));
 }
 
-void GLTexture::WriteData(uint32 mipLevel, uint32 face, uint32 xStart, uint32 xCount, uint32 yStart, uint32 yCount, uint32 zStart, uint32 zCount, void *data)
+void GLTexture::writeData(uint32 mipLevel, uint32 face, uint32 xStart, uint32 xCount, uint32 yStart, uint32 yCount, uint32 zStart, uint32 zCount, void *data)
 {
   ASSERT_TRUE(_desc.Width <= xCount - xStart, "Width pixel data count exceeds texture width.");
   ASSERT_TRUE(_desc.Height <= yCount - yStart, "Height pixel data count exceeds texture width.");
@@ -188,49 +188,49 @@ void GLTexture::WriteData(uint32 mipLevel, uint32 face, uint32 xStart, uint32 xC
   GLenum internalFormat;
   GLenum format;
   GLenum type;
-  GetInternalPixelFormat(_desc.Format, internalFormat, format, type, _gammaCorrected);
-  GLenum target = GetTextureTarget(_desc.Type);
+  getInternalPixelFormat(_desc.Format, internalFormat, format, type, _gammaCorrected);
+  GLenum target = getTextureTarget(_desc.Type);
 
   GLint previouslyBoundTexture = 0;
-  GLCall(glGetIntegerv(GetTextureBindingTarget(_desc.Type), &previouslyBoundTexture));
+  glCall(glGetIntegerv(getTextureBindingTarget(_desc.Type), &previouslyBoundTexture));
 
-  GLCall(glBindTexture(target, _id));
+  glCall(glBindTexture(target, _id));
   switch (_desc.Type)
   {
   case TextureType::Texture1D:
-    GLCall(glTexSubImage1D(target, mipLevel, xStart, xCount, format, type, data));
+    glCall(glTexSubImage1D(target, mipLevel, xStart, xCount, format, type, data));
     break;
   case TextureType::Texture1DArray:
-    GLCall(glTexSubImage2D(target, mipLevel, xStart, yStart, xCount, yCount, format, type, data));
+    glCall(glTexSubImage2D(target, mipLevel, xStart, yStart, xCount, yCount, format, type, data));
     break;
   case TextureType::Texture2D:
-    GLCall(glTexSubImage2D(target, mipLevel, xStart, yStart, xCount, yCount, format, type, data));
+    glCall(glTexSubImage2D(target, mipLevel, xStart, yStart, xCount, yCount, format, type, data));
     break;
   case TextureType::Texture2DArray:
-    GLCall(glTexSubImage3D(target, mipLevel, xStart, yStart, zStart, xCount, yCount, zCount, format, type, data));
+    glCall(glTexSubImage3D(target, mipLevel, xStart, yStart, zStart, xCount, yCount, zCount, format, type, data));
     break;
   case TextureType::Texture3D:
-    GLCall(glTexSubImage3D(target, mipLevel, xStart, yStart, zStart, xCount, yCount, zCount, format, type, data));
+    glCall(glTexSubImage3D(target, mipLevel, xStart, yStart, zStart, xCount, yCount, zCount, format, type, data));
     break;
   case TextureType::TextureCube:
-    GLCall(glTexSubImage2D(target, mipLevel, xStart, 0, yStart, face, format, type, data));
+    glCall(glTexSubImage2D(target, mipLevel, xStart, 0, yStart, face, format, type, data));
     break;
   default:
     throw std::runtime_error("Unsupported TextureType");
   }
-  GLCall(glBindTexture(target, previouslyBoundTexture));
+  glCall(glBindTexture(target, previouslyBoundTexture));
 }
 
-void GLTexture::GenerateMips()
+void GLTexture::generateMips()
 {
   GLint previouslyBoundTexture = 0;
-  GLCall(glGetIntegerv(GetTextureBindingTarget(_desc.Type), &previouslyBoundTexture));
+  glCall(glGetIntegerv(getTextureBindingTarget(_desc.Type), &previouslyBoundTexture));
 
-  GLenum target = GetTextureTarget(_desc.Type);
-  GLCall(glBindTexture(target, _id));
-  GLCall(glGenerateMipmap(target));
+  GLenum target = getTextureTarget(_desc.Type);
+  glCall(glBindTexture(target, _id));
+  glCall(glGenerateMipmap(target));
 
-  GLCall(glBindTexture(target, previouslyBoundTexture));
+  glCall(glBindTexture(target, previouslyBoundTexture));
 }
 
 GLTexture::GLTexture(const TextureDesc &desc, bool gammaCorrected) : Texture(desc, gammaCorrected), _id(0)
@@ -240,23 +240,23 @@ GLTexture::GLTexture(const TextureDesc &desc, bool gammaCorrected) : Texture(des
 
 void GLTexture::Initialize()
 {
-  if (IsInitialized())
+  if (isInitialized())
   {
     return;
   }
 
   GLint previouslyBoundTexture = 0;
-  GLCall(glGetIntegerv(GetTextureBindingTarget(_desc.Type), &previouslyBoundTexture));
+  glCall(glGetIntegerv(getTextureBindingTarget(_desc.Type), &previouslyBoundTexture));
 
-  GLCall(glGenTextures(1, &_id));
+  glCall(glGenTextures(1, &_id));
   ASSERT_FALSE(_id == 0, "Could not generate texture object");
 
-  auto target = GetTextureTarget(GetTextureType());
-  GLCall(glBindTexture(target, _id));
+  auto target = getTextureTarget(getTextureType());
+  glCall(glBindTexture(target, _id));
   Allocate();
 
   _isInitialized = true;
-  GLCall(glBindTexture(target, previouslyBoundTexture));
+  glCall(glBindTexture(target, previouslyBoundTexture));
 }
 
 void GLTexture::Allocate()
@@ -264,31 +264,31 @@ void GLTexture::Allocate()
   GLenum internalFormat;
   GLenum format;
   GLenum type;
-  GetInternalPixelFormat(_desc.Format, internalFormat, format, type, _gammaCorrected);
+  getInternalPixelFormat(_desc.Format, internalFormat, format, type, _gammaCorrected);
   switch (_desc.Type)
   {
   case TextureType::Texture1D:
     for (uint32 i = 0; i < _desc.MipLevels; i++)
     {
-      GLCall(glTexImage1D(GL_TEXTURE_1D, i, internalFormat, _desc.Width, 0, format, type, nullptr));
+      glCall(glTexImage1D(GL_TEXTURE_1D, i, internalFormat, _desc.Width, 0, format, type, nullptr));
     }
     break;
   case TextureType::Texture1DArray:
     for (uint32 i = 0; i < _desc.MipLevels; i++)
     {
-      GLCall(glTexImage2D(GL_TEXTURE_1D_ARRAY, i, internalFormat, _desc.Width, _desc.Count, 0, format, type, nullptr));
+      glCall(glTexImage2D(GL_TEXTURE_1D_ARRAY, i, internalFormat, _desc.Width, _desc.Count, 0, format, type, nullptr));
     }
     break;
   case TextureType::Texture2D:
     for (uint32 i = 0; i < _desc.MipLevels; i++)
     {
-      GLCall(glTexImage2D(GL_TEXTURE_2D, i, internalFormat, _desc.Width, _desc.Height, 0, format, type, nullptr));
+      glCall(glTexImage2D(GL_TEXTURE_2D, i, internalFormat, _desc.Width, _desc.Height, 0, format, type, nullptr));
     }
     break;
   case TextureType::Texture2DArray:
     for (uint32 i = 0; i < _desc.MipLevels; i++)
     {
-      GLCall(glTexImage3D(GL_TEXTURE_2D_ARRAY, i, internalFormat, _desc.Width, _desc.Height, _desc.Count, 0, format, type, nullptr));
+      glCall(glTexImage3D(GL_TEXTURE_2D_ARRAY, i, internalFormat, _desc.Width, _desc.Height, _desc.Count, 0, format, type, nullptr));
     }
     break;
   case TextureType::TextureCube:
@@ -296,14 +296,14 @@ void GLTexture::Allocate()
     {
       for (uint32 i = 0; i < _desc.MipLevels; i++)
       {
-        GLCall(glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + face, i, internalFormat, _desc.Width, _desc.Height, 0, format, type, nullptr));
+        glCall(glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + face, i, internalFormat, _desc.Width, _desc.Height, 0, format, type, nullptr));
       }
     }
     break;
   case TextureType::Texture3D:
     for (uint32 i = 0; i < _desc.MipLevels; i++)
     {
-      GLCall(glTexImage3D(GL_TEXTURE_3D, i, internalFormat, _desc.Width, _desc.Height, _desc.Depth, 0, format, type, nullptr));
+      glCall(glTexImage3D(GL_TEXTURE_3D, i, internalFormat, _desc.Width, _desc.Height, _desc.Depth, 0, format, type, nullptr));
     }
   default:
     throw std::runtime_error("Unsupported TextureType");

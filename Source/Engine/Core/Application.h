@@ -27,27 +27,27 @@ class Application
 {
 public:
   virtual ~Application();
-  virtual void OnStart() {}
-  virtual void OnUpdate(uint32 dtMs) {}
+  virtual void onStart() {}
+  virtual void onUpdate(uint32 dtMs) {}
 
-  std::string GetName() const { return _desc.Name; }
-  uint32 GetWidth() const { return _desc.Width; }
-  uint32 GetHeight() const { return _desc.Height; }
+  std::string getName() const { return _desc.Name; }
+  uint32 getWidth() const { return _desc.Width; }
+  uint32 getHeight() const { return _desc.Height; }
 
-  int32 Run();
+  int32 run();
 
 protected:
   Application(ApplicationDesc desc);
 
-  float32 GetAverageTickMs(int32 dtMs);
-  float32 GetAverageFps(int32 dtMs);
+  float32 getAverageTickMs(int32 dtMs);
+  float32 getAverageFps(int32 dtMs);
 
   // TODO: Move this elsewhere
-  std::shared_ptr<Texture> LoadTextureFromFile(const std::string &path, bool generateMips, bool sRgb);
+  std::shared_ptr<Texture> loadTextureFromFile(const std::string &path, bool generateMips, bool sRgb);
 
 private:
-  bool Initialize();
-  int32 GetTickDuration();
+  bool initialize();
+  int32 getTickDuration();
 
 protected:
   std::shared_ptr<InputHandler> _inputHandler;

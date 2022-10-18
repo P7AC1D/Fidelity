@@ -63,17 +63,17 @@ class Texture
 public:
   Texture(const TextureDesc &desc, bool gammaCorrected) : _desc(desc), _gammaCorrected(gammaCorrected), _isInitialized(false) {}
 
-  TextureType GetTextureType() const { return _desc.Type; }
-  uint32 GetWidth() const { return _desc.Width; }
-  uint32 GetHeight() const { return _desc.Height; }
-  uint32 GetDepth() const { return _desc.Depth; }
+  TextureType getTextureType() const { return _desc.Type; }
+  uint32 getWidth() const { return _desc.Width; }
+  uint32 getHeight() const { return _desc.Height; }
+  uint32 getDepth() const { return _desc.Depth; }
 
-  const TextureDesc &GetDesc() const { return _desc; }
-  bool IsInitialized() const { return _isInitialized; }
+  const TextureDesc &getDesc() const { return _desc; }
+  bool isInitialized() const { return _isInitialized; }
 
-  virtual void WriteData(uint32 mipLevel, uint32 face, const std::shared_ptr<ImageData> &data) = 0;
-  virtual void WriteData(uint32 mipLevel, uint32 face, uint32 xStart, uint32 xCount, uint32 yStart, uint32 yCount, uint32 zStart, uint32 zCount, void* data) = 0;
-  virtual void GenerateMips() = 0;
+  virtual void writeData(uint32 mipLevel, uint32 face, const std::shared_ptr<ImageData> &data) = 0;
+  virtual void writeData(uint32 mipLevel, uint32 face, uint32 xStart, uint32 xCount, uint32 yStart, uint32 yCount, uint32 zStart, uint32 zCount, void *data) = 0;
+  virtual void generateMips() = 0;
 
 protected:
   TextureDesc _desc;

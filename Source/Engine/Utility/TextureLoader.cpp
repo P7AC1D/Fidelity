@@ -8,7 +8,7 @@
 
 std::unordered_map<std::string, std::shared_ptr<Texture>> TextureLoader::_cachedTextures;
 
-TextureFormat ToTextureFormat(ImageFormat imageFormat)
+TextureFormat toTextureFormat(ImageFormat imageFormat)
 {
 	switch (imageFormat)
 	{
@@ -24,7 +24,7 @@ TextureFormat ToTextureFormat(ImageFormat imageFormat)
 	}
 }
 
-std::shared_ptr<Texture> TextureLoader::LoadFromFile2D(std::shared_ptr<RenderDevice> renderDevice, const std::string &path, bool generateMips, bool sRgb)
+std::shared_ptr<Texture> TextureLoader::loadFromFile2D(std::shared_ptr<RenderDevice> renderDevice, const std::string &path, bool generateMips, bool sRgb)
 {
 	auto iter = _cachedTextures.find(path);
 	if (iter != _cachedTextures.end())
@@ -34,18 +34,18 @@ std::shared_ptr<Texture> TextureLoader::LoadFromFile2D(std::shared_ptr<RenderDev
 
 	try
 	{
-		auto imageData = ImageLoader::LoadFromFile(path);
+		auto imageData = ImageLoader::loadFromFile(path);
 
 		TextureDesc desc;
-		desc.Format = ToTextureFormat(imageData->GetFormat());
+		desc.Format = toTextureFormat(imageData->getFormat());
 		desc.Type = TextureType::Texture2D;
-		desc.Width = imageData->GetWidth();
-		desc.Height = imageData->GetHeight();
-		auto texture = renderDevice->CreateTexture(desc, sRgb);
-		texture->WriteData(0, 0, imageData);
+		desc.Width = imageData->getWidth();
+		desc.Height = imageData->getHeight();
+		auto texture = renderDevice->createTexture(desc, sRgb);
+		texture->writeData(0, 0, imageData);
 		if (generateMips)
 		{
-			texture->GenerateMips();
+			texture->generateMips();
 		}
 		_cachedTextures[path] = texture;
 		return texture;

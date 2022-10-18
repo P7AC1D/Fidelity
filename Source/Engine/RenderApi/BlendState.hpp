@@ -39,8 +39,8 @@ struct BlendDesc
   BlendFactor Source;
   BlendFactor Destination;
   BlendOperation Operation;
-  
-  BlendDesc(BlendFactor src, BlendFactor dst, BlendOperation op): Source(src), Destination(dst), Operation(op) {}
+
+  BlendDesc(BlendFactor src, BlendFactor dst, BlendOperation op) : Source(src), Destination(dst), Operation(op) {}
 };
 
 struct RTBlendStateDesc
@@ -61,12 +61,12 @@ struct BlendStateDesc
 class BlendState
 {
   friend class RenderDevice;
-  
+
 public:
-  const BlendStateDesc& GetDesc() const { return _desc; }
-  
+  const BlendStateDesc &getDesc() const { return _desc; }
+
 protected:
-  BlendState(const BlendStateDesc& desc): _desc(desc) {}
+  BlendState(const BlendStateDesc &desc) : _desc(desc) {}
 
 protected:
   BlendStateDesc _desc;

@@ -10,5 +10,5 @@ int main()
   applicationDesc.Width = 1920;
   applicationDesc.Height = 1080;
   Application *sdlApp = new Sponza(applicationDesc);
-  return sdlApp->Run();
+  return sdlApp->run();
 }

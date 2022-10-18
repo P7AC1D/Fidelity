@@ -5,18 +5,18 @@
 
 std::string ShaderParams::NoParameter = std::string();
 
-void ShaderParams::AddParam(const ShaderParam& param)
+void ShaderParams::addParam(const ShaderParam &param)
 {
   _params.insert(param);
 }
 
-void ShaderParams::AddParam(const std::string& name, ShaderParamType type, uint32 slot)
+void ShaderParams::addParam(const std::string &name, ShaderParamType type, uint32 slot)
 {
   ShaderParam param(name, type, slot);
-  AddParam(param);
+  addParam(param);
 }
 
-void ShaderParams::RemoveParam(const ShaderParam &param)
+void ShaderParams::removeParam(const ShaderParam &param)
 {
   auto iter = _params.find(param);
   if (iter != _params.end())
@@ -25,36 +25,34 @@ void ShaderParams::RemoveParam(const ShaderParam &param)
   }
 }
 
-void ShaderParams::RemoveParam(const std::string& name, ShaderParamType type, uint32 slot)
+void ShaderParams::removeParam(const std::string &name, ShaderParamType type, uint32 slot)
 {
   ShaderParam paramToFind(name, type, slot);
-  RemoveParam(paramToFind);
+  removeParam(paramToFind);
 }
 
-const std::string& ShaderParams::GetParamName(ShaderParamType type, uint32 slot) const
+const std::string &ShaderParams::getParamName(ShaderParamType type, uint32 slot) const
 {
   auto iter = std::find_if(_params.begin(), _params.end(), [&](ShaderParam param)
-                  {
-                    return param.Slot == slot && param.Type == type;
-                  });
+                           { return param.Slot == slot && param.Type == type; });
   if (iter != _params.end())
   {
     return iter->Name;
   }
   // TODO: No parameter specified for slot - Maybe log this info somewhere?
-	return NoParameter;
+  return NoParameter;
 }
 
-std::size_t ShaderParams::Hasher::operator()(const ShaderParam& key) const
+std::size_t ShaderParams::Hasher::operator()(const ShaderParam &key) const
 {
   std::size_t seed = 0;
-  Hash::Combine(seed, key.Name);
-  Hash::Combine(seed, static_cast<uint32>(key.Type));
-  Hash::Combine(seed, key.Slot);
+  Hash::combine(seed, key.Name);
+  Hash::combine(seed, static_cast<uint32>(key.Type));
+  Hash::combine(seed, key.Slot);
   return seed;
 }
 
-bool ShaderParams::Equality::operator()(const ShaderParam& a, const ShaderParam& b) const
+bool ShaderParams::Equality::operator()(const ShaderParam &a, const ShaderParam &b) const
 {
   return a.Name == b.Name && a.Type == b.Type && a.Slot == b.Slot;
 }

@@ -5,11 +5,11 @@
 UvSphere::UvSphere(uint32 sectors, uint32 stacks) : _sectorCount(sectors),
                                                     _stackCount(stacks)
 {
-  GenerateVertices();
-  GenerateIndices();
+  generateVertices();
+  generateIndices();
 }
 
-void UvSphere::GenerateVertices()
+void UvSphere::generateVertices()
 {
   float32 x, y, z, xy;
   float32 nx, ny, nz;
@@ -40,7 +40,7 @@ void UvSphere::GenerateVertices()
   }
 }
 
-void UvSphere::GenerateIndices()
+void UvSphere::generateIndices()
 {
   int32 k1, k2;
   for (int32 i = 0; i < _stackCount; i++)

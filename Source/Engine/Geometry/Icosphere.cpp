@@ -5,11 +5,10 @@
 
 #include "../Maths/Math.hpp"
 
-Icosphere::Icosphere(uint32 recursionCount) :
-  _indexCount(0)
+Icosphere::Icosphere(uint32 recursionCount) : _indexCount(0)
 {
-  GenerateIcoshedron();
-  GenerateIcosphere(recursionCount);
+  generateIcoshedron();
+  generateIcosphere(recursionCount);
 
   // Convert faces to indices
   _indices.reserve(3 * _faces.size());
@@ -20,16 +19,16 @@ Icosphere::Icosphere(uint32 recursionCount) :
     _indices.push_back(_faces[i].indices[2]);
   }
 
-  GenerateTexCoords();
+  generateTexCoords();
 }
 
-uint32 Icosphere::AddVertex(const Vector3& vertex)
+uint32 Icosphere::addVertex(const Vector3 &vertex)
 {
   _positions.push_back(Vector3::Normalize(vertex));
   return _indexCount++;
 }
 
-uint32 Icosphere::GetIndexedMidPoint(uint32 indexA, uint32 indexB)
+uint32 Icosphere::getIndexedMidPoint(uint32 indexA, uint32 indexB)
 {
   // Generate key
   bool isIndexASmaller = indexA < indexB;
@@ -48,12 +47,12 @@ uint32 Icosphere::GetIndexedMidPoint(uint32 indexA, uint32 indexB)
   auto pointB = _positions[indexB];
   auto midPoint = (pointA + pointB) * 0.5f;
 
-  uint32 midPointIndex = AddVertex(midPoint);
+  uint32 midPointIndex = addVertex(midPoint);
   _midPointCache.insert(std::make_pair(key, midPointIndex));
   return midPointIndex;
 }
 
-void Icosphere::GenerateIcosphere(uint32 recursionCount)
+void Icosphere::generateIcosphere(uint32 recursionCount)
 {
   // Refine faces to form icosphere
   for (uint32 i = 0; i < recursionCount; i++)
@@ -61,9 +60,9 @@ void Icosphere::GenerateIcosphere(uint32 recursionCount)
     std::vector<TriangleFace> refinedFaces;
     for (size_t j = 0; j < _faces.size(); j++)
     {
-      auto indexA = GetIndexedMidPoint(_faces[j].indices[0], _faces[j].indices[1]);
-      auto indexB = GetIndexedMidPoint(_faces[j].indices[1], _faces[j].indices[2]);
-      auto indexC = GetIndexedMidPoint(_faces[j].indices[2], _faces[j].indices[0]);
+      auto indexA = getIndexedMidPoint(_faces[j].indices[0], _faces[j].indices[1]);
+      auto indexB = getIndexedMidPoint(_faces[j].indices[1], _faces[j].indices[2]);
+      auto indexC = getIndexedMidPoint(_faces[j].indices[2], _faces[j].indices[0]);
 
       refinedFaces.emplace_back(_faces[j].indices[0], indexA, indexC);
       refinedFaces.emplace_back(_faces[j].indices[1], indexB, indexA);
@@ -74,46 +73,46 @@ void Icosphere::GenerateIcosphere(uint32 recursionCount)
   }
 }
 
-void Icosphere::GenerateIcoshedron()
+void Icosphere::generateIcoshedron()
 {
-  AddVertex(Vector3( 0.000f, 1.000f, 0.000f));
-  AddVertex(Vector3( 0.894f, 0.447f, 0.000f));
-  AddVertex(Vector3( 0.276f, 0.447f, 0.851f));
-  AddVertex(Vector3(-0.724f, 0.447f, 0.526f));
+  addVertex(Vector3(0.000f, 1.000f, 0.000f));
+  addVertex(Vector3(0.894f, 0.447f, 0.000f));
+  addVertex(Vector3(0.276f, 0.447f, 0.851f));
+  addVertex(Vector3(-0.724f, 0.447f, 0.526f));
 
-  AddVertex(Vector3(-0.724f, 0.447f, -0.526f));
-  AddVertex(Vector3( 0.276f, 0.447f, -0.851f));
-  AddVertex(Vector3(0.724f, -0.447f,  0.526f));
-  AddVertex(Vector3(-0.276f, -0.447f, 0.851f));
+  addVertex(Vector3(-0.724f, 0.447f, -0.526f));
+  addVertex(Vector3(0.276f, 0.447f, -0.851f));
+  addVertex(Vector3(0.724f, -0.447f, 0.526f));
+  addVertex(Vector3(-0.276f, -0.447f, 0.851f));
 
-  AddVertex(Vector3(-0.894f, -0.447f,  0.000f));
-  AddVertex(Vector3(-0.276f, -0.447f, -0.851f));
-  AddVertex(Vector3( 0.724f, -0.447f, -0.526f));
-  AddVertex(Vector3( 0.000f, -1.000f,  0.000f));
+  addVertex(Vector3(-0.894f, -0.447f, 0.000f));
+  addVertex(Vector3(-0.276f, -0.447f, -0.851f));
+  addVertex(Vector3(0.724f, -0.447f, -0.526f));
+  addVertex(Vector3(0.000f, -1.000f, 0.000f));
 
   _faces.emplace_back(11, 9, 10);
-  _faces.emplace_back(11, 8, 9); 
-  _faces.emplace_back(11, 7, 8); 
-  _faces.emplace_back(11, 6, 7);  
-  _faces.emplace_back(11, 10, 6);   
-  _faces.emplace_back(0, 5, 4);   
-  _faces.emplace_back(0, 4, 3);  
-  _faces.emplace_back(0, 3, 2);   
-  _faces.emplace_back(0, 2, 1);   
-  _faces.emplace_back(0, 1, 5);   
-  _faces.emplace_back(10, 9, 5);   
-  _faces.emplace_back(9, 8, 4);  
-  _faces.emplace_back(8, 7, 3);  
-  _faces.emplace_back(7, 6, 2);  
-  _faces.emplace_back(6, 10, 1);  
-  _faces.emplace_back(5, 9, 4);   
+  _faces.emplace_back(11, 8, 9);
+  _faces.emplace_back(11, 7, 8);
+  _faces.emplace_back(11, 6, 7);
+  _faces.emplace_back(11, 10, 6);
+  _faces.emplace_back(0, 5, 4);
+  _faces.emplace_back(0, 4, 3);
+  _faces.emplace_back(0, 3, 2);
+  _faces.emplace_back(0, 2, 1);
+  _faces.emplace_back(0, 1, 5);
+  _faces.emplace_back(10, 9, 5);
+  _faces.emplace_back(9, 8, 4);
+  _faces.emplace_back(8, 7, 3);
+  _faces.emplace_back(7, 6, 2);
+  _faces.emplace_back(6, 10, 1);
+  _faces.emplace_back(5, 9, 4);
   _faces.emplace_back(4, 8, 3);
-  _faces.emplace_back(3, 7, 2);   
-  _faces.emplace_back(2, 6, 1);     
-  _faces.emplace_back(1, 10, 5);   
+  _faces.emplace_back(3, 7, 2);
+  _faces.emplace_back(2, 6, 1);
+  _faces.emplace_back(1, 10, 5);
 }
 
-void Icosphere::GenerateTexCoords()
+void Icosphere::generateTexCoords()
 {
   if (_positions.empty())
   {
@@ -129,14 +128,16 @@ void Icosphere::GenerateTexCoords()
     _texCoords.emplace_back(u, v);
   }
 
-  FixMeridianTexCoords();
-  FixPoleTexCoords();
+  fixMeridianTexCoords();
+  fixPoleTexCoords();
 }
 
-void Icosphere::FixPoleTexCoords()
+void Icosphere::fixPoleTexCoords()
 {
-  auto northIter = std::find_if(_positions.begin(), _positions.end(), [](const Vector3& vec) { return 1.0f - vec[1] <= 0.000001f; });
-  auto southIter = std::find_if(_positions.begin(), _positions.end(), [](const Vector3& vec) { return 1.0f - vec[1] <= 0.000001f; });
+  auto northIter = std::find_if(_positions.begin(), _positions.end(), [](const Vector3 &vec)
+                                { return 1.0f - vec[1] <= 0.000001f; });
+  auto southIter = std::find_if(_positions.begin(), _positions.end(), [](const Vector3 &vec)
+                                { return 1.0f - vec[1] <= 0.000001f; });
   Vector3 northVec = *northIter;
   Vector3 southVec = *southIter;
   auto northIndex = std::distance(_positions.begin(), northIter);
@@ -178,7 +179,7 @@ void Icosphere::FixPoleTexCoords()
   }
 }
 
-void Icosphere::FixMeridianTexCoords()
+void Icosphere::fixMeridianTexCoords()
 {
   // Problem vertices will have a normal vector pointing inwards (-z);
   std::vector<uint32> wrappedTexIndexIndices;
@@ -199,8 +200,8 @@ void Icosphere::FixMeridianTexCoords()
   uint32 vertexIndex = static_cast<uint32>(_positions.size()) - 1;
   std::unordered_map<uint32, uint32> visited;
 
-  // For each problem vertex we need to create a copy of it, and add 1 to it’s U component. 
-  // Then we need to add the new vertex copy to the mesh’ vertex array and keep a note of the index it was assigned.
+  // For each problem vertex we need to create a copy of it, and add 1 to itï¿½s U component.
+  // Then we need to add the new vertex copy to the meshï¿½ vertex array and keep a note of the index it was assigned.
   // This index replaces the corresponding index of the old vertex in the triangle.
   for (size_t i = 0; i < wrappedTexIndexIndices.size(); i += 3)
   {

@@ -1,5 +1,8 @@
 #pragma once
 
+//#define ASSERT_ENABLED
+//#define NDEBUG
+
 #include "../Geometry/MeshFactory.h"
 #include "../Rendering/Camera.h"
 #include "../Rendering/Light.h"

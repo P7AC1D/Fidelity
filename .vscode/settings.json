@@ -82,6 +82,7 @@
         "thread": "cpp",
         "variant": "cpp",
         "xlocbuf": "cpp",
-        "xlocmes": "cpp"
+        "xlocmes": "cpp",
+        "*.rh": "cpp"
     }
 }

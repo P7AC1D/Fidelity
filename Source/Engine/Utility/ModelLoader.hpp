@@ -9,5 +9,5 @@ class GameObject;
 class ModelLoader
 {
 public:
-  static GameObject& FromFile(Scene &scene, const std::string &filePath, bool reconstructWorldTransforms);
+  static GameObject &fromFile(Scene &scene, const std::string &filePath, bool reconstructWorldTransforms);
 };

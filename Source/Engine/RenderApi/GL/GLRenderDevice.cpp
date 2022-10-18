@@ -13,7 +13,7 @@
 #include "GLVertexBuffer.hpp"
 #include "GLVertexArrayCollection.hpp"
 
-GLenum GetTextureTargetFromType(TextureType textureType)
+GLenum getTextureTargetFromType(TextureType textureType)
 {
   switch (textureType)
   {
@@ -34,7 +34,7 @@ GLenum GetTextureTargetFromType(TextureType textureType)
   }
 }
 
-GLenum GetPrimitiveTopology(PrimitiveTopology topology)
+GLenum getPrimitiveTopology(PrimitiveTopology topology)
 {
   switch (topology)
   {
@@ -53,7 +53,7 @@ GLenum GetPrimitiveTopology(PrimitiveTopology topology)
   }
 }
 
-GLenum GetStencilOp(StencilOperation stencilOperation, bool invert = false)
+GLenum getStencilOp(StencilOperation stencilOperation, bool invert = false)
 {
   switch (stencilOperation)
   {
@@ -78,7 +78,7 @@ GLenum GetStencilOp(StencilOperation stencilOperation, bool invert = false)
   }
 }
 
-GLenum GetCompareFunc(ComparisonFunction func)
+GLenum getCompareFunc(ComparisonFunction func)
 {
   switch (func)
   {
@@ -103,7 +103,7 @@ GLenum GetCompareFunc(ComparisonFunction func)
   }
 }
 
-GLenum GetBlendFactor(BlendFactor factor)
+GLenum getBlendFactor(BlendFactor factor)
 {
   switch (factor)
   {
@@ -132,7 +132,7 @@ GLenum GetBlendFactor(BlendFactor factor)
   }
 }
 
-GLenum GetBlendOp(BlendOperation op)
+GLenum getBlendOp(BlendOperation op)
 {
   switch (op)
   {
@@ -159,84 +159,84 @@ GLRenderDevice::GLRenderDevice(const RenderDeviceDesc &desc) : RenderDevice(desc
                                                                _stencilWriteMask(0),
                                                                _shaderPipelineCollection(new GLShaderPipelineCollection)
 {
-  SetViewport(ViewportDesc{0.0f, 0.0f, static_cast<float32>(desc.RenderWidth), static_cast<float32>(desc.RenderHeight), 0.0f, 0.0f});
-  SetScissorDimensions(ScissorDesc{0, 0, desc.RenderWidth, desc.RenderHeight});
+  setViewport(ViewportDesc{0.0f, 0.0f, static_cast<float32>(desc.RenderWidth), static_cast<float32>(desc.RenderHeight), 0.0f, 0.0f});
+  setScissorDimensions(ScissorDesc{0, 0, desc.RenderWidth, desc.RenderHeight});
 }
 
-std::shared_ptr<Shader> GLRenderDevice::CreateShader(const ShaderDesc &desc)
+std::shared_ptr<Shader> GLRenderDevice::createShader(const ShaderDesc &desc)
 {
   std::shared_ptr<GLShader> glShader(new GLShader(desc));
-  glShader->Compile();
+  glShader->compile();
   return glShader;
 }
 
-std::shared_ptr<VertexBuffer> GLRenderDevice::CreateVertexBuffer(const VertexBufferDesc &desc)
+std::shared_ptr<VertexBuffer> GLRenderDevice::createVertexBuffer(const VertexBufferDesc &desc)
 {
   return std::shared_ptr<GLVertexBuffer>(new GLVertexBuffer(desc));
 }
 
-std::shared_ptr<RenderTarget> GLRenderDevice::CreateRenderTarget(const RenderTargetDesc &desc)
+std::shared_ptr<RenderTarget> GLRenderDevice::createRenderTarget(const RenderTargetDesc &desc)
 {
   return std::shared_ptr<GLRenderTarget>(new GLRenderTarget(desc));
 }
 
-std::shared_ptr<IndexBuffer> GLRenderDevice::CreateIndexBuffer(const IndexBufferDesc &desc)
+std::shared_ptr<IndexBuffer> GLRenderDevice::createIndexBuffer(const IndexBufferDesc &desc)
 {
   return std::shared_ptr<GLIndexBuffer>(new GLIndexBuffer(desc));
 }
 
-std::shared_ptr<GpuBuffer> GLRenderDevice::CreateGpuBuffer(const GpuBufferDesc &desc)
+std::shared_ptr<GpuBuffer> GLRenderDevice::createGpuBuffer(const GpuBufferDesc &desc)
 {
   return std::shared_ptr<GLGpuBuffer>(new GLGpuBuffer(desc));
 }
 
-std::shared_ptr<Texture> GLRenderDevice::CreateTexture(const TextureDesc &desc, bool gammaCorrected)
+std::shared_ptr<Texture> GLRenderDevice::createTexture(const TextureDesc &desc, bool gammaCorrected)
 {
   return std::shared_ptr<GLTexture>(new GLTexture(desc, gammaCorrected));
 }
 
-std::shared_ptr<SamplerState> GLRenderDevice::CreateSamplerState(const SamplerStateDesc &desc)
+std::shared_ptr<SamplerState> GLRenderDevice::createSamplerState(const SamplerStateDesc &desc)
 {
   return std::shared_ptr<GLSamplerState>(new GLSamplerState(desc));
 }
 
-void GLRenderDevice::SetPrimitiveTopology(PrimitiveTopology primitiveTopology)
+void GLRenderDevice::setPrimitiveTopology(PrimitiveTopology primitiveTopology)
 {
   _primitiveTopology = primitiveTopology;
 }
 
-void GLRenderDevice::SetViewport(const ViewportDesc &viewport)
+void GLRenderDevice::setViewport(const ViewportDesc &viewport)
 {
   if (_viewportDesc.TopLeftX != viewport.TopLeftX ||
       _viewportDesc.TopLeftY != viewport.TopLeftY ||
       _viewportDesc.Width != viewport.Width ||
       _viewportDesc.Height != viewport.Height)
   {
-    GLCall(glViewport(viewport.TopLeftX, viewport.TopLeftY, viewport.Width, viewport.Height));
+    glCall(glViewport(viewport.TopLeftX, viewport.TopLeftY, viewport.Width, viewport.Height));
     _viewportDesc = viewport;
   }
 }
 
-void GLRenderDevice::SetPipelineState(const std::shared_ptr<PipelineState> &pipelineState)
+void GLRenderDevice::setPipelineState(const std::shared_ptr<PipelineState> &pipelineState)
 {
-  SetPrimitiveTopology(pipelineState->GetPrimitiveTopology());
-  SetRasterizerState(pipelineState->GetRasterizerState());
-  SetDepthStencilState(pipelineState->GetDepthStencilState());
-  SetBlendState(pipelineState->GetBlendState());
+  setPrimitiveTopology(pipelineState->getPrimitiveTopology());
+  setRasterizerState(pipelineState->getRasterizerState());
+  setDepthStencilState(pipelineState->getDepthStencilState());
+  setBlendState(pipelineState->getBlendState());
   _pipelineState = pipelineState;
-  _shaderParams = pipelineState->GetShaderParams();
+  _shaderParams = pipelineState->getShaderParams();
 
   for (uint32 i = 0; i < _boundTextures.size(); i++)
   {
     if (_boundTextures[i])
     {
-      std::string textureName = _shaderParams->GetParamName(ShaderParamType::Texture, i);
+      std::string textureName = _shaderParams->getParamName(ShaderParamType::Texture, i);
       if (!textureName.empty())
       {
-        auto glPs = std::static_pointer_cast<GLShader>(_pipelineState->GetPS());
-        if (glPs->HasUniform(textureName))
+        auto glPs = std::static_pointer_cast<GLShader>(_pipelineState->getFS());
+        if (glPs->hasUniform(textureName))
         {
-          glPs->BindTextureUnit(textureName, i);
+          glPs->bindTextureUnit(textureName, i);
         }
       }
     }
@@ -246,101 +246,101 @@ void GLRenderDevice::SetPipelineState(const std::shared_ptr<PipelineState> &pipe
   {
     if (_boundConstantBuffers[i])
     {
-      auto uniformBufferName = _shaderParams->GetParamName(ShaderParamType::ConstBuffer, i);
-      auto glVs = std::static_pointer_cast<GLShader>(_pipelineState->GetVS());
-      if (glVs->HasUniform(uniformBufferName))
+      auto uniformBufferName = _shaderParams->getParamName(ShaderParamType::ConstBuffer, i);
+      auto glVs = std::static_pointer_cast<GLShader>(_pipelineState->getVS());
+      if (glVs->hasUniform(uniformBufferName))
       {
-        glVs->BindUniformBlock(uniformBufferName, i);
+        glVs->bindUniformBlock(uniformBufferName, i);
       }
 
-      auto glPs = std::static_pointer_cast<GLShader>(_pipelineState->GetPS());
-      if (glPs->HasUniform(uniformBufferName))
+      auto glPs = std::static_pointer_cast<GLShader>(_pipelineState->getFS());
+      if (glPs->hasUniform(uniformBufferName))
       {
-        glPs->BindUniformBlock(uniformBufferName, i);
+        glPs->bindUniformBlock(uniformBufferName, i);
       }
 
-      auto glGs = std::static_pointer_cast<GLShader>(_pipelineState->GetGS());
-      if (glGs && glGs->HasUniform(uniformBufferName))
+      auto glGs = std::static_pointer_cast<GLShader>(_pipelineState->getGS());
+      if (glGs && glGs->hasUniform(uniformBufferName))
       {
-        glGs->BindUniformBlock(uniformBufferName, i);
+        glGs->bindUniformBlock(uniformBufferName, i);
       }
 
-      auto glHs = std::static_pointer_cast<GLShader>(_pipelineState->GetHS());
-      if (glHs && glHs->HasUniform(uniformBufferName))
+      auto glHs = std::static_pointer_cast<GLShader>(_pipelineState->getHS());
+      if (glHs && glHs->hasUniform(uniformBufferName))
       {
-        glHs->BindUniformBlock(uniformBufferName, i);
+        glHs->bindUniformBlock(uniformBufferName, i);
       }
 
-      auto glDs = std::static_pointer_cast<GLShader>(_pipelineState->GetDS());
-      if (glDs && glDs->HasUniform(uniformBufferName))
+      auto glDs = std::static_pointer_cast<GLShader>(_pipelineState->getDS());
+      if (glDs && glDs->hasUniform(uniformBufferName))
       {
-        glDs->BindUniformBlock(uniformBufferName, i);
+        glDs->bindUniformBlock(uniformBufferName, i);
       }
     }
   }
   _shaderStateChanged = true;
 }
 
-void GLRenderDevice::SetRenderTarget(const std::shared_ptr<RenderTarget> &renderTarget)
+void GLRenderDevice::setRenderTarget(const std::shared_ptr<RenderTarget> &renderTarget)
 {
   if (!renderTarget)
   {
-    GLCall(glBindFramebuffer(GL_FRAMEBUFFER, 0));
+    glCall(glBindFramebuffer(GL_FRAMEBUFFER, 0));
     _boundRenderTarget = nullptr;
     return;
   }
 
   auto glRenderTarget = std::static_pointer_cast<GLRenderTarget>(renderTarget);
-  GLCall(glBindFramebuffer(GL_FRAMEBUFFER, glRenderTarget->GetId()));
+  glCall(glBindFramebuffer(GL_FRAMEBUFFER, glRenderTarget->getId()));
   _boundRenderTarget = glRenderTarget;
 }
 
-void GLRenderDevice::SetVertexBuffer(const std::shared_ptr<VertexBuffer> vertexBuffer)
+void GLRenderDevice::setVertexBuffer(const std::shared_ptr<VertexBuffer> vertexBuffer)
 {
   auto glVertexBuffer = std::static_pointer_cast<GLVertexBuffer>(vertexBuffer);
   _boundVertexBuffer = glVertexBuffer;
 }
 
-void GLRenderDevice::SetIndexBuffer(const std::shared_ptr<IndexBuffer> &indexBuffer)
+void GLRenderDevice::setIndexBuffer(const std::shared_ptr<IndexBuffer> &indexBuffer)
 {
   auto glIndexBuffer = std::static_pointer_cast<GLIndexBuffer>(indexBuffer);
   _boundIndexBuffer = glIndexBuffer;
 }
 
-void GLRenderDevice::SetConstantBuffer(uint32 slot, const std::shared_ptr<GpuBuffer> &constantBuffer)
+void GLRenderDevice::setConstantBuffer(uint32 slot, const std::shared_ptr<GpuBuffer> &constantBuffer)
 {
-  ASSERT_TRUE(constantBuffer->GetType() == BufferType::Constant, "GPU buffer is not a constant buffer");
-  ASSERT_FALSE(slot > MaxConstantBuffers, "Constant buffer binding slot exceeds maximum supported");
+  ASSERT_TRUE(constantBuffer->getType() == BufferType::Constant, "GPU buffer is not a constant buffer");
+  ASSERT_FALSE(slot > MAX_CONSTANT_BUFFERS, "Constant buffer binding slot exceeds maximum supported");
 
   auto glConstantBuffer = std::static_pointer_cast<GLGpuBuffer>(constantBuffer);
-  GLCall(glBindBufferBase(GL_UNIFORM_BUFFER, slot, glConstantBuffer->GetId()));
+  glCall(glBindBufferBase(GL_UNIFORM_BUFFER, slot, glConstantBuffer->GetId()));
   _boundConstantBuffers[slot] = glConstantBuffer;
 }
 
-void GLRenderDevice::SetTexture(uint32 slot, const std::shared_ptr<Texture> &texture)
+void GLRenderDevice::setTexture(uint32 slot, const std::shared_ptr<Texture> &texture)
 {
-  ASSERT_FALSE(slot >= MaxTextureSlots, "Texture slot exceeds maximum supported");
+  ASSERT_FALSE(slot >= MAX_TEXTURE_SLOTS, "Texture slot exceeds maximum supported");
   auto glTexture = std::static_pointer_cast<GLTexture>(texture);
-  if (!_boundTextures[slot] || _boundTextures[slot]->GetId() != glTexture->GetId())
+  if (!_boundTextures[slot] || _boundTextures[slot]->getId() != glTexture->getId())
   {
-    GLCall(glActiveTexture(GL_TEXTURE0 + slot));
-    GLCall(glBindTexture(GetTextureTargetFromType(glTexture->GetTextureType()), glTexture->GetId()));
+    glCall(glActiveTexture(GL_TEXTURE0 + slot));
+    glCall(glBindTexture(getTextureTargetFromType(glTexture->getTextureType()), glTexture->getId()));
     _boundTextures[slot] = glTexture;
   }
 }
 
-void GLRenderDevice::SetSamplerState(uint32 slot, const std::shared_ptr<SamplerState> &samplerState)
+void GLRenderDevice::setSamplerState(uint32 slot, const std::shared_ptr<SamplerState> &samplerState)
 {
-  ASSERT_FALSE(slot >= MaxTextureSlots, "Sampler slot exceeds maximum supported");
+  ASSERT_FALSE(slot >= MAX_TEXTURE_SLOTS, "Sampler slot exceeds maximum supported");
   auto glSamplerState = std::static_pointer_cast<GLSamplerState>(samplerState);
-  if (!_boundSamplers[slot] || _boundSamplers[slot]->GetId() != glSamplerState->GetId())
+  if (!_boundSamplers[slot] || _boundSamplers[slot]->getId() != glSamplerState->getId())
   {
-    GLCall(glBindSampler(slot, glSamplerState->GetId()));
+    glCall(glBindSampler(slot, glSamplerState->getId()));
     _boundSamplers[slot] = glSamplerState;
   }
 }
 
-void GLRenderDevice::SetScissorDimensions(const ScissorDesc &desc)
+void GLRenderDevice::setScissorDimensions(const ScissorDesc &desc)
 {
   ASSERT_FALSE(desc.X < 0.0f || desc.X > _desc.RenderWidth, "Scissor X-Pos exceeds render dimensions");
   ASSERT_FALSE(desc.Y < 0.0f || desc.Y > _desc.RenderHeight, "Scissor Y-Pos exceeds render dimensions");
@@ -349,262 +349,262 @@ void GLRenderDevice::SetScissorDimensions(const ScissorDesc &desc)
 
   if (desc.X != _scissorDesc.X || desc.Y != _scissorDesc.Y || desc.W != _scissorDesc.W || desc.H != _scissorDesc.H)
   {
-    GLCall(glScissor(desc.X, desc.Y, desc.W, desc.H));
+    glCall(glScissor(desc.X, desc.Y, desc.W, desc.H));
     _scissorDesc = desc;
   }
 }
 
-const ViewportDesc &GLRenderDevice::GetViewport() const
+const ViewportDesc &GLRenderDevice::getViewport() const
 {
   return _viewportDesc;
 }
 
-ScissorDesc GLRenderDevice::GetScissorDimensions() const
+ScissorDesc GLRenderDevice::getScissorDimensions() const
 {
   return _scissorDesc;
 }
 
-void GLRenderDevice::Draw(uint32 vertexCount, uint32 vertexOffset)
+void GLRenderDevice::draw(uint32 vertexCount, uint32 vertexOffset)
 {
-  BeginDraw();
-  GLCall(glDrawArrays(GetPrimitiveTopology(_primitiveTopology), vertexOffset, vertexCount));
-  EndDraw();
+  beginDraw();
+  glCall(glDrawArrays(getPrimitiveTopology(_primitiveTopology), vertexOffset, vertexCount));
+  endDraw();
 }
 
-void GLRenderDevice::DrawIndexed(uint32 indexCount, uint32 indexOffset, uint32 vertexOffset)
+void GLRenderDevice::drawIndexed(uint32 indexCount, uint32 indexOffset, uint32 vertexOffset)
 {
-  BeginDraw();
+  beginDraw();
   ASSERT_FALSE(_boundIndexBuffer == nullptr, "No index buffer has been bound");
-  GLCall(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _boundIndexBuffer->GetId()));
+  glCall(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _boundIndexBuffer->getId()));
 
-  GLenum idxType = _boundIndexBuffer->GetIndexType() == IndexType::UInt16 ? GL_UNSIGNED_SHORT : GL_UNSIGNED_INT;
-  uint32 idxTypeByteCount = IndexBuffer::GetBytesPerIndex(_boundIndexBuffer->GetIndexType());
-  GLCall(glDrawElementsBaseVertex(GetPrimitiveTopology(_primitiveTopology), indexCount, idxType, reinterpret_cast<GLvoid *>(idxTypeByteCount * indexOffset), vertexOffset));
-  EndDraw();
+  GLenum idxType = _boundIndexBuffer->getIndexType() == IndexType::UInt16 ? GL_UNSIGNED_SHORT : GL_UNSIGNED_INT;
+  uint32 idxTypeByteCount = IndexBuffer::getBytesPerIndex(_boundIndexBuffer->getIndexType());
+  glCall(glDrawElementsBaseVertex(getPrimitiveTopology(_primitiveTopology), indexCount, idxType, reinterpret_cast<GLvoid *>(idxTypeByteCount * indexOffset), vertexOffset));
+  endDraw();
 }
 
-void GLRenderDevice::ClearBuffers(uint32 buffers, const Colour &colour, float32 depth, int32 stencil)
+void GLRenderDevice::clearBuffers(uint32 buffers, const Colour &colour, float32 depth, int32 stencil)
 {
   if (!_pipelineState)
   {
     return;
   }
 
-  auto currentScissorDimensions = GetScissorDimensions();
-  if (_pipelineState->GetRasterizerState()->IsScissorEnabled())
+  auto currentScissorDimensions = getScissorDimensions();
+  if (_pipelineState->getRasterizerState()->isScissorEnabled())
   {
     ScissorDesc scissorDesc;
     scissorDesc.X = 0;
     scissorDesc.Y = 0;
-    scissorDesc.H = GetRenderHeight();
-    scissorDesc.W = GetRenderWidth();
-    SetScissorDimensions(scissorDesc);
+    scissorDesc.H = getRenderHeight();
+    scissorDesc.W = getRenderWidth();
+    setScissorDimensions(scissorDesc);
   }
 
   GLbitfield flags = 0;
   if (buffers & RTT_Colour)
   {
     flags |= GL_COLOR_BUFFER_BIT;
-    GLCall(glClearColor(colour[0], colour[1], colour[2], colour[3]));
+    glCall(glClearColor(colour[0], colour[1], colour[2], colour[3]));
   }
   if (buffers & RTT_Depth)
   {
     flags |= GL_DEPTH_BUFFER_BIT;
-    GLCall(glClearDepth(depth));
+    glCall(glClearDepth(depth));
   }
   if (buffers & RTT_Stencil)
   {
     flags |= GL_STENCIL_BUFFER_BIT;
-    GLCall(glClearStencil(stencil));
+    glCall(glClearStencil(stencil));
   }
-  GLCall(glClear(flags));
+  glCall(glClear(flags));
 
-  if (_pipelineState->GetRasterizerState()->IsScissorEnabled())
+  if (_pipelineState->getRasterizerState()->isScissorEnabled())
   {
-    SetScissorDimensions(currentScissorDimensions);
+    setScissorDimensions(currentScissorDimensions);
   }
 }
 
-void GLRenderDevice::BeginDraw()
+void GLRenderDevice::beginDraw()
 {
   ASSERT_FALSE(_pipelineState == nullptr, "No pipeline state has been set");
-  ASSERT_FALSE(_pipelineState->GetVS() == nullptr, "No vertex shader has been set");
-  ASSERT_FALSE(_pipelineState->GetPS() == nullptr, "No pixel shader has been set");
+  ASSERT_FALSE(_pipelineState->getVS() == nullptr, "No vertex shader has been set");
+  ASSERT_FALSE(_pipelineState->getFS() == nullptr, "No pixel shader has been set");
   ASSERT_FALSE(_shaderParams == nullptr, "No shader GPU params has been set");
   ASSERT_FALSE(_boundVertexBuffer == nullptr, "No vertex buffer has been set");
 
   if (_shaderStateChanged)
   {
-    auto shaderPipeline = _shaderPipelineCollection->GetShaderPipeline(_pipelineState->GetVS(),
-                                                                       _pipelineState->GetPS(),
-                                                                       _pipelineState->GetGS(),
-                                                                       _pipelineState->GetHS(),
-                                                                       _pipelineState->GetDS());
+    auto shaderPipeline = _shaderPipelineCollection->getShaderPipeline(_pipelineState->getVS(),
+                                                                       _pipelineState->getFS(),
+                                                                       _pipelineState->getGS(),
+                                                                       _pipelineState->getHS(),
+                                                                       _pipelineState->getDS());
 
     if (_shaderPipeline == nullptr || _shaderPipeline != shaderPipeline)
     {
-      GLCall(glBindProgramPipeline(shaderPipeline->GetId()));
+      glCall(glBindProgramPipeline(shaderPipeline->getId()));
       _shaderPipeline = shaderPipeline;
     }
     _shaderStateChanged = false;
   }
 
-  auto vao = GLVertexArrayObjectCollection::GetVao(_pipelineState->GetVertexLayout(), _boundVertexBuffer);
-  GLCall(glBindVertexArray(vao->GetId()));
+  auto vao = GLVertexArrayObjectCollection::getVao(_pipelineState->getVertexLayout(), _boundVertexBuffer);
+  glCall(glBindVertexArray(vao->getId()));
 }
 
-void GLRenderDevice::EndDraw()
+void GLRenderDevice::endDraw()
 {
-  GLCall(glBindVertexArray(0));
+  glCall(glBindVertexArray(0));
 }
 
-void GLRenderDevice::SetRasterizerState(const std::shared_ptr<RasterizerState> &rasterizerState)
+void GLRenderDevice::setRasterizerState(const std::shared_ptr<RasterizerState> &rasterizerState)
 {
-  auto newRasterizerStateDesc = rasterizerState->GetDesc();
+  auto newRasterizerStateDesc = rasterizerState->getDesc();
   if (!_rasterizerState)
   {
-    SetDepthBias(newRasterizerStateDesc.DepthBias, newRasterizerStateDesc.SlopeScaledDepthBias);
-    SetCullingMode(newRasterizerStateDesc.CullMode);
-    SetFillMode(newRasterizerStateDesc.FillMode);
-    EnableScissorTest(newRasterizerStateDesc.ScissorEnabled);
-    EnableMultisampling(newRasterizerStateDesc.MultisampleEnabled);
-    EnableDepthClip(newRasterizerStateDesc.DepthClipEnabled);
-    EnableAntialiasedLine(newRasterizerStateDesc.AntialiasedLineEnable);
+    setDepthBias(newRasterizerStateDesc.DepthBias, newRasterizerStateDesc.SlopeScaledDepthBias);
+    setCullingMode(newRasterizerStateDesc.CullMode);
+    setFillMode(newRasterizerStateDesc.FillMode);
+    enableScissorTest(newRasterizerStateDesc.ScissorEnabled);
+    enableMultisampling(newRasterizerStateDesc.MultisampleEnabled);
+    enableDepthClip(newRasterizerStateDesc.DepthClipEnabled);
+    enableAntialiasedLine(newRasterizerStateDesc.AntialiasedLineEnable);
 
     _rasterizerState = rasterizerState;
     return;
   }
 
-  auto oldRasterizerStateDesc = _rasterizerState->GetDesc();
+  auto oldRasterizerStateDesc = _rasterizerState->getDesc();
   if (oldRasterizerStateDesc.DepthBias != newRasterizerStateDesc.DepthBias || oldRasterizerStateDesc.SlopeScaledDepthBias != newRasterizerStateDesc.SlopeScaledDepthBias)
   {
-    SetDepthBias(newRasterizerStateDesc.DepthBias, newRasterizerStateDesc.SlopeScaledDepthBias);
+    setDepthBias(newRasterizerStateDesc.DepthBias, newRasterizerStateDesc.SlopeScaledDepthBias);
   }
 
   if (oldRasterizerStateDesc.CullMode != newRasterizerStateDesc.CullMode)
   {
-    SetCullingMode(newRasterizerStateDesc.CullMode);
+    setCullingMode(newRasterizerStateDesc.CullMode);
   }
 
   if (oldRasterizerStateDesc.FillMode != newRasterizerStateDesc.FillMode)
   {
-    SetFillMode(newRasterizerStateDesc.FillMode);
+    setFillMode(newRasterizerStateDesc.FillMode);
   }
 
   if (oldRasterizerStateDesc.ScissorEnabled != newRasterizerStateDesc.ScissorEnabled)
   {
-    EnableScissorTest(newRasterizerStateDesc.ScissorEnabled);
+    enableScissorTest(newRasterizerStateDesc.ScissorEnabled);
   }
 
   if (oldRasterizerStateDesc.MultisampleEnabled != newRasterizerStateDesc.MultisampleEnabled)
   {
-    EnableMultisampling(newRasterizerStateDesc.MultisampleEnabled);
+    enableMultisampling(newRasterizerStateDesc.MultisampleEnabled);
   }
 
   if (oldRasterizerStateDesc.DepthClipEnabled != newRasterizerStateDesc.DepthClipEnabled)
   {
-    EnableDepthClip(newRasterizerStateDesc.DepthClipEnabled);
+    enableDepthClip(newRasterizerStateDesc.DepthClipEnabled);
   }
 
   if (oldRasterizerStateDesc.AntialiasedLineEnable != newRasterizerStateDesc.AntialiasedLineEnable)
   {
-    EnableAntialiasedLine(newRasterizerStateDesc.AntialiasedLineEnable);
+    enableAntialiasedLine(newRasterizerStateDesc.AntialiasedLineEnable);
   }
   _rasterizerState = rasterizerState;
 }
 
-void GLRenderDevice::SetDepthStencilState(const std::shared_ptr<DepthStencilState> &depthStencilState)
+void GLRenderDevice::setDepthStencilState(const std::shared_ptr<DepthStencilState> &depthStencilState)
 {
-  auto newDepthStencilStateDesc = depthStencilState->GetDesc();
+  auto newDepthStencilStateDesc = depthStencilState->getDesc();
   if (_depthStencilState)
   {
-    auto oldDepthStencilStateDesc = _depthStencilState->GetDesc();
+    auto oldDepthStencilStateDesc = _depthStencilState->getDesc();
     if (oldDepthStencilStateDesc.StencilEnabled != newDepthStencilStateDesc.StencilEnabled)
     {
-      EnableStencilTest(newDepthStencilStateDesc.StencilEnabled);
+      enableStencilTest(newDepthStencilStateDesc.StencilEnabled);
     }
 
     if (oldDepthStencilStateDesc.FrontFace.FailOp != newDepthStencilStateDesc.FrontFace.FailOp ||
         oldDepthStencilStateDesc.FrontFace.PassOp != newDepthStencilStateDesc.FrontFace.PassOp ||
         oldDepthStencilStateDesc.FrontFace.ZFailOp != newDepthStencilStateDesc.FrontFace.ZFailOp)
     {
-      SetStencilOperations(newDepthStencilStateDesc.FrontFace, true);
+      setStencilOperations(newDepthStencilStateDesc.FrontFace, true);
     }
 
     if (oldDepthStencilStateDesc.BackFace.FailOp != newDepthStencilStateDesc.BackFace.FailOp ||
         oldDepthStencilStateDesc.BackFace.PassOp != newDepthStencilStateDesc.BackFace.PassOp ||
         oldDepthStencilStateDesc.BackFace.ZFailOp != newDepthStencilStateDesc.BackFace.ZFailOp)
     {
-      SetStencilOperations(newDepthStencilStateDesc.BackFace, false);
+      setStencilOperations(newDepthStencilStateDesc.BackFace, false);
     }
 
     if (oldDepthStencilStateDesc.FrontFace.ComparisonFunc != newDepthStencilStateDesc.FrontFace.ComparisonFunc ||
         oldDepthStencilStateDesc.StencilReadMask != newDepthStencilStateDesc.StencilReadMask)
     {
-      SetStencilFunction(newDepthStencilStateDesc.FrontFace.ComparisonFunc, newDepthStencilStateDesc.StencilReadMask, true);
+      setStencilFunction(newDepthStencilStateDesc.FrontFace.ComparisonFunc, newDepthStencilStateDesc.StencilReadMask, true);
     }
 
     if (oldDepthStencilStateDesc.BackFace.ComparisonFunc != newDepthStencilStateDesc.FrontFace.ComparisonFunc ||
         oldDepthStencilStateDesc.StencilReadMask != newDepthStencilStateDesc.StencilReadMask)
     {
-      SetStencilFunction(newDepthStencilStateDesc.BackFace.ComparisonFunc, newDepthStencilStateDesc.StencilReadMask, false);
+      setStencilFunction(newDepthStencilStateDesc.BackFace.ComparisonFunc, newDepthStencilStateDesc.StencilReadMask, false);
     }
 
     if (oldDepthStencilStateDesc.StencilWriteMask != newDepthStencilStateDesc.StencilWriteMask)
     {
-      SetStencilWriteMask(newDepthStencilStateDesc.StencilWriteMask);
+      setStencilWriteMask(newDepthStencilStateDesc.StencilWriteMask);
     }
 
     if (oldDepthStencilStateDesc.DepthReadEnabled != newDepthStencilStateDesc.DepthReadEnabled)
     {
-      EnableDepthTest(newDepthStencilStateDesc.DepthReadEnabled);
+      enableDepthTest(newDepthStencilStateDesc.DepthReadEnabled);
     }
 
     if (oldDepthStencilStateDesc.DepthWriteEnabled != newDepthStencilStateDesc.DepthWriteEnabled)
     {
-      EnableDepthWrite(newDepthStencilStateDesc.DepthWriteEnabled);
+      enableDepthWrite(newDepthStencilStateDesc.DepthWriteEnabled);
     }
 
     if (oldDepthStencilStateDesc.DepthFunc != newDepthStencilStateDesc.DepthFunc)
     {
-      SetDepthFunction(newDepthStencilStateDesc.DepthFunc);
+      setDepthFunction(newDepthStencilStateDesc.DepthFunc);
     }
   }
   else
   {
-    EnableStencilTest(newDepthStencilStateDesc.StencilEnabled);
-    SetStencilOperations(newDepthStencilStateDesc.FrontFace, true);
-    SetStencilOperations(newDepthStencilStateDesc.BackFace, false);
-    SetStencilFunction(newDepthStencilStateDesc.FrontFace.ComparisonFunc, newDepthStencilStateDesc.StencilReadMask, true);
-    SetStencilFunction(newDepthStencilStateDesc.BackFace.ComparisonFunc, newDepthStencilStateDesc.StencilReadMask, false);
-    SetStencilWriteMask(newDepthStencilStateDesc.StencilWriteMask);
+    enableStencilTest(newDepthStencilStateDesc.StencilEnabled);
+    setStencilOperations(newDepthStencilStateDesc.FrontFace, true);
+    setStencilOperations(newDepthStencilStateDesc.BackFace, false);
+    setStencilFunction(newDepthStencilStateDesc.FrontFace.ComparisonFunc, newDepthStencilStateDesc.StencilReadMask, true);
+    setStencilFunction(newDepthStencilStateDesc.BackFace.ComparisonFunc, newDepthStencilStateDesc.StencilReadMask, false);
+    setStencilWriteMask(newDepthStencilStateDesc.StencilWriteMask);
 
-    EnableDepthTest(newDepthStencilStateDesc.DepthReadEnabled);
-    EnableDepthWrite(newDepthStencilStateDesc.DepthWriteEnabled);
-    SetDepthFunction(newDepthStencilStateDesc.DepthFunc);
+    enableDepthTest(newDepthStencilStateDesc.DepthReadEnabled);
+    enableDepthWrite(newDepthStencilStateDesc.DepthWriteEnabled);
+    setDepthFunction(newDepthStencilStateDesc.DepthFunc);
   }
   _depthStencilState = depthStencilState;
 }
 
-void GLRenderDevice::SetBlendState(const std::shared_ptr<BlendState> &blendState)
+void GLRenderDevice::setBlendState(const std::shared_ptr<BlendState> &blendState)
 {
-  auto newBlendStateDesc = blendState->GetDesc();
+  auto newBlendStateDesc = blendState->getDesc();
   // TODO: Investigate per-RT blending in OpenGL - for now just use the first.
   auto newFirstRTBlendState = newBlendStateDesc.RTBlendState[0];
   if (!_blendState)
   {
-    EnableBlend(newFirstRTBlendState.BlendEnabled);
-    SetBlendFactors(newFirstRTBlendState.Blend.Source, newFirstRTBlendState.Blend.Destination, newFirstRTBlendState.BlendAlpha.Source, newFirstRTBlendState.BlendAlpha.Destination);
-    SetBlendOperation(newFirstRTBlendState.Blend.Operation, newFirstRTBlendState.BlendAlpha.Operation);
-    SetBlendWriteMask(newFirstRTBlendState.RTWriteMask);
+    enableBlend(newFirstRTBlendState.BlendEnabled);
+    setBlendFactors(newFirstRTBlendState.Blend.Source, newFirstRTBlendState.Blend.Destination, newFirstRTBlendState.BlendAlpha.Source, newFirstRTBlendState.BlendAlpha.Destination);
+    setBlendOperation(newFirstRTBlendState.Blend.Operation, newFirstRTBlendState.BlendAlpha.Operation);
+    setBlendWriteMask(newFirstRTBlendState.RTWriteMask);
     return;
   }
 
-  auto oldBlendStateDesc = _blendState->GetDesc();
+  auto oldBlendStateDesc = _blendState->getDesc();
   auto oldFirstRTBlendState = oldBlendStateDesc.RTBlendState[0];
   if (oldFirstRTBlendState.BlendEnabled != newFirstRTBlendState.BlendEnabled)
   {
-    EnableBlend(newFirstRTBlendState.BlendEnabled);
+    enableBlend(newFirstRTBlendState.BlendEnabled);
   }
 
   if (oldFirstRTBlendState.Blend.Source != newFirstRTBlendState.Blend.Source ||
@@ -612,134 +612,134 @@ void GLRenderDevice::SetBlendState(const std::shared_ptr<BlendState> &blendState
       oldFirstRTBlendState.BlendAlpha.Source != newFirstRTBlendState.BlendAlpha.Source ||
       oldFirstRTBlendState.BlendAlpha.Destination != newFirstRTBlendState.BlendAlpha.Destination)
   {
-    SetBlendFactors(newFirstRTBlendState.Blend.Source, newFirstRTBlendState.Blend.Destination, newFirstRTBlendState.BlendAlpha.Source, newFirstRTBlendState.BlendAlpha.Destination);
+    setBlendFactors(newFirstRTBlendState.Blend.Source, newFirstRTBlendState.Blend.Destination, newFirstRTBlendState.BlendAlpha.Source, newFirstRTBlendState.BlendAlpha.Destination);
   }
 
   if (oldFirstRTBlendState.Blend.Operation != newFirstRTBlendState.Blend.Operation ||
       oldFirstRTBlendState.BlendAlpha.Operation != newFirstRTBlendState.BlendAlpha.Operation)
   {
-    SetBlendOperation(newFirstRTBlendState.Blend.Operation, newFirstRTBlendState.BlendAlpha.Operation);
+    setBlendOperation(newFirstRTBlendState.Blend.Operation, newFirstRTBlendState.BlendAlpha.Operation);
   }
 
   if (oldFirstRTBlendState.RTWriteMask != newFirstRTBlendState.RTWriteMask)
   {
-    SetBlendWriteMask(newFirstRTBlendState.RTWriteMask);
+    setBlendWriteMask(newFirstRTBlendState.RTWriteMask);
   }
   _blendState = blendState;
 }
 
-void GLRenderDevice::SetDepthBias(float32 constantBias, float32 slopeScaleBias)
+void GLRenderDevice::setDepthBias(float32 constantBias, float32 slopeScaleBias)
 {
   if (constantBias != 0 || slopeScaleBias != 0)
   {
-    GLCall(glEnable(GL_POLYGON_OFFSET_FILL));
-    GLCall(glEnable(GL_POLYGON_OFFSET_POINT));
-    GLCall(glEnable(GL_POLYGON_OFFSET_LINE));
+    glCall(glEnable(GL_POLYGON_OFFSET_FILL));
+    glCall(glEnable(GL_POLYGON_OFFSET_POINT));
+    glCall(glEnable(GL_POLYGON_OFFSET_LINE));
 
     // TODO: Research this more as I don't entirely understand it.
     float32 scaledConstantBias = -constantBias * float32((1 << 24) - 1);
-    GLCall(glPolygonOffset(slopeScaleBias, scaledConstantBias));
+    glCall(glPolygonOffset(slopeScaleBias, scaledConstantBias));
   }
   else
   {
-    GLCall(glDisable(GL_POLYGON_OFFSET_FILL));
-    GLCall(glDisable(GL_POLYGON_OFFSET_POINT));
-    GLCall(glDisable(GL_POLYGON_OFFSET_LINE));
+    glCall(glDisable(GL_POLYGON_OFFSET_FILL));
+    glCall(glDisable(GL_POLYGON_OFFSET_POINT));
+    glCall(glDisable(GL_POLYGON_OFFSET_LINE));
   }
 }
 
-void GLRenderDevice::SetCullingMode(CullMode cullMode)
+void GLRenderDevice::setCullingMode(CullMode cullMode)
 {
   switch (cullMode)
   {
   case CullMode::None:
-    GLCall(glDisable(GL_CULL_FACE));
+    glCall(glDisable(GL_CULL_FACE));
     break;
   case CullMode::CounterClockwise:
-    GLCall(glEnable(GL_CULL_FACE));
-    GLCall(glCullFace(GL_BACK));
+    glCall(glEnable(GL_CULL_FACE));
+    glCall(glCullFace(GL_BACK));
     break;
   case CullMode::Clockwise:
   default:
-    GLCall(glEnable(GL_CULL_FACE));
-    GLCall(glCullFace(GL_FRONT));
+    glCall(glEnable(GL_CULL_FACE));
+    glCall(glCullFace(GL_FRONT));
     break;
   }
 }
 
-void GLRenderDevice::SetFillMode(FillMode fillMode)
+void GLRenderDevice::setFillMode(FillMode fillMode)
 {
   switch (fillMode)
   {
   case FillMode::WireFrame:
-    GLCall(glPolygonMode(GL_FRONT_AND_BACK, GL_LINE));
+    glCall(glPolygonMode(GL_FRONT_AND_BACK, GL_LINE));
     break;
   case FillMode::Solid:
   default:
-    GLCall(glPolygonMode(GL_FRONT_AND_BACK, GL_FILL));
+    glCall(glPolygonMode(GL_FRONT_AND_BACK, GL_FILL));
     break;
   }
 }
 
-void GLRenderDevice::SetStencilOperations(const StencilOperationDesc &stencilOperationDesc, bool isFrontFace)
+void GLRenderDevice::setStencilOperations(const StencilOperationDesc &stencilOperationDesc, bool isFrontFace)
 {
   if (isFrontFace)
   {
-    GLCall(glStencilOpSeparate(GL_FRONT,
-                               GetStencilOp(stencilOperationDesc.FailOp),
-                               GetStencilOp(stencilOperationDesc.ZFailOp),
-                               GetStencilOp(stencilOperationDesc.PassOp)));
+    glCall(glStencilOpSeparate(GL_FRONT,
+                               getStencilOp(stencilOperationDesc.FailOp),
+                               getStencilOp(stencilOperationDesc.ZFailOp),
+                               getStencilOp(stencilOperationDesc.PassOp)));
   }
   else
   {
-    GLCall(glStencilOpSeparate(GL_FRONT,
-                               GetStencilOp(stencilOperationDesc.FailOp, true),
-                               GetStencilOp(stencilOperationDesc.ZFailOp, true),
-                               GetStencilOp(stencilOperationDesc.PassOp, true)));
+    glCall(glStencilOpSeparate(GL_FRONT,
+                               getStencilOp(stencilOperationDesc.FailOp, true),
+                               getStencilOp(stencilOperationDesc.ZFailOp, true),
+                               getStencilOp(stencilOperationDesc.PassOp, true)));
   }
 }
 
-void GLRenderDevice::SetStencilFunction(ComparisonFunction comparisonFunc, uint32 readMask, bool isFrontFace)
+void GLRenderDevice::setStencilFunction(ComparisonFunction comparisonFunc, uint32 readMask, bool isFrontFace)
 {
   _stencilReadMask = readMask;
   if (isFrontFace)
   {
-    GLCall(glStencilFuncSeparate(GL_FRONT, GetCompareFunc(comparisonFunc), _stencilRefValue, readMask));
+    glCall(glStencilFuncSeparate(GL_FRONT, getCompareFunc(comparisonFunc), _stencilRefValue, readMask));
   }
   else
   {
-    GLCall(glStencilFuncSeparate(GL_BACK, GetCompareFunc(comparisonFunc), _stencilRefValue, readMask));
+    glCall(glStencilFuncSeparate(GL_BACK, getCompareFunc(comparisonFunc), _stencilRefValue, readMask));
   }
 }
 
-void GLRenderDevice::SetStencilWriteMask(uint32 writeMask)
+void GLRenderDevice::setStencilWriteMask(uint32 writeMask)
 {
   _stencilWriteMask = writeMask;
-  GLCall(glStencilMask(writeMask));
+  glCall(glStencilMask(writeMask));
 }
 
-void GLRenderDevice::SetDepthFunction(ComparisonFunction depthFunc)
+void GLRenderDevice::setDepthFunction(ComparisonFunction depthFunc)
 {
-  GLCall(glDepthFunc(GetCompareFunc(depthFunc)));
+  glCall(glDepthFunc(getCompareFunc(depthFunc)));
 }
 
-void GLRenderDevice::SetBlendFactors(BlendFactor srcFactor, BlendFactor dstFactor, BlendFactor srcAlphaFactor, BlendFactor dstAlphaFactor)
+void GLRenderDevice::setBlendFactors(BlendFactor srcFactor, BlendFactor dstFactor, BlendFactor srcAlphaFactor, BlendFactor dstAlphaFactor)
 {
-  GLenum src = GetBlendFactor(srcFactor);
-  GLenum dst = GetBlendFactor(dstFactor);
-  GLenum srcAlpha = GetBlendFactor(srcAlphaFactor);
-  GLenum dstAlpha = GetBlendFactor(dstAlphaFactor);
-  GLCall(glBlendFuncSeparate(src, dst, srcAlpha, dstAlpha));
+  GLenum src = getBlendFactor(srcFactor);
+  GLenum dst = getBlendFactor(dstFactor);
+  GLenum srcAlpha = getBlendFactor(srcAlphaFactor);
+  GLenum dstAlpha = getBlendFactor(dstAlphaFactor);
+  glCall(glBlendFuncSeparate(src, dst, srcAlpha, dstAlpha));
 }
 
-void GLRenderDevice::SetBlendOperation(BlendOperation op, BlendOperation alphaOp)
+void GLRenderDevice::setBlendOperation(BlendOperation op, BlendOperation alphaOp)
 {
-  GLenum func = GetBlendOp(op);
-  GLenum alphaFunc = GetBlendOp(alphaOp);
-  GLCall(glBlendEquationSeparate(func, alphaFunc));
+  GLenum func = getBlendOp(op);
+  GLenum alphaFunc = getBlendOp(alphaOp);
+  glCall(glBlendEquationSeparate(func, alphaFunc));
 }
 
-void GLRenderDevice::SetBlendWriteMask(byte writeMask)
+void GLRenderDevice::setBlendWriteMask(byte writeMask)
 {
   GLboolean red = GL_FALSE;
   GLboolean green = GL_FALSE;
@@ -761,101 +761,101 @@ void GLRenderDevice::SetBlendWriteMask(byte writeMask)
   {
     alpha = GL_TRUE;
   }
-  GLCall(glColorMask(red, green, blue, alpha));
+  glCall(glColorMask(red, green, blue, alpha));
 }
 
-void GLRenderDevice::EnableScissorTest(bool enableScissorTest)
+void GLRenderDevice::enableScissorTest(bool enableScissorTest)
 {
   if (enableScissorTest)
   {
-    GLCall(glEnable(GL_SCISSOR_TEST));
+    glCall(glEnable(GL_SCISSOR_TEST));
   }
   else
   {
-    GLCall(glDisable(GL_SCISSOR_TEST));
+    glCall(glDisable(GL_SCISSOR_TEST));
   }
 }
 
-void GLRenderDevice::EnableMultisampling(bool enableMultisampling)
+void GLRenderDevice::enableMultisampling(bool enableMultisampling)
 {
   if (enableMultisampling)
   {
-    GLCall(glEnable(GL_MULTISAMPLE));
+    glCall(glEnable(GL_MULTISAMPLE));
   }
   else
   {
-    GLCall(glDisable(GL_MULTISAMPLE));
+    glCall(glDisable(GL_MULTISAMPLE));
   }
 }
 
-void GLRenderDevice::EnableDepthClip(bool enableDepthClip)
+void GLRenderDevice::enableDepthClip(bool enableDepthClip)
 {
   if (enableDepthClip)
   {
-    GLCall(glEnable(GL_DEPTH_CLAMP));
+    glCall(glEnable(GL_DEPTH_CLAMP));
   }
   else
   {
-    GLCall(glDisable(GL_DEPTH_CLAMP));
+    glCall(glDisable(GL_DEPTH_CLAMP));
   }
 }
 
-void GLRenderDevice::EnableAntialiasedLine(bool enableAntialiasedLine)
+void GLRenderDevice::enableAntialiasedLine(bool enableAntialiasedLine)
 {
   if (enableAntialiasedLine)
   {
-    GLCall(glEnable(GL_LINE_SMOOTH));
+    glCall(glEnable(GL_LINE_SMOOTH));
   }
   else
   {
-    GLCall(glDisable(GL_LINE_SMOOTH));
+    glCall(glDisable(GL_LINE_SMOOTH));
   }
 }
 
-void GLRenderDevice::EnableStencilTest(bool enableStencilTest)
+void GLRenderDevice::enableStencilTest(bool enableStencilTest)
 {
   if (enableStencilTest)
   {
-    GLCall(glEnable(GL_STENCIL_TEST));
+    glCall(glEnable(GL_STENCIL_TEST));
   }
   else
   {
-    GLCall(glDisable(GL_STENCIL_TEST));
+    glCall(glDisable(GL_STENCIL_TEST));
   }
 }
 
-void GLRenderDevice::EnableDepthTest(bool enableDepthTest)
+void GLRenderDevice::enableDepthTest(bool enableDepthTest)
 {
   if (enableDepthTest)
   {
-    GLCall(glEnable(GL_DEPTH_TEST));
+    glCall(glEnable(GL_DEPTH_TEST));
   }
   else
   {
-    GLCall(glDisable(GL_DEPTH_TEST));
+    glCall(glDisable(GL_DEPTH_TEST));
   }
 }
 
-void GLRenderDevice::EnableDepthWrite(bool enableDepthWrite)
+void GLRenderDevice::enableDepthWrite(bool enableDepthWrite)
 {
   if (enableDepthWrite)
   {
-    GLCall(glDepthMask(GL_TRUE));
+    glCall(glDepthMask(GL_TRUE));
   }
   else
   {
-    GLCall(glDepthMask(GL_FALSE));
+    glCall(glDepthMask(GL_FALSE));
   }
 }
 
-void GLRenderDevice::EnableBlend(bool enableBlend)
+void GLRenderDevice::enableBlend(bool enableBlend)
 {
   if (enableBlend)
   {
-    GLCall(glEnable(GL_BLEND));
+    glCall(glEnable(GL_BLEND));
   }
   else
   {
-    GLCall(glDisable(GL_BLEND));
+    glCall(glDisable(GL_BLEND));
   }
 }

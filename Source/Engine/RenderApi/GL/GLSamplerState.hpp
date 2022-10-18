@@ -5,23 +5,24 @@
 class GLSamplerState : public SamplerState
 {
   friend class GLRenderDevice;
+
 public:
   ~GLSamplerState();
-  
-  uint32 GetId() const { return _id; }
-  
+
+  uint32 getId() const { return _id; }
+
 protected:
-  GLSamplerState(const SamplerStateDesc& desc);
-  
+  GLSamplerState(const SamplerStateDesc &desc);
+
 private:
-  bool IsInitialized() const { return _initalized; }
-  void Initialize();
-  
-  void SetTextureAddressingMode(AddressingMode addressingMode);
-  void SetTextureMinMipFiltering(TextureFilteringMode minFilteringMode, TextureFilteringMode mipFilteringMode);
-  void SetTextureMagFiltering(TextureFilteringMode textureFilteringMode);
-  void SetBorderColour(Colour borderColour);
-  
+  bool isInitialized() const { return _initalized; }
+  void initialize();
+
+  void setTextureAddressingMode(AddressingMode addressingMode);
+  void setTextureMinMipFiltering(TextureFilteringMode minFilteringMode, TextureFilteringMode mipFilteringMode);
+  void setTextureMagFiltering(TextureFilteringMode textureFilteringMode);
+  void setBorderColour(Colour borderColour);
+
 private:
   uint32 _id;
   bool _initalized;

@@ -4,7 +4,7 @@
 struct GLShaderPipelineDesc
 {
   uint32 VertexShaderId;
-  uint32 PixelShaderId;
+  uint32 fragmentShaderId;
   uint32 GeometryShaderId = 0;
   uint32 HullShaderId = 0;
   uint32 DomainShaderId = 0;
@@ -13,17 +13,17 @@ struct GLShaderPipelineDesc
 class GLShaderPipeline
 {
   friend class GLShaderPipelineCollection;
-  
+
 public:
   ~GLShaderPipeline();
-  
-  uint32 GetId() const { return _id; }
-  
+
+  uint32 getId() const { return _id; }
+
 private:
-  GLShaderPipeline(const GLShaderPipelineDesc& desc);
-  
-  void Initialize(const GLShaderPipelineDesc& desc);
-  
+  GLShaderPipeline(const GLShaderPipelineDesc &desc);
+
+  void initialize(const GLShaderPipelineDesc &desc);
+
 private:
   GLShaderPipelineDesc _desc;
   bool _initialized;

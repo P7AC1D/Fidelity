@@ -12,23 +12,23 @@ public:
 
 	uint32 GetId() const { return _id; }
 
-	void Compile() override;
+	void compile() override;
 
-	bool HasUniform(const std::string &name) const;
+	bool hasUniform(const std::string &name) const;
 
-	void BindUniformBlock(const std::string &name, uint32 bindingPoint);
-	void BindTextureUnit(const std::string &name, uint32 textureUnit);
+	void bindUniformBlock(const std::string &name, uint32 bindingPoint);
+	void bindTextureUnit(const std::string &name, uint32 textureUnit);
 
 private:
 	GLShader(const ShaderDesc &desc);
 
-	void AttachHeaderFiles();
-	std::string GetShaderLog();
+	void attachHeaderFiles();
+	std::string getShaderLog();
 
-	uint32 GetUniformLocation(const std::string &name);
+	uint32 getUniformLocation(const std::string &name);
 
-	void BuildUniformDefinitions();
-	void BuildUniformBlockDefinitions();
+	void buildUniformDefinitions();
+	void buildUniformBlockDefinitions();
 
 private:
 	enum class UniformType

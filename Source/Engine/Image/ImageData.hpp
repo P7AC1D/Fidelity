@@ -8,33 +8,33 @@
 class ImageData
 {
 public:
-  ImageData(const ImageVolume& volume, ImageFormat format);
+  ImageData(const ImageVolume &volume, ImageFormat format);
   ImageData(uint32 width, uint32 height, uint32 depth, ImageFormat format);
-  
-  void WritePixel(uint32 x, uint32 y, uint32 z, const Colour& colour);
-  Colour ReadPixel(uint32 x, uint32 y, uint32 z) const;
-  uint32 GetBytesPerPixel() const;
-  
-  const std::vector<ubyte>& GetPixelData() const { return _pixelData; }
-  
-  uint32 GetLeft() const { return _volume.Left; }
-  uint32 GetRight() const { return _volume.Right; }
-  uint32 GetTop() const { return _volume.Top; }
-  uint32 GetBottom() const { return _volume.Bottom; }
-  uint32 GetBack() const { return _volume.Back; }
-  uint32 GetFront() const { return _volume.Front; }
-  
-  uint32 GetWidth() const { return _volume.GetWidth(); }
-  uint32 GetHeight() const { return _volume.GetHeight(); }
-  uint32 GetDepth() const { return _volume.GetDepth(); }
-  
-  ImageFormat GetFormat() const { return _format; }
 
-	void WriteData(ubyte* data);
-	void WriteData(const std::vector<ubyte>& data);
-  
+  void writePixel(uint32 x, uint32 y, uint32 z, const Colour &colour);
+  Colour readPixel(uint32 x, uint32 y, uint32 z) const;
+  uint32 getBytesPerPixel() const;
+
+  const std::vector<ubyte> &getPixelData() const { return _pixelData; }
+
+  uint32 getLeft() const { return _volume.Left; }
+  uint32 getRight() const { return _volume.Right; }
+  uint32 getTop() const { return _volume.Top; }
+  uint32 getBottom() const { return _volume.Bottom; }
+  uint32 getBack() const { return _volume.Back; }
+  uint32 getFront() const { return _volume.Front; }
+
+  uint32 getWidth() const { return _volume.getWidth(); }
+  uint32 getHeight() const { return _volume.getHeight(); }
+  uint32 getDepth() const { return _volume.getDepth(); }
+
+  ImageFormat getFormat() const { return _format; }
+
+  void writeData(ubyte *data);
+  void writeData(const std::vector<ubyte> &data);
+
 private:
   ImageVolume _volume;
   ImageFormat _format;
-	std::vector<ubyte> _pixelData;
+  std::vector<ubyte> _pixelData;
 };

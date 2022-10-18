@@ -9,14 +9,14 @@ class VertexLayout;
 class GLVertexArrayObject
 {
   friend class GLVertexArrayObjectCollection;
-  
+
 public:
-  uint32 GetId() const { return _vaoId; }
-  
+  uint32 getId() const { return _vaoId; }
+
 private:
   GLVertexArrayObject();
-  GLVertexArrayObject(uint32 vaoId, const std::shared_ptr<GLVertexBuffer>& boundBuffer);
-  
+  GLVertexArrayObject(uint32 vaoId, const std::shared_ptr<GLVertexBuffer> &boundBuffer);
+
 private:
   uint32 _vaoId;
   std::shared_ptr<GLVertexBuffer> _boundBuffer;
@@ -25,5 +25,5 @@ private:
 class GLVertexArrayObjectCollection
 {
 public:
-  static std::shared_ptr<GLVertexArrayObject> GetVao(const std::shared_ptr<VertexLayout>& vertexLayout, const std::shared_ptr<GLVertexBuffer>& boundBuffer);
+  static std::shared_ptr<GLVertexArrayObject> getVao(const std::shared_ptr<VertexLayout> &vertexLayout, const std::shared_ptr<GLVertexBuffer> &boundBuffer);
 };

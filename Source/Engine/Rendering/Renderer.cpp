@@ -146,7 +146,7 @@ std::vector<FullscreenQuadVertex> FullscreenQuadVertices{
 
 float32 calculateCascadeRadius(const std::vector<Vector3> &frustrumCorners, const Vector3 &frustrumCenter)
 {
-  Assert::ThrowIfFalse(frustrumCorners.size() == 8, "Invalid size of supplied frustrum corners.");
+  Assert::throwIfFalse(frustrumCorners.size() == 8, "Invalid size of supplied frustrum corners.");
 
   float32 sphereRadius = 0.0f;
   for (uint32 i = 0; i < 8; i++)
@@ -233,15 +233,15 @@ bool Renderer::init(const std::shared_ptr<RenderDevice> &renderDevice)
     vtxBuffDesc.BufferUsage = BufferUsage::Default;
     vtxBuffDesc.VertexCount = FullscreenQuadVertices.size();
     vtxBuffDesc.VertexSizeBytes = sizeof(FullscreenQuadVertex);
-    _fsQuadVertexBuffer = renderDevice->CreateVertexBuffer(vtxBuffDesc);
-    _fsQuadVertexBuffer->WriteData(0, sizeof(FullscreenQuadVertex) * FullscreenQuadVertices.size(), FullscreenQuadVertices.data(), AccessType::WriteOnlyDiscardRange);
+    _fsQuadVertexBuffer = renderDevice->createVertexBuffer(vtxBuffDesc);
+    _fsQuadVertexBuffer->writeData(0, sizeof(FullscreenQuadVertex) * FullscreenQuadVertices.size(), FullscreenQuadVertices.data(), AccessType::WriteOnlyDiscardRange);
 
     VertexBufferDesc aabbVertexBuffDesc;
     aabbVertexBuffDesc.BufferUsage = BufferUsage::Default;
     aabbVertexBuffDesc.VertexCount = AabbCoords.size();
     aabbVertexBuffDesc.VertexSizeBytes = sizeof(Vector3) * AabbCoords.size();
-    _aabbVertexBuffer = renderDevice->CreateVertexBuffer(aabbVertexBuffDesc);
-    _aabbVertexBuffer->WriteData(0, sizeof(Vector3) * AabbCoords.size(), AabbCoords.data(), AccessType::WriteOnlyDiscardRange);
+    _aabbVertexBuffer = renderDevice->createVertexBuffer(aabbVertexBuffDesc);
+    _aabbVertexBuffer->writeData(0, sizeof(Vector3) * AabbCoords.size(), AabbCoords.data(), AccessType::WriteOnlyDiscardRange);
 
     initSamplers(renderDevice);
     initTextures(renderDevice);
@@ -380,31 +380,31 @@ void Renderer::initConstantBuffers(const std::shared_ptr<RenderDevice> &renderDe
   perObjectBufferDesc.BufferType = BufferType::Constant;
   perObjectBufferDesc.BufferUsage = BufferUsage::Dynamic;
   perObjectBufferDesc.ByteCount = sizeof(PerObjectBufferData);
-  _perObjectBuffer = renderDevice->CreateGpuBuffer(perObjectBufferDesc);
+  _perObjectBuffer = renderDevice->createGpuBuffer(perObjectBufferDesc);
 
   GpuBufferDesc perFrameBufferDesc;
   perFrameBufferDesc.BufferType = BufferType::Constant;
   perFrameBufferDesc.BufferUsage = BufferUsage::Dynamic;
   perFrameBufferDesc.ByteCount = sizeof(PerFrameBufferData);
-  _perFrameBuffer = renderDevice->CreateGpuBuffer(perFrameBufferDesc);
+  _perFrameBuffer = renderDevice->createGpuBuffer(perFrameBufferDesc);
 
   GpuBufferDesc ssaoConstantsDataDesc;
   ssaoConstantsDataDesc.BufferType = BufferType::Constant;
   ssaoConstantsDataDesc.BufferUsage = BufferUsage::Default;
   ssaoConstantsDataDesc.ByteCount = sizeof(SsaoConstantsData);
-  _ssaoConstantsBuffer = renderDevice->CreateGpuBuffer(ssaoConstantsDataDesc);
+  _ssaoConstantsBuffer = renderDevice->createGpuBuffer(ssaoConstantsDataDesc);
 
   GpuBufferDesc shadowMapDebugDataDesc;
   shadowMapDebugDataDesc.BufferType = BufferType::Constant;
   shadowMapDebugDataDesc.BufferUsage = BufferUsage::Dynamic;
   shadowMapDebugDataDesc.ByteCount = sizeof(ShadowMapDebugData);
-  _shadowMapDebugBuffer = renderDevice->CreateGpuBuffer(shadowMapDebugDataDesc);
+  _shadowMapDebugBuffer = renderDevice->createGpuBuffer(shadowMapDebugDataDesc);
 
   GpuBufferDesc fullscreenQuadDataDesc;
   fullscreenQuadDataDesc.BufferType = BufferType::Constant;
   fullscreenQuadDataDesc.BufferUsage = BufferUsage::Dynamic;
   fullscreenQuadDataDesc.ByteCount = sizeof(FullscreenQuadData);
-  _fullscreenQuadBuffer = renderDevice->CreateGpuBuffer(fullscreenQuadDataDesc);
+  _fullscreenQuadBuffer = renderDevice->createGpuBuffer(fullscreenQuadDataDesc);
 }
 
 void Renderer::drawFrame(const std::shared_ptr<RenderDevice> &renderDevice,
@@ -444,14 +444,14 @@ void Renderer::initSamplers(const std::shared_ptr<RenderDevice> &renderDevice)
   basicSamplerStateDesc.MinFiltering = TextureFilteringMode::Linear;
   basicSamplerStateDesc.MinFiltering = TextureFilteringMode::Linear;
   basicSamplerStateDesc.MipFiltering = TextureFilteringMode::Linear;
-  _basicSamplerState = renderDevice->CreateSamplerState(basicSamplerStateDesc);
+  _basicSamplerState = renderDevice->createSamplerState(basicSamplerStateDesc);
 
   SamplerStateDesc noMipSamplerState;
   noMipSamplerState.AddressingMode = AddressingMode{TextureAddressMode::Wrap, TextureAddressMode::Wrap, TextureAddressMode::Wrap};
   noMipSamplerState.MinFiltering = TextureFilteringMode::None;
   noMipSamplerState.MinFiltering = TextureFilteringMode::None;
   noMipSamplerState.MipFiltering = TextureFilteringMode::None;
-  _noMipSamplerState = renderDevice->CreateSamplerState(noMipSamplerState);
+  _noMipSamplerState = renderDevice->createSamplerState(noMipSamplerState);
 
   SamplerStateDesc shadowMapSamplerStateDesc;
   shadowMapSamplerStateDesc.AddressingMode = AddressingMode{TextureAddressMode::Border, TextureAddressMode::Border, TextureAddressMode::Border};
@@ -459,21 +459,21 @@ void Renderer::initSamplers(const std::shared_ptr<RenderDevice> &renderDevice)
   shadowMapSamplerStateDesc.MinFiltering = TextureFilteringMode::None;
   shadowMapSamplerStateDesc.MipFiltering = TextureFilteringMode::None;
   shadowMapSamplerStateDesc.BorderColour = Colour::White;
-  _shadowMapSamplerState = renderDevice->CreateSamplerState(shadowMapSamplerStateDesc);
+  _shadowMapSamplerState = renderDevice->createSamplerState(shadowMapSamplerStateDesc);
 
   SamplerStateDesc ssaoNoiseSamplerDesc;
   ssaoNoiseSamplerDesc.AddressingMode = AddressingMode{TextureAddressMode::Wrap, TextureAddressMode::Wrap, TextureAddressMode::Wrap};
   ssaoNoiseSamplerDesc.MinFiltering = TextureFilteringMode::None;
   ssaoNoiseSamplerDesc.MinFiltering = TextureFilteringMode::None;
   ssaoNoiseSamplerDesc.MipFiltering = TextureFilteringMode::None;
-  _ssaoNoiseSampler = renderDevice->CreateSamplerState(ssaoNoiseSamplerDesc);
+  _ssaoNoiseSampler = renderDevice->createSamplerState(ssaoNoiseSamplerDesc);
 
   SamplerStateDesc noMipWithBorderSamplerState;
   noMipWithBorderSamplerState.AddressingMode = AddressingMode{TextureAddressMode::Border, TextureAddressMode::Border, TextureAddressMode::Border};
   noMipWithBorderSamplerState.MinFiltering = TextureFilteringMode::None;
   noMipWithBorderSamplerState.MinFiltering = TextureFilteringMode::None;
   noMipWithBorderSamplerState.MipFiltering = TextureFilteringMode::None;
-  _noMipWithBorderSamplerState = renderDevice->CreateSamplerState(noMipWithBorderSamplerState);
+  _noMipWithBorderSamplerState = renderDevice->createSamplerState(noMipWithBorderSamplerState);
 }
 
 void Renderer::initTextures(const std::shared_ptr<RenderDevice> &renderDevice)
@@ -484,7 +484,7 @@ void Renderer::initTextures(const std::shared_ptr<RenderDevice> &renderDevice)
   randomRotationsDesc.Usage = TextureUsage::Default;
   randomRotationsDesc.Type = TextureType::Texture2D;
   randomRotationsDesc.Format = TextureFormat::R8;
-  _randomRotationsMap = renderDevice->CreateTexture(randomRotationsDesc);
+  _randomRotationsMap = renderDevice->createTexture(randomRotationsDesc);
 
   ubyte randomValues[RANDOM_ROTATION_TEXTURE_SIZE * RANDOM_ROTATION_TEXTURE_SIZE];
   srand(0);
@@ -494,8 +494,8 @@ void Renderer::initTextures(const std::shared_ptr<RenderDevice> &renderDevice)
   }
 
   std::shared_ptr<ImageData> imageData(new ImageData(RANDOM_ROTATION_TEXTURE_SIZE, RANDOM_ROTATION_TEXTURE_SIZE, 1, ImageFormat::R8));
-  imageData->WriteData(randomValues);
-  _randomRotationsMap->WriteData(0, 0, imageData);
+  imageData->writeData(randomValues);
+  _randomRotationsMap->writeData(0, 0, imageData);
 
   TextureDesc ssaoNoiseTextureDesc;
   ssaoNoiseTextureDesc.Width = SSAO_NOISE_TEXTURE_SIZE;
@@ -503,7 +503,7 @@ void Renderer::initTextures(const std::shared_ptr<RenderDevice> &renderDevice)
   ssaoNoiseTextureDesc.Usage = TextureUsage::Default;
   ssaoNoiseTextureDesc.Type = TextureType::Texture2D;
   ssaoNoiseTextureDesc.Format = TextureFormat::RGB32F;
-  _ssaoNoiseTexture = renderDevice->CreateTexture(ssaoNoiseTextureDesc);
+  _ssaoNoiseTexture = renderDevice->createTexture(ssaoNoiseTextureDesc);
 
   std::uniform_real_distribution<float32> randomFloats(0.0, 1.0);
   std::default_random_engine generator;
@@ -517,7 +517,7 @@ void Renderer::initTextures(const std::shared_ptr<RenderDevice> &renderDevice)
     ssaoNoise.push_back(noise);
   }
 
-  _ssaoNoiseTexture->WriteData(0, 0, 0, SSAO_NOISE_TEXTURE_SIZE, 0, SSAO_NOISE_TEXTURE_SIZE, 0, 0, ssaoNoise.data());
+  _ssaoNoiseTexture->writeData(0, 0, 0, SSAO_NOISE_TEXTURE_SIZE, 0, SSAO_NOISE_TEXTURE_SIZE, 0, 0, ssaoNoise.data());
 
   createDirectionalLightShadowDepthMap(renderDevice);
 }
@@ -533,30 +533,24 @@ void Renderer::initDirectionalLightDepthPass(const std::shared_ptr<RenderDevice>
   shadowMapDesc.Count = _cascadeCount;
 
   RenderTargetDesc rtDesc;
-  rtDesc.DepthStencilTarget = renderDevice->CreateTexture(shadowMapDesc);
+  rtDesc.DepthStencilTarget = renderDevice->createTexture(shadowMapDesc);
   rtDesc.Height = _shadowMapResolution;
   rtDesc.Width = _shadowMapResolution;
 
-  _shadowMapRto = renderDevice->CreateRenderTarget(rtDesc);
+  _shadowMapRto = renderDevice->createRenderTarget(rtDesc);
 
   ShaderDesc vsDesc;
-  vsDesc.EntryPoint = "main";
-  vsDesc.ShaderLang = ShaderLang::Glsl;
   vsDesc.ShaderType = ShaderType::Vertex;
-  vsDesc.Source = String::LoadFromFile("./Shaders/CascadeShadowMap.vert");
+  vsDesc.Source = String::foadFromFile("./Shaders/CascadeShadowMap.vert");
 
   // TODO: Change to only use Pixel shaders as it allows for a dynamic cascade count - apparently doesn't affect performance that much
   ShaderDesc gsDesc;
-  gsDesc.EntryPoint = "main";
-  gsDesc.ShaderLang = ShaderLang::Glsl;
   gsDesc.ShaderType = ShaderType::Geometry;
-  gsDesc.Source = String::LoadFromFile("./Shaders/CascadeShadowMap.geom");
+  gsDesc.Source = String::foadFromFile("./Shaders/CascadeShadowMap.geom");
 
   ShaderDesc psDesc;
-  psDesc.EntryPoint = "main";
-  psDesc.ShaderLang = ShaderLang::Glsl;
-  psDesc.ShaderType = ShaderType::Pixel;
-  psDesc.Source = String::LoadFromFile("./Shaders/Empty.frag");
+  psDesc.ShaderType = ShaderType::Fragment;
+  psDesc.Source = String::foadFromFile("./Shaders/Empty.frag");
 
   std::vector<VertexLayoutDesc> vertexLayoutDesc{
       VertexLayoutDesc(SemanticType::Position, SemanticFormat::Float3),
@@ -566,38 +560,34 @@ void Renderer::initDirectionalLightDepthPass(const std::shared_ptr<RenderDevice>
       VertexLayoutDesc(SemanticType::Bitangent, SemanticFormat::Float3)};
 
   std::shared_ptr<ShaderParams> shaderParams(new ShaderParams());
-  shaderParams->AddParam(ShaderParam("PerObjectBuffer", ShaderParamType::ConstBuffer, 0));
-  shaderParams->AddParam(ShaderParam("PerFrameBuffer", ShaderParamType::ConstBuffer, 1));
+  shaderParams->addParam(ShaderParam("PerObjectBuffer", ShaderParamType::ConstBuffer, 0));
+  shaderParams->addParam(ShaderParam("PerFrameBuffer", ShaderParamType::ConstBuffer, 1));
 
   RasterizerStateDesc rasterizerStateDesc;
   rasterizerStateDesc.CullMode = CullMode::Clockwise;
 
   PipelineStateDesc pipelineDesc;
-  pipelineDesc.VS = renderDevice->CreateShader(vsDesc);
-  pipelineDesc.GS = renderDevice->CreateShader(gsDesc);
-  pipelineDesc.PS = renderDevice->CreateShader(psDesc);
-  pipelineDesc.BlendState = renderDevice->CreateBlendState(BlendStateDesc{});
-  pipelineDesc.RasterizerState = renderDevice->CreateRasterizerState(RasterizerStateDesc{});
-  pipelineDesc.DepthStencilState = renderDevice->CreateDepthStencilState(DepthStencilStateDesc());
-  pipelineDesc.VertexLayout = renderDevice->CreateVertexLayout(vertexLayoutDesc);
+  pipelineDesc.VS = renderDevice->createShader(vsDesc);
+  pipelineDesc.GS = renderDevice->createShader(gsDesc);
+  pipelineDesc.FS = renderDevice->createShader(psDesc);
+  pipelineDesc.BlendState = renderDevice->createBlendState(BlendStateDesc{});
+  pipelineDesc.RasterizerState = renderDevice->createRasterizerState(RasterizerStateDesc{});
+  pipelineDesc.DepthStencilState = renderDevice->createDepthStencilState(DepthStencilStateDesc());
+  pipelineDesc.VertexLayout = renderDevice->createVertexLayout(vertexLayoutDesc);
   pipelineDesc.ShaderParams = shaderParams;
 
-  _shadowMapPso = renderDevice->CreatePipelineState(pipelineDesc);
+  _shadowMapPso = renderDevice->createPipelineState(pipelineDesc);
 }
 
 void Renderer::initGbufferPass(const std::shared_ptr<RenderDevice> &renderDevice)
 {
   ShaderDesc vsDesc;
-  vsDesc.EntryPoint = "main";
-  vsDesc.ShaderLang = ShaderLang::Glsl;
   vsDesc.ShaderType = ShaderType::Vertex;
-  vsDesc.Source = String::LoadFromFile("./Shaders/Gbuffer.vert");
+  vsDesc.Source = String::foadFromFile("./Shaders/Gbuffer.vert");
 
   ShaderDesc psDesc;
-  psDesc.EntryPoint = "main";
-  psDesc.ShaderLang = ShaderLang::Glsl;
-  psDesc.ShaderType = ShaderType::Pixel;
-  psDesc.Source = String::LoadFromFile("./Shaders/Gbuffer.frag");
+  psDesc.ShaderType = ShaderType::Fragment;
+  psDesc.Source = String::foadFromFile("./Shaders/Gbuffer.frag");
 
   std::vector<VertexLayoutDesc> vertexLayoutDesc{
       VertexLayoutDesc(SemanticType::Position, SemanticFormat::Float3),
@@ -607,11 +597,11 @@ void Renderer::initGbufferPass(const std::shared_ptr<RenderDevice> &renderDevice
       VertexLayoutDesc(SemanticType::Bitangent, SemanticFormat::Float3)};
 
   std::shared_ptr<ShaderParams> shaderParams(new ShaderParams());
-  shaderParams->AddParam(ShaderParam("PerObjectBuffer", ShaderParamType::ConstBuffer, 0));
-  shaderParams->AddParam(ShaderParam("DiffuseMap", ShaderParamType::Texture, 0));
-  shaderParams->AddParam(ShaderParam("NormalMap", ShaderParamType::Texture, 1));
-  shaderParams->AddParam(ShaderParam("SpecularMap", ShaderParamType::Texture, 2));
-  shaderParams->AddParam(ShaderParam("OpacityMap", ShaderParamType::Texture, 3));
+  shaderParams->addParam(ShaderParam("PerObjectBuffer", ShaderParamType::ConstBuffer, 0));
+  shaderParams->addParam(ShaderParam("DiffuseMap", ShaderParamType::Texture, 0));
+  shaderParams->addParam(ShaderParam("NormalMap", ShaderParamType::Texture, 1));
+  shaderParams->addParam(ShaderParam("SpecularMap", ShaderParamType::Texture, 2));
+  shaderParams->addParam(ShaderParam("OpacityMap", ShaderParamType::Texture, 3));
 
   RasterizerStateDesc rasterizerStateDesc;
   rasterizerStateDesc.CullMode = CullMode::CounterClockwise;
@@ -619,15 +609,15 @@ void Renderer::initGbufferPass(const std::shared_ptr<RenderDevice> &renderDevice
   BlendStateDesc blendStateDesc{};
 
   PipelineStateDesc pipelineDesc;
-  pipelineDesc.VS = renderDevice->CreateShader(vsDesc);
-  pipelineDesc.PS = renderDevice->CreateShader(psDesc);
-  pipelineDesc.BlendState = renderDevice->CreateBlendState(blendStateDesc);
-  pipelineDesc.RasterizerState = renderDevice->CreateRasterizerState(rasterizerStateDesc);
-  pipelineDesc.DepthStencilState = renderDevice->CreateDepthStencilState(DepthStencilStateDesc());
-  pipelineDesc.VertexLayout = renderDevice->CreateVertexLayout(vertexLayoutDesc);
+  pipelineDesc.VS = renderDevice->createShader(vsDesc);
+  pipelineDesc.FS = renderDevice->createShader(psDesc);
+  pipelineDesc.BlendState = renderDevice->createBlendState(blendStateDesc);
+  pipelineDesc.RasterizerState = renderDevice->createRasterizerState(rasterizerStateDesc);
+  pipelineDesc.DepthStencilState = renderDevice->createDepthStencilState(DepthStencilStateDesc());
+  pipelineDesc.VertexLayout = renderDevice->createVertexLayout(vertexLayoutDesc);
   pipelineDesc.ShaderParams = shaderParams;
 
-  _gBufferPso = renderDevice->CreatePipelineState(pipelineDesc);
+  _gBufferPso = renderDevice->createPipelineState(pipelineDesc);
 
   TextureDesc colourTexDesc;
   colourTexDesc.Width = _windowDims.X;
@@ -644,31 +634,27 @@ void Renderer::initGbufferPass(const std::shared_ptr<RenderDevice> &renderDevice
   depthStencilDesc.Format = TextureFormat::D24;
 
   RenderTargetDesc rtDesc;
-  rtDesc.ColourTargets[0] = renderDevice->CreateTexture(colourTexDesc);
+  rtDesc.ColourTargets[0] = renderDevice->createTexture(colourTexDesc);
   colourTexDesc.Format = TextureFormat::RGB16F;
-  rtDesc.ColourTargets[1] = renderDevice->CreateTexture(colourTexDesc);
+  rtDesc.ColourTargets[1] = renderDevice->createTexture(colourTexDesc);
   colourTexDesc.Format = TextureFormat::RGBA8;
-  rtDesc.ColourTargets[2] = renderDevice->CreateTexture(colourTexDesc);
-  rtDesc.DepthStencilTarget = renderDevice->CreateTexture(depthStencilDesc);
+  rtDesc.ColourTargets[2] = renderDevice->createTexture(colourTexDesc);
+  rtDesc.DepthStencilTarget = renderDevice->createTexture(depthStencilDesc);
   rtDesc.Height = _windowDims.X;
   rtDesc.Width = _windowDims.Y;
 
-  _gBufferRto = renderDevice->CreateRenderTarget(rtDesc);
+  _gBufferRto = renderDevice->createRenderTarget(rtDesc);
 }
 
 void Renderer::initTransparencyPass(const std::shared_ptr<RenderDevice> &renderDevice)
 {
   ShaderDesc vsDesc;
-  vsDesc.EntryPoint = "main";
-  vsDesc.ShaderLang = ShaderLang::Glsl;
   vsDesc.ShaderType = ShaderType::Vertex;
-  vsDesc.Source = String::LoadFromFile("./Shaders/Gbuffer.vert");
+  vsDesc.Source = String::foadFromFile("./Shaders/Gbuffer.vert");
 
   ShaderDesc psDesc;
-  psDesc.EntryPoint = "main";
-  psDesc.ShaderLang = ShaderLang::Glsl;
-  psDesc.ShaderType = ShaderType::Pixel;
-  psDesc.Source = String::LoadFromFile("./Shaders/GbufferTransparency.frag");
+  psDesc.ShaderType = ShaderType::Fragment;
+  psDesc.Source = String::foadFromFile("./Shaders/GbufferTransparency.frag");
 
   std::vector<VertexLayoutDesc> vertexLayoutDesc{
       VertexLayoutDesc(SemanticType::Position, SemanticFormat::Float3),
@@ -678,11 +664,11 @@ void Renderer::initTransparencyPass(const std::shared_ptr<RenderDevice> &renderD
       VertexLayoutDesc(SemanticType::Bitangent, SemanticFormat::Float3)};
 
   std::shared_ptr<ShaderParams> shaderParams(new ShaderParams());
-  shaderParams->AddParam(ShaderParam("PerObjectBuffer", ShaderParamType::ConstBuffer, 0));
-  shaderParams->AddParam(ShaderParam("DiffuseMap", ShaderParamType::Texture, 0));
-  shaderParams->AddParam(ShaderParam("NormalMap", ShaderParamType::Texture, 1));
-  shaderParams->AddParam(ShaderParam("SpecularMap", ShaderParamType::Texture, 2));
-  shaderParams->AddParam(ShaderParam("OpacityMap", ShaderParamType::Texture, 3));
+  shaderParams->addParam(ShaderParam("PerObjectBuffer", ShaderParamType::ConstBuffer, 0));
+  shaderParams->addParam(ShaderParam("DiffuseMap", ShaderParamType::Texture, 0));
+  shaderParams->addParam(ShaderParam("NormalMap", ShaderParamType::Texture, 1));
+  shaderParams->addParam(ShaderParam("SpecularMap", ShaderParamType::Texture, 2));
+  shaderParams->addParam(ShaderParam("OpacityMap", ShaderParamType::Texture, 3));
 
   RasterizerStateDesc rasterizerStateDesc;
   rasterizerStateDesc.CullMode = CullMode::CounterClockwise;
@@ -692,30 +678,26 @@ void Renderer::initTransparencyPass(const std::shared_ptr<RenderDevice> &renderD
   blendStateDesc.RTBlendState[0].BlendAlpha = BlendDesc(BlendFactor::SrcAlpha, BlendFactor::InvSrcAlpha, BlendOperation::Add);
 
   PipelineStateDesc pipelineDesc;
-  pipelineDesc.VS = renderDevice->CreateShader(vsDesc);
-  pipelineDesc.PS = renderDevice->CreateShader(psDesc);
-  pipelineDesc.BlendState = renderDevice->CreateBlendState(blendStateDesc);
-  pipelineDesc.RasterizerState = renderDevice->CreateRasterizerState(rasterizerStateDesc);
-  pipelineDesc.DepthStencilState = renderDevice->CreateDepthStencilState(DepthStencilStateDesc());
-  pipelineDesc.VertexLayout = renderDevice->CreateVertexLayout(vertexLayoutDesc);
+  pipelineDesc.VS = renderDevice->createShader(vsDesc);
+  pipelineDesc.FS = renderDevice->createShader(psDesc);
+  pipelineDesc.BlendState = renderDevice->createBlendState(blendStateDesc);
+  pipelineDesc.RasterizerState = renderDevice->createRasterizerState(rasterizerStateDesc);
+  pipelineDesc.DepthStencilState = renderDevice->createDepthStencilState(DepthStencilStateDesc());
+  pipelineDesc.VertexLayout = renderDevice->createVertexLayout(vertexLayoutDesc);
   pipelineDesc.ShaderParams = shaderParams;
 
-  _transparencyPso = renderDevice->CreatePipelineState(pipelineDesc);
+  _transparencyPso = renderDevice->createPipelineState(pipelineDesc);
 }
 
 void Renderer::initShadowPass(const std::shared_ptr<RenderDevice> &renderDevice)
 {
   ShaderDesc vsDesc;
-  vsDesc.EntryPoint = "main";
-  vsDesc.ShaderLang = ShaderLang::Glsl;
   vsDesc.ShaderType = ShaderType::Vertex;
-  vsDesc.Source = String::LoadFromFile("./Shaders/FSPassThrough.vert");
+  vsDesc.Source = String::foadFromFile("./Shaders/FSPassThrough.vert");
 
   ShaderDesc psDesc;
-  psDesc.EntryPoint = "main";
-  psDesc.ShaderLang = ShaderLang::Glsl;
-  psDesc.ShaderType = ShaderType::Pixel;
-  psDesc.Source = String::LoadFromFile("./Shaders/Shadows.frag");
+  psDesc.ShaderType = ShaderType::Fragment;
+  psDesc.Source = String::foadFromFile("./Shaders/Shadows.frag");
 
   std::vector<VertexLayoutDesc> vertexLayoutDesc{
       VertexLayoutDesc(SemanticType::Position, SemanticFormat::Float2),
@@ -723,11 +705,11 @@ void Renderer::initShadowPass(const std::shared_ptr<RenderDevice> &renderDevice)
   };
 
   std::shared_ptr<ShaderParams> shaderParams(new ShaderParams());
-  shaderParams->AddParam(ShaderParam("PerFrameBuffer", ShaderParamType::ConstBuffer, 1));
-  shaderParams->AddParam(ShaderParam("DepthMap", ShaderParamType::Texture, 0));
-  shaderParams->AddParam(ShaderParam("NormalMap", ShaderParamType::Texture, 1));
-  shaderParams->AddParam(ShaderParam("ShadowMap", ShaderParamType::Texture, 2));
-  shaderParams->AddParam(ShaderParam("RandomRotationsMap", ShaderParamType::Texture, 3));
+  shaderParams->addParam(ShaderParam("PerFrameBuffer", ShaderParamType::ConstBuffer, 1));
+  shaderParams->addParam(ShaderParam("DepthMap", ShaderParamType::Texture, 0));
+  shaderParams->addParam(ShaderParam("NormalMap", ShaderParamType::Texture, 1));
+  shaderParams->addParam(ShaderParam("ShadowMap", ShaderParamType::Texture, 2));
+  shaderParams->addParam(ShaderParam("RandomRotationsMap", ShaderParamType::Texture, 3));
 
   RasterizerStateDesc rasterizerStateDesc{};
   BlendStateDesc blendStateDesc{};
@@ -737,15 +719,15 @@ void Renderer::initShadowPass(const std::shared_ptr<RenderDevice> &renderDevice)
   depthStencilStateDesc.DepthWriteEnabled = false;
 
   PipelineStateDesc pipelineDesc;
-  pipelineDesc.VS = renderDevice->CreateShader(vsDesc);
-  pipelineDesc.PS = renderDevice->CreateShader(psDesc);
-  pipelineDesc.BlendState = renderDevice->CreateBlendState(blendStateDesc);
-  pipelineDesc.RasterizerState = renderDevice->CreateRasterizerState(rasterizerStateDesc);
-  pipelineDesc.DepthStencilState = renderDevice->CreateDepthStencilState(depthStencilStateDesc);
-  pipelineDesc.VertexLayout = renderDevice->CreateVertexLayout(vertexLayoutDesc);
+  pipelineDesc.VS = renderDevice->createShader(vsDesc);
+  pipelineDesc.FS = renderDevice->createShader(psDesc);
+  pipelineDesc.BlendState = renderDevice->createBlendState(blendStateDesc);
+  pipelineDesc.RasterizerState = renderDevice->createRasterizerState(rasterizerStateDesc);
+  pipelineDesc.DepthStencilState = renderDevice->createDepthStencilState(depthStencilStateDesc);
+  pipelineDesc.VertexLayout = renderDevice->createVertexLayout(vertexLayoutDesc);
   pipelineDesc.ShaderParams = shaderParams;
 
-  _shadowsPso = renderDevice->CreatePipelineState(pipelineDesc);
+  _shadowsPso = renderDevice->createPipelineState(pipelineDesc);
 
   TextureDesc colourTexDesc;
   colourTexDesc.Width = _windowDims.X;
@@ -755,27 +737,23 @@ void Renderer::initShadowPass(const std::shared_ptr<RenderDevice> &renderDevice)
   colourTexDesc.Format = TextureFormat::R8;
 
   RenderTargetDesc rtDesc;
-  rtDesc.ColourTargets[0] = renderDevice->CreateTexture(colourTexDesc);
+  rtDesc.ColourTargets[0] = renderDevice->createTexture(colourTexDesc);
   rtDesc.Height = _windowDims.X;
   rtDesc.Width = _windowDims.Y;
 
-  _shadowsRto = renderDevice->CreateRenderTarget(rtDesc);
+  _shadowsRto = renderDevice->createRenderTarget(rtDesc);
 }
 
 void Renderer::initSsaoPass(const std::shared_ptr<RenderDevice> &renderDevice)
 {
   {
     ShaderDesc vsDesc;
-    vsDesc.EntryPoint = "main";
-    vsDesc.ShaderLang = ShaderLang::Glsl;
     vsDesc.ShaderType = ShaderType::Vertex;
-    vsDesc.Source = String::LoadFromFile("./Shaders/FSPassThrough.vert");
+    vsDesc.Source = String::foadFromFile("./Shaders/FSPassThrough.vert");
 
     ShaderDesc psDesc;
-    psDesc.EntryPoint = "main";
-    psDesc.ShaderLang = ShaderLang::Glsl;
-    psDesc.ShaderType = ShaderType::Pixel;
-    psDesc.Source = String::LoadFromFile("./Shaders/Ssao.frag");
+    psDesc.ShaderType = ShaderType::Fragment;
+    psDesc.Source = String::foadFromFile("./Shaders/Ssao.frag");
 
     std::vector<VertexLayoutDesc> vertexLayoutDesc{
         VertexLayoutDesc(SemanticType::Position, SemanticFormat::Float2),
@@ -783,10 +761,10 @@ void Renderer::initSsaoPass(const std::shared_ptr<RenderDevice> &renderDevice)
     };
 
     std::shared_ptr<ShaderParams> shaderParams(new ShaderParams());
-    shaderParams->AddParam(ShaderParam("SsaoConstantsBuffer", ShaderParamType::ConstBuffer, 0));
-    shaderParams->AddParam(ShaderParam("DepthMap", ShaderParamType::Texture, 0));
-    shaderParams->AddParam(ShaderParam("NormalMap", ShaderParamType::Texture, 1));
-    shaderParams->AddParam(ShaderParam("NoiseMap", ShaderParamType::Texture, 2));
+    shaderParams->addParam(ShaderParam("SsaoConstantsBuffer", ShaderParamType::ConstBuffer, 0));
+    shaderParams->addParam(ShaderParam("DepthMap", ShaderParamType::Texture, 0));
+    shaderParams->addParam(ShaderParam("NormalMap", ShaderParamType::Texture, 1));
+    shaderParams->addParam(ShaderParam("NoiseMap", ShaderParamType::Texture, 2));
 
     RasterizerStateDesc rasterizerStateDesc{};
     BlendStateDesc blendStateDesc{};
@@ -796,28 +774,24 @@ void Renderer::initSsaoPass(const std::shared_ptr<RenderDevice> &renderDevice)
     depthStencilStateDesc.DepthWriteEnabled = false;
 
     PipelineStateDesc pipelineDesc;
-    pipelineDesc.VS = renderDevice->CreateShader(vsDesc);
-    pipelineDesc.PS = renderDevice->CreateShader(psDesc);
-    pipelineDesc.BlendState = renderDevice->CreateBlendState(blendStateDesc);
-    pipelineDesc.RasterizerState = renderDevice->CreateRasterizerState(rasterizerStateDesc);
-    pipelineDesc.DepthStencilState = renderDevice->CreateDepthStencilState(depthStencilStateDesc);
-    pipelineDesc.VertexLayout = renderDevice->CreateVertexLayout(vertexLayoutDesc);
+    pipelineDesc.VS = renderDevice->createShader(vsDesc);
+    pipelineDesc.FS = renderDevice->createShader(psDesc);
+    pipelineDesc.BlendState = renderDevice->createBlendState(blendStateDesc);
+    pipelineDesc.RasterizerState = renderDevice->createRasterizerState(rasterizerStateDesc);
+    pipelineDesc.DepthStencilState = renderDevice->createDepthStencilState(depthStencilStateDesc);
+    pipelineDesc.VertexLayout = renderDevice->createVertexLayout(vertexLayoutDesc);
     pipelineDesc.ShaderParams = shaderParams;
 
-    _ssaoPso = renderDevice->CreatePipelineState(pipelineDesc);
+    _ssaoPso = renderDevice->createPipelineState(pipelineDesc);
   }
   {
     ShaderDesc vsDesc;
-    vsDesc.EntryPoint = "main";
-    vsDesc.ShaderLang = ShaderLang::Glsl;
     vsDesc.ShaderType = ShaderType::Vertex;
-    vsDesc.Source = String::LoadFromFile("./Shaders/FSPassThrough.vert");
+    vsDesc.Source = String::foadFromFile("./Shaders/FSPassThrough.vert");
 
     ShaderDesc psDesc;
-    psDesc.EntryPoint = "main";
-    psDesc.ShaderLang = ShaderLang::Glsl;
-    psDesc.ShaderType = ShaderType::Pixel;
-    psDesc.Source = String::LoadFromFile("./Shaders/SsaoBlur.frag");
+    psDesc.ShaderType = ShaderType::Fragment;
+    psDesc.Source = String::foadFromFile("./Shaders/SsaoBlur.frag");
 
     std::vector<VertexLayoutDesc> vertexLayoutDesc{
         VertexLayoutDesc(SemanticType::Position, SemanticFormat::Float2),
@@ -825,7 +799,7 @@ void Renderer::initSsaoPass(const std::shared_ptr<RenderDevice> &renderDevice)
     };
 
     std::shared_ptr<ShaderParams> shaderParams(new ShaderParams());
-    shaderParams->AddParam(ShaderParam("SsaoMap", ShaderParamType::Texture, 0));
+    shaderParams->addParam(ShaderParam("SsaoMap", ShaderParamType::Texture, 0));
 
     RasterizerStateDesc rasterizerStateDesc{};
     BlendStateDesc blendStateDesc{};
@@ -835,15 +809,15 @@ void Renderer::initSsaoPass(const std::shared_ptr<RenderDevice> &renderDevice)
     depthStencilStateDesc.DepthWriteEnabled = false;
 
     PipelineStateDesc pipelineDesc;
-    pipelineDesc.VS = renderDevice->CreateShader(vsDesc);
-    pipelineDesc.PS = renderDevice->CreateShader(psDesc);
-    pipelineDesc.BlendState = renderDevice->CreateBlendState(blendStateDesc);
-    pipelineDesc.RasterizerState = renderDevice->CreateRasterizerState(rasterizerStateDesc);
-    pipelineDesc.DepthStencilState = renderDevice->CreateDepthStencilState(depthStencilStateDesc);
-    pipelineDesc.VertexLayout = renderDevice->CreateVertexLayout(vertexLayoutDesc);
+    pipelineDesc.VS = renderDevice->createShader(vsDesc);
+    pipelineDesc.FS = renderDevice->createShader(psDesc);
+    pipelineDesc.BlendState = renderDevice->createBlendState(blendStateDesc);
+    pipelineDesc.RasterizerState = renderDevice->createRasterizerState(rasterizerStateDesc);
+    pipelineDesc.DepthStencilState = renderDevice->createDepthStencilState(depthStencilStateDesc);
+    pipelineDesc.VertexLayout = renderDevice->createVertexLayout(vertexLayoutDesc);
     pipelineDesc.ShaderParams = shaderParams;
 
-    _ssaoBlurPso = renderDevice->CreatePipelineState(pipelineDesc);
+    _ssaoBlurPso = renderDevice->createPipelineState(pipelineDesc);
   }
   TextureDesc colourTexDesc;
   colourTexDesc.Width = _windowDims.X;
@@ -853,27 +827,23 @@ void Renderer::initSsaoPass(const std::shared_ptr<RenderDevice> &renderDevice)
   colourTexDesc.Format = TextureFormat::R8;
 
   RenderTargetDesc rtDesc;
-  rtDesc.ColourTargets[0] = renderDevice->CreateTexture(colourTexDesc);
+  rtDesc.ColourTargets[0] = renderDevice->createTexture(colourTexDesc);
   rtDesc.Height = _windowDims.X;
   rtDesc.Width = _windowDims.Y;
 
-  _ssaoRto = renderDevice->CreateRenderTarget(rtDesc);
-  _ssaoBlurRto = renderDevice->CreateRenderTarget(rtDesc);
+  _ssaoRto = renderDevice->createRenderTarget(rtDesc);
+  _ssaoBlurRto = renderDevice->createRenderTarget(rtDesc);
 }
 
 void Renderer::initLightingPass(const std::shared_ptr<RenderDevice> &renderDevice)
 {
   ShaderDesc vsDesc;
-  vsDesc.EntryPoint = "main";
-  vsDesc.ShaderLang = ShaderLang::Glsl;
   vsDesc.ShaderType = ShaderType::Vertex;
-  vsDesc.Source = String::LoadFromFile("./Shaders/FSPassThrough.vert");
+  vsDesc.Source = String::foadFromFile("./Shaders/FSPassThrough.vert");
 
   ShaderDesc psDesc;
-  psDesc.EntryPoint = "main";
-  psDesc.ShaderLang = ShaderLang::Glsl;
-  psDesc.ShaderType = ShaderType::Pixel;
-  psDesc.Source = String::LoadFromFile("./Shaders/Lighting.frag");
+  psDesc.ShaderType = ShaderType::Fragment;
+  psDesc.Source = String::foadFromFile("./Shaders/Lighting.frag");
 
   std::vector<VertexLayoutDesc> vertexLayoutDesc{
       VertexLayoutDesc(SemanticType::Position, SemanticFormat::Float2),
@@ -881,15 +851,15 @@ void Renderer::initLightingPass(const std::shared_ptr<RenderDevice> &renderDevic
   };
 
   std::shared_ptr<ShaderParams> shaderParams(new ShaderParams());
-  shaderParams->AddParam(ShaderParam("PerFrameBuffer", ShaderParamType::ConstBuffer, 1));
-  shaderParams->AddParam(ShaderParam("CascadeShadowMapBuffer", ShaderParamType::ConstBuffer, 2));
+  shaderParams->addParam(ShaderParam("PerFrameBuffer", ShaderParamType::ConstBuffer, 1));
+  shaderParams->addParam(ShaderParam("CascadeShadowMapBuffer", ShaderParamType::ConstBuffer, 2));
 
-  shaderParams->AddParam(ShaderParam("AlbedoMap", ShaderParamType::Texture, 0));
-  shaderParams->AddParam(ShaderParam("DepthMap", ShaderParamType::Texture, 1));
-  shaderParams->AddParam(ShaderParam("NormalMap", ShaderParamType::Texture, 2));
-  shaderParams->AddParam(ShaderParam("SpecularMap", ShaderParamType::Texture, 3));
-  shaderParams->AddParam(ShaderParam("ShadowMap", ShaderParamType::Texture, 4));
-  shaderParams->AddParam(ShaderParam("OcculusionMap", ShaderParamType::Texture, 5));
+  shaderParams->addParam(ShaderParam("AlbedoMap", ShaderParamType::Texture, 0));
+  shaderParams->addParam(ShaderParam("DepthMap", ShaderParamType::Texture, 1));
+  shaderParams->addParam(ShaderParam("NormalMap", ShaderParamType::Texture, 2));
+  shaderParams->addParam(ShaderParam("SpecularMap", ShaderParamType::Texture, 3));
+  shaderParams->addParam(ShaderParam("ShadowMap", ShaderParamType::Texture, 4));
+  shaderParams->addParam(ShaderParam("OcculusionMap", ShaderParamType::Texture, 5));
 
   RasterizerStateDesc rasterizerStateDesc{};
 
@@ -900,15 +870,15 @@ void Renderer::initLightingPass(const std::shared_ptr<RenderDevice> &renderDevic
   BlendStateDesc blendStateDesc{};
 
   PipelineStateDesc pipelineDesc;
-  pipelineDesc.VS = renderDevice->CreateShader(vsDesc);
-  pipelineDesc.PS = renderDevice->CreateShader(psDesc);
-  pipelineDesc.BlendState = renderDevice->CreateBlendState(blendStateDesc);
-  pipelineDesc.RasterizerState = renderDevice->CreateRasterizerState(rasterizerStateDesc);
-  pipelineDesc.DepthStencilState = renderDevice->CreateDepthStencilState(depthStencilStateDesc);
-  pipelineDesc.VertexLayout = renderDevice->CreateVertexLayout(vertexLayoutDesc);
+  pipelineDesc.VS = renderDevice->createShader(vsDesc);
+  pipelineDesc.FS = renderDevice->createShader(psDesc);
+  pipelineDesc.BlendState = renderDevice->createBlendState(blendStateDesc);
+  pipelineDesc.RasterizerState = renderDevice->createRasterizerState(rasterizerStateDesc);
+  pipelineDesc.DepthStencilState = renderDevice->createDepthStencilState(depthStencilStateDesc);
+  pipelineDesc.VertexLayout = renderDevice->createVertexLayout(vertexLayoutDesc);
   pipelineDesc.ShaderParams = shaderParams;
 
-  _lightingPso = renderDevice->CreatePipelineState(pipelineDesc);
+  _lightingPso = renderDevice->createPipelineState(pipelineDesc);
 
   TextureDesc colourTexDesc;
   colourTexDesc.Width = _windowDims.X;
@@ -918,11 +888,11 @@ void Renderer::initLightingPass(const std::shared_ptr<RenderDevice> &renderDevic
   colourTexDesc.Format = TextureFormat::RGB8;
 
   RenderTargetDesc rtDesc;
-  rtDesc.ColourTargets[0] = renderDevice->CreateTexture(colourTexDesc);
+  rtDesc.ColourTargets[0] = renderDevice->createTexture(colourTexDesc);
   rtDesc.Height = _windowDims.X;
   rtDesc.Width = _windowDims.Y;
 
-  _lightingPassRto = renderDevice->CreateRenderTarget(rtDesc);
+  _lightingPassRto = renderDevice->createRenderTarget(rtDesc);
 }
 
 void Renderer::initDebugPass(const std::shared_ptr<RenderDevice> &renderDevice)
@@ -930,16 +900,12 @@ void Renderer::initDebugPass(const std::shared_ptr<RenderDevice> &renderDevice)
   // TODO: Combine these PSO into one.
   {
     ShaderDesc vsDesc;
-    vsDesc.EntryPoint = "main";
-    vsDesc.ShaderLang = ShaderLang::Glsl;
     vsDesc.ShaderType = ShaderType::Vertex;
-    vsDesc.Source = String::LoadFromFile("./Shaders/FSPassThrough.vert");
+    vsDesc.Source = String::foadFromFile("./Shaders/FSPassThrough.vert");
 
     ShaderDesc psDesc;
-    psDesc.EntryPoint = "main";
-    psDesc.ShaderLang = ShaderLang::Glsl;
-    psDesc.ShaderType = ShaderType::Pixel;
-    psDesc.Source = String::LoadFromFile("./Shaders/FullscreenQuad.frag");
+    psDesc.ShaderType = ShaderType::Fragment;
+    psDesc.Source = String::foadFromFile("./Shaders/FullscreenQuad.frag");
 
     std::vector<VertexLayoutDesc> vertexLayoutDesc{
         VertexLayoutDesc(SemanticType::Position, SemanticFormat::Float2),
@@ -947,36 +913,32 @@ void Renderer::initDebugPass(const std::shared_ptr<RenderDevice> &renderDevice)
     };
 
     std::shared_ptr<ShaderParams> shaderParams(new ShaderParams());
-    shaderParams->AddParam(ShaderParam("QuadTexture", ShaderParamType::Texture, 0));
-    shaderParams->AddParam(ShaderParam("CameraBuffer", ShaderParamType::ConstBuffer, 0));
-    shaderParams->AddParam(ShaderParam("FullscreenQuadBuffer", ShaderParamType::ConstBuffer, 1));
+    shaderParams->addParam(ShaderParam("QuadTexture", ShaderParamType::Texture, 0));
+    shaderParams->addParam(ShaderParam("CameraBuffer", ShaderParamType::ConstBuffer, 0));
+    shaderParams->addParam(ShaderParam("FullscreenQuadBuffer", ShaderParamType::ConstBuffer, 1));
 
     RasterizerStateDesc rasterizerStateDesc;
     rasterizerStateDesc.CullMode = CullMode::None;
 
     PipelineStateDesc pipelineDesc;
-    pipelineDesc.VS = renderDevice->CreateShader(vsDesc);
-    pipelineDesc.PS = renderDevice->CreateShader(psDesc);
-    pipelineDesc.BlendState = renderDevice->CreateBlendState(BlendStateDesc());
-    pipelineDesc.RasterizerState = renderDevice->CreateRasterizerState(rasterizerStateDesc);
-    pipelineDesc.DepthStencilState = renderDevice->CreateDepthStencilState(DepthStencilStateDesc());
-    pipelineDesc.VertexLayout = renderDevice->CreateVertexLayout(vertexLayoutDesc);
+    pipelineDesc.VS = renderDevice->createShader(vsDesc);
+    pipelineDesc.FS = renderDevice->createShader(psDesc);
+    pipelineDesc.BlendState = renderDevice->createBlendState(BlendStateDesc());
+    pipelineDesc.RasterizerState = renderDevice->createRasterizerState(rasterizerStateDesc);
+    pipelineDesc.DepthStencilState = renderDevice->createDepthStencilState(DepthStencilStateDesc());
+    pipelineDesc.VertexLayout = renderDevice->createVertexLayout(vertexLayoutDesc);
     pipelineDesc.ShaderParams = shaderParams;
 
-    _gbufferDebugDrawPso = renderDevice->CreatePipelineState(pipelineDesc);
+    _gbufferDebugDrawPso = renderDevice->createPipelineState(pipelineDesc);
   }
   {
     ShaderDesc vsDesc;
-    vsDesc.EntryPoint = "main";
-    vsDesc.ShaderLang = ShaderLang::Glsl;
     vsDesc.ShaderType = ShaderType::Vertex;
-    vsDesc.Source = String::LoadFromFile("./Shaders/FSPassThrough.vert");
+    vsDesc.Source = String::foadFromFile("./Shaders/FSPassThrough.vert");
 
     ShaderDesc psDesc;
-    psDesc.EntryPoint = "main";
-    psDesc.ShaderLang = ShaderLang::Glsl;
-    psDesc.ShaderType = ShaderType::Pixel;
-    psDesc.Source = String::LoadFromFile("./Shaders/DepthDebug.frag");
+    psDesc.ShaderType = ShaderType::Fragment;
+    psDesc.Source = String::foadFromFile("./Shaders/DepthDebug.frag");
 
     std::vector<VertexLayoutDesc> vertexLayoutDesc{
         VertexLayoutDesc(SemanticType::Position, SemanticFormat::Float2),
@@ -984,35 +946,31 @@ void Renderer::initDebugPass(const std::shared_ptr<RenderDevice> &renderDevice)
     };
 
     std::shared_ptr<ShaderParams> shaderParams(new ShaderParams());
-    shaderParams->AddParam(ShaderParam("QuadTexture", ShaderParamType::Texture, 0));
-    shaderParams->AddParam(ShaderParam("CameraBuffer", ShaderParamType::ConstBuffer, 0));
+    shaderParams->addParam(ShaderParam("QuadTexture", ShaderParamType::Texture, 0));
+    shaderParams->addParam(ShaderParam("CameraBuffer", ShaderParamType::ConstBuffer, 0));
 
     RasterizerStateDesc rasterizerStateDesc;
     rasterizerStateDesc.CullMode = CullMode::None;
 
     PipelineStateDesc pipelineDesc;
-    pipelineDesc.VS = renderDevice->CreateShader(vsDesc);
-    pipelineDesc.PS = renderDevice->CreateShader(psDesc);
-    pipelineDesc.BlendState = renderDevice->CreateBlendState(BlendStateDesc());
-    pipelineDesc.RasterizerState = renderDevice->CreateRasterizerState(rasterizerStateDesc);
-    pipelineDesc.DepthStencilState = renderDevice->CreateDepthStencilState(DepthStencilStateDesc());
-    pipelineDesc.VertexLayout = renderDevice->CreateVertexLayout(vertexLayoutDesc);
+    pipelineDesc.VS = renderDevice->createShader(vsDesc);
+    pipelineDesc.FS = renderDevice->createShader(psDesc);
+    pipelineDesc.BlendState = renderDevice->createBlendState(BlendStateDesc());
+    pipelineDesc.RasterizerState = renderDevice->createRasterizerState(rasterizerStateDesc);
+    pipelineDesc.DepthStencilState = renderDevice->createDepthStencilState(DepthStencilStateDesc());
+    pipelineDesc.VertexLayout = renderDevice->createVertexLayout(vertexLayoutDesc);
     pipelineDesc.ShaderParams = shaderParams;
 
-    _depthDebugDrawPso = renderDevice->CreatePipelineState(pipelineDesc);
+    _depthDebugDrawPso = renderDevice->createPipelineState(pipelineDesc);
   }
   {
     ShaderDesc vsDesc;
-    vsDesc.EntryPoint = "main";
-    vsDesc.ShaderLang = ShaderLang::Glsl;
     vsDesc.ShaderType = ShaderType::Vertex;
-    vsDesc.Source = String::LoadFromFile("./Shaders/FSPassThrough.vert");
+    vsDesc.Source = String::foadFromFile("./Shaders/FSPassThrough.vert");
 
     ShaderDesc psDesc;
-    psDesc.EntryPoint = "main";
-    psDesc.ShaderLang = ShaderLang::Glsl;
-    psDesc.ShaderType = ShaderType::Pixel;
-    psDesc.Source = String::LoadFromFile("./Shaders/ShadowMapDebug.frag");
+    psDesc.ShaderType = ShaderType::Fragment;
+    psDesc.Source = String::foadFromFile("./Shaders/ShadowMapDebug.frag");
 
     std::vector<VertexLayoutDesc> vertexLayoutDesc{
         VertexLayoutDesc(SemanticType::Position, SemanticFormat::Float2),
@@ -1020,41 +978,37 @@ void Renderer::initDebugPass(const std::shared_ptr<RenderDevice> &renderDevice)
     };
 
     std::shared_ptr<ShaderParams> shaderParams(new ShaderParams());
-    shaderParams->AddParam(ShaderParam("ShadowMaps", ShaderParamType::Texture, 0));
-    shaderParams->AddParam(ShaderParam("ShadowMapDebugBuffer", ShaderParamType::ConstBuffer, 0));
+    shaderParams->addParam(ShaderParam("ShadowMaps", ShaderParamType::Texture, 0));
+    shaderParams->addParam(ShaderParam("ShadowMapDebugBuffer", ShaderParamType::ConstBuffer, 0));
 
     RasterizerStateDesc rasterizerStateDesc;
     rasterizerStateDesc.CullMode = CullMode::None;
 
     PipelineStateDesc pipelineDesc;
-    pipelineDesc.VS = renderDevice->CreateShader(vsDesc);
-    pipelineDesc.PS = renderDevice->CreateShader(psDesc);
-    pipelineDesc.BlendState = renderDevice->CreateBlendState(BlendStateDesc());
-    pipelineDesc.RasterizerState = renderDevice->CreateRasterizerState(rasterizerStateDesc);
-    pipelineDesc.DepthStencilState = renderDevice->CreateDepthStencilState(DepthStencilStateDesc());
-    pipelineDesc.VertexLayout = renderDevice->CreateVertexLayout(vertexLayoutDesc);
+    pipelineDesc.VS = renderDevice->createShader(vsDesc);
+    pipelineDesc.FS = renderDevice->createShader(psDesc);
+    pipelineDesc.BlendState = renderDevice->createBlendState(BlendStateDesc());
+    pipelineDesc.RasterizerState = renderDevice->createRasterizerState(rasterizerStateDesc);
+    pipelineDesc.DepthStencilState = renderDevice->createDepthStencilState(DepthStencilStateDesc());
+    pipelineDesc.VertexLayout = renderDevice->createVertexLayout(vertexLayoutDesc);
     pipelineDesc.ShaderParams = shaderParams;
 
-    _shadowMapDebugPso = renderDevice->CreatePipelineState(pipelineDesc);
+    _shadowMapDebugPso = renderDevice->createPipelineState(pipelineDesc);
   }
   {
     ShaderDesc vsDesc;
-    vsDesc.EntryPoint = "main";
-    vsDesc.ShaderLang = ShaderLang::Glsl;
     vsDesc.ShaderType = ShaderType::Vertex;
-    vsDesc.Source = String::LoadFromFile("./Shaders/Basic.vert");
+    vsDesc.Source = String::foadFromFile("./Shaders/Basic.vert");
 
     ShaderDesc psDesc;
-    psDesc.EntryPoint = "main";
-    psDesc.ShaderLang = ShaderLang::Glsl;
-    psDesc.ShaderType = ShaderType::Pixel;
-    psDesc.Source = String::LoadFromFile("./Shaders/Basic.frag");
+    psDesc.ShaderType = ShaderType::Fragment;
+    psDesc.Source = String::foadFromFile("./Shaders/Basic.frag");
 
     std::vector<VertexLayoutDesc> vertexLayoutDesc{
         VertexLayoutDesc(SemanticType::Position, SemanticFormat::Float3)};
 
     std::shared_ptr<ShaderParams> shaderParams(new ShaderParams());
-    shaderParams->AddParam(ShaderParam("ObjectBuffer", ShaderParamType::ConstBuffer, 0));
+    shaderParams->addParam(ShaderParam("ObjectBuffer", ShaderParamType::ConstBuffer, 0));
 
     RasterizerStateDesc rasterizerStateDesc{};
     rasterizerStateDesc.FillMode = FillMode::WireFrame;
@@ -1067,16 +1021,16 @@ void Renderer::initDebugPass(const std::shared_ptr<RenderDevice> &renderDevice)
     BlendStateDesc blendStateDesc{};
 
     PipelineStateDesc pipelineDesc;
-    pipelineDesc.VS = renderDevice->CreateShader(vsDesc);
-    pipelineDesc.PS = renderDevice->CreateShader(psDesc);
-    pipelineDesc.BlendState = renderDevice->CreateBlendState(blendStateDesc);
-    pipelineDesc.RasterizerState = renderDevice->CreateRasterizerState(rasterizerStateDesc);
-    pipelineDesc.DepthStencilState = renderDevice->CreateDepthStencilState(depthStencilStateDesc);
-    pipelineDesc.VertexLayout = renderDevice->CreateVertexLayout(vertexLayoutDesc);
+    pipelineDesc.VS = renderDevice->createShader(vsDesc);
+    pipelineDesc.FS = renderDevice->createShader(psDesc);
+    pipelineDesc.BlendState = renderDevice->createBlendState(blendStateDesc);
+    pipelineDesc.RasterizerState = renderDevice->createRasterizerState(rasterizerStateDesc);
+    pipelineDesc.DepthStencilState = renderDevice->createDepthStencilState(depthStencilStateDesc);
+    pipelineDesc.VertexLayout = renderDevice->createVertexLayout(vertexLayoutDesc);
     pipelineDesc.ShaderParams = shaderParams;
     pipelineDesc.Topology = PrimitiveTopology::LineList;
 
-    _drawAabbPso = renderDevice->CreatePipelineState(pipelineDesc);
+    _drawAabbPso = renderDevice->createPipelineState(pipelineDesc);
   }
 }
 
@@ -1092,16 +1046,16 @@ void Renderer::directionalLightDepthPass(const std::shared_ptr<RenderDevice> &re
 
   std::chrono::time_point start = std::chrono::high_resolution_clock::now();
 
-  renderDevice->SetPipelineState(_shadowMapPso);
+  renderDevice->setPipelineState(_shadowMapPso);
 
   ViewportDesc viewportDesc;
   viewportDesc.Height = _shadowMapResolution;
   viewportDesc.Width = _shadowMapResolution;
-  renderDevice->SetViewport(viewportDesc);
-  renderDevice->SetRenderTarget(_shadowMapRto);
-  renderDevice->ClearBuffers(RTT_Depth);
-  renderDevice->SetConstantBuffer(0, _perObjectBuffer);
-  renderDevice->SetConstantBuffer(1, _perFrameBuffer);
+  renderDevice->setViewport(viewportDesc);
+  renderDevice->setRenderTarget(_shadowMapRto);
+  renderDevice->clearBuffers(RTT_Depth);
+  renderDevice->setConstantBuffer(0, _perObjectBuffer);
+  renderDevice->setConstantBuffer(1, _perFrameBuffer);
 
   for (const auto &drawable : drawables)
   {
@@ -1122,30 +1076,30 @@ void Renderer::gbufferPass(std::shared_ptr<RenderDevice> renderDevice,
   ViewportDesc viewportDesc;
   viewportDesc.Width = _windowDims.X;
   viewportDesc.Height = _windowDims.Y;
-  renderDevice->SetViewport(viewportDesc);
+  renderDevice->setViewport(viewportDesc);
 
-  renderDevice->SetPipelineState(_gBufferPso);
-  renderDevice->SetRenderTarget(_gBufferRto);
-  renderDevice->ClearBuffers(RTT_Colour | RTT_Depth | RTT_Stencil);
-  renderDevice->SetConstantBuffer(0, _perObjectBuffer);
+  renderDevice->setPipelineState(_gBufferPso);
+  renderDevice->setRenderTarget(_gBufferRto);
+  renderDevice->clearBuffers(RTT_Colour | RTT_Depth | RTT_Stencil);
+  renderDevice->setConstantBuffer(0, _perObjectBuffer);
 
   for (const auto &drawable : drawables)
   {
     std::shared_ptr<Material> material(drawable->getMaterial());
     if (material->hasDiffuseTexture())
     {
-      renderDevice->SetTexture(0, material->getDiffuseTexture());
-      renderDevice->SetSamplerState(0, _basicSamplerState);
+      renderDevice->setTexture(0, material->getDiffuseTexture());
+      renderDevice->setSamplerState(0, _basicSamplerState);
     }
     if (material->hasNormalTexture())
     {
-      renderDevice->SetTexture(1, material->getNormalTexture());
-      renderDevice->SetSamplerState(1, _noMipSamplerState);
+      renderDevice->setTexture(1, material->getNormalTexture());
+      renderDevice->setSamplerState(1, _noMipSamplerState);
     }
     if (material->hasSpecularTexture())
     {
-      renderDevice->SetTexture(2, material->getSpecularTexture());
-      renderDevice->SetSamplerState(2, _noMipSamplerState);
+      renderDevice->setTexture(2, material->getSpecularTexture());
+      renderDevice->setSamplerState(2, _noMipSamplerState);
     }
 
     drawDrawable(renderDevice, drawable, material, camera);
@@ -1161,32 +1115,32 @@ void Renderer::transparencyPass(const std::shared_ptr<RenderDevice> &renderDevic
 {
   std::chrono::time_point start = std::chrono::high_resolution_clock::now();
 
-  renderDevice->SetPipelineState(_transparencyPso);
-  renderDevice->SetRenderTarget(_gBufferRto);
-  renderDevice->SetConstantBuffer(0, _perObjectBuffer);
+  renderDevice->setPipelineState(_transparencyPso);
+  renderDevice->setRenderTarget(_gBufferRto);
+  renderDevice->setConstantBuffer(0, _perObjectBuffer);
 
   for (const auto &drawable : transparentDrawables)
   {
     std::shared_ptr<Material> material(drawable->getMaterial());
     if (material->hasDiffuseTexture())
     {
-      renderDevice->SetTexture(0, material->getDiffuseTexture());
-      renderDevice->SetSamplerState(0, _basicSamplerState);
+      renderDevice->setTexture(0, material->getDiffuseTexture());
+      renderDevice->setSamplerState(0, _basicSamplerState);
     }
     if (material->hasNormalTexture())
     {
-      renderDevice->SetTexture(1, material->getNormalTexture());
-      renderDevice->SetSamplerState(1, _noMipSamplerState);
+      renderDevice->setTexture(1, material->getNormalTexture());
+      renderDevice->setSamplerState(1, _noMipSamplerState);
     }
     if (material->hasSpecularTexture())
     {
-      renderDevice->SetTexture(2, material->getSpecularTexture());
-      renderDevice->SetSamplerState(2, _noMipSamplerState);
+      renderDevice->setTexture(2, material->getSpecularTexture());
+      renderDevice->setSamplerState(2, _noMipSamplerState);
     }
     if (material->hasOpacityTexture())
     {
-      renderDevice->SetTexture(3, material->getOpacityTexture());
-      renderDevice->SetSamplerState(3, _noMipSamplerState);
+      renderDevice->setTexture(3, material->getOpacityTexture());
+      renderDevice->setSamplerState(3, _noMipSamplerState);
     }
 
     drawDrawable(renderDevice, drawable, material, camera);
@@ -1200,19 +1154,19 @@ void Renderer::shadowPass(const std::shared_ptr<RenderDevice> &renderDevice)
 {
   std::chrono::time_point start = std::chrono::high_resolution_clock::now();
 
-  renderDevice->SetPipelineState(_shadowsPso);
-  renderDevice->SetRenderTarget(_shadowsRto);
-  renderDevice->SetTexture(0, _gBufferRto->GetDepthStencilTarget());
-  renderDevice->SetTexture(1, _gBufferRto->GetColourTarget(1));
-  renderDevice->SetTexture(2, _shadowMapRto->GetDepthStencilTarget());
-  renderDevice->SetTexture(3, _randomRotationsMap);
-  renderDevice->SetConstantBuffer(1, _perFrameBuffer);
-  renderDevice->SetSamplerState(0, _noMipSamplerState);
-  renderDevice->SetSamplerState(1, _noMipSamplerState);
-  renderDevice->SetSamplerState(2, _shadowMapSamplerState);
-  renderDevice->SetSamplerState(3, _noMipSamplerState);
-  renderDevice->SetVertexBuffer(_fsQuadVertexBuffer);
-  renderDevice->Draw(6, 0);
+  renderDevice->setPipelineState(_shadowsPso);
+  renderDevice->setRenderTarget(_shadowsRto);
+  renderDevice->setTexture(0, _gBufferRto->getDepthStencilTarget());
+  renderDevice->setTexture(1, _gBufferRto->getColourTarget(1));
+  renderDevice->setTexture(2, _shadowMapRto->getDepthStencilTarget());
+  renderDevice->setTexture(3, _randomRotationsMap);
+  renderDevice->setConstantBuffer(1, _perFrameBuffer);
+  renderDevice->setSamplerState(0, _noMipSamplerState);
+  renderDevice->setSamplerState(1, _noMipSamplerState);
+  renderDevice->setSamplerState(2, _shadowMapSamplerState);
+  renderDevice->setSamplerState(3, _noMipSamplerState);
+  renderDevice->setVertexBuffer(_fsQuadVertexBuffer);
+  renderDevice->draw(6, 0);
 
   std::chrono::time_point end = std::chrono::high_resolution_clock::now();
   _renderPassTimings[3].Duration = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
@@ -1229,24 +1183,24 @@ void Renderer::ssaoPass(const std::shared_ptr<RenderDevice> &renderDevice,
     _ssaoSettingsModified = false;
   }
 
-  renderDevice->SetPipelineState(_ssaoPso);
-  renderDevice->SetRenderTarget(_ssaoRto);
-  renderDevice->SetTexture(0, _gBufferRto->GetDepthStencilTarget());
-  renderDevice->SetTexture(1, _gBufferRto->GetColourTarget(1));
-  renderDevice->SetTexture(2, _ssaoNoiseTexture);
-  renderDevice->SetSamplerState(0, _noMipSamplerState);
-  renderDevice->SetSamplerState(1, _noMipSamplerState);
-  renderDevice->SetSamplerState(2, _ssaoNoiseSampler);
-  renderDevice->SetConstantBuffer(0, _ssaoConstantsBuffer);
-  renderDevice->SetVertexBuffer(_fsQuadVertexBuffer);
-  renderDevice->Draw(6, 0);
+  renderDevice->setPipelineState(_ssaoPso);
+  renderDevice->setRenderTarget(_ssaoRto);
+  renderDevice->setTexture(0, _gBufferRto->getDepthStencilTarget());
+  renderDevice->setTexture(1, _gBufferRto->getColourTarget(1));
+  renderDevice->setTexture(2, _ssaoNoiseTexture);
+  renderDevice->setSamplerState(0, _noMipSamplerState);
+  renderDevice->setSamplerState(1, _noMipSamplerState);
+  renderDevice->setSamplerState(2, _ssaoNoiseSampler);
+  renderDevice->setConstantBuffer(0, _ssaoConstantsBuffer);
+  renderDevice->setVertexBuffer(_fsQuadVertexBuffer);
+  renderDevice->draw(6, 0);
 
-  renderDevice->SetPipelineState(_ssaoBlurPso);
-  renderDevice->SetRenderTarget(_ssaoBlurRto);
-  renderDevice->SetTexture(0, _ssaoRto->GetColourTarget(0));
-  renderDevice->SetSamplerState(0, _noMipSamplerState);
-  renderDevice->SetVertexBuffer(_fsQuadVertexBuffer);
-  renderDevice->Draw(6, 0);
+  renderDevice->setPipelineState(_ssaoBlurPso);
+  renderDevice->setRenderTarget(_ssaoBlurRto);
+  renderDevice->setTexture(0, _ssaoRto->getColourTarget(0));
+  renderDevice->setSamplerState(0, _noMipSamplerState);
+  renderDevice->setVertexBuffer(_fsQuadVertexBuffer);
+  renderDevice->draw(6, 0);
 
   std::chrono::time_point end = std::chrono::high_resolution_clock::now();
   _renderPassTimings[4].Duration = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
@@ -1258,24 +1212,24 @@ void Renderer::lightingPass(std::shared_ptr<RenderDevice> renderDevice,
 {
   std::chrono::time_point start = std::chrono::high_resolution_clock::now();
 
-  renderDevice->SetPipelineState(_lightingPso);
-  renderDevice->SetRenderTarget(_lightingPassRto);
-  renderDevice->SetTexture(0, _gBufferRto->GetColourTarget(0));
-  renderDevice->SetTexture(1, _gBufferRto->GetDepthStencilTarget());
-  renderDevice->SetTexture(2, _gBufferRto->GetColourTarget(1));
-  renderDevice->SetTexture(3, _gBufferRto->GetColourTarget(2));
-  renderDevice->SetTexture(4, _shadowsRto->GetColourTarget(0));
-  renderDevice->SetTexture(5, _ssaoBlurRto->GetColourTarget(0));
-  renderDevice->SetSamplerState(0, _noMipSamplerState);
-  renderDevice->SetSamplerState(1, _noMipSamplerState);
-  renderDevice->SetSamplerState(2, _noMipSamplerState);
-  renderDevice->SetSamplerState(3, _noMipSamplerState);
-  renderDevice->SetSamplerState(4, _noMipSamplerState);
-  renderDevice->SetSamplerState(5, _noMipSamplerState);
-  renderDevice->SetConstantBuffer(1, _perFrameBuffer);
+  renderDevice->setPipelineState(_lightingPso);
+  renderDevice->setRenderTarget(_lightingPassRto);
+  renderDevice->setTexture(0, _gBufferRto->getColourTarget(0));
+  renderDevice->setTexture(1, _gBufferRto->getDepthStencilTarget());
+  renderDevice->setTexture(2, _gBufferRto->getColourTarget(1));
+  renderDevice->setTexture(3, _gBufferRto->getColourTarget(2));
+  renderDevice->setTexture(4, _shadowsRto->getColourTarget(0));
+  renderDevice->setTexture(5, _ssaoBlurRto->getColourTarget(0));
+  renderDevice->setSamplerState(0, _noMipSamplerState);
+  renderDevice->setSamplerState(1, _noMipSamplerState);
+  renderDevice->setSamplerState(2, _noMipSamplerState);
+  renderDevice->setSamplerState(3, _noMipSamplerState);
+  renderDevice->setSamplerState(4, _noMipSamplerState);
+  renderDevice->setSamplerState(5, _noMipSamplerState);
+  renderDevice->setConstantBuffer(1, _perFrameBuffer);
 
-  renderDevice->SetVertexBuffer(_fsQuadVertexBuffer);
-  renderDevice->Draw(6, 0);
+  renderDevice->setVertexBuffer(_fsQuadVertexBuffer);
+  renderDevice->draw(6, 0);
 
   std::chrono::time_point end = std::chrono::high_resolution_clock::now();
   _renderPassTimings[5].Duration = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
@@ -1289,42 +1243,42 @@ void Renderer::debugPass(const std::shared_ptr<RenderDevice> &renderDevice,
   {
   case DebugDisplayType::Disabled:
   {
-    drawDebugRenderTarget(renderDevice, _lightingPassRto->GetColourTarget(0), camera);
+    drawDebugRenderTarget(renderDevice, _lightingPassRto->getColourTarget(0), camera);
     break;
   }
   case DebugDisplayType::ShadowDepth:
   {
-    drawDebugRenderTarget(renderDevice, _shadowMapRto->GetDepthStencilTarget(), camera);
+    drawDebugRenderTarget(renderDevice, _shadowMapRto->getDepthStencilTarget(), camera);
     break;
   }
   case DebugDisplayType::Diffuse:
   {
-    drawDebugRenderTarget(renderDevice, _gBufferRto->GetColourTarget(0), camera);
+    drawDebugRenderTarget(renderDevice, _gBufferRto->getColourTarget(0), camera);
     break;
   }
   case DebugDisplayType::Normal:
   {
-    drawDebugRenderTarget(renderDevice, _gBufferRto->GetColourTarget(1), camera);
+    drawDebugRenderTarget(renderDevice, _gBufferRto->getColourTarget(1), camera);
     break;
   }
   case DebugDisplayType::Specular:
   {
-    drawDebugRenderTarget(renderDevice, _gBufferRto->GetColourTarget(2), camera);
+    drawDebugRenderTarget(renderDevice, _gBufferRto->getColourTarget(2), camera);
     break;
   }
   case DebugDisplayType::Depth:
   {
-    drawDebugRenderTarget(renderDevice, _gBufferRto->GetDepthStencilTarget(), camera);
+    drawDebugRenderTarget(renderDevice, _gBufferRto->getDepthStencilTarget(), camera);
     break;
   }
   case DebugDisplayType::Shadows:
   {
-    drawDebugRenderTarget(renderDevice, _shadowsRto->GetColourTarget(0), camera, true);
+    drawDebugRenderTarget(renderDevice, _shadowsRto->getColourTarget(0), camera, true);
     break;
   }
   case DebugDisplayType::Occulsion:
   {
-    drawDebugRenderTarget(renderDevice, _ssaoBlurRto->GetColourTarget(0), camera, true);
+    drawDebugRenderTarget(renderDevice, _ssaoBlurRto->getColourTarget(0), camera, true);
     break;
   }
   }
@@ -1340,18 +1294,18 @@ void Renderer::drawDrawable(const std::shared_ptr<RenderDevice> &renderDevice,
   writePerObjectConstantData(drawable, material, camera);
 
   std::shared_ptr<StaticMesh> mesh = drawable->getMesh();
-  renderDevice->SetVertexBuffer(mesh->getVertexData(renderDevice));
+  renderDevice->setVertexBuffer(mesh->getVertexData(renderDevice));
 
   if (mesh->isIndexed())
   {
     auto indexCount = mesh->getIndexCount();
-    renderDevice->SetIndexBuffer(mesh->getIndexData(renderDevice));
-    renderDevice->DrawIndexed(indexCount, 0, 0);
+    renderDevice->setIndexBuffer(mesh->getIndexData(renderDevice));
+    renderDevice->drawIndexed(indexCount, 0, 0);
   }
   else
   {
     auto vertexCount = mesh->getVertexCount();
-    renderDevice->Draw(vertexCount, 0);
+    renderDevice->draw(vertexCount, 0);
   }
 }
 
@@ -1359,7 +1313,7 @@ void Renderer::drawAabb(const std::shared_ptr<RenderDevice> &renderDevice,
                         const std::vector<std::shared_ptr<Drawable>> &aabbDrawables,
                         const std::shared_ptr<Camera> &camera)
 {
-  renderDevice->SetPipelineState(_drawAabbPso);
+  renderDevice->setPipelineState(_drawAabbPso);
   for (auto drawable : aabbDrawables)
   {
     auto &aabb = drawable->getAabb();
@@ -1368,11 +1322,11 @@ void Renderer::drawAabb(const std::shared_ptr<RenderDevice> &renderDevice,
     objectBufferData.Model = Matrix4::Translation(drawable->getPosition()) * Matrix4::Scaling(aabb.getExtents());
     objectBufferData.ModelView = camera->getView() * objectBufferData.Model;
     objectBufferData.ModelViewProjection = camera->getProj() * objectBufferData.ModelView;
-    _perObjectBuffer->WriteData(0, sizeof(PerObjectBufferData), &objectBufferData, AccessType::WriteOnlyDiscard);
+    _perObjectBuffer->writeData(0, sizeof(PerObjectBufferData), &objectBufferData, AccessType::WriteOnlyDiscard);
 
-    renderDevice->SetConstantBuffer(0, _perObjectBuffer);
-    renderDevice->SetVertexBuffer(_aabbVertexBuffer);
-    renderDevice->Draw(AabbCoords.size(), 0);
+    renderDevice->setConstantBuffer(0, _perObjectBuffer);
+    renderDevice->setVertexBuffer(_aabbVertexBuffer);
+    renderDevice->draw(AabbCoords.size(), 0);
   }
 }
 
@@ -1385,28 +1339,28 @@ void Renderer::drawDebugRenderTarget(std::shared_ptr<RenderDevice> renderDevice,
   shadowMapDebugData.FarClip = camera->getFar();
   shadowMapDebugData.NearClip = camera->getNear();
   shadowMapDebugData.Layer = _shadowMapLayerToDraw;
-  _shadowMapDebugBuffer->WriteData(0, sizeof(ShadowMapDebugData), &shadowMapDebugData, AccessType::WriteOnlyDiscard);
+  _shadowMapDebugBuffer->writeData(0, sizeof(ShadowMapDebugData), &shadowMapDebugData, AccessType::WriteOnlyDiscard);
 
   FullscreenQuadData fullscreenQuadData{};
   fullscreenQuadData.SingleChannel = singleChannelImage;
-  _fullscreenQuadBuffer->WriteData(0, sizeof(FullscreenQuadData), &fullscreenQuadData, AccessType::WriteOnlyDiscard);
-  renderDevice->SetConstantBuffer(1, _fullscreenQuadBuffer);
+  _fullscreenQuadBuffer->writeData(0, sizeof(FullscreenQuadData), &fullscreenQuadData, AccessType::WriteOnlyDiscard);
+  renderDevice->setConstantBuffer(1, _fullscreenQuadBuffer);
 
-  if (renderTarget->GetDesc().Usage == TextureUsage::RenderTarget)
+  if (renderTarget->getDesc().Usage == TextureUsage::RenderTarget)
   {
-    renderDevice->SetPipelineState(_gbufferDebugDrawPso);
+    renderDevice->setPipelineState(_gbufferDebugDrawPso);
   }
-  else if (renderTarget->GetDesc().Usage == TextureUsage::Depth)
+  else if (renderTarget->getDesc().Usage == TextureUsage::Depth)
   {
-    if (renderTarget->GetTextureType() == TextureType::Texture2DArray)
+    if (renderTarget->getTextureType() == TextureType::Texture2DArray)
     {
-      renderDevice->SetPipelineState(_shadowMapDebugPso);
-      renderDevice->SetConstantBuffer(0, _shadowMapDebugBuffer);
+      renderDevice->setPipelineState(_shadowMapDebugPso);
+      renderDevice->setConstantBuffer(0, _shadowMapDebugBuffer);
     }
-    else if (renderTarget->GetTextureType() == TextureType::Texture2D)
+    else if (renderTarget->getTextureType() == TextureType::Texture2D)
     {
-      renderDevice->SetPipelineState(_depthDebugDrawPso);
-      renderDevice->SetConstantBuffer(0, _shadowMapDebugBuffer);
+      renderDevice->setPipelineState(_depthDebugDrawPso);
+      renderDevice->setConstantBuffer(0, _shadowMapDebugBuffer);
     }
     else
     {
@@ -1418,12 +1372,12 @@ void Renderer::drawDebugRenderTarget(std::shared_ptr<RenderDevice> renderDevice,
     return;
   }
 
-  renderDevice->SetRenderTarget(nullptr);
-  renderDevice->ClearBuffers(RTT_Colour | RTT_Depth);
-  renderDevice->SetTexture(0, renderTarget);
-  renderDevice->SetSamplerState(0, _noMipWithBorderSamplerState);
-  renderDevice->SetVertexBuffer(_fsQuadVertexBuffer);
-  renderDevice->Draw(6, 0);
+  renderDevice->setRenderTarget(nullptr);
+  renderDevice->clearBuffers(RTT_Colour | RTT_Depth);
+  renderDevice->setTexture(0, renderTarget);
+  renderDevice->setSamplerState(0, _noMipWithBorderSamplerState);
+  renderDevice->setVertexBuffer(_fsQuadVertexBuffer);
+  renderDevice->draw(6, 0);
 }
 
 std::vector<Matrix4> Renderer::calculateCameraCascadeProjections(const std::shared_ptr<Camera> &camera) const
@@ -1514,11 +1468,11 @@ void Renderer::createDirectionalLightShadowDepthMap(const std::shared_ptr<Render
   shadowMapDesc.Count = 4;
 
   RenderTargetDesc rtDesc;
-  rtDesc.DepthStencilTarget = renderDevice->CreateTexture(shadowMapDesc);
+  rtDesc.DepthStencilTarget = renderDevice->createTexture(shadowMapDesc);
   rtDesc.Height = _shadowMapResolution;
   rtDesc.Width = _shadowMapResolution;
 
-  _shadowMapRto = renderDevice->CreateRenderTarget(rtDesc);
+  _shadowMapRto = renderDevice->createRenderTarget(rtDesc);
   _shadowResolutionChanged = false;
 }
 
@@ -1539,7 +1493,7 @@ void Renderer::writePerObjectConstantData(const std::shared_ptr<Drawable> &drawa
   perObjectBufferData.SpecularEnabled = material->hasSpecularTexture();
   perObjectBufferData.SpecularExponent = material->getSpecularExponent();
 
-  _perObjectBuffer->WriteData(0, sizeof(PerObjectBufferData), &perObjectBufferData, AccessType::WriteOnlyDiscard);
+  _perObjectBuffer->writeData(0, sizeof(PerObjectBufferData), &perObjectBufferData, AccessType::WriteOnlyDiscard);
 }
 
 void Renderer::writePerFrameConstantData(const std::shared_ptr<Camera> &camera,
@@ -1591,7 +1545,7 @@ void Renderer::writePerFrameConstantData(const std::shared_ptr<Camera> &camera,
   std::copy(lightDataArray.begin(), lightDataArray.end(), perFrameBufferData->Lights);
   perFrameBufferData->LightCount = lightDataArray.size();
 
-  _perFrameBuffer->WriteData(0, sizeof(PerFrameBufferData), perFrameBufferData, AccessType::WriteOnlyDiscard);
+  _perFrameBuffer->writeData(0, sizeof(PerFrameBufferData), perFrameBufferData, AccessType::WriteOnlyDiscard);
   delete perFrameBufferData;
 }
 
@@ -1626,5 +1580,5 @@ void Renderer::writeSsaoConstantData(const std::shared_ptr<RenderDevice> &render
   {
     ssaoConstantsData.NoiseSamples[i] = ssaoKernel[i];
   }
-  _ssaoConstantsBuffer->WriteData(0, sizeof(SsaoConstantsData), &ssaoConstantsData, AccessType::WriteOnlyDiscard);
+  _ssaoConstantsBuffer->writeData(0, sizeof(SsaoConstantsData), &ssaoConstantsData, AccessType::WriteOnlyDiscard);
 }

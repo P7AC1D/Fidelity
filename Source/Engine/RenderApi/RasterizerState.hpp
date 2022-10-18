@@ -30,13 +30,13 @@ struct RasterizerStateDesc
 class RasterizerState
 {
   friend class RenderDevice;
-  
-public: 
-	bool IsScissorEnabled() const { return _desc.ScissorEnabled; }
-  const RasterizerStateDesc& GetDesc() const { return _desc; }
-  
+
+public:
+  bool isScissorEnabled() const { return _desc.ScissorEnabled; }
+  const RasterizerStateDesc &getDesc() const { return _desc; }
+
 protected:
-  RasterizerState(const RasterizerStateDesc& desc) : _desc(desc) {}
+  RasterizerState(const RasterizerStateDesc &desc) : _desc(desc) {}
 
 protected:
   RasterizerStateDesc _desc;

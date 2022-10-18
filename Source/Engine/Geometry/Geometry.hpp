@@ -10,10 +10,10 @@ class Geometry
 public:
   virtual ~Geometry() {}
 
-  inline const std::vector<Vector2> &GetTexCoords() const { return _texCoords; }
-  inline const std::vector<Vector3> &GetPositions() const { return _positions; }
-  inline const std::vector<Vector3> &GetNormals() const { return _normals; }
-  inline const std::vector<uint32> &GetIndices() const { return _indices; }
+  inline const std::vector<Vector2> &getTexCoords() const { return _texCoords; }
+  inline const std::vector<Vector3> &getPositions() const { return _positions; }
+  inline const std::vector<Vector3> &getNormals() const { return _normals; }
+  inline const std::vector<uint32> &getIndices() const { return _indices; }
 
 protected:
   std::vector<Vector2> _texCoords;

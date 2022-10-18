@@ -10,19 +10,19 @@
 #include "UvSphere.hpp"
 #include "Icosphere.hpp"
 
-std::shared_ptr<StaticMesh> MeshFactory::CreateCube()
+std::shared_ptr<StaticMesh> MeshFactory::createCube()
 {
   Cube cube;
   auto mesh = std::make_shared<StaticMesh>();
-  mesh->setPositionVertexData(cube.GetPositions());
-  mesh->setTextureVertexData(cube.GetTexCoords());
-  mesh->setIndexData(cube.GetIndices());
+  mesh->setPositionVertexData(cube.getPositions());
+  mesh->setTextureVertexData(cube.getTexCoords());
+  mesh->setIndexData(cube.getIndices());
   mesh->generateNormals();
   mesh->generateTangents();
   return mesh;
 }
 
-std::shared_ptr<StaticMesh> MeshFactory::CreatePlane(uint32 density)
+std::shared_ptr<StaticMesh> MeshFactory::createPlane(uint32 density)
 {
   float32 interval = 1.0f / static_cast<float32>(density);
 
@@ -78,25 +78,25 @@ std::shared_ptr<StaticMesh> MeshFactory::CreatePlane(uint32 density)
   return mesh;
 }
 
-std::shared_ptr<StaticMesh> MeshFactory::CreateUvSphere(uint32 verticals, uint32 horizontals)
+std::shared_ptr<StaticMesh> MeshFactory::createUvSphere(uint32 verticals, uint32 horizontals)
 {
   UvSphere usSphere(verticals, horizontals);
   auto mesh = std::make_shared<StaticMesh>();
-  mesh->setPositionVertexData(usSphere.GetPositions());
-  mesh->setTextureVertexData(usSphere.GetTexCoords());
-  mesh->setIndexData(usSphere.GetIndices());
+  mesh->setPositionVertexData(usSphere.getPositions());
+  mesh->setTextureVertexData(usSphere.getTexCoords());
+  mesh->setIndexData(usSphere.getIndices());
   mesh->generateNormals();
   mesh->generateTangents();
   return mesh;
 }
 
-std::shared_ptr<StaticMesh> MeshFactory::CreateIcosphere(uint32 recursionCount)
+std::shared_ptr<StaticMesh> MeshFactory::createIcosphere(uint32 recursionCount)
 {
   Icosphere icosphere(recursionCount);
   auto mesh = std::make_shared<StaticMesh>();
-  mesh->setPositionVertexData(icosphere.GetPositions());
-  mesh->setTextureVertexData(icosphere.GetTexCoords());
-  mesh->setIndexData(icosphere.GetIndices());
+  mesh->setPositionVertexData(icosphere.getPositions());
+  mesh->setTextureVertexData(icosphere.getTexCoords());
+  mesh->setIndexData(icosphere.getIndices());
   mesh->generateNormals();
   mesh->generateTangents();
   return mesh;

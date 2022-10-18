@@ -3,16 +3,10 @@
 #include <vector>
 #include "../Core/Types.hpp"
 
-enum class ShaderLang
-{
-  Hlsl,
-  Glsl
-};
-
 enum class ShaderType
 {
   Vertex,
-  Pixel,
+  Fragment,
   Hull,
   Domain,
   Geometry
@@ -21,22 +15,20 @@ enum class ShaderType
 struct ShaderDesc
 {
   ShaderType ShaderType;
-  std::string EntryPoint;
   std::string Source;
-  ShaderLang ShaderLang = ShaderLang::Glsl;
 };
 
 class Shader
 {
 public:
-  Shader(const ShaderDesc& desc): _desc(desc), _isCompiled(false) {}
-  
-  const ShaderDesc& GetDesc() const { return _desc; }
-  bool IsCompiled() const { return _isCompiled; }
-  const std::string& GetShadeLog() const { return _shaderLog; }
-  
-  virtual void Compile() = 0;
-  
+  Shader(const ShaderDesc &desc) : _desc(desc), _isCompiled(false) {}
+
+  const ShaderDesc &getDesc() const { return _desc; }
+  bool isCompiled() const { return _isCompiled; }
+  const std::string &getShadeLog() const { return _shaderLog; }
+
+  virtual void compile() = 0;
+
 protected:
   ShaderDesc _desc;
   bool _isCompiled;

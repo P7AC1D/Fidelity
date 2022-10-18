@@ -3,7 +3,7 @@
 #include "../../Utility/Assert.hpp"
 #include "GL.hpp"
 
-GLenum GetBufferType(BufferType bufferType)
+GLenum getBufferType(BufferType bufferType)
 {
   switch (bufferType)
   {
@@ -17,7 +17,7 @@ GLenum GetBufferType(BufferType bufferType)
   throw std::runtime_error("Unsupported BufferType");
 }
 
-GLenum GetBufferUsage(BufferUsage bufferUsage)
+GLenum getBufferUsage(BufferUsage bufferUsage)
 {
   switch (bufferUsage)
   {
@@ -36,36 +36,36 @@ GLGpuBuffer::~GLGpuBuffer()
 {
   if (_id != 0)
   {
-    GLCall(glDeleteBuffers(1, &_id));
+    glCall(glDeleteBuffers(1, &_id));
   }
 }
 
-void GLGpuBuffer::WriteData(uint64 byteOffset, uint64 byteCount, const void *src, AccessType accessType)
+void GLGpuBuffer::writeData(uint64 byteOffset, uint64 byteCount, const void *src, AccessType accessType)
 {
   void *dst = MapRange(byteOffset, byteCount, accessType);
   std::memcpy(dst, src, byteCount);
   Unmap();
 }
 
-void GLGpuBuffer::ReadData(uint64 byteOffset, uint64 byteCount, void *dst)
+void GLGpuBuffer::readData(uint64 byteOffset, uint64 byteCount, void *dst)
 {
   void *src = MapRange(byteOffset, byteCount, AccessType::ReadOnly);
   std::memcpy(dst, src, byteCount);
   Unmap();
 }
 
-void GLGpuBuffer::CopyData(GpuBuffer *dst, uint64 srcByteOffset, uint64 dstByteOffset, uint64 byteCount)
+void GLGpuBuffer::copyData(GpuBuffer *dst, uint64 srcByteOffset, uint64 dstByteOffset, uint64 byteCount)
 {
   GLGpuBuffer *dstBuffer = static_cast<GLGpuBuffer *>(dst);
   GLGpuBuffer *srcBuffer = this;
 
-  GLCall(glBindBuffer(GL_COPY_READ_BUFFER, srcBuffer->_id));
-  GLCall(glBindBuffer(GL_COPY_WRITE_BUFFER, dstBuffer->_id));
+  glCall(glBindBuffer(GL_COPY_READ_BUFFER, srcBuffer->_id));
+  glCall(glBindBuffer(GL_COPY_WRITE_BUFFER, dstBuffer->_id));
 
-  GLCall(glCopyBufferSubData(GL_COPY_READ_BUFFER, GL_COPY_WRITE_BUFFER, srcByteOffset, dstByteOffset, byteCount));
+  glCall(glCopyBufferSubData(GL_COPY_READ_BUFFER, GL_COPY_WRITE_BUFFER, srcByteOffset, dstByteOffset, byteCount));
 
-  GLCall(glBindBuffer(GL_COPY_READ_BUFFER, 0));
-  GLCall(glBindBuffer(GL_COPY_WRITE_BUFFER, 0));
+  glCall(glBindBuffer(GL_COPY_READ_BUFFER, 0));
+  glCall(glBindBuffer(GL_COPY_WRITE_BUFFER, 0));
 }
 
 GLGpuBuffer::GLGpuBuffer(const GpuBufferDesc &desc) : GpuBuffer(desc), _id(0)
@@ -75,17 +75,17 @@ GLGpuBuffer::GLGpuBuffer(const GpuBufferDesc &desc) : GpuBuffer(desc), _id(0)
 
 void GLGpuBuffer::Initialize()
 {
-  if (IsInitialized())
+  if (isInitialized())
   {
     return;
   }
 
-  GLCall(glGenBuffers(1, &_id));
+  glCall(glGenBuffers(1, &_id));
   ASSERT_FALSE(_id == 0, "Could not generate buffer object");
 
-  GLenum target = GetBufferType(_desc.BufferType);
-  GLCall(glBindBuffer(target, _id));
-  GLCall(glBufferData(target, _desc.ByteCount, nullptr, GetBufferUsage(_desc.BufferUsage)));
+  GLenum target = getBufferType(_desc.BufferType);
+  glCall(glBindBuffer(target, _id));
+  glCall(glBufferData(target, _desc.ByteCount, nullptr, getBufferUsage(_desc.BufferUsage)));
 
   _initialized = true;
 }
@@ -94,8 +94,8 @@ void *GLGpuBuffer::MapRange(uint64 byteOffset, uint64 byteCount, AccessType acce
 {
   ASSERT_FALSE(byteOffset + byteCount > _desc.ByteCount, "Mapped range cannot exceed the internal size of the buffer");
 
-  GLenum target = GetBufferType(_desc.BufferType);
-  GLCall(glBindBuffer(target, _id));
+  GLenum target = getBufferType(_desc.BufferType);
+  glCall(glBindBuffer(target, _id));
 
   GLenum access = 0;
   switch (accessType)
@@ -121,15 +121,15 @@ void *GLGpuBuffer::MapRange(uint64 byteOffset, uint64 byteCount, AccessType acce
 
   void *buffer = nullptr;
 
-  GLCall2(glMapBufferRange(target, byteOffset, byteCount, access), buffer);
+  glCall2(glMapBufferRange(target, byteOffset, byteCount, access), buffer);
   ASSERT_FALSE(buffer == nullptr, "Could not map buffer");
   return buffer;
 }
 
 void GLGpuBuffer::Unmap()
 {
-  GLenum target = GetBufferType(_desc.BufferType);
+  GLenum target = getBufferType(_desc.BufferType);
   GLboolean success = GL_FALSE;
-  GLCall2(glUnmapBuffer(target), success);
+  glCall2(glUnmapBuffer(target), success);
   ASSERT_TRUE(success, "Buffer corrupt");
 }

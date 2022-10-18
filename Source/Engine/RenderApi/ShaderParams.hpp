@@ -12,12 +12,12 @@ enum class ShaderParamType
 
 struct ShaderParam
 {
-  ShaderParam(const std::string& name, ShaderParamType type, uint32 slot):
-    Name(name),
-    Type(type),
-    Slot(slot)
-  {}
-  
+  ShaderParam(const std::string &name, ShaderParamType type, uint32 slot) : Name(name),
+                                                                            Type(type),
+                                                                            Slot(slot)
+  {
+  }
+
   std::string Name;
   ShaderParamType Type;
   uint32 Slot;
@@ -26,28 +26,28 @@ struct ShaderParam
 class ShaderParams
 {
 public:
-  void AddParam(const ShaderParam& param);
-  void AddParam(const std::string& name, ShaderParamType type, uint32 slot);
-  
-  void RemoveParam(const ShaderParam& param);
-  void RemoveParam(const std::string& name, ShaderParamType type, uint32 slot);
-  
-  const std::string& GetParamName(ShaderParamType type, uint32 slot) const;
-  
+  void addParam(const ShaderParam &param);
+  void addParam(const std::string &name, ShaderParamType type, uint32 slot);
+
+  void removeParam(const ShaderParam &param);
+  void removeParam(const std::string &name, ShaderParamType type, uint32 slot);
+
+  const std::string &getParamName(ShaderParamType type, uint32 slot) const;
+
 private:
   class Hasher
   {
   public:
-    std::size_t operator()(const ShaderParam& key) const;
+    std::size_t operator()(const ShaderParam &key) const;
   };
-  
+
   class Equality
   {
   public:
-    bool operator()(const ShaderParam& a, const ShaderParam& b) const;
+    bool operator()(const ShaderParam &a, const ShaderParam &b) const;
   };
-  
+
 private:
-	static std::string NoParameter;
+  static std::string NoParameter;
   std::unordered_set<ShaderParam, Hasher, Equality> _params;
 };

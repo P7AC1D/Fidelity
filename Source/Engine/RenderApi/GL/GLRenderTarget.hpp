@@ -4,18 +4,18 @@
 class GLRenderTarget : public RenderTarget
 {
   friend class GLRenderDevice;
-  
+
 public:
   virtual ~GLRenderTarget();
-  
-  uint32 GetId() const { return _id; }
-  
+
+  uint32 getId() const { return _id; }
+
 protected:
-  GLRenderTarget(const RenderTargetDesc& desc);
-  
+  GLRenderTarget(const RenderTargetDesc &desc);
+
 private:
-  void Initialize();
-  
+  void initialize();
+
 private:
   uint32 _id;
 };

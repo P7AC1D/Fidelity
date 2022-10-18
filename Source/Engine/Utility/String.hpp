@@ -7,7 +7,7 @@
 class String
 {
 public:
-  static std::string LoadFromFile(const std::string& path);
-  static std::vector<std::string> Split(const std::string& inputLine, byte deliminator);
-  static std::string Join(const std::vector<std::string>& tokens, byte seperator);
+  static std::string foadFromFile(const std::string &path);
+  static std::vector<std::string> split(const std::string &inputLine, byte deliminator);
+  static std::string join(const std::vector<std::string> &tokens, byte seperator);
 };

@@ -7,5 +7,5 @@ public:
   Cube();
 
 private:
-  void SetIndices();
+  void setIndices();
 };

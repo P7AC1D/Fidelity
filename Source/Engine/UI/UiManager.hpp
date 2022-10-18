@@ -21,22 +21,22 @@ struct GLFWwindow;
 class UiManager
 {
 public:
-	static void AddTexture(uint64 id, const std::shared_ptr<Texture> &texture);
+	static void addTexture(uint64 id, const std::shared_ptr<Texture> &texture);
 
 	UiManager(GLFWwindow *glfwWindow);
 	~UiManager();
 
-	bool HasMouseCapture() const;
-	void Update(Scene &scene);
+	bool hasMouseCapture() const;
+	void update(Scene &scene);
 
-	void Initialize(std::shared_ptr<RenderDevice> renderDevice);
+	void initialize(std::shared_ptr<RenderDevice> renderDevice);
 
 private:
-	void Draw(ImDrawData *drawData);
-	void SetupRenderer();
-	void SetupFontAtlas();
+	void draw(ImDrawData *drawData);
+	void setupRenderer();
+	void setupFontAtlas();
 
-	void DrawDrawables(const std::vector<Drawable> &drawables);
+	void drawDrawables(const std::vector<Drawable> &drawables);
 
 private:
 	static std::unordered_map<uint64, std::shared_ptr<Texture>> TEXTURE_MAP;

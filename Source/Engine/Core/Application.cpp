@@ -39,7 +39,7 @@ void keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods
 
 void mouseButtonCallback(GLFWwindow *window, int button, int action, int mods)
 {
-  if (DEBUG_UI->HasMouseCapture())
+  if (DEBUG_UI->hasMouseCapture())
   {
     return;
   }
@@ -66,7 +66,7 @@ void cursorPositionCallback(GLFWwindow *window, float64 xpos, float64 ypos)
 
 void scrollCallback(GLFWwindow *window, float64 xoffset, float64 yoffset)
 {
-  if (DEBUG_UI->HasMouseCapture())
+  if (DEBUG_UI->hasMouseCapture())
   {
     return;
   }
@@ -301,20 +301,20 @@ Application::~Application()
   glfwTerminate();
 }
 
-int32 Application::Run()
+int32 Application::run()
 {
   try
   {
-    if (!Initialize())
+    if (!initialize())
     {
       return -1;
     }
     _isRunning = true;
-    OnStart();
+    onStart();
 
     while (_isRunning)
     {
-      uint32 dtMs = GetTickDuration();
+      uint32 dtMs = getTickDuration();
 
       if (glfwWindowShouldClose(_window))
       {
@@ -324,9 +324,9 @@ int32 Application::Run()
 
       _scene.update(dtMs);
       _scene.drawFrame();
-      _debugUi->Update(_scene);
+      _debugUi->update(_scene);
 
-      OnUpdate(dtMs);
+      onUpdate(dtMs);
 
       glfwSwapBuffers(_window);
       glfwPollEvents();
@@ -347,7 +347,7 @@ Application::Application(ApplicationDesc desc) : _inputHandler(new InputHandler(
   INPUT_HANDLER = _inputHandler;
 }
 
-float32 Application::GetAverageTickMs(int32 dtMs)
+float32 Application::getAverageTickMs(int32 dtMs)
 {
   static float32 currentDt = 0;
   static int32 dtSum = 0;
@@ -367,18 +367,18 @@ float32 Application::GetAverageTickMs(int32 dtMs)
   return currentDt;
 }
 
-float32 Application::GetAverageFps(int32 dtMs)
+float32 Application::getAverageFps(int32 dtMs)
 {
-  return 1.0f / (GetAverageTickMs(dtMs) * 0.001f);
+  return 1.0f / (getAverageTickMs(dtMs) * 0.001f);
 }
 
 // TODO: Why is this here again? Needs cleanup.
-std::shared_ptr<Texture> Application::LoadTextureFromFile(const std::string &path, bool generateMips, bool sRgb)
+std::shared_ptr<Texture> Application::loadTextureFromFile(const std::string &path, bool generateMips, bool sRgb)
 {
-  return TextureLoader::LoadFromFile2D(_renderDevice, path, generateMips, sRgb);
+  return TextureLoader::loadFromFile2D(_renderDevice, path, generateMips, sRgb);
 }
 
-bool Application::Initialize()
+bool Application::initialize()
 {
   if (!glfwInit())
   {
@@ -432,12 +432,12 @@ bool Application::Initialize()
   }
 
   _debugUi.reset(new UiManager(_window));
-  _debugUi->Initialize(_renderDevice);
+  _debugUi->initialize(_renderDevice);
   DEBUG_UI = _debugUi;
   return true;
 }
 
-int32 Application::GetTickDuration()
+int32 Application::getTickDuration()
 {
   static int32 dtMs = 0;
   static float64 lastTimeInSeconds = 0;

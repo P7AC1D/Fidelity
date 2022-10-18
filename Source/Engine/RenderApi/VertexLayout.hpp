@@ -10,7 +10,7 @@ enum class SemanticType
   TexCoord = 2,
   Tangent = 3,
   Bitangent = 4,
-	Colour = 5
+  Colour = 5
 };
 
 enum class SemanticFormat
@@ -27,38 +27,38 @@ enum class SemanticFormat
   Int3,
   Int2,
   Int,
-	Byte4,
-	Byte3,
-	Byte2,
-	Byte,
-	Ubyte4,
-	Ubyte3,
-	Ubyte2,
-	Ubyte
+  Byte4,
+  Byte3,
+  Byte2,
+  Byte,
+  Ubyte4,
+  Ubyte3,
+  Ubyte2,
+  Ubyte
 };
 
 struct VertexLayoutDesc
 {
-  VertexLayoutDesc(SemanticType type, SemanticFormat format, bool normalized = false):
-    Type(type),
-    Format(format),
-		Normalised(normalized)
-  {}
-  
+  VertexLayoutDesc(SemanticType type, SemanticFormat format, bool normalized = false) : Type(type),
+                                                                                        Format(format),
+                                                                                        Normalised(normalized)
+  {
+  }
+
   SemanticType Type;
   SemanticFormat Format;
-	bool Normalised;
+  bool Normalised;
 };
 
 class VertexLayout
 {
   friend class RenderDevice;
-  
+
 public:
-  const std::vector<VertexLayoutDesc>& GetDesc() const { return _desc; }
-  
+  const std::vector<VertexLayoutDesc> &getDesc() const { return _desc; }
+
 protected:
-  VertexLayout(const std::vector<VertexLayoutDesc>& desc): _desc(desc) {}
+  VertexLayout(const std::vector<VertexLayoutDesc> &desc) : _desc(desc) {}
 
 protected:
   std::vector<VertexLayoutDesc> _desc;

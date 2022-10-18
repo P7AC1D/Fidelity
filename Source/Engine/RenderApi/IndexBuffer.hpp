@@ -17,32 +17,30 @@ struct IndexBufferDesc
 class IndexBuffer : public GpuBuffer
 {
 public:
-  static uint32 GetBytesPerIndex(IndexType type)
+  static uint32 getBytesPerIndex(IndexType type)
   {
     switch (type)
     {
-      case IndexType::UInt16:
-        return 2;
-      case IndexType::UInt32:
-      default:
-        return 4;
+    case IndexType::UInt16:
+      return 2;
+    case IndexType::UInt32:
+    default:
+      return 4;
     }
   }
-  
-  uint32 GetIndexCount() const { return _desc.IndexCount; }
-  IndexType GetIndexType() const { return _desc.IndexType; }
-  BufferUsage GetBufferUsage() const { return _desc.BufferUsage; }
-  
+
+  uint32 getIndexCount() const { return _desc.IndexCount; }
+  IndexType getIndexType() const { return _desc.IndexType; }
+  BufferUsage getBufferUsage() const { return _desc.BufferUsage; }
+
 protected:
-  IndexBuffer(const IndexBufferDesc& desc):
-    GpuBuffer({
-      GetBytesPerIndex(desc.IndexType) * desc.IndexCount,
-      BufferType::Index,
-      desc.BufferUsage
-    }),
-    _desc(desc)
-  {}
-  
+  IndexBuffer(const IndexBufferDesc &desc) : GpuBuffer({getBytesPerIndex(desc.IndexType) * desc.IndexCount,
+                                                        BufferType::Index,
+                                                        desc.BufferUsage}),
+                                             _desc(desc)
+  {
+  }
+
 protected:
   IndexBufferDesc _desc;
 };

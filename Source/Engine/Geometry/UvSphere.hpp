@@ -7,8 +7,8 @@ public:
   UvSphere(uint32 sectors, uint32 stacks);
 
 private:
-  void GenerateVertices();
-  void GenerateIndices();
+  void generateVertices();
+  void generateIndices();
 
   uint32 _sectorCount, _stackCount;
 };

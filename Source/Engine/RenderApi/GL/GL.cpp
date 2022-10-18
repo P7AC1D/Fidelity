@@ -7,7 +7,7 @@
 #define GL_INVALID_VALUE 0x0501
 #define GL_INVALID_OPERATION 0x0502
 
-std::string GLErrorToStr(GLenum error)
+std::string glErrorToStr(GLenum error)
 {
   switch (error)
   {
@@ -25,18 +25,18 @@ std::string GLErrorToStr(GLenum error)
   return std::to_string(static_cast<uint32>(error));
 }
 
-void GLClearError()
+void glClearError()
 {
   while (glGetError() != GL_NO_ERROR)
     ;
 }
 
-bool GLLogCall(const byte *function, const byte *file, int line)
+bool glLogCall(const byte *function, const byte *file, int line)
 {
   // std::cout << "Calling OpenGL function: " << function << " " << file << ":" << line << std::endl;
   while (GLenum error = glGetError())
   {
-    auto glError = GLErrorToStr(error);
+    auto glError = glErrorToStr(error);
     std::cout << "[OpenGL Error] (" << glError << "): " << function << " " << file << ":" << std::endl;
     return false;
   }

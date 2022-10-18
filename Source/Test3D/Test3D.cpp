@@ -15,14 +15,14 @@ Test3D::Test3D(const ApplicationDesc &desc) : Application(desc),
 {
 }
 
-void Test3D::OnStart()
+void Test3D::onStart()
 {
   GameObject &root = _scene.getRoot();
 
   _camera = &GameObjectBuilder(_scene)
                  .withName("mainCamera")
                  .withComponent(_scene.createComponent<Camera>()
-                                    .setPerspective(Degree(67.67f), GetWidth(), GetHeight(), 0.1f, 200.0f))
+                                    .setPerspective(Degree(67.67f), getWidth(), getHeight(), 0.1f, 200.0f))
                  .withPosition(Vector3(-15.0f, 17.0f, -11.0f))
                  .withTarget(Vector3::Zero)
                  .withRotation(Quaternion(Degree(-123.0f), Degree(36.0f), Degree(138.0f)))
@@ -58,12 +58,12 @@ void Test3D::OnStart()
                                                      .setRadius(25.0f))
                                   .withPosition(Vector3(-1.5f, 1.0f, 1.0f))
                                   .build());
-  //_scene.addChildToNode(root, ModelLoader::FromFile(_scene, "./Models/Sponza/sponza.obj", true));
+  //_scene.addChildToNode(root, ModelLoader::fromFile(_scene, "./Models/Sponza/sponza.obj", true));
 
   std::shared_ptr<Material> material(new Material());
-  material->setDiffuseTexture(LoadTextureFromFile("./Textures/crate0_diffuse.png", true, true));
-  material->setNormalTexture(LoadTextureFromFile("./Textures/crate0_normal.png", false, false));
-  material->setSpecularTexture(LoadTextureFromFile("./Textures/crate0_bump.png", false, false));
+  material->setDiffuseTexture(loadTextureFromFile("./Textures/crate0_diffuse.png", true, true));
+  material->setNormalTexture(loadTextureFromFile("./Textures/crate0_normal.png", false, false));
+  material->setSpecularTexture(loadTextureFromFile("./Textures/crate0_bump.png", false, false));
 
   std::random_device rd;
   std::mt19937 gen(rd());
@@ -71,31 +71,31 @@ void Test3D::OnStart()
   for (uint32 i = 0; i < 100; i++)
   {
     _scene.addChildToNode(root, GameObjectBuilder(_scene)
-      .withName("cube" + std::to_string(i))
-      .withComponent(_scene.createComponent<Drawable>()
-        .setMesh(MeshFactory::CreateCube())
-        .setMaterial(material))
-      .withPosition(Vector3(dist(gen), std::fabsf(dist(gen)), dist(gen)))
-      .withRotation(Quaternion(Degree(dist(gen)), Degree(dist(gen)), Degree(dist(gen))))
-      .build());
+                                    .withName("cube" + std::to_string(i))
+                                    .withComponent(_scene.createComponent<Drawable>()
+                                                       .setMesh(MeshFactory::createCube())
+                                                       .setMaterial(material))
+                                    .withPosition(Vector3(dist(gen), std::fabsf(dist(gen)), dist(gen)))
+                                    .withRotation(Quaternion(Degree(dist(gen)), Degree(dist(gen)), Degree(dist(gen))))
+                                    .build());
   }
 
   std::shared_ptr<Material> floorMaterial(new Material());
-  floorMaterial->setDiffuseTexture(LoadTextureFromFile("./Textures/brick_floor_tileable_Base_Color.jpg", true, true));
+  floorMaterial->setDiffuseTexture(loadTextureFromFile("./Textures/brick_floor_tileable_Base_Color.jpg", true, true));
   _scene.addChildToNode(root, GameObjectBuilder(_scene)
                                   .withName("floor")
                                   .withComponent(_scene.createComponent<Drawable>()
-                                                     .setMesh(MeshFactory::CreatePlane(100))
+                                                     .setMesh(MeshFactory::createPlane(100))
                                                      .setMaterial(floorMaterial))
                                   .withPosition(Vector3(50, -5, 50))
                                   .withScale(Vector3(100, 100, 100))
                                   .build());
 }
 
-void Test3D::OnUpdate(uint32 dtMs)
+void Test3D::onUpdate(uint32 dtMs)
 {
   Vector2I scrollDelta(_inputHandler->getAxisState(Axis::MouseScrollXY));
-  ZoomCamera(scrollDelta[1], dtMs);
+  zoomCamera(scrollDelta[1], dtMs);
 
   Vector2I currMousePos(_inputHandler->getAxisState(Axis::MouseXY));
   Vector2I mousePosDelta = _lastMousePos - currMousePos;
@@ -103,38 +103,38 @@ void Test3D::OnUpdate(uint32 dtMs)
   if (_inputHandler->isButtonPressed(Button::Key_W))
   {
     float32 deltaX = static_cast<float32>(dtMs) * (_inputHandler->isButtonPressed(Button::Key_LShift) ? CAMERA_MOVE_SPRINT_FACTOR : CAMERA_MOVE_FACTOR);
-    TranslateCamera(deltaX, 0.0f);
+    translateCamera(deltaX, 0.0f);
   }
   else if (_inputHandler->isButtonPressed(Button::Key_S))
   {
     float32 deltaX = static_cast<float32>(dtMs) * (_inputHandler->isButtonPressed(Button::Key_LShift) ? CAMERA_MOVE_SPRINT_FACTOR : CAMERA_MOVE_FACTOR);
-    TranslateCamera(-deltaX, 0.0f);
+    translateCamera(-deltaX, 0.0f);
   }
 
   if (_inputHandler->isButtonPressed(Button::Key_D))
   {
     float32 deltaY = static_cast<float32>(dtMs) * (_inputHandler->isButtonPressed(Button::Key_LShift) ? CAMERA_MOVE_SPRINT_FACTOR : CAMERA_MOVE_FACTOR);
-    TranslateCamera(0.0f, deltaY);
+    translateCamera(0.0f, deltaY);
   }
   else if (_inputHandler->isButtonPressed(Button::Key_A))
   {
     float32 deltaY = static_cast<float32>(dtMs) * (_inputHandler->isButtonPressed(Button::Key_LShift) ? CAMERA_MOVE_SPRINT_FACTOR : CAMERA_MOVE_FACTOR);
-    TranslateCamera(0.0f, -deltaY);
+    translateCamera(0.0f, -deltaY);
   }
 
   if (_inputHandler->isButtonPressed(Button::Button_LMouse))
   {
-    RotateCamera(mousePosDelta[0], mousePosDelta[1], dtMs);
+    rotateCamera(mousePosDelta[0], mousePosDelta[1], dtMs);
   }
   else if (_inputHandler->isButtonPressed(Button::Button_RMouse))
   {
-    FpsCameraLook(mousePosDelta[0], mousePosDelta[1], dtMs);
+    fpsCameraLook(mousePosDelta[0], mousePosDelta[1], dtMs);
   }
 
   _lastMousePos = currMousePos;
 }
 
-void Test3D::FpsCameraLook(int32 deltaX, int32 deltaY, uint32 dtMs)
+void Test3D::fpsCameraLook(int32 deltaX, int32 deltaY, uint32 dtMs)
 {
   if (deltaX == 0 && deltaY == 0)
   {
@@ -150,7 +150,7 @@ void Test3D::FpsCameraLook(int32 deltaX, int32 deltaY, uint32 dtMs)
   _cameraTarget = cameraTransform.getForward();
 }
 
-void Test3D::RotateCamera(int32 deltaX, int32 deltaY, uint32 dtMs)
+void Test3D::rotateCamera(int32 deltaX, int32 deltaY, uint32 dtMs)
 {
   if (deltaX == 0 && deltaY == 0)
   {
@@ -166,7 +166,7 @@ void Test3D::RotateCamera(int32 deltaX, int32 deltaY, uint32 dtMs)
   cameraTransform.lookAt(newPosition, cameraTransform.getForward());
 }
 
-void Test3D::ZoomCamera(int32 delta, uint32 dtMs)
+void Test3D::zoomCamera(int32 delta, uint32 dtMs)
 {
   if (delta == 0)
   {
@@ -190,7 +190,7 @@ void Test3D::ZoomCamera(int32 delta, uint32 dtMs)
   cameraTransform.lookAt(newPosition, _cameraTarget);
 }
 
-void Test3D::TranslateCamera(float32 forward, float32 right)
+void Test3D::translateCamera(float32 forward, float32 right)
 {
   if (forward == 0.0f && right == 0.0f)
   {

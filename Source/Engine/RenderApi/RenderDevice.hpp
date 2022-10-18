@@ -24,10 +24,10 @@ struct ViewportDesc
 
 struct ScissorDesc
 {
-	uint32 X;
-	uint32 Y;
-	uint32 W;
-	uint32 H;
+  uint32 X;
+  uint32 Y;
+  uint32 W;
+  uint32 H;
 };
 
 struct RenderDeviceDesc
@@ -41,66 +41,66 @@ struct RenderDeviceDesc
 
 enum RenderTargetType
 {
-	RTT_Colour = 1,
-	RTT_Depth = 2,
-	RTT_Stencil = 4
+  RTT_Colour = 1,
+  RTT_Depth = 2,
+  RTT_Stencil = 4
 };
 
 class RenderDevice
 {
 public:
-  RenderDevice(const RenderDeviceDesc& desc): _desc(desc) {}
-  
-  virtual std::shared_ptr<Shader> CreateShader(const ShaderDesc& desc) = 0;
-  virtual std::shared_ptr<IndexBuffer> CreateIndexBuffer(const IndexBufferDesc& desc) = 0;
-  virtual std::shared_ptr<VertexBuffer> CreateVertexBuffer(const VertexBufferDesc& desc) = 0;
-  virtual std::shared_ptr<Texture> CreateTexture(const TextureDesc& desc, bool gammaCorrected = false) = 0;
-  virtual std::shared_ptr<RenderTarget> CreateRenderTarget(const RenderTargetDesc& desc) = 0;
-  virtual std::shared_ptr<GpuBuffer> CreateGpuBuffer(const GpuBufferDesc& desc) = 0;
-  virtual std::shared_ptr<SamplerState> CreateSamplerState(const SamplerStateDesc& desc) = 0;
+  RenderDevice(const RenderDeviceDesc &desc) : _desc(desc) {}
 
-  virtual void SetPipelineState(const std::shared_ptr<PipelineState>& pipelineState) = 0;
-  virtual void SetPrimitiveTopology(PrimitiveTopology primitiveTopology) = 0;
-  virtual void SetTexture(uint32 slot, const std::shared_ptr<Texture>& texture) = 0;
-  virtual void SetRenderTarget(const std::shared_ptr<RenderTarget>& renderTarget) = 0;
-  virtual void SetViewport(const ViewportDesc& viewport) = 0;
-  virtual void SetVertexBuffer(const std::shared_ptr<VertexBuffer> vertexBuffer) = 0;
-  virtual void SetIndexBuffer(const std::shared_ptr<IndexBuffer>& indexBuffer) = 0;
-  virtual void SetConstantBuffer(uint32 slot, const std::shared_ptr<GpuBuffer>& constantBuffer) = 0;
-  virtual void SetSamplerState(uint32 slot, const std::shared_ptr<SamplerState>& samplerState) = 0;
-	virtual void SetScissorDimensions(const ScissorDesc& desc) = 0;
+  virtual std::shared_ptr<Shader> createShader(const ShaderDesc &desc) = 0;
+  virtual std::shared_ptr<IndexBuffer> createIndexBuffer(const IndexBufferDesc &desc) = 0;
+  virtual std::shared_ptr<VertexBuffer> createVertexBuffer(const VertexBufferDesc &desc) = 0;
+  virtual std::shared_ptr<Texture> createTexture(const TextureDesc &desc, bool gammaCorrected = false) = 0;
+  virtual std::shared_ptr<RenderTarget> createRenderTarget(const RenderTargetDesc &desc) = 0;
+  virtual std::shared_ptr<GpuBuffer> createGpuBuffer(const GpuBufferDesc &desc) = 0;
+  virtual std::shared_ptr<SamplerState> createSamplerState(const SamplerStateDesc &desc) = 0;
 
-	virtual const ViewportDesc& GetViewport() const = 0;
-	virtual ScissorDesc GetScissorDimensions() const = 0;
+  virtual void setPipelineState(const std::shared_ptr<PipelineState> &pipelineState) = 0;
+  virtual void setPrimitiveTopology(PrimitiveTopology primitiveTopology) = 0;
+  virtual void setTexture(uint32 slot, const std::shared_ptr<Texture> &texture) = 0;
+  virtual void setRenderTarget(const std::shared_ptr<RenderTarget> &renderTarget) = 0;
+  virtual void setViewport(const ViewportDesc &viewport) = 0;
+  virtual void setVertexBuffer(const std::shared_ptr<VertexBuffer> vertexBuffer) = 0;
+  virtual void setIndexBuffer(const std::shared_ptr<IndexBuffer> &indexBuffer) = 0;
+  virtual void setConstantBuffer(uint32 slot, const std::shared_ptr<GpuBuffer> &constantBuffer) = 0;
+  virtual void setSamplerState(uint32 slot, const std::shared_ptr<SamplerState> &samplerState) = 0;
+  virtual void setScissorDimensions(const ScissorDesc &desc) = 0;
 
-  virtual void Draw(uint32 vertexCount, uint32 vertexOffset) = 0;
-  virtual void DrawIndexed(uint32 indexCount, uint32 indexOffset, uint32 vertexOffset) = 0;
+  virtual const ViewportDesc &getViewport() const = 0;
+  virtual ScissorDesc getScissorDimensions() const = 0;
 
-	virtual void ClearBuffers(uint32 buffers, const Colour& colour = Colour::Black, float32 depth = 1.0f, int32 stencil = 0) = 0;
-  
-  virtual std::shared_ptr<BlendState> CreateBlendState(const BlendStateDesc& desc)
+  virtual void draw(uint32 vertexCount, uint32 vertexOffset) = 0;
+  virtual void drawIndexed(uint32 indexCount, uint32 indexOffset, uint32 vertexOffset) = 0;
+
+  virtual void clearBuffers(uint32 buffers, const Colour &colour = Colour::Black, float32 depth = 1.0f, int32 stencil = 0) = 0;
+
+  virtual std::shared_ptr<BlendState> createBlendState(const BlendStateDesc &desc)
   {
     return std::shared_ptr<BlendState>(new BlendState(desc));
   }
-  virtual std::shared_ptr<DepthStencilState> CreateDepthStencilState(const DepthStencilStateDesc& desc)
+  virtual std::shared_ptr<DepthStencilState> createDepthStencilState(const DepthStencilStateDesc &desc)
   {
     return std::shared_ptr<DepthStencilState>(new DepthStencilState(desc));
   }
-  virtual std::shared_ptr<PipelineState> CreatePipelineState(const PipelineStateDesc& desc)
+  virtual std::shared_ptr<PipelineState> createPipelineState(const PipelineStateDesc &desc)
   {
     return std::shared_ptr<PipelineState>(new PipelineState(desc));
   }
-  virtual std::shared_ptr<RasterizerState> CreateRasterizerState(const RasterizerStateDesc& desc)
+  virtual std::shared_ptr<RasterizerState> createRasterizerState(const RasterizerStateDesc &desc)
   {
     return std::shared_ptr<RasterizerState>(new RasterizerState(desc));
   }
-  virtual std::shared_ptr<VertexLayout> CreateVertexLayout(const std::vector<VertexLayoutDesc>& desc)
+  virtual std::shared_ptr<VertexLayout> createVertexLayout(const std::vector<VertexLayoutDesc> &desc)
   {
     return std::shared_ptr<VertexLayout>(new VertexLayout(desc));
   }
 
-	uint32 GetRenderWidth() const { return _desc.RenderWidth; }
-	uint32 GetRenderHeight() const { return _desc.RenderHeight; }
+  uint32 getRenderWidth() const { return _desc.RenderWidth; }
+  uint32 getRenderHeight() const { return _desc.RenderHeight; }
 
 protected:
   RenderDeviceDesc _desc;

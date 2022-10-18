@@ -22,7 +22,7 @@ bool lockCameraToLight = false;
 
 std::unordered_map<uint64, std::shared_ptr<Texture>> UiManager::TEXTURE_MAP;
 
-void UiManager::AddTexture(uint64 id, const std::shared_ptr<Texture> &texture)
+void UiManager::addTexture(uint64 id, const std::shared_ptr<Texture> &texture)
 {
 	TEXTURE_MAP[id] = texture;
 }
@@ -48,12 +48,12 @@ UiManager::~UiManager()
 	ImGui::DestroyContext();
 }
 
-bool UiManager::HasMouseCapture() const
+bool UiManager::hasMouseCapture() const
 {
 	return _io->WantCaptureMouse;
 }
 
-void UiManager::Update(Scene &scene)
+void UiManager::update(Scene &scene)
 {
 	ImGui_ImplOpenGL3_NewFrame();
 	ImGui_ImplGlfw_NewFrame();
@@ -89,13 +89,13 @@ void UiManager::Update(Scene &scene)
 
 	ImGui::EndFrame();
 	ImGui::Render();
-	Draw(ImGui::GetDrawData());
+	draw(ImGui::GetDrawData());
 }
 
-void UiManager::Draw(ImDrawData *drawData)
+void UiManager::draw(ImDrawData *drawData)
 {
-	auto currentScissorDim = _renderDevice->GetScissorDimensions();
-	auto currentViewport = _renderDevice->GetViewport();
+	auto currentScissorDim = _renderDevice->getScissorDimensions();
+	auto currentViewport = _renderDevice->getViewport();
 
 	int32 fbWidth = (int32)(drawData->DisplaySize.x * _io->DisplayFramebufferScale.x);
 	int32 fbHeight = (int32)(drawData->DisplaySize.y * _io->DisplayFramebufferScale.y);
@@ -116,14 +116,14 @@ void UiManager::Draw(ImDrawData *drawData)
 	newViewport.TopLeftY = 0;
 	newViewport.Width = fbWidth;
 	newViewport.Height = fbHeight;
-	_renderDevice->SetViewport(newViewport);
+	_renderDevice->setViewport(newViewport);
 
 	GpuBufferDesc constBufferDesc;
 	constBufferDesc.BufferType = BufferType::Constant;
 	constBufferDesc.BufferUsage = BufferUsage::Dynamic;
 	constBufferDesc.ByteCount = sizeof(Matrix4);
-	_constBuffer = _renderDevice->CreateGpuBuffer(constBufferDesc);
-	_constBuffer->WriteData(0, constBufferDesc.ByteCount, &orthProj[0][0], AccessType::WriteOnlyDiscardRange);
+	_constBuffer = _renderDevice->createGpuBuffer(constBufferDesc);
+	_constBuffer->writeData(0, constBufferDesc.ByteCount, &orthProj[0][0], AccessType::WriteOnlyDiscardRange);
 
 	if (!_vertBuffer || _vertBuffSize < drawData->TotalVtxCount)
 	{
@@ -133,7 +133,7 @@ void UiManager::Draw(ImDrawData *drawData)
 		vertBufferDesc.BufferUsage = BufferUsage::Dynamic;
 		vertBufferDesc.VertexCount = _vertBuffSize;
 		vertBufferDesc.VertexSizeBytes = sizeof(ImDrawVert);
-		_vertBuffer = _renderDevice->CreateVertexBuffer(vertBufferDesc);
+		_vertBuffer = _renderDevice->createVertexBuffer(vertBufferDesc);
 	}
 
 	if (!_idxBuffer || _idxBuffSize < drawData->TotalIdxCount)
@@ -144,7 +144,7 @@ void UiManager::Draw(ImDrawData *drawData)
 		idxBufferDesc.BufferUsage = BufferUsage::Default;
 		idxBufferDesc.IndexCount = _idxBuffSize;
 		idxBufferDesc.IndexType = sizeof(ImDrawIdx) == 2 ? IndexType::UInt16 : IndexType::UInt32;
-		_idxBuffer = _renderDevice->CreateIndexBuffer(idxBufferDesc);
+		_idxBuffer = _renderDevice->createIndexBuffer(idxBufferDesc);
 	}
 
 	uint64 vertByteOffset = 0;
@@ -155,8 +155,8 @@ void UiManager::Draw(ImDrawData *drawData)
 		uint64 vertByteCount = cmdList->VtxBuffer.Size * sizeof(ImDrawVert);
 		uint32 idxByteCount = cmdList->IdxBuffer.Size * sizeof(ImDrawIdx);
 
-		_vertBuffer->WriteData(vertByteOffset, vertByteCount, cmdList->VtxBuffer.Data);
-		_idxBuffer->WriteData(idxByteOffset, idxByteCount, cmdList->IdxBuffer.Data);
+		_vertBuffer->writeData(vertByteOffset, vertByteCount, cmdList->VtxBuffer.Data);
+		_idxBuffer->writeData(idxByteOffset, idxByteCount, cmdList->IdxBuffer.Data);
 
 		vertByteOffset += vertByteCount;
 		idxByteOffset += idxByteCount;
@@ -175,64 +175,60 @@ void UiManager::Draw(ImDrawData *drawData)
 
 			ScissorDesc newScissorDim;
 			newScissorDim.X = clipRect.x;
-			newScissorDim.Y = _renderDevice->GetRenderHeight() - clipRect.w;
+			newScissorDim.Y = _renderDevice->getRenderHeight() - clipRect.w;
 			newScissorDim.W = clipRect.z - clipRect.x;
 			newScissorDim.H = clipRect.w - clipRect.y;
-			_renderDevice->SetScissorDimensions(newScissorDim);
+			_renderDevice->setScissorDimensions(newScissorDim);
 
 			auto texture = TEXTURE_MAP[reinterpret_cast<uint64>(pCmd->TextureId)];
 			if (texture)
 			{
-				_renderDevice->SetTexture(0, texture);
+				_renderDevice->setTexture(0, texture);
 			}
 			else
 			{
-				_renderDevice->SetTexture(0, _textureAtlas);
+				_renderDevice->setTexture(0, _textureAtlas);
 			}
 
-			_renderDevice->SetPipelineState(_pipelineState);
-			_renderDevice->SetSamplerState(0, _noMipSamplerState);
+			_renderDevice->setPipelineState(_pipelineState);
+			_renderDevice->setSamplerState(0, _noMipSamplerState);
 
-			_renderDevice->SetVertexBuffer(_vertBuffer);
-			_renderDevice->SetIndexBuffer(_idxBuffer);
-			_renderDevice->SetConstantBuffer(0, _constBuffer);
+			_renderDevice->setVertexBuffer(_vertBuffer);
+			_renderDevice->setIndexBuffer(_idxBuffer);
+			_renderDevice->setConstantBuffer(0, _constBuffer);
 
-			_renderDevice->DrawIndexed(pCmd->ElemCount, idxOffset, vertOffset);
+			_renderDevice->drawIndexed(pCmd->ElemCount, idxOffset, vertOffset);
 			idxOffset += pCmd->ElemCount;
 		}
 		vertOffset += cmdList->VtxBuffer.Size;
 	}
 
-	_renderDevice->SetScissorDimensions(currentScissorDim);
-	_renderDevice->SetViewport(currentViewport);
+	_renderDevice->setScissorDimensions(currentScissorDim);
+	_renderDevice->setViewport(currentViewport);
 }
 
-void UiManager::Initialize(std::shared_ptr<RenderDevice> renderDevice)
+void UiManager::initialize(std::shared_ptr<RenderDevice> renderDevice)
 {
 	if (!_initialized)
 	{
 		_renderDevice = renderDevice;
 
-		SetupRenderer();
-		SetupFontAtlas();
+		setupRenderer();
+		setupFontAtlas();
 		_initialized = true;
 	}
 }
 
-void UiManager::SetupRenderer()
+void UiManager::setupRenderer()
 {
 
 	ShaderDesc vsShaderDesc;
-	vsShaderDesc.EntryPoint = "main";
-	vsShaderDesc.ShaderLang = ShaderLang::Glsl;
 	vsShaderDesc.ShaderType = ShaderType::Vertex;
-	vsShaderDesc.Source = String::LoadFromFile("./Shaders/DebugGui.vert");
+	vsShaderDesc.Source = String::foadFromFile("./Shaders/DebugGui.vert");
 
 	ShaderDesc psShaderDesc;
-	psShaderDesc.EntryPoint = "main";
-	psShaderDesc.ShaderLang = ShaderLang::Glsl;
-	psShaderDesc.ShaderType = ShaderType::Pixel;
-	psShaderDesc.Source = String::LoadFromFile("./Shaders/DebugGui.frag");
+	psShaderDesc.ShaderType = ShaderType::Fragment;
+	psShaderDesc.Source = String::foadFromFile("./Shaders/DebugGui.frag");
 
 	BlendStateDesc blendStateDesc;
 	blendStateDesc.RTBlendState[0].BlendEnabled = true;
@@ -252,21 +248,21 @@ void UiManager::SetupRenderer()
 			VertexLayoutDesc(SemanticType::Colour, SemanticFormat::Ubyte4, true)};
 
 	std::shared_ptr<ShaderParams> shaderParams(new ShaderParams());
-	shaderParams->AddParam(ShaderParam("Constants", ShaderParamType::ConstBuffer, 0));
-	shaderParams->AddParam(ShaderParam("DiffuseMap", ShaderParamType::Texture, 0));
+	shaderParams->addParam(ShaderParam("Constants", ShaderParamType::ConstBuffer, 0));
+	shaderParams->addParam(ShaderParam("DiffuseMap", ShaderParamType::Texture, 0));
 
 	try
 	{
 		PipelineStateDesc pStateDesc;
-		pStateDesc.BlendState = _renderDevice->CreateBlendState(blendStateDesc);
-		pStateDesc.DepthStencilState = _renderDevice->CreateDepthStencilState(depthStencilStateDesc);
-		pStateDesc.RasterizerState = _renderDevice->CreateRasterizerState(rasterizerStateDesc);
-		pStateDesc.VS = _renderDevice->CreateShader(vsShaderDesc);
-		pStateDesc.PS = _renderDevice->CreateShader(psShaderDesc);
-		pStateDesc.VertexLayout = _renderDevice->CreateVertexLayout(vertexLayoutDesc);
+		pStateDesc.BlendState = _renderDevice->createBlendState(blendStateDesc);
+		pStateDesc.DepthStencilState = _renderDevice->createDepthStencilState(depthStencilStateDesc);
+		pStateDesc.RasterizerState = _renderDevice->createRasterizerState(rasterizerStateDesc);
+		pStateDesc.VS = _renderDevice->createShader(vsShaderDesc);
+		pStateDesc.FS = _renderDevice->createShader(psShaderDesc);
+		pStateDesc.VertexLayout = _renderDevice->createVertexLayout(vertexLayoutDesc);
 		pStateDesc.ShaderParams = shaderParams;
 
-		_pipelineState = _renderDevice->CreatePipelineState(pStateDesc);
+		_pipelineState = _renderDevice->createPipelineState(pStateDesc);
 	}
 	catch (const std::exception &exception)
 	{
@@ -279,7 +275,7 @@ void UiManager::SetupRenderer()
 		samplerStateDesc.MinFiltering = TextureFilteringMode::Linear;
 		samplerStateDesc.MaxFiltering = TextureFilteringMode::Linear;
 		samplerStateDesc.MipFiltering = TextureFilteringMode::Linear;
-		_samplerState = _renderDevice->CreateSamplerState(samplerStateDesc);
+		_samplerState = _renderDevice->createSamplerState(samplerStateDesc);
 	}
 	catch (const std::exception &exception)
 	{
@@ -293,7 +289,7 @@ void UiManager::SetupRenderer()
 	desc.MipFiltering = TextureFilteringMode::None;
 	try
 	{
-		_noMipSamplerState = _renderDevice->CreateSamplerState(desc);
+		_noMipSamplerState = _renderDevice->createSamplerState(desc);
 	}
 	catch (const std::exception &exception)
 	{
@@ -301,7 +297,7 @@ void UiManager::SetupRenderer()
 	}
 }
 
-void UiManager::SetupFontAtlas()
+void UiManager::setupFontAtlas()
 {
 	ubyte *pixels = nullptr;
 	int32 width = 0;
@@ -314,17 +310,17 @@ void UiManager::SetupFontAtlas()
 	desc.Width = static_cast<uint32>(width);
 	desc.Height = static_cast<uint32>(height);
 
-	_textureAtlas = _renderDevice->CreateTexture(desc);
+	_textureAtlas = _renderDevice->createTexture(desc);
 
 	std::shared_ptr<ImageData> imageData(new ImageData(desc.Width, desc.Height, 1, ImageFormat::RGBA8));
-	imageData->WriteData(pixels);
-	_textureAtlas->WriteData(0, 0, imageData);
-	_textureAtlas->GenerateMips();
-	AddTexture(reinterpret_cast<uint64>(&_textureAtlas), _textureAtlas);
+	imageData->writeData(pixels);
+	_textureAtlas->writeData(0, 0, imageData);
+	_textureAtlas->generateMips();
+	addTexture(reinterpret_cast<uint64>(&_textureAtlas), _textureAtlas);
 
 	_io->Fonts->TexID = &_textureAtlas;
 }
 
-void UiManager::DrawDrawables(const std::vector<Drawable> &drawables)
+void UiManager::drawDrawables(const std::vector<Drawable> &drawables)
 {
 }

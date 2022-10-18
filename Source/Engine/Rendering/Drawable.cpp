@@ -62,7 +62,7 @@ void Drawable::drawInspector()
 				return;
 			}
 
-			UiManager::AddTexture(reinterpret_cast<uint64>(&diffuseTexture), diffuseTexture);
+			UiManager::addTexture(reinterpret_cast<uint64>(&diffuseTexture), diffuseTexture);
 			ImGui::Image(
 					&diffuseTexture,
 					ImVec2(200, 200),
@@ -79,7 +79,7 @@ void Drawable::drawInspector()
 				return;
 			}
 
-			UiManager::AddTexture(reinterpret_cast<uint64>(&normalTexture), normalTexture);
+			UiManager::addTexture(reinterpret_cast<uint64>(&normalTexture), normalTexture);
 			ImGui::Image(
 					&normalTexture,
 					ImVec2(200, 200),
@@ -96,7 +96,7 @@ void Drawable::drawInspector()
 				return;
 			}
 
-			UiManager::AddTexture(reinterpret_cast<uint64>(&specularTexture), specularTexture);
+			UiManager::addTexture(reinterpret_cast<uint64>(&specularTexture), specularTexture);
 			ImGui::Image(
 					&specularTexture,
 					ImVec2(200, 200),
@@ -113,7 +113,7 @@ void Drawable::drawInspector()
 				return;
 			}
 
-			UiManager::AddTexture(reinterpret_cast<uint64>(&opacityTexture), opacityTexture);
+			UiManager::addTexture(reinterpret_cast<uint64>(&opacityTexture), opacityTexture);
 			ImGui::Image(
 					&opacityTexture,
 					ImVec2(200, 200),

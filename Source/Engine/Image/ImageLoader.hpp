@@ -6,8 +6,8 @@
 class ImageLoader
 {
 public:
-  static std::shared_ptr<ImageData> LoadFromFile(const std::string& filePath);
+  static std::shared_ptr<ImageData> loadFromFile(const std::string &filePath);
 
 private:
-	static std::shared_ptr<ImageData> BuildImageData(ubyte* data, int32 width, int32 height, int32 channelCount);
+  static std::shared_ptr<ImageData> buildImageData(ubyte *data, int32 width, int32 height, int32 channelCount);
 };

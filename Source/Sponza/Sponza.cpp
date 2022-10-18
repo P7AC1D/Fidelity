@@ -15,14 +15,14 @@ Sponza::Sponza(const ApplicationDesc &desc) : Application(desc),
 {
 }
 
-void Sponza::OnStart()
+void Sponza::onStart()
 {
   GameObject &root = _scene.getRoot();
 
   _camera = &GameObjectBuilder(_scene)
                  .withName("mainCamera")
                  .withComponent(_scene.createComponent<Camera>()
-                                    .setPerspective(Degree(67.67f), GetWidth(), GetHeight(), 0.1f, 500.0f))
+                                    .setPerspective(Degree(67.67f), getWidth(), getHeight(), 0.1f, 500.0f))
                  .withPosition(Vector3(-105.0f, 70.0f, 9.0f))
                  .withTarget(Vector3::Zero)
                  .withRotation(Quaternion(Degree(59.552), Degree(53.438), Degree(53.802)))
@@ -59,12 +59,12 @@ void Sponza::OnStart()
                                   .withPosition(Vector3(12.0f, 8.0f, 0.0f))
                                   .build());
 
-  auto &sponzaNode = ModelLoader::FromFile(_scene, "./Models/Sponza/sponza.obj", true);
+  auto &sponzaNode = ModelLoader::fromFile(_scene, "./Models/Sponza/sponza.obj", true);
   sponzaNode.transform().setScale(Vector3(0.1, 0.1, 0.1));
   _scene.addChildToNode(root, sponzaNode);
 }
 
-void Sponza::OnUpdate(uint32 dtMs)
+void Sponza::onUpdate(uint32 dtMs)
 {
   Vector2I currMousePos(_inputHandler->getAxisState(Axis::MouseXY));
   Vector2I mousePosDelta = _lastMousePos - currMousePos;
@@ -72,34 +72,34 @@ void Sponza::OnUpdate(uint32 dtMs)
   if (_inputHandler->isButtonPressed(Button::Key_W))
   {
     float32 deltaX = static_cast<float32>(dtMs) * (_inputHandler->isButtonPressed(Button::Key_LShift) ? CAMERA_MOVE_SPRINT_FACTOR : CAMERA_MOVE_FACTOR);
-    TranslateCamera(deltaX, 0.0f);
+    translateCamera(deltaX, 0.0f);
   }
   else if (_inputHandler->isButtonPressed(Button::Key_S))
   {
     float32 deltaX = static_cast<float32>(dtMs) * (_inputHandler->isButtonPressed(Button::Key_LShift) ? CAMERA_MOVE_SPRINT_FACTOR : CAMERA_MOVE_FACTOR);
-    TranslateCamera(-deltaX, 0.0f);
+    translateCamera(-deltaX, 0.0f);
   }
 
   if (_inputHandler->isButtonPressed(Button::Key_D))
   {
     float32 deltaY = static_cast<float32>(dtMs) * (_inputHandler->isButtonPressed(Button::Key_LShift) ? CAMERA_MOVE_SPRINT_FACTOR : CAMERA_MOVE_FACTOR);
-    TranslateCamera(0.0f, deltaY);
+    translateCamera(0.0f, deltaY);
   }
   else if (_inputHandler->isButtonPressed(Button::Key_A))
   {
     float32 deltaY = static_cast<float32>(dtMs) * (_inputHandler->isButtonPressed(Button::Key_LShift) ? CAMERA_MOVE_SPRINT_FACTOR : CAMERA_MOVE_FACTOR);
-    TranslateCamera(0.0f, -deltaY);
+    translateCamera(0.0f, -deltaY);
   }
 
   if (_inputHandler->isButtonPressed(Button::Button_RMouse))
   {
-    FpsCameraLook(mousePosDelta[0], mousePosDelta[1], dtMs);
+    fpsCameraLook(mousePosDelta[0], mousePosDelta[1], dtMs);
   }
 
   _lastMousePos = currMousePos;
 }
 
-void Sponza::FpsCameraLook(int32 deltaX, int32 deltaY, uint32 dtMs)
+void Sponza::fpsCameraLook(int32 deltaX, int32 deltaY, uint32 dtMs)
 {
   if (deltaX == 0 && deltaY == 0)
   {
@@ -115,7 +115,7 @@ void Sponza::FpsCameraLook(int32 deltaX, int32 deltaY, uint32 dtMs)
   _cameraTarget = cameraTransform.getForward();
 }
 
-void Sponza::RotateCamera(int32 deltaX, int32 deltaY, uint32 dtMs)
+void Sponza::rotateCamera(int32 deltaX, int32 deltaY, uint32 dtMs)
 {
   if (deltaX == 0 && deltaY == 0)
   {
@@ -131,7 +131,7 @@ void Sponza::RotateCamera(int32 deltaX, int32 deltaY, uint32 dtMs)
   cameraTransform.lookAt(newPosition, cameraTransform.getForward());
 }
 
-void Sponza::ZoomCamera(int32 delta, uint32 dtMs)
+void Sponza::zoomCamera(int32 delta, uint32 dtMs)
 {
   if (delta == 0)
   {
@@ -155,7 +155,7 @@ void Sponza::ZoomCamera(int32 delta, uint32 dtMs)
   cameraTransform.lookAt(newPosition, _cameraTarget);
 }
 
-void Sponza::TranslateCamera(float32 forward, float32 right)
+void Sponza::translateCamera(float32 forward, float32 right)
 {
   if (forward == 0.0f && right == 0.0f)
   {
