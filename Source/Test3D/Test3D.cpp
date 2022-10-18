@@ -87,9 +87,6 @@ void Test3D::onStart()
 
 void Test3D::onUpdate(uint32 dtMs)
 {
-  Vector2I scrollDelta(_inputHandler->getAxisState(Axis::MouseScrollXY));
-  zoomCamera(scrollDelta[1], dtMs);
-
   Vector2I currMousePos(_inputHandler->getAxisState(Axis::MouseXY));
   Vector2I mousePosDelta = _lastMousePos - currMousePos;
 
@@ -115,11 +112,7 @@ void Test3D::onUpdate(uint32 dtMs)
     translateCamera(0.0f, -deltaY);
   }
 
-  if (_inputHandler->isButtonPressed(Button::Button_LMouse))
-  {
-    rotateCamera(mousePosDelta[0], mousePosDelta[1], dtMs);
-  }
-  else if (_inputHandler->isButtonPressed(Button::Button_RMouse))
+  if (_inputHandler->isButtonPressed(Button::Button_RMouse))
   {
     fpsCameraLook(mousePosDelta[0], mousePosDelta[1], dtMs);
   }

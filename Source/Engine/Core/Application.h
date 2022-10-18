@@ -16,8 +16,6 @@ class RenderDevice;
 class Texture;
 class InputHandler;
 
-static const float32 CAMERA_ROTATION_FACTOR = 0.01f;
-static const float32 CAMERA_ZOOM_FACTOR = 0.01f;
 static const float32 CAMERA_LOOK_SENSITIVITY = 0.001f;
 static const float32 CAMERA_MOVE_FACTOR = 0.10f;
 static const float32 CAMERA_MOVE_SPRINT_FACTOR = 1.0f;
@@ -56,9 +54,7 @@ private:
   int32 getTickDuration();
 
 protected:
-  void rotateCamera(int32 deltaX, int32 deltaY, uint32 dtMs);
   void fpsCameraLook(int32 deltaX, int32 deltaY, uint32 dtMs);
-  void zoomCamera(int32 delta, uint32 dtMs);
   void translateCamera(float32 forward, float32 right);
 
   Vector2I _lastMousePos;

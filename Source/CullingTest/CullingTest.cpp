@@ -15,9 +15,10 @@ void CullingTest::onStart()
   _camera = &GameObjectBuilder(_scene)
                  .withName("mainCamera")
                  .withComponent(_scene.createComponent<Camera>()
-                                    .setPerspective(Degree(67.67f), getWidth(), getHeight(), 0.1f, 100.0f))
-                 .withPosition(Vector3(0.0f, 0.0f, 0.0f))
+                                    .setPerspective(Degree(67.67f), getWidth(), getHeight(), 0.1f, 200.0f))
+                 .withPosition(Vector3(-15.0f, 17.0f, -11.0f))
                  .withTarget(Vector3::Zero)
+                 .withRotation(Quaternion(Degree(-123.0f), Degree(36.0f), Degree(138.0f)))
                  .build();
   _scene.addChildToNode(root, *_camera);
 
@@ -36,11 +37,11 @@ void CullingTest::onStart()
   material->setSpecularTexture(loadTextureFromFile("./Textures/crate0_bump.png", false, false));
 
   uint32 count = 0;
-  for (int32 i = -10; i < 10; i++)
+  for (int32 i = -5; i < 5; i++)
   {
-    for (int32 j = -10; j < 10; j++)
+    for (int32 j = -5; j < 5; j++)
     {
-      for (int32 k = -10; k < 10; k++)
+      for (int32 k = -5; k < 5; k++)
       {
         _scene.addChildToNode(root, GameObjectBuilder(_scene)
                                         .withName("cube" + std::to_string(count++))
