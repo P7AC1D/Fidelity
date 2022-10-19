@@ -15,6 +15,8 @@ struct RenderTargetDesc
 class RenderTarget
 {
 public:
+  virtual void copy(const std::shared_ptr<RenderTarget> &target) = 0;
+
   const RenderTargetDesc &getDesc() const { return _desc; }
   bool isInitialized() const { return _isInitialized; }
   std::shared_ptr<Texture> getColourTarget(uint32 i) const { return i < MaxColourTargets ? _desc.ColourTargets[i] : nullptr; }
