@@ -13,6 +13,7 @@
 class Camera;
 class Drawable;
 class GameObject;
+class InputHandler;
 class Renderer;
 class RenderDevice;
 class SceneGraph;
@@ -20,7 +21,7 @@ class SceneGraph;
 class Scene
 {
 public:
-  Scene();
+  Scene(const std::shared_ptr<InputHandler> &inputHandler);
   virtual ~Scene();
   bool init(const Vector2I &windowDims, std::shared_ptr<RenderDevice> renderDevice);
 
@@ -35,16 +36,17 @@ public:
 
   void setMouseCoordinates(const Vector2I &coords) { _mouseCoordinates = coords; }
 
-  void update(float64 dt);
+  void update(float32 dt);
   void drawFrame();
   void drawDebugUi();
 
-  GameObject &getRoot() { return _gameObjects[0]; }
+  GameObject &getRoot() { return *_gameObjects[0].get(); }
 
   // TODO Remove this and better abstract dependenciexc
   std::shared_ptr<RenderDevice> getRenderDevice() { return _renderDevice; }
 
 private:
+  void performObjectPicker(const Camera &camera);
   void drawSceneGraphUi(int64 nodeIndex);
   void drawGameObjectInspector(int64 selectedGameObjectIndex);
   void setAabbDrawOnGameObject(int64 gameObjectIndex, bool enableAabbDraw);
@@ -66,12 +68,12 @@ private:
   Vector2I _windowDims;
 
   std::unique_ptr<SceneGraph> _sceneGraph;
-  // TODO: Remove pointers here so that its a true data-driven design
   std::unordered_map<ComponentType, std::vector<std::shared_ptr<Component>>> _components;
-  std::map<uint64, GameObject> _gameObjects;
+  std::map<uint64, std::shared_ptr<GameObject>> _gameObjects;
 
   std::shared_ptr<Renderer> _renderer;
   std::shared_ptr<RenderDevice> _renderDevice;
+  std::shared_ptr<InputHandler> _inputHandler;
 };
 
 template <typename T>

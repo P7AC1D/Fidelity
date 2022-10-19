@@ -1,5 +1,6 @@
 #include "Ray.hpp"
 
+#include <cmath>
 #include <numeric>
 #include <vector>
 
@@ -16,6 +17,13 @@ bool Ray::Intersects(const Aabb &aabb) const
 {
   float32 tmin = 0.0f, tmax = std::numeric_limits<float32>::max();
   Vector3 min = aabb.getMin(), max = aabb.getMax();
+
+  // Case when ray origin is inside AABB.
+  if (min.X < _position.X && min.Y < _position.Y && min.Z < _position.Z &&
+      max.X > _position.X && max.Y > _position.Y && max.Z > _position.Z)
+  {
+    return false;
+  }
 
   // Fast slab method from here: https://tavianator.com/2022/ray_box_boundary.html
   for (int i = 0; i < 3; ++i)

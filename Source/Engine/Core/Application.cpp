@@ -352,7 +352,8 @@ Application::Application(ApplicationDesc desc) : _inputHandler(new InputHandler(
                                                  _mouseFocus(true),
                                                  _desc(std::move(desc)),
                                                  _cameraTarget(Vector3::Zero),
-                                                 _windowToFramebufferRatio(1.0f)
+                                                 _windowToFramebufferRatio(1.0f),
+                                                 _scene(Scene(_inputHandler))
 {
   INPUT_HANDLER = _inputHandler;
 }
