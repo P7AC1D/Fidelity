@@ -4,6 +4,7 @@ const int MAX_LIGHTS = 1024;
 const int MAX_CASCADE_LAYERS = 8;
 const float Pi2 = 6.283185307f;
 
+// TODO: Make this a constant buffer
 const vec3 sampleOffsetDirections[20] = vec3[]
 (
    vec3( 1,  1,  1), vec3( 1, -1,  1), vec3(-1, -1,  1), vec3(-1,  1,  1), 
@@ -13,6 +14,7 @@ const vec3 sampleOffsetDirections[20] = vec3[]
    vec3( 0,  1,  1), vec3( 0, -1,  1), vec3( 0, -1, -1), vec3( 0,  1, -1)
 );
 
+// TODO: Make this a constant buffer
 const vec2 PoissonSamples[64] = vec2[]
 (
     vec2(-0.5119625f, -0.4827938f),
@@ -154,36 +156,49 @@ float sampleShadowMapPoissonDisc(vec2 shadowCoords, float shadowDepth, float tex
   return result;
 }
 
+int calculateCascadeLayer(vec3 fragPosWorldSpace, float depthValue)
+{
+  int layerToUse = -1;
+  for (int i = 0; i < Constants.CascadeLayerCount; i++)
+  {
+    vec4 fragPosLightSpace = Constants.CascadeLightTransforms[i] * vec4(fragPosWorldSpace, 1.0);
+    vec3 shadowCoord = fragPosLightSpace.xyz / fragPosLightSpace.w;
+    shadowCoord = shadowCoord * 0.5 + 0.5;
+
+    if (clamp(shadowCoord.x, 0.0f, 1.0f) == shadowCoord.x && 
+        clamp(shadowCoord.y, 0.0f, 1.0f) == shadowCoord.y && 
+        clamp(shadowCoord.z, 0.0f, 1.0f) == shadowCoord.z && 
+        depthValue < Constants.CascadePlaneDistances[i])
+    {
+      layerToUse = i;
+      break;
+    }
+  }
+  return layerToUse;
+}
+
+vec3 calculateShadowSampleOffset(vec3 normalWorldSpace, float shadowTexelSize)
+{
+  float nDotL = clamp(dot(normalWorldSpace, Constants.LightDirection), 0.0f, 1.0f);
+  float nmlOffsetScale = clamp(1.0f - nDotL, 0.0f, 1.0f);
+  vec3 shadowPosOffset = shadowTexelSize * nmlOffsetScale * normalWorldSpace * 10.f;
+  return shadowPosOffset;
+}
+
 float calculateShadowFactor(vec3 fragPosWorldSpace, vec3 normalWorldSpace, ivec2 screenPos)
 {
-    // Select which shadow map cascade to use
+    // Transform position to view space and sample depth.
     vec4 fragPosViewSpace = Constants.View * vec4(fragPosWorldSpace, 1.0);
     float depthValue = abs(fragPosViewSpace.z);
 
-    int layerToUse = -1;
-    for (int i = 0; i < Constants.CascadeLayerCount; i++)
-    {
-      vec4 fragPosLightSpace = Constants.CascadeLightTransforms[i] * vec4(fragPosWorldSpace, 1.0);
-      vec3 shadowCoord = fragPosLightSpace.xyz / fragPosLightSpace.w;
-      shadowCoord = shadowCoord * 0.5 + 0.5;
-
-      if (clamp(shadowCoord.x, 0.0f, 1.0f) == shadowCoord.x && 
-          clamp(shadowCoord.y, 0.0f, 1.0f) == shadowCoord.y && 
-          clamp(shadowCoord.z, 0.0f, 1.0f) == shadowCoord.z && 
-          depthValue < Constants.CascadePlaneDistances[i])
-      {
-        layerToUse = i;
-        break;
-      }
-    }
-
-    // Calculates the offset to use for sampling the shadow map, based on the surface normal
-    float nDotL = clamp(dot(normalWorldSpace, Constants.LightDirection), 0.0f, 1.0f);
     vec2 shadowMapSize = textureSize(ShadowMap, 0).xy;
     float texelSize = 1.0f / shadowMapSize.x;
-    float nmlOffsetScale = clamp(1.0f - nDotL, 0.0f, 1.0f);
-    vec3 shadowPosOffset = texelSize * nmlOffsetScale * normalWorldSpace * 10.f;
-    fragPosWorldSpace += shadowPosOffset;
+
+    int layerToUse = calculateCascadeLayer(fragPosWorldSpace, depthValue);
+
+    // Calculates the offset to use for sampling the shadow map, based on the surface normal
+    vec3 shadowSampleOffset = calculateShadowSampleOffset(normalWorldSpace, texelSize);
+    fragPosWorldSpace += shadowSampleOffset;
 
     vec4 fragPosLightSpace = Constants.CascadeLightTransforms[layerToUse] * vec4(fragPosWorldSpace, 1.0);
     vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
@@ -206,15 +221,19 @@ float calculateShadowFactor(vec3 fragPosWorldSpace, vec3 normalWorldSpace, ivec2
 
 void main()
 {
-  // Rebuild position of fragment from frag-coord and depth texture
+  // Rebuild position of fragment in screen space from frag-coord and depth texture
   vec2 windowDimensions = textureSize(NormalMap, 0);
   vec3 position = vec3((gl_FragCoord.x / windowDimensions.x), (gl_FragCoord.y / windowDimensions.y), 0.0f);
   position.z = texture(DepthMap, position.xy).r;
 
-  // transform normal vector to range [-1,1]
+  // Transform normal vector to range [-1,1]
   vec3 normal = normalize(texture(NormalMap, TexCoord).xyz * 2.0f - 1.0f);
 
-  vec4 clip = Constants.ProjViewInv * vec4(position * 2.0f - 1.0f, 1.0f);
+  // Transform position to NDC space.
+  position = position * 2.0f - 1.0f;
+
+  // Transform position to world space and perform perspective divide.
+  vec4 clip = Constants.ProjViewInv * vec4(position, 1.0f);
   position = clip.xyz / clip.w;
 
   float shadowFactor = calculateShadowFactor(position, normal, ivec2(TexCoord));

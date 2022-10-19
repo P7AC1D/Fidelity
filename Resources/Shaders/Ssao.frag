@@ -58,9 +58,16 @@ uniform sampler2D PositionMap;
 vec3 calculatePositionVS(vec2 screenCoords)
 {
   vec2 windowDimensions = textureSize(NormalMap, 0);
+  
+  // Calculate position in screen space.
   vec3 fragPos = vec3((gl_FragCoord.x / windowDimensions.x), (gl_FragCoord.y / windowDimensions.y), 0.0f);
   fragPos.z = texture(DepthMap, fragPos.xy).r;
-  vec4 fragPosProjected = Constants.ProjInv * vec4(fragPos * 2.0f - 1.0f, 1.0f);
+
+  // Transform position to NDC space.
+  fragPos = fragPos * 2.0f - 1.0f;
+
+  // Transform position to view space and perform perspective divide.
+  vec4 fragPosProjected = Constants.ProjInv * vec4(fragPos, 1.0f);
   fragPosProjected.xyz / fragPosProjected.w;
   return fragPosProjected.xyz;
 }
@@ -96,12 +103,16 @@ void main()
     offset.xyz /= offset.w;
     offset.xyz  = offset.xyz * 0.5f + 0.5f;
 
+    // Transform sample position to view space.
     float sampleDepth = calculatePositionVS(offset.xy).z;
 
+    // Check if the depth for that XY position in the scene is larger than the sample's and add it to the occlusion.
     if (sampleDepth >= samplePositionVs.z + SsaoConstants.Bias)
     {
       occlusion += smoothstep(0.0, 1.0, SsaoConstants.Radius / abs(positionVS.z - sampleDepth));
     }
   }
+
+  // Output in the range [0, 1].
   Occulsion = pow(1.0 - (occlusion / SsaoConstants.KernelSize), SsaoConstants.Intensity);
 }
