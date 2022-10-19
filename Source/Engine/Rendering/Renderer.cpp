@@ -38,6 +38,7 @@ struct SsaoConstantsData
   uint32 KernelSize;
   float32 Radius;
   float32 Bias;
+  float32 Intensity;
 };
 
 struct PerObjectBufferData
@@ -200,8 +201,9 @@ Renderer::Renderer(const Vector2I &windowDims) : _windowDims(windowDims),
                                                  _ambientColour(Colour::White),
                                                  _ambientIntensity(0.3f),
                                                  _ssaoSamples(64),
-                                                 _ssaoBias(0.0f),
-                                                 _ssaoRadius(0.5f),
+                                                 _ssaoBias(0.02f),
+                                                 _ssaoRadius(0.75f),
+                                                 _ssaoIntensity(2.0f),
                                                  _ssaoEnabled(true),
                                                  _drawCascadeLayers(false),
                                                  _shadowResolutionChanged(true),
@@ -293,9 +295,16 @@ void Renderer::drawDebugUi()
     }
 
     float32 ssaoBias = _ssaoBias;
-    if (ImGui::SliderFloat("Bias", &ssaoBias, 0.0f, 0.055f))
+    if (ImGui::SliderFloat("Bias", &ssaoBias, 0.0f, 0.1f))
     {
       _ssaoBias = ssaoBias;
+      _ssaoSettingsModified = true;
+    }
+
+    float32 ssaoIntensity = _ssaoIntensity;
+    if (ImGui::SliderFloat("Intensity", &ssaoIntensity, 0.1f, 10.0f))
+    {
+      _ssaoIntensity = ssaoIntensity;
       _ssaoSettingsModified = true;
     }
 
@@ -1578,6 +1587,7 @@ void Renderer::writeSsaoConstantData(const std::shared_ptr<RenderDevice> &render
   ssaoConstantsData.Bias = _ssaoBias;
   ssaoConstantsData.Radius = _ssaoRadius;
   ssaoConstantsData.KernelSize = _ssaoSamples;
+  ssaoConstantsData.Intensity = _ssaoIntensity;
   for (uint32 i = 0; i < SSAO_MAX_KERNAL_SIZE; ++i)
   {
     ssaoConstantsData.NoiseSamples[i] = ssaoKernel[i];

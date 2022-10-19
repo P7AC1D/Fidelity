@@ -121,6 +121,7 @@ private:
   uint32 _ssaoSamples;
   float32 _ssaoBias;
   float32 _ssaoRadius;
+  float32 _ssaoIntensity;
   bool _ssaoEnabled;
   bool _ssaoSettingsModified;
   bool _settingsModified;

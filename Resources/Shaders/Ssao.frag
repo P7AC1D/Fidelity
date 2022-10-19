@@ -43,6 +43,7 @@ layout(std140) uniform SsaoConstantsBuffer
   uint KernelSize;
   float Radius;
   float Bias;
+  float Intensity;
 } SsaoConstants;
 
 layout(location = 0) in vec2 TexCoord;
@@ -86,21 +87,21 @@ void main()
   float occlusion = 0.0;
   for (uint i = 0; i < SsaoConstants.KernelSize; ++i)
   {
+    // Create sample position in view space.
     vec3 samplePositionVs = transform * SsaoConstants.NoiseSamples[i].xyz;
     samplePositionVs = positionVS + samplePositionVs * SsaoConstants.Radius;
 
-    // Transform view-space position to clip-space
-    vec4 offset = vec4(samplePositionVs, 1.0);
-    offset = Constants.Proj * offset;
+    // Transform sample position to NDC space.
+    vec4 offset = Constants.Proj * vec4(samplePositionVs, 1.0);
     offset.xyz /= offset.w;
     offset.xyz  = offset.xyz * 0.5f + 0.5f;
 
     float sampleDepth = calculatePositionVS(offset.xy).z;
 
-    float rangeCheck = smoothstep(0.0, 1.0, SsaoConstants.Radius / abs(positionVS.z - sampleDepth));
-    occlusion += (sampleDepth >= samplePositionVs.z + SsaoConstants.Bias ? 1.0f : 0.0f) * rangeCheck;
+    if (sampleDepth >= samplePositionVs.z + SsaoConstants.Bias)
+    {
+      occlusion += smoothstep(0.0, 1.0, SsaoConstants.Radius / abs(positionVS.z - sampleDepth));
+    }
   }
-  occlusion = 1.0 - (occlusion / SsaoConstants.KernelSize);
-
-  Occulsion = occlusion;
+  Occulsion = pow(1.0 - (occlusion / SsaoConstants.KernelSize), SsaoConstants.Intensity);
 }
