@@ -14,35 +14,49 @@ Frustrum::Frustrum(const Camera &camera)
 
 	const Transform &cameraTransform(camera.getParentTransform());
 	Vector3 position = cameraTransform.getPosition();
-	// Negated here as the camera's forward vector actually points in the oposite direction
-	Vector3 forward = -Vector3::Normalize(cameraTransform.getForward());
-	Vector3 up = Vector3::Normalize(cameraTransform.getUp());
-	Vector3 right = Vector3::Normalize(cameraTransform.getRight());
+	Vector3 forward = cameraTransform.getForward();
+	Vector3 up = cameraTransform.getUp();
+	Vector3 right = cameraTransform.getRight();
 	float32 zFar = camera.getFar();
 	float32 zNear = camera.getNear();
-	float32 nearHeight = 2.0f * tanf(camera.getFov().InRadians() * 0.5f) * zNear;
-	float32 nearWidth = nearHeight * camera.getAspectRatio();
-	float32 farHeight = 2.0f * tanf(camera.getFov().InRadians() * 0.5f) * zFar;
+	float32 tanHalfFov = (float32)tan(camera.getFov().InRadians() / 2.0f);
+	float32 farHeight = zFar * tanHalfFov;
 	float32 farWidth = farHeight * camera.getAspectRatio();
 
 	// Calculate the center of the far plane by taking the position and scaling the forward vector by the distance to the far plane.
-	Vector3 zFarCenter = position + forward * zFar;
+	Vector3 zFarCenter = position - forward * zFar;
 	// Similarly, we calculate the center of the near plane.
-	Vector3 zNearCenter = position + forward * zNear;
+	Vector3 zNearCenter = position - forward * zNear;
 
 	// Build planes with inwards facing normals and the position of the camera as it is present in all top, bottom, left and right planes.
-	_near = Plane(forward, zNearCenter);
-	_far = Plane(-forward, zFarCenter);
-	_right = Plane(Vector3::Cross(up, zNearCenter + (right * nearWidth * 0.5f) - position), position);
-	_left = Plane(Vector3::Cross(zNearCenter - (right * nearWidth * 0.5f) - position, up), position);
-	_bottom = Plane(Vector3::Cross(right, zNearCenter - (up * nearHeight * 0.5f) - position), position);
-	_top = Plane(Vector3::Cross(zNearCenter + (up * nearHeight * 0.5f) - position, right), position);
+	_near = Plane(-forward, zNearCenter);
+	_far = Plane(forward, zFarCenter);
+
+	Vector3 point = zFarCenter + (up * farHeight);
+	Vector3 normal = Vector3::Normalize(point - position);
+	normal = Vector3::Cross(normal, right);
+	_top = Plane(normal, position);
+
+	point = zFarCenter - (up * farHeight);
+	normal = Vector3::Normalize(point - position);
+	normal = Vector3::Cross(right, normal);
+	_bottom = Plane(normal, position);
+
+	point = zFarCenter - (right * farWidth);
+	normal = Vector3::Normalize(point - position);
+	normal = Vector3::Cross(normal, up);
+	_left = Plane(normal, position);
+
+	point = zFarCenter + (right * farWidth);
+	normal = Vector3::Normalize(point - position);
+	normal = Vector3::Cross(up, normal);
+	_right = Plane(normal, position);
 }
 
 bool Frustrum::contains(const Aabb &aabb, const Transform &transform) const
 {
 	Vector3 extents(aabb.getExtents());
-	Vector3 globalCenter(Matrix4::Translation(transform.getPosition()) * Matrix4::Scaling(aabb.getExtents()) * aabb.getCenter());
+	Vector3 globalCenter(transform.getPosition() + aabb.getCenter());
 
 	Vector3 right(transform.getRight() * extents.X);
 	Vector3 up(transform.getUp() * extents.Y);

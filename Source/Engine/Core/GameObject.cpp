@@ -56,7 +56,7 @@ void GameObject::drawInspector()
 	{
 		Vector3 scale = _localTransform.getScale();
 		float32 scl[]{scale.X, scale.Y, scale.Z};
-		if (ImGui::DragFloat3("Scale", scl, 0.0001f))
+		if (ImGui::DragFloat3("Scale", scl, 0.001f))
 		{
 			_localTransform.scale(Vector3(scale.X - scl[0], scale.Y - scl[1], scale.Z - scl[2]));
 		}

@@ -640,8 +640,8 @@ void Renderer::initGbufferPass(const std::shared_ptr<RenderDevice> &renderDevice
   colourTexDesc.Format = TextureFormat::RGBA8;
   rtDesc.ColourTargets[2] = renderDevice->createTexture(colourTexDesc);
   rtDesc.DepthStencilTarget = renderDevice->createTexture(depthStencilDesc);
-  rtDesc.Height = _windowDims.X;
-  rtDesc.Width = _windowDims.Y;
+  rtDesc.Height = _windowDims.Y;
+  rtDesc.Width = _windowDims.X;
 
   _gBufferRto = renderDevice->createRenderTarget(rtDesc);
 }
