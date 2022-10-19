@@ -1,35 +1,39 @@
 #include "Ray.hpp"
 
+#include <cmath>
+#include <numeric>
 #include <vector>
+
 #include "AABB.hpp"
 #include "Plane.hpp"
 
 Ray::Ray(const Vector3 &position, const Vector3 &direction) : _position(position),
-                                                              _direction(direction)
+                                                              _direction(Vector3::Normalize(direction))
 {
+  _directionInvs = 1.0f / _direction;
 }
 
 bool Ray::Intersects(const Aabb &aabb) const
 {
-  Vector3 size(aabb.getExtents());
-  std::vector<Plane> planes;
-  planes.reserve(6);
+  float32 tmin = 0.0f, tmax = std::numeric_limits<float32>::max();
+  Vector3 min = aabb.getMin(), max = aabb.getMax();
 
-  planes.emplace_back(Vector3(size.X, size.Y, size.Z), Vector3(size.X, size.Y, -size.Z), Vector3(size.X, -size.Y, -size.Z));
-  planes.emplace_back(Vector3(-size.X, size.Y, size.Z), Vector3(-size.X, size.Y, -size.Z), Vector3(-size.X, -size.Y, -size.Z));
-  planes.emplace_back(Vector3(-size.X, size.Y, size.Z), Vector3(size.X, size.Y, size.Z), Vector3(size.X, -size.Y, size.Z));
-  planes.emplace_back(Vector3(size.X, size.Y, -size.Z), Vector3(-size.X, size.Y, -size.Z), Vector3(-size.X, -size.Y, -size.Z));
-  planes.emplace_back(Vector3(-size.X, size.Y, -size.Z), Vector3(size.X, size.Y, size.Z), Vector3(size.X, -size.Y, size.Z));
-  planes.emplace_back(Vector3(-size.X, -size.Y, size.Z), Vector3(size.X, -size.Y, size.Z), Vector3(size.X, -size.Y, -size.Z));
-
-  for (auto &plane : planes)
+  // Case when ray origin is inside AABB.
+  if (min.X < _position.X && min.Y < _position.Y && min.Z < _position.Z &&
+      max.X > _position.X && max.Y > _position.Y && max.Z > _position.Z)
   {
-    Vector3 normal(plane.getNormal());
-    float32 t = -(Vector3::Dot(_position, normal) + plane.getD()) / (Vector3::Dot(_direction, normal));
-    if (t > 0.0f)
-    {
-      return true;
-    }
+    return false;
   }
-  return false;
+
+  // Fast slab method from here: https://tavianator.com/2022/ray_box_boundary.html
+  for (int i = 0; i < 3; ++i)
+  {
+    float t1 = (min[i] - _position[i]) * _directionInvs[i];
+    float t2 = (max[i] - _position[i]) * _directionInvs[i];
+
+    tmin = std::fmaxf(tmin, std::fminf(t1, t2));
+    tmax = std::fminf(tmax, std::fmaxf(t1, t2));
+  }
+
+  return tmin < tmax;
 }

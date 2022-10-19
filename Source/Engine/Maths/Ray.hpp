@@ -13,4 +13,5 @@ public:
 private:
   Vector3 _position;
   Vector3 _direction;
+  Vector3 _directionInvs;
 };

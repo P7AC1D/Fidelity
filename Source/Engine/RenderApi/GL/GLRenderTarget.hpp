@@ -8,6 +8,8 @@ class GLRenderTarget : public RenderTarget
 public:
   virtual ~GLRenderTarget();
 
+  void copy(const std::shared_ptr<RenderTarget> &target) override;
+
   uint32 getId() const { return _id; }
 
 protected:

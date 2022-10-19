@@ -58,6 +58,7 @@ public:
 
   friend Vector3 operator+(float32 lhs, const Vector3 &rhs);
   friend Vector3 operator-(float32 lhs, const Vector3 &rhs);
+  friend Vector3 operator/(float32 lhs, const Vector3 &rhs);
   friend Vector3 operator*(float32 lhs, const Vector3 &rhs);
 
 public:

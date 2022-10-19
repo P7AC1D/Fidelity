@@ -1015,7 +1015,7 @@ void Renderer::initDebugPass(const std::shared_ptr<RenderDevice> &renderDevice)
     rasterizerStateDesc.CullMode = CullMode::None;
 
     DepthStencilStateDesc depthStencilStateDesc{};
-    depthStencilStateDesc.DepthReadEnabled = false;
+    depthStencilStateDesc.DepthReadEnabled = true;
     depthStencilStateDesc.DepthWriteEnabled = false;
 
     BlendStateDesc blendStateDesc{};
@@ -1313,6 +1313,8 @@ void Renderer::drawAabb(const std::shared_ptr<RenderDevice> &renderDevice,
                         const std::vector<std::shared_ptr<Drawable>> &aabbDrawables,
                         const std::shared_ptr<Camera> &camera)
 {
+  _gBufferRto->copy(nullptr);
+
   renderDevice->setPipelineState(_drawAabbPso);
   for (auto drawable : aabbDrawables)
   {

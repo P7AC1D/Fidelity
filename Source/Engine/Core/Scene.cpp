@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <chrono>
 #include <iostream>
+#include <list>
 #include <set>
 #include <string>
 #include <vector>
@@ -16,16 +17,45 @@
 #include "../Rendering/Light.h"
 #include "../RenderApi/RenderDevice.hpp"
 #include "GameObject.h"
+#include "InputHandler.h"
 #include "SceneGraph.h"
 
 static int64 SELECTED_GAME_OBJECT_INDEX = -1;
 
-Scene::Scene() : _objectAddedToScene(false), _scenePrepDuration(0) {}
+/// @brief Builds a projected ray in world space from the a set of mouse coordinates in screen space.
+/// @param mouseCoords The current mouse coordinates in screen space.
+/// @param windowDims The current window's dimensions.
+/// @param camera The current active camera.
+/// @return The projected ray in world space.
+Ray buildRayFromMouseCoords(const Vector2I &mouseCoords, const Vector2I &windowDims, const Camera &camera)
+{
+  float32 x = (static_cast<float32>(mouseCoords.X) / windowDims.X) * 2.f - 1.f;
+  float32 y = 1.0f - (static_cast<float32>(mouseCoords.Y) / windowDims.Y) * 2.f;
+
+  // We want our ray's z to point forwards - this is usually the negative z direction in OpenGL style.
+  Vector4 rayClip(x, y, -1.0f, 1.0f);
+
+  Vector4 rayView = camera.getProj().Inverse() * rayClip;
+  rayView.Z = -1.0f;
+  rayView.W = 0.0f;
+
+  Vector3 rayWorld = Vector3(camera.getView().Inverse() * rayView);
+  rayWorld.Normalize();
+
+  return Ray(camera.getParentTransform().getPosition(), rayWorld);
+}
+
+Scene::Scene(const std::shared_ptr<InputHandler> &inputHandler) : _objectAddedToScene(false),
+                                                                  _scenePrepDuration(0),
+                                                                  _inputHandler(inputHandler)
+{
+}
 
 Scene::~Scene() {}
 
 bool Scene::init(const Vector2I &windowDims, std::shared_ptr<RenderDevice> renderDevice)
 {
+  _windowDims = windowDims;
   _sceneGraph.reset(new SceneGraph());
   createGameObject("root");
 
@@ -39,9 +69,9 @@ GameObject &Scene::createGameObject(const std::string &name)
   static uint64 index = 0;
 
   _sceneGraph->addNode(index);
-  _gameObjects.insert(std::pair<uint64, GameObject>(index, std::move(GameObject(name, index))));
+  _gameObjects.insert(std::pair<uint64, std::shared_ptr<GameObject>>(index, new GameObject(name, index)));
   _objectAddedToScene = true;
-  return _gameObjects[index++];
+  return *_gameObjects[index++].get();
 }
 
 void Scene::addChildToNode(GameObject &parent, GameObject &child)
@@ -50,14 +80,14 @@ void Scene::addChildToNode(GameObject &parent, GameObject &child)
   parent.addChildNode(child);
 }
 
-void Scene::update(float64 dt)
+void Scene::update(float32 dt)
 {
-  for (auto &gameObject : _gameObjects)
+  for (const auto &gameObject : _gameObjects)
   {
-    gameObject.second.update(dt);
+    gameObject.second->update(dt);
   }
 
-  for (auto componentType : _components)
+  for (const auto &componentType : _components)
   {
     for (auto &component : _components[componentType.first])
     {
@@ -88,7 +118,10 @@ void Scene::drawFrame()
   }
 
   std::shared_ptr<Camera> camera(std::static_pointer_cast<Camera>(cameraFindIter->second[0]));
-  std::vector<std::shared_ptr<Drawable>> aabbDrawables, allDrawables, opaqueDrawables, transparentDrawables;
+  performObjectPicker(*camera.get());
+
+  std::vector<std::shared_ptr<Drawable>>
+      aabbDrawables, allDrawables, opaqueDrawables, transparentDrawables, mousePickedDrawables;
   for (auto component : drawableFindIter->second)
   {
     auto drawable = std::dynamic_pointer_cast<Drawable>(component);
@@ -160,16 +193,49 @@ void Scene::drawDebugUi()
   }
 }
 
+void Scene::performObjectPicker(const Camera &camera)
+{
+  Ray ray = buildRayFromMouseCoords(_mouseCoordinates, _windowDims, camera);
+
+  std::vector<std::shared_ptr<GameObject>> rayCastedObjects;
+  for (const auto &gameObject : _gameObjects)
+  {
+    if (gameObject.second->hasComponent<Drawable>())
+    {
+      Drawable &drawable = gameObject.second->getComponent<Drawable>();
+
+      Vector3 extents(drawable.getAabb().getExtents());
+      if (ray.Intersects(Aabb(drawable.getPosition(), extents.X, extents.Y, extents.Z)) &&
+          _inputHandler->isButtonPressed(Button::Button_LMouse))
+      {
+        rayCastedObjects.push_back(gameObject.second);
+      }
+    }
+  }
+
+  if (rayCastedObjects.empty())
+  {
+    return;
+  }
+
+  std::sort(rayCastedObjects.begin(), rayCastedObjects.end(), [&](const std::shared_ptr<GameObject> &a, const std::shared_ptr<GameObject> &b) -> bool
+            { return camera.distanceFrom(a->getGlobalTransform().getPosition()) < camera.distanceFrom(b->getGlobalTransform().getPosition()); });
+
+  setAabbDrawOnGameObject(SELECTED_GAME_OBJECT_INDEX, false);
+  SELECTED_GAME_OBJECT_INDEX = rayCastedObjects.front()->getIndex();
+  setAabbDrawOnGameObject(SELECTED_GAME_OBJECT_INDEX, true);
+}
+
 void Scene::drawSceneGraphUi(int64 nodeIndex)
 {
   ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick | (SELECTED_GAME_OBJECT_INDEX == nodeIndex ? ImGuiTreeNodeFlags_Selected : 0);
 
-  GameObject &gameObject = _gameObjects[nodeIndex];
+  const auto &gameObject = _gameObjects[nodeIndex];
 
   if (!_sceneGraph->doesNodeHaveChildren(nodeIndex))
   {
     flags |= ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen;
-    ImGui::TreeNodeEx(gameObject.getName().c_str(), flags);
+    ImGui::TreeNodeEx(gameObject->getName().c_str(), flags);
     if (ImGui::IsItemClicked())
     {
       setAabbDrawOnGameObject(SELECTED_GAME_OBJECT_INDEX, false);
@@ -179,7 +245,7 @@ void Scene::drawSceneGraphUi(int64 nodeIndex)
   }
   else
   {
-    bool open = ImGui::TreeNodeEx(gameObject.getName().c_str(), flags);
+    bool open = ImGui::TreeNodeEx(gameObject->getName().c_str(), flags);
     if (ImGui::IsItemClicked())
     {
       setAabbDrawOnGameObject(SELECTED_GAME_OBJECT_INDEX, false);
@@ -206,8 +272,8 @@ void Scene::drawGameObjectInspector(int64 selectedGameObjectIndex)
 
   ImGui::Begin("Inspector", 0, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_AlwaysAutoResize);
 
-  GameObject &gameObject = _gameObjects[selectedGameObjectIndex];
-  gameObject.drawInspector();
+  const auto &gameObject = _gameObjects[selectedGameObjectIndex];
+  gameObject->drawInspector();
 
   ImVec2 screenSize = ImGui::GetIO().DisplaySize;
   auto windowPos = ImVec2(screenSize.x - ImGui::GetWindowWidth(), 0);
@@ -222,9 +288,9 @@ void Scene::setAabbDrawOnGameObject(int64 gameObjectIndex, bool enableAabbDraw)
     return;
   }
 
-  GameObject &gameObject = _gameObjects[gameObjectIndex];
-  if (gameObject.hasComponent<Drawable>())
+  const auto &gameObject = _gameObjects[gameObjectIndex];
+  if (gameObject->hasComponent<Drawable>())
   {
-    gameObject.getComponent<Drawable>().enableDrawAabb(enableAabbDraw);
+    gameObject->getComponent<Drawable>().enableDrawAabb(enableAabbDraw);
   }
 }

@@ -33,6 +33,37 @@ GLRenderTarget::~GLRenderTarget()
   }
 }
 
+void GLRenderTarget::copy(const std::shared_ptr<RenderTarget> &target)
+{
+  uint32 targetId = 0;
+  if (target != nullptr)
+  {
+    auto glTarget = std::dynamic_pointer_cast<GLRenderTarget>(target);
+    targetId = glTarget->_id;
+  }
+
+  glCall(glBindFramebuffer(GL_READ_FRAMEBUFFER, _id));
+  glCall(glBindFramebuffer(GL_DRAW_FRAMEBUFFER, targetId));
+
+  uint32 mask = 0;
+  for (uint32 i = 0; i < MaxColourTargets; i++)
+  {
+    if (_desc.ColourTargets[i] != nullptr)
+    {
+      mask |= GL_COLOR_ATTACHMENT0 + i;
+    }
+  }
+  if (_desc.DepthStencilTarget != nullptr)
+  {
+    mask |= GL_DEPTH_BUFFER_BIT;
+  }
+
+  glCall(glBlitFramebuffer(0, 0, _desc.Width, _desc.Height,
+                           0, 0, _desc.Width, _desc.Height,
+                           GL_DEPTH_BUFFER_BIT,
+                           GL_NEAREST));
+}
+
 GLRenderTarget::GLRenderTarget(const RenderTargetDesc &desc) : RenderTarget(desc), _id(0)
 {
   initialize();
