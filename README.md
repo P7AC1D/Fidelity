@@ -6,19 +6,21 @@ It is still under heavy development so expect bugs and performance issues.
 ## Features
 - Deferred Rendering Pipeline
 - Cascaded Shadow Maps for Directional Lights
+- Soft Shadows using Poisson disc sampling and PCF
 - Screen space ambient occlusion
 - Scenegraph with Frustrum Culling
 - Editor UI for Debugging
 
 ## Screenshots
 ![](./Resources/Screenshots/sponza_1.png)
+![](./Resources/Screenshots/sponza_2.png)
 
 ## Future Work
 - [x] Cascaded Shadow Maps for Directional Lights
 - [x] Soft Shadows using Poisson disc sampling and PCF
 - [x] Screen space ambient occlusion
-- [ ] Point Light Shadow Maps
 - [ ] Screen space reflection
+- [ ] Point Light Shadow Maps
 - [ ] Motion Blur
 - [ ] Depth of Field
 - [ ] FXAA
@@ -31,6 +33,7 @@ It is still under heavy development so expect bugs and performance issues.
 #### General
 * https://learnopengl.com/
 * https://blogs.igalia.com/itoral/2018/04/17/frame-analysis-of-a-rendering-of-the-sponza-model/
+* https://github.com/lettier/3d-game-shaders-for-beginners
 #### Frustrum Culling
 * http://www.lighthouse3d.com/tutorials/view-frustum-culling/
 #### Shadow Mapping
