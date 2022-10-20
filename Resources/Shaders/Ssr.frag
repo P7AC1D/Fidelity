@@ -85,6 +85,7 @@ void main()
   vec2 texCoord = gl_FragCoord.xy / texSize;
 
   vec3 positionFrom = calculatePositionVS(texCoord);
+  vec3 positionTo = positionFrom;
   vec3 unitPositionFrom = normalize(positionFrom);
   vec3 normal = normalize(texture(NormalMap, texCoord).xyz);
   // Reflected ray from the unitPositionFrom vector against the normal.
@@ -99,6 +100,111 @@ void main()
 
   vec2 uv = startSS / texSize;
 
+  // Difference in screen coords between start and end positions.
   float deltaX = endSS.x - startSS.x;
   float deltaY = endSS.y - startSS.y;
+
+  // Determine which is the larger path along the verical, horizontal or diagonal direction.
+  // This will help us determine how much to travel in the X and Y direction each iteration and how many interations in the first pass.
+  float useX = abs(deltaX) >= abs(deltaY) ? 1.0f : 0.0f;
+  float delta = mix(abs(deltaY), abs(deltaX), useX) * clamp(resolution, 0.0f, 1.0f);
+
+  // How much to increment the X and Y position.
+  vec2 increment = vec2(deltaX, deltaY) / max(delta, 0.001f);
+
+  float search0 = 0.0f;
+  float search1 = 0.0f;
+
+  // Indicates there was an intersection during the first and second pass.
+  int hit0 = 0;
+  int hit1 = 0;
+
+  float viewDistance = positionFrom.z;
+  // The view distance difference between the current ray point and scene position.
+  float depth = thickness;
+
+  vec2 frag  = startSS;
+
+  // First pass. When i reaches delta, the algorithm has traveled the entire length of the line.
+  for (int i = 0; i < int(delta); i++)
+  {
+    frag += increment;
+    uv = frag / texSize;
+    positionTo = calculatePositionVS(uv);
+
+    // Calculate the percentage or portion of the line the current fragment represents.
+    search1 = mix((frag.y - startSS.y) / deltaY, (frag.x - startSS.x) / deltaX, useX);
+    search1 = clamp(search1, 0.0f, 1.0f);
+
+    // Interpolate (using perspective-correct interpolation) the view distance for the current position we're at on the reflection ray.
+    viewDistance = (startVS.z * endVS.z) / mix(endVS.z, startVS.z, search1);
+    depth = viewDistance - positionTo.z;
+
+    if (depth > 0.0f && depth < thickness)
+    {
+      // Hit!
+      hit0 = 1;
+      break;
+    }
+    else
+    {
+      // Miss!
+      search0 = search1;
+    }
+  }
+
+  search1 = search0 + ((search1 - search0) / 2.0);
+  steps *= hit0;
+
+  // Second pass. If there was a miss during first pass, skip second pass.
+  for (int i = 0; i < steps; i++)
+  {
+    frag = mix(startSS.xy, endSS.xy, search1);
+    uv.xy = frag / texSize;
+    positionTo = calculatePositionVS(uv);
+
+    viewDistance = (startVS.y * endVS.y) / mix(endVS.y, startVS.y, search1);
+    depth = viewDistance - positionTo.z;
+
+    if (depth > 0.0f && depth < thickness)
+    {
+      // Hit!
+      hit1 = 1;
+      search1 = search0 + ((search1 - search0) / 2);
+    }
+    else
+    {
+      // Miss!
+      float temp = search1;
+      search1 = search1 + ((search1 - search0) / 2);
+      search0 = temp;
+    }
+  }
+
+  float visibility =
+      hit1
+    * positionTo.w
+    * ( 1
+      - max
+         ( dot(-unitPositionFrom, pivot)
+         , 0
+         )
+      )
+    * ( 1
+      - clamp
+          ( depth / thickness
+          , 0
+          , 1
+          )
+      )
+    * ( 1
+      - clamp
+          (   length(positionTo - positionFrom)
+            / maxDistance
+          , 0
+          , 1
+          )
+      )
+    * (uv.x < 0 || uv.x > 1 ? 0 : 1)
+    * (uv.y < 0 || uv.y > 1 ? 0 : 1);
 }
