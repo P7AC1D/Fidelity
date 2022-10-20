@@ -914,7 +914,7 @@ void Renderer::initDebugPass(const std::shared_ptr<RenderDevice> &renderDevice)
 
     ShaderDesc psDesc;
     psDesc.ShaderType = ShaderType::Fragment;
-    psDesc.Source = String::foadFromFile("./Shaders/FullscreenQuad.frag");
+    psDesc.Source = String::foadFromFile("./Shaders/Editor/DrawColourTarget.frag");
 
     std::vector<VertexLayoutDesc> vertexLayoutDesc{
         VertexLayoutDesc(SemanticType::Position, SemanticFormat::Float2),
@@ -938,7 +938,7 @@ void Renderer::initDebugPass(const std::shared_ptr<RenderDevice> &renderDevice)
     pipelineDesc.VertexLayout = renderDevice->createVertexLayout(vertexLayoutDesc);
     pipelineDesc.ShaderParams = shaderParams;
 
-    _gbufferDebugDrawPso = renderDevice->createPipelineState(pipelineDesc);
+    _editorDrawColourTargetPso = renderDevice->createPipelineState(pipelineDesc);
   }
   {
     ShaderDesc vsDesc;
@@ -947,7 +947,7 @@ void Renderer::initDebugPass(const std::shared_ptr<RenderDevice> &renderDevice)
 
     ShaderDesc psDesc;
     psDesc.ShaderType = ShaderType::Fragment;
-    psDesc.Source = String::foadFromFile("./Shaders/DepthDebug.frag");
+    psDesc.Source = String::foadFromFile("./Shaders/Editor/DrawPerspectiveDepth.frag");
 
     std::vector<VertexLayoutDesc> vertexLayoutDesc{
         VertexLayoutDesc(SemanticType::Position, SemanticFormat::Float2),
@@ -970,7 +970,7 @@ void Renderer::initDebugPass(const std::shared_ptr<RenderDevice> &renderDevice)
     pipelineDesc.VertexLayout = renderDevice->createVertexLayout(vertexLayoutDesc);
     pipelineDesc.ShaderParams = shaderParams;
 
-    _depthDebugDrawPso = renderDevice->createPipelineState(pipelineDesc);
+    _editorDrawPerspectiveDepthPso = renderDevice->createPipelineState(pipelineDesc);
   }
   {
     ShaderDesc vsDesc;
@@ -979,7 +979,7 @@ void Renderer::initDebugPass(const std::shared_ptr<RenderDevice> &renderDevice)
 
     ShaderDesc psDesc;
     psDesc.ShaderType = ShaderType::Fragment;
-    psDesc.Source = String::foadFromFile("./Shaders/ShadowMapDebug.frag");
+    psDesc.Source = String::foadFromFile("./Shaders/Editor/DrawOrthographicDepth.frag");
 
     std::vector<VertexLayoutDesc> vertexLayoutDesc{
         VertexLayoutDesc(SemanticType::Position, SemanticFormat::Float2),
@@ -1002,7 +1002,7 @@ void Renderer::initDebugPass(const std::shared_ptr<RenderDevice> &renderDevice)
     pipelineDesc.VertexLayout = renderDevice->createVertexLayout(vertexLayoutDesc);
     pipelineDesc.ShaderParams = shaderParams;
 
-    _shadowMapDebugPso = renderDevice->createPipelineState(pipelineDesc);
+    _editorDrawOrthographicDepthPso = renderDevice->createPipelineState(pipelineDesc);
   }
   {
     ShaderDesc vsDesc;
@@ -1359,18 +1359,18 @@ void Renderer::drawDebugRenderTarget(std::shared_ptr<RenderDevice> renderDevice,
 
   if (renderTarget->getDesc().Usage == TextureUsage::RenderTarget)
   {
-    renderDevice->setPipelineState(_gbufferDebugDrawPso);
+    renderDevice->setPipelineState(_editorDrawColourTargetPso);
   }
   else if (renderTarget->getDesc().Usage == TextureUsage::Depth)
   {
     if (renderTarget->getTextureType() == TextureType::Texture2DArray)
     {
-      renderDevice->setPipelineState(_shadowMapDebugPso);
+      renderDevice->setPipelineState(_editorDrawOrthographicDepthPso);
       renderDevice->setConstantBuffer(0, _shadowMapDebugBuffer);
     }
     else if (renderTarget->getTextureType() == TextureType::Texture2D)
     {
-      renderDevice->setPipelineState(_depthDebugDrawPso);
+      renderDevice->setPipelineState(_editorDrawPerspectiveDepthPso);
       renderDevice->setConstantBuffer(0, _shadowMapDebugBuffer);
     }
     else

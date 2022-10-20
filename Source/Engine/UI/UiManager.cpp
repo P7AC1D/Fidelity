@@ -224,11 +224,11 @@ void UiManager::setupRenderer()
 
 	ShaderDesc vsShaderDesc;
 	vsShaderDesc.ShaderType = ShaderType::Vertex;
-	vsShaderDesc.Source = String::foadFromFile("./Shaders/DebugGui.vert");
+	vsShaderDesc.Source = String::foadFromFile("./Shaders/Editor/UiElements.vert");
 
 	ShaderDesc psShaderDesc;
 	psShaderDesc.ShaderType = ShaderType::Fragment;
-	psShaderDesc.Source = String::foadFromFile("./Shaders/DebugGui.frag");
+	psShaderDesc.Source = String::foadFromFile("./Shaders/Editor/UiElements.frag");
 
 	BlendStateDesc blendStateDesc;
 	blendStateDesc.RTBlendState[0].BlendEnabled = true;

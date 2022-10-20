@@ -143,7 +143,7 @@ private:
 
   std::shared_ptr<GpuBuffer> _perObjectBuffer, _perFrameBuffer, _ssaoConstantsBuffer, _shadowMapDebugBuffer, _fullscreenQuadBuffer;
   std::shared_ptr<RenderTarget> _shadowMapRto, _gBufferRto, _transparencyRto, _shadowsRto, _ssaoRto, _ssaoBlurRto, _lightingPassRto;
-  std::shared_ptr<PipelineState> _shadowMapPso, _gBufferPso, _transparencyPso, _shadowsPso, _ssaoPso, _ssaoBlurPso, _lightingPso, _drawAabbPso, _gbufferDebugDrawPso, _depthDebugDrawPso, _shadowMapDebugPso;
+  std::shared_ptr<PipelineState> _shadowMapPso, _gBufferPso, _transparencyPso, _shadowsPso, _ssaoPso, _ssaoBlurPso, _lightingPso, _drawAabbPso, _editorDrawColourTargetPso, _editorDrawPerspectiveDepthPso, _editorDrawOrthographicDepthPso;
   std::shared_ptr<SamplerState> _basicSamplerState, _noMipSamplerState, _shadowMapSamplerState, _ssaoNoiseSampler, _noMipWithBorderSamplerState;
   std::shared_ptr<VertexBuffer> _fsQuadVertexBuffer, _aabbVertexBuffer;
   std::shared_ptr<Texture> _randomRotationsMap, _ssaoNoiseTexture;
