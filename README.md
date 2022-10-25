@@ -4,7 +4,7 @@ The goal of this project is to implement an easy to use rendering engine to lear
 It is still under heavy development so expect bugs and performance issues.
 
 ## Features
-- Deferred Rendering Pipeline
+- Physically Based Deferred Rendering Pipeline
 - Cascaded Shadow Maps for Directional Lights
 - Soft Shadows using Poisson disc sampling and PCF
 - Screen space ambient occlusion
@@ -12,20 +12,22 @@ It is still under heavy development so expect bugs and performance issues.
 - Editor UI for Debugging
 
 ## Screenshots
-![](./Resources/Screenshots/sponza_1.png)
-![](./Resources/Screenshots/sponza_2.png)
+![](./Resources/Screenshots/sponza_pbr_1.png)
+![](./Resources/Screenshots/sponza_pbr_2.png)
 
 ## Future Work
 - [x] Cascaded Shadow Maps for Directional Lights
 - [x] Soft Shadows using Poisson disc sampling and PCF
 - [x] Screen space ambient occlusion
-- [ ] Screen space reflection
+- [x] HDR Tone Mapping
+- [x] Physically based rendering
+- [ ] Bloom
+- [ ] Image Based Lighting
 - [ ] Point Light Shadow Maps
+- [ ] Screen space reflection
 - [ ] Motion Blur
 - [ ] Depth of Field
 - [ ] FXAA
-- [ ] HDR Tone Mapping
-- [ ] Physically based rendering
 - [ ] Clustered Shading 
 
 
@@ -42,5 +44,9 @@ It is still under heavy development so expect bugs and performance issues.
 * https://learn.microsoft.com/en-us/windows/win32/dxtecharts/common-techniques-to-improve-shadow-depth-maps
 #### Screen Space Ambient Occlusion
 * http://john-chapman-graphics.blogspot.com/2013/01/ssao-tutorial.html
+
+#### Physically Based Shading
+* https://blog.selfshadow.com/publications/s2013-shading-course/karis/s2013_pbs_epic_notes_v2.pdf
+* https://blog.selfshadow.com/publications/s2013-shading-course/hoffman/s2013_pbs_physics_math_notes.pdf
 #### Clustered Shading
 * http://www.aortiz.me/2018/12/21/CG.html

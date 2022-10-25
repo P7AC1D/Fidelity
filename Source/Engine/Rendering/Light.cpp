@@ -9,32 +9,32 @@ Light::Light() : Component(ComponentType::Light),
 								 _lightType(LightType::Point),
 								 _modified(true),
 								 _direction(Vector3::Identity),
-								 _intensity(1.0f)
+								 _intensity(100.0f)
 {
 }
 
 void Light::drawInspector()
 {
-	ImGui::Separator();
-	ImGui::Text("Light");
-
-	float32 rawCol[]{_colour[0], _colour[1], _colour[2]};
-	ImGui::ColorEdit3("Colour", rawCol);
-	setColour(Colour(rawCol[0] * 255, rawCol[1] * 255, rawCol[2] * 255));
-
-	float32 radius = _radius;
-	if (_lightType == LightType::Point)
+	if (ImGui::CollapsingHeader("Light"))
 	{
-		if (ImGui::SliderFloat("Radius", &radius, 0.0f, 200.0f))
+		float32 rawCol[]{_colour[0], _colour[1], _colour[2]};
+		ImGui::ColorEdit3("Colour", rawCol);
+		setColour(Colour(rawCol[0] * 255, rawCol[1] * 255, rawCol[2] * 255));
+
+		float32 radius = _radius;
+		if (_lightType == LightType::Point)
 		{
-			setRadius(radius);
+			if (ImGui::SliderFloat("Radius", &radius, 0.0f, 200.0f))
+			{
+				setRadius(radius);
+			}
 		}
-	}
 
-	float32 intensity = _intensity;
-	if (ImGui::SliderFloat("Intensity", &intensity, 0.0f, 1.0f))
-	{
-		setIntensity(intensity);
+		float32 intensity = _intensity;
+		if (ImGui::SliderFloat("Intensity", &intensity, 0.0f, 100.0f))
+		{
+			setIntensity(intensity);
+		}
 	}
 }
 

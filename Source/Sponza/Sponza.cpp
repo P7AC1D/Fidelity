@@ -27,7 +27,7 @@ void Sponza::onStart()
                                   .withComponent(_scene.createComponent<Light>()
                                                      .setLightType(LightType::Directional)
                                                      .setColour(Colour(244, 233, 155))
-                                                     .setIntensity(0.5f))
+                                                     .setIntensity(10.0f))
                                   .withRotation(Quaternion(Degree(36.139), Degree(-72.174), Degree(-30.861f)))
                                   .build());
   _scene.addChildToNode(root, GameObjectBuilder(_scene)
@@ -52,7 +52,7 @@ void Sponza::onStart()
                                   .withPosition(Vector3(12.0f, 8.0f, 0.0f))
                                   .build());
 
-  auto &sponzaNode = ModelLoader::fromFile(_scene, "./Models/Sponza/sponza.obj", true);
+  auto &sponzaNode = ModelLoader::fromFile(_scene, "./Models/sponza_pbr/sponza.obj", true);
   sponzaNode.transform().setScale(Vector3(0.1, 0.1, 0.1));
   _scene.addChildToNode(root, sponzaNode);
 }

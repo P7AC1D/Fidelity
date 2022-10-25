@@ -96,15 +96,6 @@ void Transform::updateTransform()
 
 Transform Transform::operator*(const Transform &rhs) const
 {
-  Transform result;
-  Vector3 position = _position + rhs._position * _scale;
-  Vector3 scale = _scale * rhs._scale;
-  Quaternion orientation = _rotation * rhs._rotation;
-  position = orientation.Rotate(position);
-
-  result.setPosition(position);
-  result.setScale(scale);
-  result.setRotation(orientation);
-
+  Transform result(_transform * rhs._transform);
   return result;
 }

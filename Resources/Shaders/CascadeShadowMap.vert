@@ -18,14 +18,11 @@ layout(std140) uniform PerObjectBuffer
   mat4 Model;
   mat4 ModelView;
   mat4 ModelViewProjection;
+  vec4 DiffuseColour;
   bool DiffuseEnabled;
   bool NormalEnabled;
-  bool SpecularEnabled;
+  bool OcclusionEnabled;
   bool OpacityEnabled;
-  vec4 AmbientColour;
-  vec4 DiffuseColour;
-  vec4 SpecularColour;
-  float SpecularExponent;
 } Object;
 
 layout(std140) uniform PerFrameBuffer
@@ -41,7 +38,6 @@ layout(std140) uniform PerFrameBuffer
   bool SsaoEnabled;
   vec3 LightColour;      // ---- Directional Light ----
   float LightIntensity;  // ---- Directional Light ----
-  // ---------------------------
   vec3 AmbientColour;
   float AmbientIntensity;
   uint CascadeLayerCount;  

@@ -19,8 +19,7 @@ Camera::Camera() : _width(1280),
 
 void Camera::drawInspector()
 {
-	ImGui::Separator();
-	ImGui::Text("Camera");
+	if (ImGui::CollapsingHeader("Camera"))
 	{
 		float32 farClip = _far;
 		float32 nearClip = _near;

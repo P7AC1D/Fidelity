@@ -32,6 +32,7 @@ enum class DebugDisplayType
   Specular,
   Depth,
   Shadows,
+  Lighting,
   Occulsion,
 };
 
@@ -64,6 +65,7 @@ private:
   void initShadowPass(const std::shared_ptr<RenderDevice> &renderDevice);
   void initSsaoPass(const std::shared_ptr<RenderDevice> &renderDevice);
   void initLightingPass(const std::shared_ptr<RenderDevice> &renderDevice);
+  void initToneMappingPass(const std::shared_ptr<RenderDevice> &renderDevice);
   void initDebugPass(const std::shared_ptr<RenderDevice> &renderDevice);
 
   void directionalLightDepthPass(const std::shared_ptr<RenderDevice> &renderDevice,
@@ -82,6 +84,7 @@ private:
   void lightingPass(std::shared_ptr<RenderDevice> renderDevice,
                     const std::vector<std::shared_ptr<Light>> &lights,
                     const std::shared_ptr<Camera> &camera);
+  void toneMappingPass(const std::shared_ptr<RenderDevice> &renderDevice);
   void debugPass(const std::shared_ptr<RenderDevice> &renderDevice,
                  const std::vector<std::shared_ptr<Drawable>> &aabbDrawables,
                  const std::shared_ptr<Camera> &camera);
@@ -98,7 +101,8 @@ private:
   void drawDebugRenderTarget(std::shared_ptr<RenderDevice> renderDevice,
                              std::shared_ptr<Texture> renderTarget,
                              const std::shared_ptr<Camera> &camera,
-                             bool singleChannelImage = false);
+                             bool singleChannel = false,
+                             bool orthographicDepth = false);
 
   std::vector<Matrix4> calculateCameraCascadeProjections(const std::shared_ptr<Camera> &camera) const;
   std::vector<float32> calculateCascadeLevels(float32 nearClip, float32 farClip) const;
@@ -136,14 +140,19 @@ private:
   float32 _minCascadeDistance, _maxCascadeDistance;
   float32 _cascadeLambda;
 
+  // ----- HDR settings -----
+  bool _toneMappingEnabled;
+  float32 _exposure;
+
+  // ----- Editor settings -----
   DebugDisplayType _debugDisplayType;
   int32 _shadowMapLayerToDraw;
 
   std::vector<RenderPassTimings> _renderPassTimings;
 
-  std::shared_ptr<GpuBuffer> _perObjectBuffer, _perFrameBuffer, _ssaoConstantsBuffer, _shadowMapDebugBuffer, _fullscreenQuadBuffer;
-  std::shared_ptr<RenderTarget> _shadowMapRto, _gBufferRto, _transparencyRto, _shadowsRto, _ssaoRto, _ssaoBlurRto, _lightingPassRto;
-  std::shared_ptr<PipelineState> _shadowMapPso, _gBufferPso, _transparencyPso, _shadowsPso, _ssaoPso, _ssaoBlurPso, _lightingPso, _drawAabbPso, _editorDrawColourTargetPso, _editorDrawPerspectiveDepthPso, _editorDrawOrthographicDepthPso;
+  std::shared_ptr<GpuBuffer> _perObjectBuffer, _perFrameBuffer, _ssaoConstantsBuffer, _fullscreenQuadBuffer;
+  std::shared_ptr<RenderTarget> _shadowMapRto, _gBufferRto, _transparencyRto, _shadowsRto, _ssaoRto, _ssaoBlurRto, _lightingPassRto, _toneMappingRto;
+  std::shared_ptr<PipelineState> _shadowMapPso, _gBufferPso, _transparencyPso, _shadowsPso, _ssaoPso, _ssaoBlurPso, _lightingPso, _toneMappingPso, _drawAabbPso, _editorDrawTexturedQuadPso;
   std::shared_ptr<SamplerState> _basicSamplerState, _noMipSamplerState, _shadowMapSamplerState, _ssaoNoiseSampler, _noMipWithBorderSamplerState;
   std::shared_ptr<VertexBuffer> _fsQuadVertexBuffer, _aabbVertexBuffer;
   std::shared_ptr<Texture> _randomRotationsMap, _ssaoNoiseTexture;

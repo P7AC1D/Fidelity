@@ -88,21 +88,9 @@ std::shared_ptr<Material> buildMaterial(std::shared_ptr<RenderDevice> renderDevi
 {
   std::shared_ptr<Material> material(new Material());
 
-  aiColor3D ambientColour;
-  aiMaterial->Get(AI_MATKEY_COLOR_AMBIENT, ambientColour);
-  material->setAmbientColour(Vector3(ambientColour.r, ambientColour.g, ambientColour.b));
-
   aiColor3D diffuseColour;
   aiMaterial->Get(AI_MATKEY_COLOR_DIFFUSE, diffuseColour);
   material->setDiffuseColour(Vector3(diffuseColour.r, diffuseColour.g, diffuseColour.b));
-
-  aiColor3D specularColour;
-  aiMaterial->Get(AI_MATKEY_COLOR_SPECULAR, specularColour);
-  material->setSpecularColour(Vector3(specularColour.r, specularColour.g, specularColour.b));
-
-  float32 specularShininess;
-  aiMaterial->Get(AI_MATKEY_SHININESS, specularShininess);
-  material->setSpecularExponent(specularShininess);
 
   if (aiMaterial->GetTextureCount(aiTextureType_DIFFUSE) > 0)
   {
@@ -111,6 +99,7 @@ std::shared_ptr<Material> buildMaterial(std::shared_ptr<RenderDevice> renderDevi
     if (diffuseTexturePath.length != 0)
     {
       auto diffuseTexture = TextureLoader::loadFromFile2D(renderDevice, filePath + diffuseTexturePath.C_Str(), true);
+      diffuseTexture->generateMips();
       material->setDiffuseTexture(diffuseTexture);
     }
   }
@@ -122,6 +111,7 @@ std::shared_ptr<Material> buildMaterial(std::shared_ptr<RenderDevice> renderDevi
     if (normalTexturePath.length != 0)
     {
       auto normalTexture = TextureLoader::loadFromFile2D(renderDevice, filePath + normalTexturePath.C_Str());
+      normalTexture->generateMips();
       material->setNormalTexture(normalTexture);
     }
   }
@@ -133,7 +123,20 @@ std::shared_ptr<Material> buildMaterial(std::shared_ptr<RenderDevice> renderDevi
     if (specularTexturePath.length != 0)
     {
       auto specularTexture = TextureLoader::loadFromFile2D(renderDevice, filePath + specularTexturePath.C_Str());
-      material->setSpecularTexture(specularTexture);
+      specularTexture->generateMips();
+      material->setMetallicTexture(specularTexture);
+    }
+  }
+
+  if (aiMaterial->GetTextureCount(aiTextureType_SHININESS) > 0)
+  {
+    aiString texturePath;
+    aiMaterial->GetTexture(aiTextureType_SHININESS, 0, &texturePath);
+    if (texturePath.length != 0)
+    {
+      auto texture = TextureLoader::loadFromFile2D(renderDevice, filePath + texturePath.C_Str());
+      texture->generateMips();
+      material->setRoughnessTexture(texture);
     }
   }
 

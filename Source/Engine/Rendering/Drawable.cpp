@@ -23,34 +23,88 @@ Drawable::Drawable() : Component(ComponentType::Drawable),
 
 void Drawable::drawInspector()
 {
-	ImGui::Separator();
-	ImGui::Text("Drawable");
-	std::shared_ptr<Material> material = getMaterial();
+	if (ImGui::CollapsingHeader("Drawable"))
 	{
-		Colour ambient = material->getAmbientColour();
-		float32 rawCol[3] = {ambient[0], ambient[1], ambient[2]};
-		ImGui::ColorEdit3("Ambient", rawCol);
-		material->setAmbientColour(Colour(rawCol[0] * 255, rawCol[1] * 255, rawCol[2] * 255));
-	}
-	{
+		std::shared_ptr<Material> material = getMaterial();
 		Colour diffuse = material->getDiffuseColour();
 		float32 rawCol[3] = {diffuse[0], diffuse[1], diffuse[2]};
 		ImGui::ColorEdit3("Diffuse", rawCol);
 		material->setDiffuseColour(Colour(rawCol[0] * 255, rawCol[1] * 255, rawCol[2] * 255));
-	}
-	{
-		Colour specular = material->getSpecularColour();
-		float32 rawCol[3] = {specular[0], specular[1], specular[2]};
-		ImGui::ColorEdit3("Specular", rawCol);
-		material->setSpecularColour(Colour(rawCol[0] * 255, rawCol[1] * 255, rawCol[2] * 255));
-	}
-	{
-		float32 specular = material->getSpecularExponent();
-		ImGui::DragFloat("Exponent", &specular, 1.0f, 0.0f, 1000.0f);
-		material->setSpecularExponent(specular);
-	}
-	{
-		std::vector<const char *> debugRenderingItems = {"Diffuse", "Normal", "Specular", "Opacity"};
+
+		ImGui::Separator();
+		ImGui::Text("PBR Material");
+		if (_material->hasDiffuseTexture())
+		{
+			bool diffuseEnabled = _material->diffuseTextureEnabled();
+			if (ImGui::Checkbox("Diffuse Enabled", &diffuseEnabled))
+			{
+				_material->enableDiffuseTexture(diffuseEnabled);
+			}
+		}
+
+		if (_material->hasNormalTexture())
+		{
+			bool normalEnabled = _material->normalTextureEnabled();
+			if (ImGui::Checkbox("Normal Enabled", &normalEnabled))
+			{
+				_material->enableNormalTexture(normalEnabled);
+			}
+		}
+
+		if (_material->hasMetallicTexture())
+		{
+			bool metallicEnabled = _material->metallicTextureEnabled();
+			if (ImGui::Checkbox("Metallic Enabled", &metallicEnabled))
+			{
+				_material->enableMetallicTexture(metallicEnabled);
+			}
+		}
+
+		if (_material->hasRoughnessTexture())
+		{
+			bool roughnessEnabled = _material->roughnessTextureEnabled();
+			if (ImGui::Checkbox("Roughness Enabled", &roughnessEnabled))
+			{
+				_material->enableRoughnessTexture(roughnessEnabled);
+			}
+		}
+
+		if (_material->hasOcclusionTexture())
+		{
+			bool occlusionEnabled = _material->occlusionTextureEnabled();
+			if (ImGui::Checkbox("Occlusion Enabled", &occlusionEnabled))
+			{
+				_material->enableOcclusionTexture(occlusionEnabled);
+			}
+		}
+
+		if (_material->hasOpacityTexture())
+		{
+			bool oppacityEnabled = _material->opacityTextureEnabled();
+			if (ImGui::Checkbox("Oppacity Enabled", &oppacityEnabled))
+			{
+				_material->enableOppacityTexture(oppacityEnabled);
+			}
+		}
+
+		if (!_material->hasMetallicTexture() || !_material->metallicTextureEnabled())
+		{
+			float32 metalness = material->getMetalness();
+			if (ImGui::SliderFloat("Metallic", &metalness, 0.0f, 1.f))
+			{
+				material->setMetalness(metalness);
+			}
+		}
+
+		if (!_material->hasRoughnessTexture() || !_material->roughnessTextureEnabled())
+		{
+			float32 roughness = material->getRoughness();
+			if (ImGui::SliderFloat("Roughness", &roughness, 0.0f, 1.f))
+			{
+				material->setRoughness(roughness);
+			}
+		}
+		std::vector<const char *> debugRenderingItems = {"Albedo", "Normal", "Metallic", "Roughness", "Opacity"};
 		static int debugRenderingCurrentItem = 0;
 
 		ImGui::Combo("Texture", &debugRenderingCurrentItem, debugRenderingItems.data(), debugRenderingItems.size());
@@ -90,15 +144,15 @@ void Drawable::drawInspector()
 		}
 		else if (debugRenderingCurrentItem == 2)
 		{
-			auto specularTexture = material->getSpecularTexture();
-			if (specularTexture == nullptr)
+			auto texture = material->getMetallicTexture();
+			if (texture == nullptr)
 			{
 				return;
 			}
 
-			UiManager::addTexture(reinterpret_cast<uint64>(&specularTexture), specularTexture);
+			UiManager::addTexture(reinterpret_cast<uint64>(&texture), texture);
 			ImGui::Image(
-					&specularTexture,
+					&texture,
 					ImVec2(200, 200),
 					ImVec2(0.0f, 0.0f),
 					ImVec2(1.0f, 1.0f),
@@ -106,6 +160,23 @@ void Drawable::drawInspector()
 					ImVec4(1.0f, 1.0f, 1.0f, 0.5f));
 		}
 		else if (debugRenderingCurrentItem == 3)
+		{
+			auto texture = material->getRoughnessTexture();
+			if (texture == nullptr)
+			{
+				return;
+			}
+
+			UiManager::addTexture(reinterpret_cast<uint64>(&texture), texture);
+			ImGui::Image(
+					&texture,
+					ImVec2(200, 200),
+					ImVec2(0.0f, 0.0f),
+					ImVec2(1.0f, 1.0f),
+					ImVec4(1.0f, 1.0f, 1.0f, 1.0f),
+					ImVec4(1.0f, 1.0f, 1.0f, 0.5f));
+		}
+		else if (debugRenderingCurrentItem == 4)
 		{
 			auto opacityTexture = material->getOpacityTexture();
 			if (opacityTexture == nullptr)

@@ -27,14 +27,14 @@ void CullingTest::onStart()
                                   .withComponent(_scene.createComponent<Light>()
                                                      .setLightType(LightType::Directional)
                                                      .setColour(Colour(244, 233, 155))
-                                                     .setIntensity(0.5f))
+                                                     .setIntensity(1.0f))
                                   .withRotation(Quaternion(Degree(36.139), Degree(-72.174), Degree(-30.861f)))
                                   .build());
 
   std::shared_ptr<Material> material(new Material());
   material->setDiffuseTexture(loadTextureFromFile("./Textures/crate0_diffuse.png", true, true));
   material->setNormalTexture(loadTextureFromFile("./Textures/crate0_normal.png", false, false));
-  material->setSpecularTexture(loadTextureFromFile("./Textures/crate0_bump.png", false, false));
+  material->setMetallicTexture(loadTextureFromFile("./Textures/crate0_bump.png", false, false));
 
   uint32 count = 0;
   for (int32 i = -5; i < 5; i++)

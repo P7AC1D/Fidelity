@@ -5,14 +5,15 @@ layout(std140) uniform PerObjectBuffer
   mat4 Model;
   mat4 ModelView;
   mat4 ModelViewProjection;
+  vec4 DiffuseColour;
   bool DiffuseEnabled;
   bool NormalEnabled;
-  bool SpecularEnabled;
+  bool MetalnessEnabled;
+  bool RoughnessEnabled;
+  bool OcclusionEnabled;
   bool OpacityEnabled;
-  vec4 AmbientColour;
-  vec4 DiffuseColour;
-  vec4 SpecularColour;
-  float SpecularExponent;
+  float Metalness;
+  float Roughness;
 } Object;
 
 struct Input
@@ -28,53 +29,64 @@ layout(location = 0) in Input fsIn;
 
 uniform sampler2D DiffuseMap;
 uniform sampler2D NormalMap;
-uniform sampler2D SpecularMap;
+uniform sampler2D MetallicMap;
+uniform sampler2D RoughnessMap;
+uniform sampler2D OcclusionMap;
 uniform sampler2D OpacityMap;
 
 layout(location = 0) out vec4 Diffuse;
 layout(location = 1) out vec4 Normal;
-layout(location = 2) out vec4 Specular;
+layout(location = 2) out vec4 Material;
 
-vec3 CalculateDiffuse(vec4 diffuseSample, vec4 materialColour, bool isDiffuseMapEnabled)
+vec3 CalculateDiffuse(vec4 diffuseSample)
 {
-  if (isDiffuseMapEnabled)
+  if (Object.DiffuseEnabled)
   {
-    return diffuseSample.rgb * materialColour.rgb;
+    return diffuseSample.rgb * Object.DiffuseColour.rgb;
   }
-  return materialColour.rgb;
+  return Object.DiffuseColour.rgb;
 }
 
-vec4 CalculateNormal(vec4 normalSample, vec4 normal, bool isNormalMapEnabled)
+vec4 CalculateNormal(vec4 normalSample, vec4 normal)
 {
-  if (isNormalMapEnabled)
+  if (Object.NormalEnabled)
   {
-    mat3 tbn = mat3(fsIn.Tangent, fsIn.Binormal, fsIn.Normal);
-    return vec4(normalize(tbn * (normalSample.rgb) * 2.0f - 1.0f), 0.0f);
+    vec3 T = fsIn.Tangent;
+    vec3 N = fsIn.Normal;
+    T = normalize(T - dot(T, N) * N);
+    vec3 B = cross(N, T);
+
+    mat3 tbn = mat3(T, B, N);
+    return vec4(normalize(tbn * (normalSample.rgb * 2.0f - 1.0f)), 0.0f);
   }
   return normalize(normal);
 }
 
-vec3 CalculateSpecular(vec4 specularSample, vec4 materialColour, bool isSpecularEnabled)
+float CalculateOcclusion(vec4 occlusionSample)
 {
-  if (isSpecularEnabled)
+  if (Object.OcclusionEnabled)
   {
-    return specularSample.rgb;
+    return occlusionSample.r;
   }
-  return vec3(1.0f);
+  return 0.0;
 }
 
 void main()
 {
   vec4 diffuseSample = texture(DiffuseMap, fsIn.TexCoord);  
   vec4 normalSample = texture(NormalMap, fsIn.TexCoord);
-  vec4 opacitySample = texture(OpacityMap, fsIn.TexCoord);
-  vec4 specularSample = texture(SpecularMap, fsIn.TexCoord);
+  vec4 metallnessSample = texture(MetallicMap, fsIn.TexCoord);
+  vec4 roughnessSample = texture(RoughnessMap, fsIn.TexCoord);
+  vec4 occlusionSample = texture(OcclusionMap, fsIn.TexCoord);
 
-  Diffuse.rgb = CalculateDiffuse(diffuseSample, Object.DiffuseColour, Object.DiffuseEnabled);
+  Diffuse.rgb = CalculateDiffuse(diffuseSample);
   Diffuse.a = 1.0f;
-  Specular.rgb = CalculateSpecular(specularSample, Object.SpecularColour, Object.SpecularEnabled);
-  Specular.a = 1.0f;
+
+  Material.r = Object.MetalnessEnabled ? metallnessSample.r : Object.Metalness;
+  Material.g = Object.RoughnessEnabled ? roughnessSample.r : Object.Roughness;
+  Material.b = CalculateOcclusion(occlusionSample);
+  Material.a = 1.0f;
 
   // Transforms normals from [-1,1] to [0,1].
-  Normal = vec4(CalculateNormal(normalSample, vec4(fsIn.Normal, 0.0f), Object.NormalEnabled).xyz * 0.5f + 0.5f, 1.0f);
+  Normal = vec4(CalculateNormal(normalSample, vec4(fsIn.Normal, 0.0f)).xyz * 0.5f + 0.5f, 1.0f);
 }

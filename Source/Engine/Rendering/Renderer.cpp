@@ -46,14 +46,15 @@ struct PerObjectBufferData
   Matrix4 Model;
   Matrix4 ModelView;
   Matrix4 ModelViewProjection;
+  Colour DiffuseColour;
   int32 DiffuseEnabled = 0;
   int32 NormalEnabled = 0;
-  int32 SpecularEnabled = 0;
+  int32 MetalnessEnabled = 0;
+  int32 RoughnessEnabled = 0;
+  int32 OcclusionEnabled = 0;
   int32 OpacityEnabled = 0;
-  Colour AmbientColour;
-  Colour DiffuseColour;
-  Colour SpecularColour;
-  float32 SpecularExponent;
+  float32 Metalness = 0.0f;
+  float32 Roughness = 0.0f;
 };
 
 struct LightData
@@ -94,19 +95,21 @@ struct PerFrameBufferData
   Vector4 CascadePlaneDistances[MAX_CASCADE_LAYERS];
   // --------- Alignment ----------
   uint32 LightCount;
-  Vector3 __Padding;
+  float32 Exposure;
+  int32 ToneMappingEnabled;
+  float32 __Padding;
 };
 
-struct ShadowMapDebugData
+struct TexturedQuadBuffer
 {
+  int32 PerspectiveDepth;
+  int32 OrthographicDepth;
+  int32 SingleChannel;
+  int32 TextureArray;
   float32 NearClip;
   float32 FarClip;
-  uint32 Layer;
-};
-
-struct FullscreenQuadData
-{
-  int32 SingleChannel;
+  uint32 ArraySlice;
+  float32 __Padding;
 };
 
 struct FullscreenQuadVertex
@@ -199,7 +202,7 @@ std::vector<Vector3> calculateFrustrumCorners(const Matrix4 &view, const Matrix4
 
 Renderer::Renderer(const Vector2I &windowDims) : _windowDims(windowDims),
                                                  _ambientColour(Colour::White),
-                                                 _ambientIntensity(0.3f),
+                                                 _ambientIntensity(0.5f),
                                                  _ssaoSamples(64),
                                                  _ssaoBias(0.02f),
                                                  _ssaoRadius(0.75f),
@@ -214,6 +217,8 @@ Renderer::Renderer(const Vector2I &windowDims) : _windowDims(windowDims),
                                                  _minCascadeDistance(0.0f),
                                                  _maxCascadeDistance(1.0f),
                                                  _cascadeLambda(0.4f),
+                                                 _toneMappingEnabled(true),
+                                                 _exposure(2.0f),
                                                  _debugDisplayType(DebugDisplayType::Disabled),
                                                  _shadowMapLayerToDraw(0),
                                                  _ssaoSettingsModified(true)
@@ -225,6 +230,7 @@ Renderer::Renderer(const Vector2I &windowDims) : _windowDims(windowDims),
   _renderPassTimings.push_back({0, "Shadow Merge"});
   _renderPassTimings.push_back({0, "SSAO"});
   _renderPassTimings.push_back({0, "Lighting"});
+  _renderPassTimings.push_back({0, "ToneMapping"});
 }
 
 bool Renderer::init(const std::shared_ptr<RenderDevice> &renderDevice)
@@ -255,6 +261,7 @@ bool Renderer::init(const std::shared_ptr<RenderDevice> &renderDevice)
     initShadowPass(renderDevice);
     initSsaoPass(renderDevice);
     initLightingPass(renderDevice);
+    initToneMappingPass(renderDevice);
     initDebugPass(renderDevice);
   }
   catch (const std::exception &e)
@@ -267,7 +274,7 @@ bool Renderer::init(const std::shared_ptr<RenderDevice> &renderDevice)
 
 void Renderer::drawDebugUi()
 {
-  ImGui::Separator();
+  if (ImGui::CollapsingHeader("Renderer Settings", ImGuiTreeNodeFlags_DefaultOpen))
   {
     ImGui::Text("Ambient Lighting");
 
@@ -282,9 +289,7 @@ void Renderer::drawDebugUi()
     {
       _ambientIntensity = ambientIntensity;
     }
-  }
-  ImGui::Separator();
-  {
+    ImGui::Separator();
     ImGui::Text("Ambient Occlusion");
 
     float32 ssaoRadius = _ssaoRadius;
@@ -302,7 +307,7 @@ void Renderer::drawDebugUi()
     }
 
     float32 ssaoIntensity = _ssaoIntensity;
-    if (ImGui::SliderFloat("Intensity", &ssaoIntensity, 0.1f, 10.0f))
+    if (ImGui::SliderFloat("SSAO Intensity", &ssaoIntensity, 0.1f, 10.0f))
     {
       _ssaoIntensity = ssaoIntensity;
       _ssaoSettingsModified = true;
@@ -320,10 +325,8 @@ void Renderer::drawDebugUi()
     {
       _ssaoEnabled = ssaoEnabled;
     }
-  }
 
-  ImGui::Separator();
-  {
+    ImGui::Separator();
     ImGui::Text("Shadows");
 
     int shadowMapResolution = _shadowMapResolution;
@@ -344,9 +347,7 @@ void Renderer::drawDebugUi()
     {
       _shadowSampleSpread = sampleSpread;
     }
-  }
-  ImGui::Separator();
-  {
+    ImGui::Separator();
     ImGui::Text("Cascaded Shadow Maps");
 
     float32 cascadeLambda = _cascadeLambda;
@@ -360,12 +361,25 @@ void Renderer::drawDebugUi()
     {
       _drawCascadeLayers = shouldDrawCascadeLayers;
     }
-  }
-  ImGui::Separator();
-  {
-    ImGui::Text("Visualize Render Pass");
+    ImGui::Separator();
+    ImGui::Text("HDR");
 
-    std::vector<const char *> debugRenderingItems = {"Disabled", "Shadow Depth", "Diffuse", "Normal", "Specular", "Depth", "Shadows", "Occulsion"};
+    float32 exposure = _exposure;
+    if (ImGui::SliderFloat("Exposure", &exposure, 0.1f, 10.0f))
+    {
+      _exposure = exposure;
+    }
+
+    bool toneMappingEnabled = _toneMappingEnabled;
+    if (ImGui::Checkbox("Tone Mapping Enabled", &toneMappingEnabled))
+    {
+      _toneMappingEnabled = toneMappingEnabled;
+    }
+  }
+
+  if (ImGui::CollapsingHeader("Visualize Render Pass"))
+  {
+    std::vector<const char *> debugRenderingItems = {"Disabled", "Shadow Depth", "Albedo", "Normal", "MetalRoughness", "Depth", "Shadows", "Lighting", "Occulsion"};
     static int debugRenderingCurrentItem = 0;
     if (ImGui::Combo("Target", &debugRenderingCurrentItem, debugRenderingItems.data(), debugRenderingItems.size()))
     {
@@ -403,16 +417,10 @@ void Renderer::initConstantBuffers(const std::shared_ptr<RenderDevice> &renderDe
   ssaoConstantsDataDesc.ByteCount = sizeof(SsaoConstantsData);
   _ssaoConstantsBuffer = renderDevice->createGpuBuffer(ssaoConstantsDataDesc);
 
-  GpuBufferDesc shadowMapDebugDataDesc;
-  shadowMapDebugDataDesc.BufferType = BufferType::Constant;
-  shadowMapDebugDataDesc.BufferUsage = BufferUsage::Dynamic;
-  shadowMapDebugDataDesc.ByteCount = sizeof(ShadowMapDebugData);
-  _shadowMapDebugBuffer = renderDevice->createGpuBuffer(shadowMapDebugDataDesc);
-
   GpuBufferDesc fullscreenQuadDataDesc;
   fullscreenQuadDataDesc.BufferType = BufferType::Constant;
   fullscreenQuadDataDesc.BufferUsage = BufferUsage::Dynamic;
-  fullscreenQuadDataDesc.ByteCount = sizeof(FullscreenQuadData);
+  fullscreenQuadDataDesc.ByteCount = sizeof(TexturedQuadBuffer);
   _fullscreenQuadBuffer = renderDevice->createGpuBuffer(fullscreenQuadDataDesc);
 }
 
@@ -443,6 +451,7 @@ void Renderer::drawFrame(const std::shared_ptr<RenderDevice> &renderDevice,
   shadowPass(renderDevice);
   ssaoPass(renderDevice, camera);
   lightingPass(renderDevice, lights, camera);
+  toneMappingPass(renderDevice);
   debugPass(renderDevice, aabbDrawables, camera);
 }
 
@@ -609,8 +618,10 @@ void Renderer::initGbufferPass(const std::shared_ptr<RenderDevice> &renderDevice
   shaderParams->addParam(ShaderParam("PerObjectBuffer", ShaderParamType::ConstBuffer, 0));
   shaderParams->addParam(ShaderParam("DiffuseMap", ShaderParamType::Texture, 0));
   shaderParams->addParam(ShaderParam("NormalMap", ShaderParamType::Texture, 1));
-  shaderParams->addParam(ShaderParam("SpecularMap", ShaderParamType::Texture, 2));
-  shaderParams->addParam(ShaderParam("OpacityMap", ShaderParamType::Texture, 3));
+  shaderParams->addParam(ShaderParam("MetallicMap", ShaderParamType::Texture, 2));
+  shaderParams->addParam(ShaderParam("RoughnessMap", ShaderParamType::Texture, 3));
+  shaderParams->addParam(ShaderParam("OcclusionMap", ShaderParamType::Texture, 4));
+  shaderParams->addParam(ShaderParam("OpacityMap", ShaderParamType::Texture, 5));
 
   RasterizerStateDesc rasterizerStateDesc;
   rasterizerStateDesc.CullMode = CullMode::CounterClockwise;
@@ -644,9 +655,7 @@ void Renderer::initGbufferPass(const std::shared_ptr<RenderDevice> &renderDevice
 
   RenderTargetDesc rtDesc;
   rtDesc.ColourTargets[0] = renderDevice->createTexture(colourTexDesc);
-  colourTexDesc.Format = TextureFormat::RGB16F;
   rtDesc.ColourTargets[1] = renderDevice->createTexture(colourTexDesc);
-  colourTexDesc.Format = TextureFormat::RGBA8;
   rtDesc.ColourTargets[2] = renderDevice->createTexture(colourTexDesc);
   rtDesc.DepthStencilTarget = renderDevice->createTexture(depthStencilDesc);
   rtDesc.Height = _windowDims.Y;
@@ -676,8 +685,10 @@ void Renderer::initTransparencyPass(const std::shared_ptr<RenderDevice> &renderD
   shaderParams->addParam(ShaderParam("PerObjectBuffer", ShaderParamType::ConstBuffer, 0));
   shaderParams->addParam(ShaderParam("DiffuseMap", ShaderParamType::Texture, 0));
   shaderParams->addParam(ShaderParam("NormalMap", ShaderParamType::Texture, 1));
-  shaderParams->addParam(ShaderParam("SpecularMap", ShaderParamType::Texture, 2));
-  shaderParams->addParam(ShaderParam("OpacityMap", ShaderParamType::Texture, 3));
+  shaderParams->addParam(ShaderParam("MetallicMap", ShaderParamType::Texture, 2));
+  shaderParams->addParam(ShaderParam("RoughnessMap", ShaderParamType::Texture, 3));
+  shaderParams->addParam(ShaderParam("OcclusionMap", ShaderParamType::Texture, 4));
+  shaderParams->addParam(ShaderParam("OpacityMap", ShaderParamType::Texture, 5));
 
   RasterizerStateDesc rasterizerStateDesc;
   rasterizerStateDesc.CullMode = CullMode::CounterClockwise;
@@ -852,7 +863,7 @@ void Renderer::initLightingPass(const std::shared_ptr<RenderDevice> &renderDevic
 
   ShaderDesc psDesc;
   psDesc.ShaderType = ShaderType::Fragment;
-  psDesc.Source = String::foadFromFile("./Shaders/Lighting.frag");
+  psDesc.Source = String::foadFromFile("./Shaders/PbrLighting.frag");
 
   std::vector<VertexLayoutDesc> vertexLayoutDesc{
       VertexLayoutDesc(SemanticType::Position, SemanticFormat::Float2),
@@ -866,7 +877,7 @@ void Renderer::initLightingPass(const std::shared_ptr<RenderDevice> &renderDevic
   shaderParams->addParam(ShaderParam("AlbedoMap", ShaderParamType::Texture, 0));
   shaderParams->addParam(ShaderParam("DepthMap", ShaderParamType::Texture, 1));
   shaderParams->addParam(ShaderParam("NormalMap", ShaderParamType::Texture, 2));
-  shaderParams->addParam(ShaderParam("SpecularMap", ShaderParamType::Texture, 3));
+  shaderParams->addParam(ShaderParam("MaterialMap", ShaderParamType::Texture, 3));
   shaderParams->addParam(ShaderParam("ShadowMap", ShaderParamType::Texture, 4));
   shaderParams->addParam(ShaderParam("OcculusionMap", ShaderParamType::Texture, 5));
 
@@ -894,7 +905,7 @@ void Renderer::initLightingPass(const std::shared_ptr<RenderDevice> &renderDevic
   colourTexDesc.Height = _windowDims.Y;
   colourTexDesc.Usage = TextureUsage::RenderTarget;
   colourTexDesc.Type = TextureType::Texture2D;
-  colourTexDesc.Format = TextureFormat::RGB8;
+  colourTexDesc.Format = TextureFormat::RGB16F;
 
   RenderTargetDesc rtDesc;
   rtDesc.ColourTargets[0] = renderDevice->createTexture(colourTexDesc);
@@ -904,9 +915,61 @@ void Renderer::initLightingPass(const std::shared_ptr<RenderDevice> &renderDevic
   _lightingPassRto = renderDevice->createRenderTarget(rtDesc);
 }
 
+void Renderer::initToneMappingPass(const std::shared_ptr<RenderDevice> &renderDevice)
+{
+
+  ShaderDesc vsDesc;
+  vsDesc.ShaderType = ShaderType::Vertex;
+  vsDesc.Source = String::foadFromFile("./Shaders/FSPassThrough.vert");
+
+  ShaderDesc psDesc;
+  psDesc.ShaderType = ShaderType::Fragment;
+  psDesc.Source = String::foadFromFile("./Shaders/ToneMapping.frag");
+
+  std::vector<VertexLayoutDesc> vertexLayoutDesc{
+      VertexLayoutDesc(SemanticType::Position, SemanticFormat::Float2),
+      VertexLayoutDesc(SemanticType::TexCoord, SemanticFormat::Float2),
+  };
+
+  std::shared_ptr<ShaderParams> shaderParams(new ShaderParams());
+  shaderParams->addParam(ShaderParam("PerFrameBuffer", ShaderParamType::ConstBuffer, 1));
+  shaderParams->addParam(ShaderParam("LightingMap", ShaderParamType::Texture, 0));
+
+  RasterizerStateDesc rasterizerStateDesc{};
+  BlendStateDesc blendStateDesc{};
+
+  DepthStencilStateDesc depthStencilStateDesc{};
+  depthStencilStateDesc.DepthReadEnabled = false;
+  depthStencilStateDesc.DepthWriteEnabled = false;
+
+  PipelineStateDesc pipelineDesc;
+  pipelineDesc.VS = renderDevice->createShader(vsDesc);
+  pipelineDesc.FS = renderDevice->createShader(psDesc);
+  pipelineDesc.BlendState = renderDevice->createBlendState(blendStateDesc);
+  pipelineDesc.RasterizerState = renderDevice->createRasterizerState(rasterizerStateDesc);
+  pipelineDesc.DepthStencilState = renderDevice->createDepthStencilState(depthStencilStateDesc);
+  pipelineDesc.VertexLayout = renderDevice->createVertexLayout(vertexLayoutDesc);
+  pipelineDesc.ShaderParams = shaderParams;
+
+  _toneMappingPso = renderDevice->createPipelineState(pipelineDesc);
+
+  TextureDesc colourTexDesc;
+  colourTexDesc.Width = _windowDims.X;
+  colourTexDesc.Height = _windowDims.Y;
+  colourTexDesc.Usage = TextureUsage::RenderTarget;
+  colourTexDesc.Type = TextureType::Texture2D;
+  colourTexDesc.Format = TextureFormat::RGB8;
+
+  RenderTargetDesc rtDesc;
+  rtDesc.ColourTargets[0] = renderDevice->createTexture(colourTexDesc);
+  rtDesc.Height = _windowDims.X;
+  rtDesc.Width = _windowDims.Y;
+
+  _toneMappingRto = renderDevice->createRenderTarget(rtDesc);
+}
+
 void Renderer::initDebugPass(const std::shared_ptr<RenderDevice> &renderDevice)
 {
-  // TODO: Combine these PSO into one.
   {
     ShaderDesc vsDesc;
     vsDesc.ShaderType = ShaderType::Vertex;
@@ -914,7 +977,7 @@ void Renderer::initDebugPass(const std::shared_ptr<RenderDevice> &renderDevice)
 
     ShaderDesc psDesc;
     psDesc.ShaderType = ShaderType::Fragment;
-    psDesc.Source = String::foadFromFile("./Shaders/Editor/DrawColourTarget.frag");
+    psDesc.Source = String::foadFromFile("./Shaders/Editor/DrawTexturedQuad.frag");
 
     std::vector<VertexLayoutDesc> vertexLayoutDesc{
         VertexLayoutDesc(SemanticType::Position, SemanticFormat::Float2),
@@ -922,9 +985,9 @@ void Renderer::initDebugPass(const std::shared_ptr<RenderDevice> &renderDevice)
     };
 
     std::shared_ptr<ShaderParams> shaderParams(new ShaderParams());
-    shaderParams->addParam(ShaderParam("QuadTexture", ShaderParamType::Texture, 0));
-    shaderParams->addParam(ShaderParam("CameraBuffer", ShaderParamType::ConstBuffer, 0));
-    shaderParams->addParam(ShaderParam("FullscreenQuadBuffer", ShaderParamType::ConstBuffer, 1));
+    shaderParams->addParam(ShaderParam("Texture", ShaderParamType::Texture, 0));
+    shaderParams->addParam(ShaderParam("TextureArray", ShaderParamType::Texture, 1));
+    shaderParams->addParam(ShaderParam("TexturedQuadBuffer", ShaderParamType::ConstBuffer, 0));
 
     RasterizerStateDesc rasterizerStateDesc;
     rasterizerStateDesc.CullMode = CullMode::None;
@@ -938,71 +1001,7 @@ void Renderer::initDebugPass(const std::shared_ptr<RenderDevice> &renderDevice)
     pipelineDesc.VertexLayout = renderDevice->createVertexLayout(vertexLayoutDesc);
     pipelineDesc.ShaderParams = shaderParams;
 
-    _editorDrawColourTargetPso = renderDevice->createPipelineState(pipelineDesc);
-  }
-  {
-    ShaderDesc vsDesc;
-    vsDesc.ShaderType = ShaderType::Vertex;
-    vsDesc.Source = String::foadFromFile("./Shaders/FSPassThrough.vert");
-
-    ShaderDesc psDesc;
-    psDesc.ShaderType = ShaderType::Fragment;
-    psDesc.Source = String::foadFromFile("./Shaders/Editor/DrawPerspectiveDepth.frag");
-
-    std::vector<VertexLayoutDesc> vertexLayoutDesc{
-        VertexLayoutDesc(SemanticType::Position, SemanticFormat::Float2),
-        VertexLayoutDesc(SemanticType::TexCoord, SemanticFormat::Float2),
-    };
-
-    std::shared_ptr<ShaderParams> shaderParams(new ShaderParams());
-    shaderParams->addParam(ShaderParam("QuadTexture", ShaderParamType::Texture, 0));
-    shaderParams->addParam(ShaderParam("CameraBuffer", ShaderParamType::ConstBuffer, 0));
-
-    RasterizerStateDesc rasterizerStateDesc;
-    rasterizerStateDesc.CullMode = CullMode::None;
-
-    PipelineStateDesc pipelineDesc;
-    pipelineDesc.VS = renderDevice->createShader(vsDesc);
-    pipelineDesc.FS = renderDevice->createShader(psDesc);
-    pipelineDesc.BlendState = renderDevice->createBlendState(BlendStateDesc());
-    pipelineDesc.RasterizerState = renderDevice->createRasterizerState(rasterizerStateDesc);
-    pipelineDesc.DepthStencilState = renderDevice->createDepthStencilState(DepthStencilStateDesc());
-    pipelineDesc.VertexLayout = renderDevice->createVertexLayout(vertexLayoutDesc);
-    pipelineDesc.ShaderParams = shaderParams;
-
-    _editorDrawPerspectiveDepthPso = renderDevice->createPipelineState(pipelineDesc);
-  }
-  {
-    ShaderDesc vsDesc;
-    vsDesc.ShaderType = ShaderType::Vertex;
-    vsDesc.Source = String::foadFromFile("./Shaders/FSPassThrough.vert");
-
-    ShaderDesc psDesc;
-    psDesc.ShaderType = ShaderType::Fragment;
-    psDesc.Source = String::foadFromFile("./Shaders/Editor/DrawOrthographicDepth.frag");
-
-    std::vector<VertexLayoutDesc> vertexLayoutDesc{
-        VertexLayoutDesc(SemanticType::Position, SemanticFormat::Float2),
-        VertexLayoutDesc(SemanticType::TexCoord, SemanticFormat::Float2),
-    };
-
-    std::shared_ptr<ShaderParams> shaderParams(new ShaderParams());
-    shaderParams->addParam(ShaderParam("ShadowMaps", ShaderParamType::Texture, 0));
-    shaderParams->addParam(ShaderParam("ShadowMapDebugBuffer", ShaderParamType::ConstBuffer, 0));
-
-    RasterizerStateDesc rasterizerStateDesc;
-    rasterizerStateDesc.CullMode = CullMode::None;
-
-    PipelineStateDesc pipelineDesc;
-    pipelineDesc.VS = renderDevice->createShader(vsDesc);
-    pipelineDesc.FS = renderDevice->createShader(psDesc);
-    pipelineDesc.BlendState = renderDevice->createBlendState(BlendStateDesc());
-    pipelineDesc.RasterizerState = renderDevice->createRasterizerState(rasterizerStateDesc);
-    pipelineDesc.DepthStencilState = renderDevice->createDepthStencilState(DepthStencilStateDesc());
-    pipelineDesc.VertexLayout = renderDevice->createVertexLayout(vertexLayoutDesc);
-    pipelineDesc.ShaderParams = shaderParams;
-
-    _editorDrawOrthographicDepthPso = renderDevice->createPipelineState(pipelineDesc);
+    _editorDrawTexturedQuadPso = renderDevice->createPipelineState(pipelineDesc);
   }
   {
     ShaderDesc vsDesc;
@@ -1103,12 +1102,22 @@ void Renderer::gbufferPass(std::shared_ptr<RenderDevice> renderDevice,
     if (material->hasNormalTexture())
     {
       renderDevice->setTexture(1, material->getNormalTexture());
-      renderDevice->setSamplerState(1, _noMipSamplerState);
+      renderDevice->setSamplerState(1, _basicSamplerState);
     }
-    if (material->hasSpecularTexture())
+    if (material->hasMetallicTexture())
     {
-      renderDevice->setTexture(2, material->getSpecularTexture());
-      renderDevice->setSamplerState(2, _noMipSamplerState);
+      renderDevice->setTexture(2, material->getMetallicTexture());
+      renderDevice->setSamplerState(2, _basicSamplerState);
+    }
+    if (material->hasRoughnessTexture())
+    {
+      renderDevice->setTexture(3, material->getRoughnessTexture());
+      renderDevice->setSamplerState(3, _basicSamplerState);
+    }
+    if (material->hasOcclusionTexture())
+    {
+      renderDevice->setTexture(4, material->getOcclusionTexture());
+      renderDevice->setSamplerState(4, _basicSamplerState);
     }
 
     drawDrawable(renderDevice, drawable, material, camera);
@@ -1139,17 +1148,27 @@ void Renderer::transparencyPass(const std::shared_ptr<RenderDevice> &renderDevic
     if (material->hasNormalTexture())
     {
       renderDevice->setTexture(1, material->getNormalTexture());
-      renderDevice->setSamplerState(1, _noMipSamplerState);
+      renderDevice->setSamplerState(1, _basicSamplerState);
     }
-    if (material->hasSpecularTexture())
+    if (material->hasMetallicTexture())
     {
-      renderDevice->setTexture(2, material->getSpecularTexture());
-      renderDevice->setSamplerState(2, _noMipSamplerState);
+      renderDevice->setTexture(2, material->getMetallicTexture());
+      renderDevice->setSamplerState(2, _basicSamplerState);
+    }
+    if (material->hasRoughnessTexture())
+    {
+      renderDevice->setTexture(3, material->getRoughnessTexture());
+      renderDevice->setSamplerState(3, _basicSamplerState);
+    }
+    if (material->hasOcclusionTexture())
+    {
+      renderDevice->setTexture(4, material->getOcclusionTexture());
+      renderDevice->setSamplerState(4, _basicSamplerState);
     }
     if (material->hasOpacityTexture())
     {
-      renderDevice->setTexture(3, material->getOpacityTexture());
-      renderDevice->setSamplerState(3, _noMipSamplerState);
+      renderDevice->setTexture(5, material->getOpacityTexture());
+      renderDevice->setSamplerState(5, _noMipSamplerState);
     }
 
     drawDrawable(renderDevice, drawable, material, camera);
@@ -1244,6 +1263,23 @@ void Renderer::lightingPass(std::shared_ptr<RenderDevice> renderDevice,
   _renderPassTimings[5].Duration = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
 }
 
+void Renderer::toneMappingPass(const std::shared_ptr<RenderDevice> &renderDevice)
+{
+  std::chrono::time_point start = std::chrono::high_resolution_clock::now();
+
+  renderDevice->setPipelineState(_toneMappingPso);
+  renderDevice->setRenderTarget(_toneMappingRto);
+  renderDevice->setTexture(0, _lightingPassRto->getColourTarget(0));
+  renderDevice->setSamplerState(0, _noMipSamplerState);
+  renderDevice->setConstantBuffer(1, _perFrameBuffer);
+
+  renderDevice->setVertexBuffer(_fsQuadVertexBuffer);
+  renderDevice->draw(6, 0);
+
+  std::chrono::time_point end = std::chrono::high_resolution_clock::now();
+  _renderPassTimings[6].Duration = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
+}
+
 void Renderer::debugPass(const std::shared_ptr<RenderDevice> &renderDevice,
                          const std::vector<std::shared_ptr<Drawable>> &aabbDrawables,
                          const std::shared_ptr<Camera> &camera)
@@ -1252,12 +1288,12 @@ void Renderer::debugPass(const std::shared_ptr<RenderDevice> &renderDevice,
   {
   case DebugDisplayType::Disabled:
   {
-    drawDebugRenderTarget(renderDevice, _lightingPassRto->getColourTarget(0), camera);
+    drawDebugRenderTarget(renderDevice, _toneMappingRto->getColourTarget(0), camera);
     break;
   }
   case DebugDisplayType::ShadowDepth:
   {
-    drawDebugRenderTarget(renderDevice, _shadowMapRto->getDepthStencilTarget(), camera);
+    drawDebugRenderTarget(renderDevice, _shadowMapRto->getDepthStencilTarget(), camera, false, true);
     break;
   }
   case DebugDisplayType::Diffuse:
@@ -1283,6 +1319,11 @@ void Renderer::debugPass(const std::shared_ptr<RenderDevice> &renderDevice,
   case DebugDisplayType::Shadows:
   {
     drawDebugRenderTarget(renderDevice, _shadowsRto->getColourTarget(0), camera, true);
+    break;
+  }
+  case DebugDisplayType::Lighting:
+  {
+    drawDebugRenderTarget(renderDevice, _lightingPassRto->getColourTarget(0), camera);
     break;
   }
   case DebugDisplayType::Occulsion:
@@ -1344,34 +1385,43 @@ void Renderer::drawAabb(const std::shared_ptr<RenderDevice> &renderDevice,
 void Renderer::drawDebugRenderTarget(std::shared_ptr<RenderDevice> renderDevice,
                                      std::shared_ptr<Texture> renderTarget,
                                      const std::shared_ptr<Camera> &camera,
-                                     bool singleChannelImage)
+                                     bool singleChannel,
+                                     bool orthographicDepth)
 {
-  ShadowMapDebugData shadowMapDebugData{};
-  shadowMapDebugData.FarClip = camera->getFar();
-  shadowMapDebugData.NearClip = camera->getNear();
-  shadowMapDebugData.Layer = _shadowMapLayerToDraw;
-  _shadowMapDebugBuffer->writeData(0, sizeof(ShadowMapDebugData), &shadowMapDebugData, AccessType::WriteOnlyDiscard);
+  TexturedQuadBuffer texturedQuadBufferData{};
+  texturedQuadBufferData.NearClip = camera->getNear();
+  texturedQuadBufferData.FarClip = camera->getFar();
+  texturedQuadBufferData.SingleChannel = singleChannel;
+  texturedQuadBufferData.ArraySlice = _shadowMapLayerToDraw;
 
-  FullscreenQuadData fullscreenQuadData{};
-  fullscreenQuadData.SingleChannel = singleChannelImage;
-  _fullscreenQuadBuffer->writeData(0, sizeof(FullscreenQuadData), &fullscreenQuadData, AccessType::WriteOnlyDiscard);
-  renderDevice->setConstantBuffer(1, _fullscreenQuadBuffer);
+  renderDevice->setPipelineState(_editorDrawTexturedQuadPso);
+  renderDevice->setConstantBuffer(0, _fullscreenQuadBuffer);
 
   if (renderTarget->getDesc().Usage == TextureUsage::RenderTarget)
   {
-    renderDevice->setPipelineState(_editorDrawColourTargetPso);
+    texturedQuadBufferData.TextureArray = false;
+    texturedQuadBufferData.OrthographicDepth = false;
+    texturedQuadBufferData.PerspectiveDepth = false;
+    renderDevice->setTexture(0, renderTarget);
+    renderDevice->setSamplerState(0, _noMipSamplerState);
   }
   else if (renderTarget->getDesc().Usage == TextureUsage::Depth)
   {
     if (renderTarget->getTextureType() == TextureType::Texture2DArray)
     {
-      renderDevice->setPipelineState(_editorDrawOrthographicDepthPso);
-      renderDevice->setConstantBuffer(0, _shadowMapDebugBuffer);
+      texturedQuadBufferData.TextureArray = true;
+      texturedQuadBufferData.OrthographicDepth = orthographicDepth;
+      texturedQuadBufferData.PerspectiveDepth = !orthographicDepth;
+      renderDevice->setTexture(1, renderTarget);
+      renderDevice->setSamplerState(1, _noMipSamplerState);
     }
     else if (renderTarget->getTextureType() == TextureType::Texture2D)
     {
-      renderDevice->setPipelineState(_editorDrawPerspectiveDepthPso);
-      renderDevice->setConstantBuffer(0, _shadowMapDebugBuffer);
+      texturedQuadBufferData.TextureArray = false;
+      texturedQuadBufferData.OrthographicDepth = orthographicDepth;
+      texturedQuadBufferData.PerspectiveDepth = !orthographicDepth;
+      renderDevice->setTexture(0, renderTarget);
+      renderDevice->setSamplerState(0, _noMipSamplerState);
     }
     else
     {
@@ -1383,10 +1433,9 @@ void Renderer::drawDebugRenderTarget(std::shared_ptr<RenderDevice> renderDevice,
     return;
   }
 
+  _fullscreenQuadBuffer->writeData(0, sizeof(TexturedQuadBuffer), &texturedQuadBufferData, AccessType::WriteOnlyDiscard);
   renderDevice->setRenderTarget(nullptr);
   renderDevice->clearBuffers(RTT_Colour | RTT_Depth);
-  renderDevice->setTexture(0, renderTarget);
-  renderDevice->setSamplerState(0, _noMipWithBorderSamplerState);
   renderDevice->setVertexBuffer(_fsQuadVertexBuffer);
   renderDevice->draw(6, 0);
 }
@@ -1495,14 +1544,15 @@ void Renderer::writePerObjectConstantData(const std::shared_ptr<Drawable> &drawa
   perObjectBufferData.Model = drawable->getMatrix();
   perObjectBufferData.ModelView = camera->getView() * perObjectBufferData.Model;
   perObjectBufferData.ModelViewProjection = camera->getProj() * perObjectBufferData.ModelView;
-  perObjectBufferData.AmbientColour = material->getAmbientColour();
   perObjectBufferData.DiffuseColour = material->getDiffuseColour();
-  perObjectBufferData.SpecularColour = material->getSpecularColour();
-  perObjectBufferData.DiffuseEnabled = material->hasDiffuseTexture();
-  perObjectBufferData.NormalEnabled = material->hasNormalTexture();
-  perObjectBufferData.OpacityEnabled = material->hasOpacityTexture();
-  perObjectBufferData.SpecularEnabled = material->hasSpecularTexture();
-  perObjectBufferData.SpecularExponent = material->getSpecularExponent();
+  perObjectBufferData.DiffuseEnabled = material->diffuseTextureEnabled();
+  perObjectBufferData.NormalEnabled = material->normalTextureEnabled();
+  perObjectBufferData.MetalnessEnabled = material->metallicTextureEnabled();
+  perObjectBufferData.RoughnessEnabled = material->roughnessTextureEnabled();
+  perObjectBufferData.OcclusionEnabled = material->occlusionTextureEnabled();
+  perObjectBufferData.OpacityEnabled = material->opacityTextureEnabled();
+  perObjectBufferData.Metalness = material->getMetalness();
+  perObjectBufferData.Roughness = material->getRoughness();
 
   _perObjectBuffer->writeData(0, sizeof(PerObjectBufferData), &perObjectBufferData, AccessType::WriteOnlyDiscard);
 }
@@ -1537,6 +1587,8 @@ void Renderer::writePerFrameConstantData(const std::shared_ptr<Camera> &camera,
   perFrameBufferData->ProjInv = perFrameBufferData->Proj.Inverse();
   perFrameBufferData->ProjViewInv = (perFrameBufferData->Proj * perFrameBufferData->View).Inverse();
   perFrameBufferData->ViewPosition = camera->getParentTransform().getPosition();
+  perFrameBufferData->Exposure = _exposure;
+  perFrameBufferData->ToneMappingEnabled = _toneMappingEnabled;
 
   std::vector<LightData> lightDataArray;
   for (uint32 i = 0; i < lights.size(); i++)

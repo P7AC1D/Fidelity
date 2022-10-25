@@ -11,14 +11,15 @@ layout(std140) uniform PerObjectBuffer
   mat4 Model;
   mat4 ModelView;
   mat4 ModelViewProjection;
+  vec4 DiffuseColour;
   bool DiffuseEnabled;
   bool NormalEnabled;
-  bool SpecularEnabled;
+  bool MetalnessEnabled;
+  bool RoughnessEnabled;
+  bool OcclusionEnabled;
   bool OpacityEnabled;
-  vec4 AmbientColour;
-  vec4 DiffuseColour;
-  vec4 SpecularColour;
-  float SpecularExponent;
+  float Metalness;
+  float Roughness;
 } Object;
 
 struct Output
@@ -45,7 +46,7 @@ void main()
   vsOut.TexCoord = aTexCoord;
   vsOut.Normal = normalize(normalMatrix * normalize(aNormal));
   vsOut.Tangent = normalize(normalMatrix * normalize(aTangent));
-  vsOut.Binormal = normalize(normalMatrix * normalize(cross(aNormal, aTangent)));
+  vsOut.Binormal = normalize(normalMatrix * normalize(aBitangent));
   vsOut.WorldPos = (Object.Model * vec4(aPosition, 1.0f)).xyz;
 
   gl_Position = Object.ModelViewProjection * vec4(aPosition, 1.0f);

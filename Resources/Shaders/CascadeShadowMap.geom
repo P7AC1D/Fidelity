@@ -27,7 +27,6 @@ layout(std140) uniform PerFrameBuffer
   bool SsaoEnabled;
   vec3 LightColour;      // ---- Directional Light ----
   float LightIntensity;  // ---- Directional Light ----
-  // ---------------------------
   vec3 AmbientColour;
   float AmbientIntensity;
   uint CascadeLayerCount;  
