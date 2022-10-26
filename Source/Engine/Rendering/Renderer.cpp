@@ -97,7 +97,13 @@ struct PerFrameBufferData
   uint32 LightCount;
   float32 Exposure;
   int32 ToneMappingEnabled;
-  float32 __Padding;
+  float32 BloomStrength;
+};
+
+struct BloomBuffer
+{
+  Vector2 SourceResolution;
+  float32 FilterRadius;
 };
 
 struct TexturedQuadBuffer
@@ -122,23 +128,24 @@ struct FullscreenQuadVertex
   }
 };
 
-std::vector<Vector3> AabbCoords = {
-    Vector3(-1.0, 1.0, 1.0), Vector3(1.0, 1.0, 1.0),
-    Vector3(1.0, 1.0, 1.0), Vector3(1.0, -1.0, 1.0),
-    Vector3(1.0, -1.0, 1.0), Vector3(-1.0, -1.0, 1.0),
-    Vector3(-1.0, -1.0, 1.0), Vector3(-1.0, 1.0, 1.0),
+std::vector<Vector3>
+    AabbCoords = {
+        Vector3(-1.0, 1.0, 1.0), Vector3(1.0, 1.0, 1.0),
+        Vector3(1.0, 1.0, 1.0), Vector3(1.0, -1.0, 1.0),
+        Vector3(1.0, -1.0, 1.0), Vector3(-1.0, -1.0, 1.0),
+        Vector3(-1.0, -1.0, 1.0), Vector3(-1.0, 1.0, 1.0),
 
-    Vector3(-1.0, 1.0, 1.0), Vector3(-1.0, 1.0, -1.0),
-    Vector3(-1.0, 1.0, -1.0), Vector3(1.0, 1.0, -1.0),
-    Vector3(1.0, 1.0, -1.0), Vector3(1.0, 1.0, 1.0),
+        Vector3(-1.0, 1.0, 1.0), Vector3(-1.0, 1.0, -1.0),
+        Vector3(-1.0, 1.0, -1.0), Vector3(1.0, 1.0, -1.0),
+        Vector3(1.0, 1.0, -1.0), Vector3(1.0, 1.0, 1.0),
 
-    Vector3(1.0, 1.0, -1.0), Vector3(1.0, -1.0, -1.0),
-    Vector3(1.0, -1.0, -1.0), Vector3(1.0, -1.0, 1.0),
+        Vector3(1.0, 1.0, -1.0), Vector3(1.0, -1.0, -1.0),
+        Vector3(1.0, -1.0, -1.0), Vector3(1.0, -1.0, 1.0),
 
-    Vector3(-1.0, 1.0, -1.0), Vector3(-1.0, -1.0, -1.0),
-    Vector3(-1.0, -1.0, -1.0), Vector3(-1.0, -1.0, 1.0),
+        Vector3(-1.0, 1.0, -1.0), Vector3(-1.0, -1.0, -1.0),
+        Vector3(-1.0, -1.0, -1.0), Vector3(-1.0, -1.0, 1.0),
 
-    Vector3(-1.0, -1.0, -1.0), Vector3(1.0, -1.0, -1.0)};
+        Vector3(-1.0, -1.0, -1.0), Vector3(1.0, -1.0, -1.0)};
 
 std::vector<FullscreenQuadVertex> FullscreenQuadVertices{
     FullscreenQuadVertex(Vector2(-1.0f, -1.0f), Vector2(0.0f, 0.0f)),
@@ -218,7 +225,10 @@ Renderer::Renderer(const Vector2I &windowDims) : _windowDims(windowDims),
                                                  _maxCascadeDistance(1.0f),
                                                  _cascadeLambda(0.4f),
                                                  _toneMappingEnabled(true),
+                                                 _bloomEnabled(true),
                                                  _exposure(2.0f),
+                                                 _bloomStrength(0.04f),
+                                                 _bloomFilter(0.005f),
                                                  _debugDisplayType(DebugDisplayType::Disabled),
                                                  _shadowMapLayerToDraw(0),
                                                  _ssaoSettingsModified(true)
@@ -230,7 +240,8 @@ Renderer::Renderer(const Vector2I &windowDims) : _windowDims(windowDims),
   _renderPassTimings.push_back({0, "Shadow Merge"});
   _renderPassTimings.push_back({0, "SSAO"});
   _renderPassTimings.push_back({0, "Lighting"});
-  _renderPassTimings.push_back({0, "ToneMapping"});
+  _renderPassTimings.push_back({0, "Bloom Blur"});
+  _renderPassTimings.push_back({0, "Tone Mapping"});
 }
 
 bool Renderer::init(const std::shared_ptr<RenderDevice> &renderDevice)
@@ -261,6 +272,8 @@ bool Renderer::init(const std::shared_ptr<RenderDevice> &renderDevice)
     initShadowPass(renderDevice);
     initSsaoPass(renderDevice);
     initLightingPass(renderDevice);
+    initBloomDownSamplePass(renderDevice);
+    initBloomUpSamplePass(renderDevice);
     initToneMappingPass(renderDevice);
     initDebugPass(renderDevice);
   }
@@ -370,6 +383,12 @@ void Renderer::drawDebugUi()
       _exposure = exposure;
     }
 
+    float32 bloomStrength = _bloomStrength;
+    if (ImGui::SliderFloat("Bloom Strength", &bloomStrength, 0.03f, 0.15f))
+    {
+      _bloomStrength = bloomStrength;
+    }
+
     bool toneMappingEnabled = _toneMappingEnabled;
     if (ImGui::Checkbox("Tone Mapping Enabled", &toneMappingEnabled))
     {
@@ -422,6 +441,12 @@ void Renderer::initConstantBuffers(const std::shared_ptr<RenderDevice> &renderDe
   fullscreenQuadDataDesc.BufferUsage = BufferUsage::Dynamic;
   fullscreenQuadDataDesc.ByteCount = sizeof(TexturedQuadBuffer);
   _fullscreenQuadBuffer = renderDevice->createGpuBuffer(fullscreenQuadDataDesc);
+
+  GpuBufferDesc bloomBufferDesc;
+  bloomBufferDesc.BufferType = BufferType::Constant;
+  bloomBufferDesc.BufferUsage = BufferUsage::Dynamic;
+  bloomBufferDesc.ByteCount = sizeof(BloomBuffer);
+  _bloomBuffer = renderDevice->createGpuBuffer(bloomBufferDesc);
 }
 
 void Renderer::drawFrame(const std::shared_ptr<RenderDevice> &renderDevice,
@@ -451,6 +476,7 @@ void Renderer::drawFrame(const std::shared_ptr<RenderDevice> &renderDevice,
   shadowPass(renderDevice);
   ssaoPass(renderDevice, camera);
   lightingPass(renderDevice, lights, camera);
+  bloomPass(renderDevice);
   toneMappingPass(renderDevice);
   debugPass(renderDevice, aabbDrawables, camera);
 }
@@ -458,40 +484,41 @@ void Renderer::drawFrame(const std::shared_ptr<RenderDevice> &renderDevice,
 void Renderer::initSamplers(const std::shared_ptr<RenderDevice> &renderDevice)
 {
   SamplerStateDesc basicSamplerStateDesc;
-  basicSamplerStateDesc.AddressingMode = AddressingMode{TextureAddressMode::Wrap, TextureAddressMode::Wrap, TextureAddressMode::Wrap};
-  basicSamplerStateDesc.MinFiltering = TextureFilteringMode::Linear;
-  basicSamplerStateDesc.MinFiltering = TextureFilteringMode::Linear;
-  basicSamplerStateDesc.MipFiltering = TextureFilteringMode::Linear;
+  basicSamplerStateDesc.AddressingMode = AddressingMode{TextureAddressMode::Repeat, TextureAddressMode::Repeat, TextureAddressMode::Repeat};
+  basicSamplerStateDesc.MinFiltering = TextureFilteringMode::LinearMipLinear;
+  basicSamplerStateDesc.MagFiltering = TextureFilteringMode::Linear;
   _basicSamplerState = renderDevice->createSamplerState(basicSamplerStateDesc);
 
   SamplerStateDesc noMipSamplerState;
-  noMipSamplerState.AddressingMode = AddressingMode{TextureAddressMode::Wrap, TextureAddressMode::Wrap, TextureAddressMode::Wrap};
-  noMipSamplerState.MinFiltering = TextureFilteringMode::None;
-  noMipSamplerState.MinFiltering = TextureFilteringMode::None;
-  noMipSamplerState.MipFiltering = TextureFilteringMode::None;
+  noMipSamplerState.AddressingMode = AddressingMode{TextureAddressMode::Repeat, TextureAddressMode::Repeat, TextureAddressMode::Repeat};
+  noMipSamplerState.MinFiltering = TextureFilteringMode::Nearest;
+  noMipSamplerState.MagFiltering = TextureFilteringMode::Nearest;
   _noMipSamplerState = renderDevice->createSamplerState(noMipSamplerState);
 
   SamplerStateDesc shadowMapSamplerStateDesc;
-  shadowMapSamplerStateDesc.AddressingMode = AddressingMode{TextureAddressMode::Border, TextureAddressMode::Border, TextureAddressMode::Border};
-  shadowMapSamplerStateDesc.MinFiltering = TextureFilteringMode::None;
-  shadowMapSamplerStateDesc.MinFiltering = TextureFilteringMode::None;
-  shadowMapSamplerStateDesc.MipFiltering = TextureFilteringMode::None;
+  shadowMapSamplerStateDesc.AddressingMode = AddressingMode{TextureAddressMode::ClampToBorder, TextureAddressMode::ClampToBorder, TextureAddressMode::ClampToBorder};
+  shadowMapSamplerStateDesc.MinFiltering = TextureFilteringMode::Nearest;
+  shadowMapSamplerStateDesc.MagFiltering = TextureFilteringMode::Nearest;
   shadowMapSamplerStateDesc.BorderColour = Colour::White;
   _shadowMapSamplerState = renderDevice->createSamplerState(shadowMapSamplerStateDesc);
 
   SamplerStateDesc ssaoNoiseSamplerDesc;
-  ssaoNoiseSamplerDesc.AddressingMode = AddressingMode{TextureAddressMode::Wrap, TextureAddressMode::Wrap, TextureAddressMode::Wrap};
-  ssaoNoiseSamplerDesc.MinFiltering = TextureFilteringMode::None;
-  ssaoNoiseSamplerDesc.MinFiltering = TextureFilteringMode::None;
-  ssaoNoiseSamplerDesc.MipFiltering = TextureFilteringMode::None;
+  ssaoNoiseSamplerDesc.AddressingMode = AddressingMode{TextureAddressMode::Repeat, TextureAddressMode::Repeat, TextureAddressMode::Repeat};
+  ssaoNoiseSamplerDesc.MinFiltering = TextureFilteringMode::Nearest;
+  ssaoNoiseSamplerDesc.MagFiltering = TextureFilteringMode::Nearest;
   _ssaoNoiseSampler = renderDevice->createSamplerState(ssaoNoiseSamplerDesc);
 
   SamplerStateDesc noMipWithBorderSamplerState;
-  noMipWithBorderSamplerState.AddressingMode = AddressingMode{TextureAddressMode::Border, TextureAddressMode::Border, TextureAddressMode::Border};
-  noMipWithBorderSamplerState.MinFiltering = TextureFilteringMode::None;
-  noMipWithBorderSamplerState.MinFiltering = TextureFilteringMode::None;
-  noMipWithBorderSamplerState.MipFiltering = TextureFilteringMode::None;
+  noMipWithBorderSamplerState.AddressingMode = AddressingMode{TextureAddressMode::ClampToBorder, TextureAddressMode::ClampToBorder, TextureAddressMode::ClampToBorder};
+  noMipWithBorderSamplerState.MinFiltering = TextureFilteringMode::Nearest;
+  noMipWithBorderSamplerState.MagFiltering = TextureFilteringMode::Nearest;
   _noMipWithBorderSamplerState = renderDevice->createSamplerState(noMipWithBorderSamplerState);
+
+  SamplerStateDesc bloomSamplerStateDesc;
+  bloomSamplerStateDesc.AddressingMode = AddressingMode{TextureAddressMode::ClampToEdge, TextureAddressMode::ClampToEdge, TextureAddressMode::ClampToEdge};
+  bloomSamplerStateDesc.MinFiltering = TextureFilteringMode::Linear;
+  bloomSamplerStateDesc.MagFiltering = TextureFilteringMode::Linear;
+  _bloomSamplerState = renderDevice->createSamplerState(bloomSamplerStateDesc);
 }
 
 void Renderer::initTextures(const std::shared_ptr<RenderDevice> &renderDevice)
@@ -915,9 +942,108 @@ void Renderer::initLightingPass(const std::shared_ptr<RenderDevice> &renderDevic
   _lightingPassRto = renderDevice->createRenderTarget(rtDesc);
 }
 
+void Renderer::initBloomDownSamplePass(const std::shared_ptr<RenderDevice> &renderDevice)
+{
+  ShaderDesc vsDesc;
+  vsDesc.ShaderType = ShaderType::Vertex;
+  vsDesc.Source = String::foadFromFile("./Shaders/FSPassThrough.vert");
+
+  ShaderDesc psDesc;
+  psDesc.ShaderType = ShaderType::Fragment;
+  psDesc.Source = String::foadFromFile("./Shaders/Downsample.frag");
+
+  std::vector<VertexLayoutDesc> vertexLayoutDesc{
+      VertexLayoutDesc(SemanticType::Position, SemanticFormat::Float2),
+      VertexLayoutDesc(SemanticType::TexCoord, SemanticFormat::Float2),
+  };
+
+  std::shared_ptr<ShaderParams> shaderParams(new ShaderParams());
+  shaderParams->addParam(ShaderParam("BloomBuffer", ShaderParamType::ConstBuffer, 0));
+  shaderParams->addParam(ShaderParam("Texture", ShaderParamType::Texture, 0));
+
+  RasterizerStateDesc rasterizerStateDesc{};
+
+  DepthStencilStateDesc depthStencilStateDesc{};
+  depthStencilStateDesc.DepthReadEnabled = false;
+  depthStencilStateDesc.DepthWriteEnabled = false;
+
+  BlendStateDesc blendStateDesc{};
+
+  PipelineStateDesc pipelineDesc;
+  pipelineDesc.VS = renderDevice->createShader(vsDesc);
+  pipelineDesc.FS = renderDevice->createShader(psDesc);
+  pipelineDesc.BlendState = renderDevice->createBlendState(blendStateDesc);
+  pipelineDesc.RasterizerState = renderDevice->createRasterizerState(rasterizerStateDesc);
+  pipelineDesc.DepthStencilState = renderDevice->createDepthStencilState(depthStencilStateDesc);
+  pipelineDesc.VertexLayout = renderDevice->createVertexLayout(vertexLayoutDesc);
+  pipelineDesc.ShaderParams = shaderParams;
+
+  _bloomDownSamplePso = renderDevice->createPipelineState(pipelineDesc);
+
+  Vector2I textureSize(_windowDims.X, _windowDims.Y);
+  for (uint32 i = 0; i < 6; i++)
+  {
+    textureSize /= 2;
+
+    TextureDesc mipTextureDesc;
+    mipTextureDesc.Width = textureSize.X;
+    mipTextureDesc.Height = textureSize.Y;
+    mipTextureDesc.Usage = TextureUsage::RenderTarget;
+    mipTextureDesc.Type = TextureType::Texture2D;
+    mipTextureDesc.Format = TextureFormat::RGB16F;
+
+    RenderTargetDesc rtDesc;
+    rtDesc.ColourTargets[0] = renderDevice->createTexture(mipTextureDesc);
+    rtDesc.Width = textureSize.X;
+    rtDesc.Height = textureSize.Y;
+
+    _bloomDownSampleRtos.push_back(renderDevice->createRenderTarget(rtDesc));
+  }
+}
+
+void Renderer::initBloomUpSamplePass(const std::shared_ptr<RenderDevice> &renderDevice)
+{
+  ShaderDesc vsDesc;
+  vsDesc.ShaderType = ShaderType::Vertex;
+  vsDesc.Source = String::foadFromFile("./Shaders/FSPassThrough.vert");
+
+  ShaderDesc psDesc;
+  psDesc.ShaderType = ShaderType::Fragment;
+  psDesc.Source = String::foadFromFile("./Shaders/Upsample.frag");
+
+  std::vector<VertexLayoutDesc> vertexLayoutDesc{
+      VertexLayoutDesc(SemanticType::Position, SemanticFormat::Float2),
+      VertexLayoutDesc(SemanticType::TexCoord, SemanticFormat::Float2),
+  };
+
+  std::shared_ptr<ShaderParams> shaderParams(new ShaderParams());
+  shaderParams->addParam(ShaderParam("BloomBuffer", ShaderParamType::ConstBuffer, 0));
+  shaderParams->addParam(ShaderParam("Texture", ShaderParamType::Texture, 0));
+
+  RasterizerStateDesc rasterizerStateDesc{};
+
+  DepthStencilStateDesc depthStencilStateDesc{};
+  depthStencilStateDesc.DepthReadEnabled = false;
+  depthStencilStateDesc.DepthWriteEnabled = false;
+
+  BlendStateDesc blendStateDesc{};
+  blendStateDesc.RTBlendState[0].BlendEnabled = true;
+  blendStateDesc.RTBlendState[0].Blend = BlendDesc(BlendFactor::One, BlendFactor::One, BlendOperation::Add);
+
+  PipelineStateDesc pipelineDesc;
+  pipelineDesc.VS = renderDevice->createShader(vsDesc);
+  pipelineDesc.FS = renderDevice->createShader(psDesc);
+  pipelineDesc.BlendState = renderDevice->createBlendState(blendStateDesc);
+  pipelineDesc.RasterizerState = renderDevice->createRasterizerState(rasterizerStateDesc);
+  pipelineDesc.DepthStencilState = renderDevice->createDepthStencilState(depthStencilStateDesc);
+  pipelineDesc.VertexLayout = renderDevice->createVertexLayout(vertexLayoutDesc);
+  pipelineDesc.ShaderParams = shaderParams;
+
+  _bloomUpSamplePso = renderDevice->createPipelineState(pipelineDesc);
+}
+
 void Renderer::initToneMappingPass(const std::shared_ptr<RenderDevice> &renderDevice)
 {
-
   ShaderDesc vsDesc;
   vsDesc.ShaderType = ShaderType::Vertex;
   vsDesc.Source = String::foadFromFile("./Shaders/FSPassThrough.vert");
@@ -934,6 +1060,7 @@ void Renderer::initToneMappingPass(const std::shared_ptr<RenderDevice> &renderDe
   std::shared_ptr<ShaderParams> shaderParams(new ShaderParams());
   shaderParams->addParam(ShaderParam("PerFrameBuffer", ShaderParamType::ConstBuffer, 1));
   shaderParams->addParam(ShaderParam("LightingMap", ShaderParamType::Texture, 0));
+  shaderParams->addParam(ShaderParam("BloomMap", ShaderParamType::Texture, 1));
 
   RasterizerStateDesc rasterizerStateDesc{};
   BlendStateDesc blendStateDesc{};
@@ -1234,7 +1361,7 @@ void Renderer::ssaoPass(const std::shared_ptr<RenderDevice> &renderDevice,
   _renderPassTimings[4].Duration = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
 }
 
-void Renderer::lightingPass(std::shared_ptr<RenderDevice> renderDevice,
+void Renderer::lightingPass(const std::shared_ptr<RenderDevice> &renderDevice,
                             const std::vector<std::shared_ptr<Light>> &lights,
                             const std::shared_ptr<Camera> &camera)
 {
@@ -1263,6 +1390,67 @@ void Renderer::lightingPass(std::shared_ptr<RenderDevice> renderDevice,
   _renderPassTimings[5].Duration = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
 }
 
+void Renderer::bloomPass(const std::shared_ptr<RenderDevice> &renderDevice)
+{
+  std::chrono::time_point start = std::chrono::high_resolution_clock::now();
+
+  renderDevice->setTexture(0, _lightingPassRto->getColourTarget(0));
+  renderDevice->setSamplerState(0, _bloomSamplerState);
+  renderDevice->setPipelineState(_bloomDownSamplePso);
+
+  // Progressively downsample through the bloom mip chain.
+  for (const auto &bloomDownSampleRto : _bloomDownSampleRtos)
+  {
+    ViewportDesc viewportDesc;
+    viewportDesc.Width = bloomDownSampleRto->getDesc().Width;
+    viewportDesc.Height = bloomDownSampleRto->getDesc().Height;
+    renderDevice->setViewport(viewportDesc);
+
+    BloomBuffer bufferData;
+    bufferData.FilterRadius = _bloomFilter;
+    bufferData.SourceResolution = Vector2(viewportDesc.Width, viewportDesc.Height);
+    _bloomBuffer->writeData(0, sizeof(BloomBuffer), &bufferData, AccessType::WriteOnlyDiscard);
+    renderDevice->setConstantBuffer(0, _bloomBuffer);
+
+    renderDevice->setRenderTarget(bloomDownSampleRto);
+
+    renderDevice->setVertexBuffer(_fsQuadVertexBuffer);
+    renderDevice->draw(6, 0);
+
+    renderDevice->setTexture(0, bloomDownSampleRto->getColourTarget(0));
+  }
+
+  // Repeat the process but instead upsample from the back to front of the mip chain.
+  renderDevice->setSamplerState(0, _bloomSamplerState);
+  renderDevice->setPipelineState(_bloomUpSamplePso);
+  renderDevice->setConstantBuffer(0, _bloomBuffer);
+
+  for (uint32 i = _bloomDownSampleRtos.size() - 1; i > 0; i--)
+  {
+    const auto &currentRto = _bloomDownSampleRtos[i];
+    const auto &nextRto = _bloomDownSampleRtos[i - 1];
+
+    renderDevice->setTexture(0, currentRto->getColourTarget(0));
+
+    ViewportDesc viewportDesc{};
+    viewportDesc.Width = nextRto->getDesc().Width;
+    viewportDesc.Height = nextRto->getDesc().Height;
+    renderDevice->setViewport(viewportDesc);
+    renderDevice->setRenderTarget(nextRto);
+
+    renderDevice->setVertexBuffer(_fsQuadVertexBuffer);
+    renderDevice->draw(6, 0);
+  }
+
+  ViewportDesc viewportDesc;
+  viewportDesc.Width = _windowDims.X;
+  viewportDesc.Height = _windowDims.Y;
+  renderDevice->setViewport(viewportDesc);
+
+  std::chrono::time_point end = std::chrono::high_resolution_clock::now();
+  _renderPassTimings[6].Duration = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
+}
+
 void Renderer::toneMappingPass(const std::shared_ptr<RenderDevice> &renderDevice)
 {
   std::chrono::time_point start = std::chrono::high_resolution_clock::now();
@@ -1270,14 +1458,16 @@ void Renderer::toneMappingPass(const std::shared_ptr<RenderDevice> &renderDevice
   renderDevice->setPipelineState(_toneMappingPso);
   renderDevice->setRenderTarget(_toneMappingRto);
   renderDevice->setTexture(0, _lightingPassRto->getColourTarget(0));
+  renderDevice->setTexture(1, _bloomDownSampleRtos[0]->getColourTarget(0));
   renderDevice->setSamplerState(0, _noMipSamplerState);
+  renderDevice->setSamplerState(1, _noMipSamplerState);
   renderDevice->setConstantBuffer(1, _perFrameBuffer);
 
   renderDevice->setVertexBuffer(_fsQuadVertexBuffer);
   renderDevice->draw(6, 0);
 
   std::chrono::time_point end = std::chrono::high_resolution_clock::now();
-  _renderPassTimings[6].Duration = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
+  _renderPassTimings[7].Duration = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
 }
 
 void Renderer::debugPass(const std::shared_ptr<RenderDevice> &renderDevice,
@@ -1589,6 +1779,7 @@ void Renderer::writePerFrameConstantData(const std::shared_ptr<Camera> &camera,
   perFrameBufferData->ViewPosition = camera->getParentTransform().getPosition();
   perFrameBufferData->Exposure = _exposure;
   perFrameBufferData->ToneMappingEnabled = _toneMappingEnabled;
+  perFrameBufferData->BloomStrength = _bloomStrength;
 
   std::vector<LightData> lightDataArray;
   for (uint32 i = 0; i < lights.size(); i++)

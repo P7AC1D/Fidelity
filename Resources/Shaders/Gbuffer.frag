@@ -38,15 +38,6 @@ layout(location = 0) out vec4 Diffuse;
 layout(location = 1) out vec4 Normal;
 layout(location = 2) out vec4 Material;
 
-vec3 CalculateDiffuse(vec4 diffuseSample)
-{
-  if (Object.DiffuseEnabled)
-  {
-    return diffuseSample.rgb * Object.DiffuseColour.rgb;
-  }
-  return Object.DiffuseColour.rgb;
-}
-
 vec4 CalculateNormal(vec4 normalSample, vec4 normal)
 {
   if (Object.NormalEnabled)
@@ -62,15 +53,6 @@ vec4 CalculateNormal(vec4 normalSample, vec4 normal)
   return normalize(normal);
 }
 
-float CalculateOcclusion(vec4 occlusionSample)
-{
-  if (Object.OcclusionEnabled)
-  {
-    return occlusionSample.r;
-  }
-  return 0.0;
-}
-
 void main()
 {
   vec4 diffuseSample = texture(DiffuseMap, fsIn.TexCoord);  
@@ -79,12 +61,12 @@ void main()
   vec4 roughnessSample = texture(RoughnessMap, fsIn.TexCoord);
   vec4 occlusionSample = texture(OcclusionMap, fsIn.TexCoord);
 
-  Diffuse.rgb = CalculateDiffuse(diffuseSample);
+  Diffuse.rgb = Object.DiffuseEnabled ? diffuseSample.rgb * Object.DiffuseColour.rgb : Object.DiffuseColour.rgb;;
   Diffuse.a = 1.0f;
 
   Material.r = Object.MetalnessEnabled ? metallnessSample.r : Object.Metalness;
   Material.g = Object.RoughnessEnabled ? roughnessSample.r : Object.Roughness;
-  Material.b = CalculateOcclusion(occlusionSample);
+  Material.b = Object.OcclusionEnabled ? occlusionSample.r : 0.0f;
   Material.a = 1.0f;
 
   // Transforms normals from [-1,1] to [0,1].

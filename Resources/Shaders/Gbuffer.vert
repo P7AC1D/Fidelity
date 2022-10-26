@@ -44,9 +44,9 @@ void main()
   mat3 normalMatrix = transpose(inverse(mat3(Object.Model)));
 
   vsOut.TexCoord = aTexCoord;
-  vsOut.Normal = normalize(normalMatrix * normalize(aNormal));
-  vsOut.Tangent = normalize(normalMatrix * normalize(aTangent));
-  vsOut.Binormal = normalize(normalMatrix * normalize(aBitangent));
+  vsOut.Normal = normalize(normalMatrix * aNormal);
+  vsOut.Tangent = normalize(normalMatrix * aTangent);
+  vsOut.Binormal = normalize(normalMatrix * aBitangent);
   vsOut.WorldPos = (Object.Model * vec4(aPosition, 1.0f)).xyz;
 
   gl_Position = Object.ModelViewProjection * vec4(aPosition, 1.0f);

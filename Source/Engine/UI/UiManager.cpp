@@ -272,9 +272,8 @@ void UiManager::setupRenderer()
 	try
 	{
 		SamplerStateDesc samplerStateDesc;
-		samplerStateDesc.MinFiltering = TextureFilteringMode::Linear;
-		samplerStateDesc.MaxFiltering = TextureFilteringMode::Linear;
-		samplerStateDesc.MipFiltering = TextureFilteringMode::Linear;
+		samplerStateDesc.MinFiltering = TextureFilteringMode::Nearest;
+		samplerStateDesc.MagFiltering = TextureFilteringMode::Nearest;
 		_samplerState = _renderDevice->createSamplerState(samplerStateDesc);
 	}
 	catch (const std::exception &exception)
@@ -283,10 +282,9 @@ void UiManager::setupRenderer()
 	}
 
 	SamplerStateDesc desc;
-	desc.AddressingMode = AddressingMode{TextureAddressMode::Wrap, TextureAddressMode::Wrap, TextureAddressMode::Wrap};
-	desc.MinFiltering = TextureFilteringMode::None;
-	desc.MinFiltering = TextureFilteringMode::None;
-	desc.MipFiltering = TextureFilteringMode::None;
+	desc.AddressingMode = AddressingMode{TextureAddressMode::Repeat, TextureAddressMode::Repeat, TextureAddressMode::Repeat};
+	desc.MinFiltering = TextureFilteringMode::Nearest;
+	desc.MinFiltering = TextureFilteringMode::Nearest;
 	try
 	{
 		_noMipSamplerState = _renderDevice->createSamplerState(desc);

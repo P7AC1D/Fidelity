@@ -65,6 +65,8 @@ private:
   void initShadowPass(const std::shared_ptr<RenderDevice> &renderDevice);
   void initSsaoPass(const std::shared_ptr<RenderDevice> &renderDevice);
   void initLightingPass(const std::shared_ptr<RenderDevice> &renderDevice);
+  void initBloomDownSamplePass(const std::shared_ptr<RenderDevice> &renderDevice);
+  void initBloomUpSamplePass(const std::shared_ptr<RenderDevice> &renderDevice);
   void initToneMappingPass(const std::shared_ptr<RenderDevice> &renderDevice);
   void initDebugPass(const std::shared_ptr<RenderDevice> &renderDevice);
 
@@ -81,9 +83,10 @@ private:
   void shadowPass(const std::shared_ptr<RenderDevice> &renderDevice);
   void ssaoPass(const std::shared_ptr<RenderDevice> &renderDevice,
                 const std::shared_ptr<Camera> &camera);
-  void lightingPass(std::shared_ptr<RenderDevice> renderDevice,
+  void lightingPass(const std::shared_ptr<RenderDevice> &renderDevice,
                     const std::vector<std::shared_ptr<Light>> &lights,
                     const std::shared_ptr<Camera> &camera);
+  void bloomPass(const std::shared_ptr<RenderDevice> &rendereDevice);
   void toneMappingPass(const std::shared_ptr<RenderDevice> &renderDevice);
   void debugPass(const std::shared_ptr<RenderDevice> &renderDevice,
                  const std::vector<std::shared_ptr<Drawable>> &aabbDrawables,
@@ -142,7 +145,10 @@ private:
 
   // ----- HDR settings -----
   bool _toneMappingEnabled;
+  bool _bloomEnabled;
   float32 _exposure;
+  float32 _bloomStrength;
+  float32 _bloomFilter;
 
   // ----- Editor settings -----
   DebugDisplayType _debugDisplayType;
@@ -150,10 +156,40 @@ private:
 
   std::vector<RenderPassTimings> _renderPassTimings;
 
-  std::shared_ptr<GpuBuffer> _perObjectBuffer, _perFrameBuffer, _ssaoConstantsBuffer, _fullscreenQuadBuffer;
-  std::shared_ptr<RenderTarget> _shadowMapRto, _gBufferRto, _transparencyRto, _shadowsRto, _ssaoRto, _ssaoBlurRto, _lightingPassRto, _toneMappingRto;
-  std::shared_ptr<PipelineState> _shadowMapPso, _gBufferPso, _transparencyPso, _shadowsPso, _ssaoPso, _ssaoBlurPso, _lightingPso, _toneMappingPso, _drawAabbPso, _editorDrawTexturedQuadPso;
-  std::shared_ptr<SamplerState> _basicSamplerState, _noMipSamplerState, _shadowMapSamplerState, _ssaoNoiseSampler, _noMipWithBorderSamplerState;
-  std::shared_ptr<VertexBuffer> _fsQuadVertexBuffer, _aabbVertexBuffer;
-  std::shared_ptr<Texture> _randomRotationsMap, _ssaoNoiseTexture;
+  std::shared_ptr<GpuBuffer> _perObjectBuffer,
+      _perFrameBuffer,
+      _ssaoConstantsBuffer,
+      _fullscreenQuadBuffer,
+      _bloomBuffer;
+  std::shared_ptr<RenderTarget> _shadowMapRto,
+      _gBufferRto,
+      _transparencyRto,
+      _shadowsRto,
+      _ssaoRto,
+      _ssaoBlurRto,
+      _lightingPassRto,
+      _toneMappingRto;
+  std::vector<std::shared_ptr<RenderTarget>> _bloomDownSampleRtos;
+  std::shared_ptr<PipelineState> _shadowMapPso,
+      _gBufferPso,
+      _transparencyPso,
+      _shadowsPso,
+      _ssaoPso,
+      _ssaoBlurPso,
+      _lightingPso,
+      _bloomDownSamplePso,
+      _bloomUpSamplePso,
+      _toneMappingPso,
+      _drawAabbPso,
+      _editorDrawTexturedQuadPso;
+  std::shared_ptr<SamplerState> _basicSamplerState,
+      _noMipSamplerState,
+      _shadowMapSamplerState,
+      _ssaoNoiseSampler,
+      _noMipWithBorderSamplerState,
+      _bloomSamplerState;
+  std::shared_ptr<VertexBuffer> _fsQuadVertexBuffer,
+      _aabbVertexBuffer;
+  std::shared_ptr<Texture> _randomRotationsMap,
+      _ssaoNoiseTexture;
 };

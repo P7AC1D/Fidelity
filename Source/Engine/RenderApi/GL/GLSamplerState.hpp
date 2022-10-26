@@ -19,7 +19,7 @@ private:
   void initialize();
 
   void setTextureAddressingMode(AddressingMode addressingMode);
-  void setTextureMinMipFiltering(TextureFilteringMode minFilteringMode, TextureFilteringMode mipFilteringMode);
+  void setTextureMinMipFiltering(TextureFilteringMode minFilteringMode);
   void setTextureMagFiltering(TextureFilteringMode textureFilteringMode);
   void setBorderColour(Colour borderColour);
 

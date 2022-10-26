@@ -37,6 +37,7 @@ layout(std140) uniform PerFrameBuffer
   uint LightCount;
   float Exposure;
   bool ToneMappingEnabled;
+  float BloomStrength;
 } Constants;
 
 uniform sampler2D AlbedoMap;
@@ -48,6 +49,7 @@ uniform sampler2D OcclusionMap;
 
 layout(location = 0) in vec2 TexCoord;
 layout(location = 0) out vec4 FinalColour;
+layout(location = 1) out vec4 BloomColour;
 
 // PBR function declarations.
 vec3 fresnelSchlick(float cosTheta, vec3 F0);

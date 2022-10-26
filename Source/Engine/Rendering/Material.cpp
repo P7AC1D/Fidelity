@@ -2,7 +2,9 @@
 
 #include "../RenderApi/Texture.hpp"
 
-Material::Material() : _id(0),
+static uint32 ID_COUNTER = 0;
+
+Material::Material() : _id(ID_COUNTER++),
                        _diffuseEnabled(false),
                        _normalEnabled(false),
                        _metallicEnabled(false),

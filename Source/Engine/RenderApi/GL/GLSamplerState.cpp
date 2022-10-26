@@ -7,13 +7,13 @@ GLenum getTextureAddressingMode(TextureAddressMode addressingMode)
 {
   switch (addressingMode)
   {
-  case TextureAddressMode::Clamp:
+  case TextureAddressMode::ClampToEdge:
     return GL_CLAMP_TO_EDGE;
-  case TextureAddressMode::Mirror:
+  case TextureAddressMode::MirroredRepeat:
     return GL_MIRRORED_REPEAT;
-  case TextureAddressMode::Wrap:
+  case TextureAddressMode::Repeat:
     return GL_REPEAT;
-  case TextureAddressMode::Border:
+  case TextureAddressMode::ClampToBorder:
     return GL_CLAMP_TO_BORDER;
   default:
     return GL_CLAMP_TO_BORDER;
@@ -44,7 +44,7 @@ void GLSamplerState::initialize()
   ASSERT_FALSE(_id == 0, "Could not generate GL sampler object");
 
   setTextureAddressingMode(getAddressingMode());
-  setTextureMinMipFiltering(getMinFilteringMode(), getMipFilteringMode());
+  setTextureMinMipFiltering(getMinFilteringMode());
   setTextureMagFiltering(getMagFilteringMode());
   setBorderColour(getBorderColour());
 }
@@ -61,7 +61,7 @@ void GLSamplerState::setTextureAddressingMode(AddressingMode addressingMode)
   glCall(glSamplerParameteri(_id, GL_TEXTURE_WRAP_T, getTextureAddressingMode(addressingMode.V)));
 }
 
-void GLSamplerState::setTextureMinMipFiltering(TextureFilteringMode minFilteringMode, TextureFilteringMode mipFilteringMode)
+void GLSamplerState::setTextureMinMipFiltering(TextureFilteringMode minFilteringMode)
 {
   if (isInitialized())
   {
@@ -70,46 +70,26 @@ void GLSamplerState::setTextureMinMipFiltering(TextureFilteringMode minFiltering
 
   switch (minFilteringMode)
   {
-  case TextureFilteringMode::None:
+  case TextureFilteringMode::Nearest:
     glCall(glSamplerParameteri(_id, GL_TEXTURE_MIN_FILTER, GL_NEAREST));
     break;
-  case TextureFilteringMode::Point:
-    switch (mipFilteringMode)
-    {
-    case TextureFilteringMode::None:
-      glCall(glSamplerParameteri(_id, GL_TEXTURE_MIN_FILTER, GL_LINEAR));
-      break;
-    case TextureFilteringMode::Point:
-      glCall(glSamplerParameteri(_id, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_NEAREST));
-      break;
-    case TextureFilteringMode::Linear:
-    case TextureFilteringMode::Anisotropic:
-      glCall(glSamplerParameteri(_id, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR));
-      break;
-    default:
-      break;
-    }
-    break;
-
   case TextureFilteringMode::Linear:
-  case TextureFilteringMode::Anisotropic:
-    switch (mipFilteringMode)
-    {
-    case TextureFilteringMode::None:
-      glCall(glSamplerParameteri(_id, GL_TEXTURE_MIN_FILTER, GL_NEAREST));
-      break;
-    case TextureFilteringMode::Point:
-      glCall(glSamplerParameteri(_id, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_NEAREST));
-      break;
-    case TextureFilteringMode::Linear:
-    case TextureFilteringMode::Anisotropic:
-      glCall(glSamplerParameteri(_id, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_LINEAR));
-      break;
-    default:
-      break;
-    }
-
+    glCall(glSamplerParameteri(_id, GL_TEXTURE_MIN_FILTER, GL_LINEAR));
+    break;
+  case TextureFilteringMode::NearestMipNearest:
+    glCall(glSamplerParameteri(_id, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_NEAREST));
+    break;
+  case TextureFilteringMode::LinearMipNearest:
+    glCall(glSamplerParameteri(_id, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_NEAREST));
+    break;
+  case TextureFilteringMode::NearestMipLinear:
+    glCall(glSamplerParameteri(_id, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_LINEAR));
+    break;
+  case TextureFilteringMode::LinearMipLinear:
+    glCall(glSamplerParameteri(_id, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR));
+    break;
   default:
+    glCall(glSamplerParameteri(_id, GL_TEXTURE_MIN_FILTER, GL_NEAREST));
     break;
   }
 }
@@ -123,14 +103,14 @@ void GLSamplerState::setTextureMagFiltering(TextureFilteringMode textureFilterin
 
   switch (textureFilteringMode)
   {
-  case TextureFilteringMode::None:
-  case TextureFilteringMode::Point:
+  case TextureFilteringMode::Nearest:
     glCall(glSamplerParameteri(_id, GL_TEXTURE_MAG_FILTER, GL_NEAREST));
     break;
   case TextureFilteringMode::Linear:
-  case TextureFilteringMode::Anisotropic:
-    glCall(glSamplerParameteri(_id, GL_TEXTURE_MAG_FILTER, GL_NEAREST));
+    glCall(glSamplerParameteri(_id, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
+    break;
   default:
+    glCall(glSamplerParameteri(_id, GL_TEXTURE_MAG_FILTER, GL_NEAREST));
     break;
   }
 }

@@ -8,6 +8,7 @@ It is still under heavy development so expect bugs and performance issues.
 - Cascaded Shadow Maps for Directional Lights
 - Soft Shadows using Poisson disc sampling and PCF
 - Screen space ambient occlusion
+- HDR with Physically Based Bloom
 - Scenegraph with Frustrum Culling
 - Editor UI for Debugging
 
@@ -21,7 +22,7 @@ It is still under heavy development so expect bugs and performance issues.
 - [x] Screen space ambient occlusion
 - [x] HDR Tone Mapping
 - [x] Physically based rendering
-- [ ] Bloom
+- [x] Bloom
 - [ ] Image Based Lighting
 - [ ] Point Light Shadow Maps
 - [ ] Screen space reflection
@@ -44,9 +45,9 @@ It is still under heavy development so expect bugs and performance issues.
 * https://learn.microsoft.com/en-us/windows/win32/dxtecharts/common-techniques-to-improve-shadow-depth-maps
 #### Screen Space Ambient Occlusion
 * http://john-chapman-graphics.blogspot.com/2013/01/ssao-tutorial.html
-
 #### Physically Based Shading
 * https://blog.selfshadow.com/publications/s2013-shading-course/karis/s2013_pbs_epic_notes_v2.pdf
 * https://blog.selfshadow.com/publications/s2013-shading-course/hoffman/s2013_pbs_physics_math_notes.pdf
+* https://web.archive.org/web/20060818101028/http://harkal.sylphis3d.com/2006/05/20/how-to-do-good-bloom-for-hdr-rendering
 #### Clustered Shading
 * http://www.aortiz.me/2018/12/21/CG.html
