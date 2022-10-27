@@ -23,8 +23,9 @@ It is still under heavy development so expect bugs and performance issues.
 - [x] HDR Tone Mapping
 - [x] Physically based rendering
 - [x] Bloom
-- [ ] Image Based Lighting
+- [ ] Binary Space Partitioning
 - [ ] Point Light Shadow Maps
+- [ ] Image Based Lighting
 - [ ] Screen space reflection
 - [ ] Motion Blur
 - [ ] Depth of Field
