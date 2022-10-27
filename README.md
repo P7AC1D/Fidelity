@@ -23,7 +23,7 @@ It is still under heavy development so expect bugs and performance issues.
 - [x] HDR Tone Mapping
 - [x] Physically based rendering
 - [x] Bloom
-- [ ] Binary Space Partitioning
+- [ ] Octree Culling
 - [ ] Point Light Shadow Maps
 - [ ] Image Based Lighting
 - [ ] Screen space reflection
