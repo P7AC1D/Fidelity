@@ -950,7 +950,7 @@ void Renderer::initBloomDownSamplePass(const std::shared_ptr<RenderDevice> &rend
 
   ShaderDesc psDesc;
   psDesc.ShaderType = ShaderType::Fragment;
-  psDesc.Source = String::foadFromFile("./Shaders/Downsample.frag");
+  psDesc.Source = String::foadFromFile("./Shaders/BlurDownSample.frag");
 
   std::vector<VertexLayoutDesc> vertexLayoutDesc{
       VertexLayoutDesc(SemanticType::Position, SemanticFormat::Float2),
@@ -1009,7 +1009,7 @@ void Renderer::initBloomUpSamplePass(const std::shared_ptr<RenderDevice> &render
 
   ShaderDesc psDesc;
   psDesc.ShaderType = ShaderType::Fragment;
-  psDesc.Source = String::foadFromFile("./Shaders/Upsample.frag");
+  psDesc.Source = String::foadFromFile("./Shaders/BlurUpSample.frag");
 
   std::vector<VertexLayoutDesc> vertexLayoutDesc{
       VertexLayoutDesc(SemanticType::Position, SemanticFormat::Float2),

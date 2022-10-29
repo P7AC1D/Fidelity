@@ -50,5 +50,7 @@ It is still under heavy development so expect bugs and performance issues.
 * https://blog.selfshadow.com/publications/s2013-shading-course/karis/s2013_pbs_epic_notes_v2.pdf
 * https://blog.selfshadow.com/publications/s2013-shading-course/hoffman/s2013_pbs_physics_math_notes.pdf
 * https://web.archive.org/web/20060818101028/http://harkal.sylphis3d.com/2006/05/20/how-to-do-good-bloom-for-hdr-rendering
+#### Bloom
+* https://catlikecoding.com/unity/tutorials/advanced-rendering/bloom/
 #### Clustered Shading
 * http://www.aortiz.me/2018/12/21/CG.html

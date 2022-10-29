@@ -1,8 +1,5 @@
 #version 410
 
-// This shader performs downsampling on a texture,
-// as taken from Call Of Duty method, presented at ACM Siggraph 2014.
-
 layout(std140) uniform BloomBuffer
 {
   vec2 SourceResolution;
