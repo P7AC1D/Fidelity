@@ -17,10 +17,10 @@ public:
 
 	void drawInspector() override;
 
-	Light &setColour(const Colour &colour);
-	Light &setRadius(float32 radius);
-	Light &setLightType(LightType lightType);
-	Light &setIntensity(float32 intensity);
+	void setColour(const Colour &colour);
+	void setRadius(float32 radius);
+	void setLightType(LightType lightType);
+	void setIntensity(float32 intensity);
 
 	Matrix4 getMatrix() const { return _matrix; }
 	Vector3 getPosition() const { return _position; }

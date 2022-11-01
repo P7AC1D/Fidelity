@@ -59,7 +59,7 @@ protected:
 
   Vector2I _lastMousePos, _currentMousePos;
   Vector3 _cameraTarget;
-  GameObject *_camera;
+  std::shared_ptr<GameObject> _camera;
 
   std::shared_ptr<InputHandler> _inputHandler;
   std::shared_ptr<UiManager> _debugUi;

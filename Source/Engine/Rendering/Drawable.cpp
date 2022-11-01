@@ -8,7 +8,7 @@
 #include "StaticMesh.h"
 #include "Material.h"
 
-Drawable::Drawable() : Component(ComponentType::Drawable),
+Drawable::Drawable() : Component(),
 											 _currentScale(Vector3::Identity),
 											 _drawAabb(false),
 											 _modified(true),
@@ -196,19 +196,17 @@ void Drawable::drawInspector()
 	}
 }
 
-Drawable &Drawable::setMesh(std::shared_ptr<StaticMesh> mesh)
+void Drawable::setMesh(std::shared_ptr<StaticMesh> mesh)
 {
 	_mesh = mesh;
 	_initAabb = mesh->getAabb();
 	_currAabb = _initAabb;
 	_modified = true;
-	return *this;
 }
 
-Drawable &Drawable::setMaterial(std::shared_ptr<Material> material)
+void Drawable::setMaterial(std::shared_ptr<Material> material)
 {
 	_material = material;
-	return *this;
 }
 
 void Drawable::onUpdate(float32 dt)

@@ -18,9 +18,8 @@
 #include "../RenderApi/RenderDevice.hpp"
 #include "GameObject.h"
 #include "InputHandler.h"
-#include "SceneGraph.h"
 
-static int64 SELECTED_GAME_OBJECT_INDEX = -1;
+static std::shared_ptr<GameObject> SELECTED_GAME_OBJECT = nullptr;
 
 /// @brief Builds a projected ray in world space from the a set of mouse coordinates in screen space.
 /// @param mouseCoords The current mouse coordinates in screen space.
@@ -56,44 +55,16 @@ Scene::~Scene() {}
 bool Scene::init(const Vector2I &windowDims, std::shared_ptr<RenderDevice> renderDevice)
 {
   _windowDims = windowDims;
-  _sceneGraph.reset(new SceneGraph());
-  createGameObject("root");
+  _rootGameObject.reset(new GameObject("root"));
 
   _renderDevice = renderDevice;
   _renderer.reset(new Renderer(windowDims));
   return _renderer->init(_renderDevice);
 }
 
-GameObject &Scene::createGameObject(const std::string &name)
-{
-  static uint64 index = 0;
-
-  _sceneGraph->addNode(index);
-  _gameObjects.insert(std::pair<uint64, std::shared_ptr<GameObject>>(index, new GameObject(name, index)));
-  _objectAddedToScene = true;
-  return *_gameObjects[index++].get();
-}
-
-void Scene::addChildToNode(GameObject &parent, GameObject &child)
-{
-  _sceneGraph->addChildToNode(parent.getIndex(), child.getIndex());
-  parent.addChildNode(child);
-}
-
 void Scene::update(float32 dt)
 {
-  for (const auto &gameObject : _gameObjects)
-  {
-    gameObject.second->update(dt);
-  }
-
-  for (const auto &componentType : _components)
-  {
-    for (auto &component : _components[componentType.first])
-    {
-      component->update(dt);
-    }
-  }
+  _rootGameObject->update(dt);
 }
 
 void Scene::drawFrame()
@@ -105,55 +76,30 @@ void Scene::drawFrame()
     return;
   }
 
-  auto drawableFindIter = _components.find(ComponentType::Drawable);
-  if (drawableFindIter == _components.end())
-  {
-    return;
-  }
-
-  auto cameraFindIter = _components.find(ComponentType::Camera);
-  if (cameraFindIter == _components.end())
-  {
-    return;
-  }
-
-  std::shared_ptr<Camera> camera(std::static_pointer_cast<Camera>(cameraFindIter->second[0]));
-  performObjectPicker(*camera.get());
-
-  std::vector<std::shared_ptr<Drawable>>
-      aabbDrawables, allDrawables, opaqueDrawables, transparentDrawables, mousePickedDrawables;
-  for (auto component : drawableFindIter->second)
-  {
-    auto drawable = std::dynamic_pointer_cast<Drawable>(component);
-    if (camera->contains(drawable->getAabb(), Transform(drawable->getMatrix())))
-    {
-      if (drawable->getMaterial()->hasOpacityTexture())
-      {
-        transparentDrawables.push_back(drawable);
-      }
-      else
-      {
-        opaqueDrawables.push_back(drawable);
-      }
-    }
-
-    if (drawable->shouldDrawAabb())
-    {
-      aabbDrawables.push_back(drawable);
-    }
-
-    allDrawables.push_back(drawable);
-  }
+  Ray ray = buildRayFromMouseCoords(_mouseCoordinates, _windowDims, *_mainCamera.get());
+  std::vector<std::shared_ptr<Light>> lights;
+  std::vector<std::shared_ptr<Drawable>> aabbDrawables, allDrawables, opaqueDrawables, transparentDrawables;
+  std::vector<std::shared_ptr<GameObject>> mousePickedObjects;
+  drawGameObject(_rootGameObject,
+                 opaqueDrawables,
+                 transparentDrawables,
+                 allDrawables,
+                 aabbDrawables,
+                 mousePickedObjects,
+                 lights,
+                 ray,
+                 _mainCamera);
 
   std::sort(opaqueDrawables.begin(), opaqueDrawables.end(), [&](const std::shared_ptr<Drawable> &a, const std::shared_ptr<Drawable> &b) -> bool
-            { return camera->distanceFrom(a->getPosition()) < camera->distanceFrom(b->getPosition()); });
+            { return _mainCamera->distanceFrom(a->getPosition()) < _mainCamera->distanceFrom(b->getPosition()); });
+  std::sort(transparentDrawables.begin(), transparentDrawables.end(), [&](const std::shared_ptr<Drawable> &a, const std::shared_ptr<Drawable> &b) -> bool
+            { return _mainCamera->distanceFrom(a->getPosition()) > _mainCamera->distanceFrom(b->getPosition()); });
+  std::sort(mousePickedObjects.begin(), mousePickedObjects.end(), [&](const std::shared_ptr<GameObject> &a, const std::shared_ptr<GameObject> &b) -> bool
+            { return _mainCamera->distanceFrom(a->getGlobalTransform().getPosition()) < _mainCamera->distanceFrom(b->getGlobalTransform().getPosition()); });
 
-  std::vector<std::shared_ptr<Light>> lights;
-  for (auto component : _components.find(ComponentType::Light)->second)
-  {
-    auto light = std::dynamic_pointer_cast<Light>(component);
-    lights.push_back(light);
-  }
+  setAabbDrawOnGameObject(SELECTED_GAME_OBJECT, false);
+  SELECTED_GAME_OBJECT = mousePickedObjects.front();
+  setAabbDrawOnGameObject(SELECTED_GAME_OBJECT, true);
 
   std::chrono::time_point end = std::chrono::high_resolution_clock::now();
   _scenePrepDuration = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
@@ -163,14 +109,14 @@ void Scene::drawFrame()
                        transparentDrawables,
                        allDrawables,
                        lights,
-                       camera);
+                       _mainCamera);
 }
 
 void Scene::drawDebugUi()
 {
   ImGui::BeginChild("SceneGraph", ImVec2(ImGui::GetContentRegionAvail().x, 300), false, ImGuiWindowFlags_HorizontalScrollbar);
-  drawSceneGraphUi(0);
-  drawGameObjectInspector(SELECTED_GAME_OBJECT_INDEX);
+  drawSceneGraphEditor(_rootGameObject);
+  drawGameObjectInspector(SELECTED_GAME_OBJECT);
   ImGui::EndChild();
 
   _renderer->drawDebugUi();
@@ -193,86 +139,49 @@ void Scene::drawDebugUi()
   }
 }
 
-void Scene::performObjectPicker(const Camera &camera)
+void Scene::drawSceneGraphEditor(const std::shared_ptr<GameObject> &gameObject)
 {
-  Ray ray = buildRayFromMouseCoords(_mouseCoordinates, _windowDims, camera);
+  ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick | (SELECTED_GAME_OBJECT == gameObject ? ImGuiTreeNodeFlags_Selected : 0);
 
-  std::vector<std::shared_ptr<GameObject>> rayCastedObjects;
-  for (const auto &gameObject : _gameObjects)
-  {
-    if (gameObject.second->hasComponent<Drawable>())
-    {
-      Drawable &drawable = gameObject.second->getComponent<Drawable>();
-
-      Vector3 extents(drawable.getAabb().getExtents());
-      if (ray.Intersects(Aabb(drawable.getPosition(), extents.X, extents.Y, extents.Z)) &&
-          _inputHandler->isButtonPressed(Button::Button_LMouse))
-      {
-        rayCastedObjects.push_back(gameObject.second);
-      }
-    }
-  }
-
-  if (rayCastedObjects.empty())
-  {
-    return;
-  }
-
-  std::sort(rayCastedObjects.begin(), rayCastedObjects.end(), [&](const std::shared_ptr<GameObject> &a, const std::shared_ptr<GameObject> &b) -> bool
-            { return camera.distanceFrom(a->getGlobalTransform().getPosition()) < camera.distanceFrom(b->getGlobalTransform().getPosition()); });
-
-  setAabbDrawOnGameObject(SELECTED_GAME_OBJECT_INDEX, false);
-  SELECTED_GAME_OBJECT_INDEX = rayCastedObjects.front()->getIndex();
-  setAabbDrawOnGameObject(SELECTED_GAME_OBJECT_INDEX, true);
-}
-
-void Scene::drawSceneGraphUi(int64 nodeIndex)
-{
-  ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick | (SELECTED_GAME_OBJECT_INDEX == nodeIndex ? ImGuiTreeNodeFlags_Selected : 0);
-
-  const auto &gameObject = _gameObjects[nodeIndex];
-
-  if (!_sceneGraph->doesNodeHaveChildren(nodeIndex))
+  if (!gameObject->hasChildNodes())
   {
     flags |= ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen;
     ImGui::TreeNodeEx(gameObject->getName().c_str(), flags);
     if (ImGui::IsItemClicked())
     {
-      setAabbDrawOnGameObject(SELECTED_GAME_OBJECT_INDEX, false);
-      SELECTED_GAME_OBJECT_INDEX = nodeIndex;
-      setAabbDrawOnGameObject(SELECTED_GAME_OBJECT_INDEX, true);
+      setAabbDrawOnGameObject(SELECTED_GAME_OBJECT, false);
+      SELECTED_GAME_OBJECT = gameObject;
+      setAabbDrawOnGameObject(SELECTED_GAME_OBJECT, true);
     }
-  }
-  else
-  {
-    bool open = ImGui::TreeNodeEx(gameObject->getName().c_str(), flags);
-    if (ImGui::IsItemClicked())
+    else
     {
-      setAabbDrawOnGameObject(SELECTED_GAME_OBJECT_INDEX, false);
-      SELECTED_GAME_OBJECT_INDEX = nodeIndex;
-      setAabbDrawOnGameObject(SELECTED_GAME_OBJECT_INDEX, true);
-    }
-    if (open)
-    {
-      for (const auto &childNodeIndex : _sceneGraph->getNodeChildren(nodeIndex))
+      bool open = ImGui::TreeNodeEx(gameObject->getName().c_str(), flags);
+      if (ImGui::IsItemClicked())
       {
-        drawSceneGraphUi(childNodeIndex);
+        setAabbDrawOnGameObject(SELECTED_GAME_OBJECT, false);
+        SELECTED_GAME_OBJECT = gameObject;
+        setAabbDrawOnGameObject(SELECTED_GAME_OBJECT, true);
       }
-      ImGui::TreePop();
+      if (open)
+      {
+        for (const auto &childNode : gameObject->getChildNodes())
+        {
+          drawSceneGraphEditor(childNode);
+        }
+        ImGui::TreePop();
+      }
     }
   }
 }
 
-void Scene::drawGameObjectInspector(int64 selectedGameObjectIndex)
+void Scene::drawGameObjectInspector(const std::shared_ptr<GameObject> &gameObject)
 {
-  if (selectedGameObjectIndex == -1)
+  if (gameObject == nullptr)
   {
     return;
   }
 
   ImGui::Begin("Inspector", 0, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_AlwaysAutoResize);
-
-  const auto &gameObject = _gameObjects[selectedGameObjectIndex];
   gameObject->drawInspector();
 
   ImVec2 screenSize = ImGui::GetIO().DisplaySize;
@@ -281,16 +190,81 @@ void Scene::drawGameObjectInspector(int64 selectedGameObjectIndex)
   ImGui::End();
 }
 
-void Scene::setAabbDrawOnGameObject(int64 gameObjectIndex, bool enableAabbDraw)
+void Scene::setAabbDrawOnGameObject(const std::shared_ptr<GameObject> &gameObject, bool enableAabbDraw)
 {
-  if (gameObjectIndex == -1)
+  if (gameObject == nullptr)
   {
     return;
   }
 
-  const auto &gameObject = _gameObjects[gameObjectIndex];
   if (gameObject->hasComponent<Drawable>())
   {
-    gameObject->getComponent<Drawable>().enableDrawAabb(enableAabbDraw);
+    gameObject->getComponent<Drawable>()->enableDrawAabb(enableAabbDraw);
+  }
+}
+
+void Scene::drawGameObject(const std::shared_ptr<GameObject> &gameObject,
+                           std::vector<std::shared_ptr<Drawable>> &opaqueDrawables,
+                           std::vector<std::shared_ptr<Drawable>> &transparentDrawables,
+                           std::vector<std::shared_ptr<Drawable>> &allDrawables,
+                           std::vector<std::shared_ptr<Drawable>> &aabbDrawables,
+                           std::vector<std::shared_ptr<GameObject>> &mousePickedObjects,
+                           std::vector<std::shared_ptr<Light>> &lights,
+                           const Ray &mouseCoordsProjectedRay,
+                           const std::shared_ptr<Camera> &camera) const
+{
+  if (gameObject->hasComponent<Drawable>())
+  {
+    std::shared_ptr<Drawable> drawable(gameObject->getComponent<Drawable>());
+
+    // Perform camera frustrum culling.
+    if (camera->contains(drawable->getAabb(), Transform(drawable->getMatrix())))
+    {
+      if (drawable->getMaterial()->hasOpacityTexture())
+      {
+        transparentDrawables.push_back(drawable);
+      }
+      else
+      {
+        opaqueDrawables.push_back(drawable);
+      }
+    }
+
+    // Perform mouse picking.
+    Vector3 extents(drawable->getAabb().getExtents());
+    if (mouseCoordsProjectedRay.Intersects(Aabb(drawable->getPosition(), extents.X, extents.Y, extents.Z)) &&
+        _inputHandler->isButtonPressed(Button::Button_LMouse))
+    {
+      mousePickedObjects.push_back(gameObject);
+    }
+
+    if (drawable->shouldDrawAabb())
+    {
+      aabbDrawables.push_back(drawable);
+    }
+
+    allDrawables.push_back(drawable);
+  }
+
+  if (gameObject->hasComponent<Light>())
+  {
+    std::shared_ptr<Light> light(gameObject->getComponent<Light>());
+    lights.push_back(light);
+  }
+
+  if (gameObject->hasChildNodes())
+  {
+    for (const auto &childNode : gameObject->getChildNodes())
+    {
+      drawGameObject(childNode,
+                     opaqueDrawables,
+                     transparentDrawables,
+                     allDrawables,
+                     aabbDrawables,
+                     mousePickedObjects,
+                     lights,
+                     mouseCoordsProjectedRay,
+                     camera);
+    }
   }
 }

@@ -5,8 +5,11 @@
 
 #include "../Geometry/MeshFactory.h"
 #include "../Rendering/Camera.h"
+#include "../Rendering/CameraBuilder.hpp"
 #include "../Rendering/Light.h"
+#include "../Rendering/LightBuilder.hpp"
 #include "../Rendering/Drawable.h"
+#include "../Rendering/DrawableBuilder.hpp"
 #include "../Rendering/Material.h"
 #include "../Utility/ModelLoader.hpp"
 #include "Application.h"

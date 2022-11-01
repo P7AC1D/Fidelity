@@ -227,9 +227,9 @@ std::shared_ptr<StaticMesh> buildMesh(const std::string &filePath, const aiMesh 
   return mesh;
 }
 
-GameObject &buildModel(Scene &scene, const std::string &fileFolder, const aiScene *aiScene, bool reconstructWorldTransforms)
+std::shared_ptr<GameObject> buildModel(Scene &scene, const std::string &fileFolder, const aiScene *aiScene, bool reconstructWorldTransforms)
 {
-  GameObject &root = scene.createGameObject(aiScene->mRootNode->mName.C_Str());
+  std::shared_ptr<GameObject> root(new GameObject(aiScene->mRootNode->mName.C_Str()));
 
   std::vector<std::shared_ptr<Material>> materials(aiScene->mNumMaterials);
   for (uint32 i = 0; i < aiScene->mNumMaterials; i++)
@@ -241,22 +241,20 @@ GameObject &buildModel(Scene &scene, const std::string &fileFolder, const aiScen
   {
     auto aiMesh = aiScene->mMeshes[i];
 
-    GameObject &currentObject = scene.createGameObject(aiMesh->mName.C_Str());
-    Drawable &drawable = scene.createComponent<Drawable>();
-
-    currentObject.addComponent(drawable);
-    scene.addChildToNode(root, currentObject);
+    std::shared_ptr<GameObject> currentObject(new GameObject(aiMesh->mName.C_Str()));
+    std::shared_ptr<Drawable> drawable = currentObject->createComponent<Drawable>();
+    root->addChildNode(currentObject);
 
     Vector3 offset;
-    drawable.setMaterial(materials[aiMesh->mMaterialIndex]);
-    drawable.setMesh(buildMesh(fileFolder, aiMesh, reconstructWorldTransforms, offset));
-    currentObject.transform().setPosition(offset);
+    drawable->setMaterial(materials[aiMesh->mMaterialIndex]);
+    drawable->setMesh(buildMesh(fileFolder, aiMesh, reconstructWorldTransforms, offset));
+    currentObject->transform().setPosition(offset);
   }
 
   return root;
 }
 
-GameObject &ModelLoader::fromFile(Scene &scene, const std::string &filePath, bool reconstructWorldTransforms)
+std::shared_ptr<GameObject> ModelLoader::fromFile(Scene &scene, const std::string &filePath, bool reconstructWorldTransforms)
 {
   Assimp::Importer importer;
   auto aiScene = importer.ReadFile(filePath, aiProcess_Triangulate | aiProcess_GenNormals | aiProcess_GenUVCoords);

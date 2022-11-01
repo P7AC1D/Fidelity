@@ -1,5 +1,6 @@
 #pragma once
 #include <functional>
+#include <memory>
 #include <optional>
 #include <string>
 #include <vector>
@@ -13,23 +14,22 @@ class Scene;
 class GameObjectBuilder
 {
 public:
-	GameObjectBuilder(Scene &scene);
+	GameObjectBuilder();
 
 	GameObjectBuilder &withName(const std::string &name);
-	GameObjectBuilder &withChild(GameObject &gameObject);
-	GameObjectBuilder &withComponent(Component &component);
+	GameObjectBuilder &withChild(const std::shared_ptr<GameObject> &childObject);
+	GameObjectBuilder &withComponent(const std::shared_ptr<Component> &component);
 	GameObjectBuilder &withScale(const Vector3 &scale);
 	GameObjectBuilder &withPosition(const Vector3 &position);
 	GameObjectBuilder &withTarget(const Vector3 &target);
 	GameObjectBuilder &withRotation(const Quaternion &rotation);
 
-	GameObject &build();
+	std::shared_ptr<GameObject> build();
 
 private:
-	std::vector<std::reference_wrapper<GameObject>> _children;
-	std::vector<std::reference_wrapper<Component>> _components;
+	std::vector<std::shared_ptr<GameObject>> _children;
+	std::vector<std::shared_ptr<Component>> _components;
 	std::string _name;
-	Scene &_scene;
 	Vector3 _scale;
 	Vector3 _position;
 	std::optional<Vector3> _target;

@@ -5,16 +5,21 @@
 #include "../Rendering/Drawable.h"
 #include "Component.h"
 
-GameObject::GameObject() : _index(0)
+GameObject::GameObject() : _id(GAMEOBJECT_ID++),
+													 _name("GameObject" + std::to_string(GAMEOBJECT_ID))
 {
 }
 
-GameObject::GameObject(const std::string &name, uint64 index) : _name(name), _index(index), _parent(nullptr)
+GameObject::GameObject(const std::string &name) : _name(name),
+																									_id(GAMEOBJECT_ID++),
+																									_parent(nullptr)
 {
 }
 
 void GameObject::update(float32 dt)
 {
+	updateComponents(dt);
+
 	if (_localTransform.modified())
 	{
 		_localTransform.update(dt);
@@ -77,22 +82,43 @@ void GameObject::drawInspector()
 	}
 }
 
-GameObject &GameObject::addComponent(Component &component)
+std::shared_ptr<GameObject> GameObject::createChildNode(const std::string &name)
 {
-	_components.push_back(&component);
-	return *this;
+	std::shared_ptr<GameObject> gameObject(new GameObject(name));
+	return addChildNode(gameObject);
 }
 
-GameObject &GameObject::addChildNode(GameObject &gameObject)
+std::shared_ptr<GameObject> GameObject::addChildNode(std::shared_ptr<GameObject> gameObject)
 {
-	gameObject._parent = this;
-	_childNodes.push_back(&gameObject);
-	return *this;
+	_children.push_back(gameObject);
+	gameObject->_parent = this;
+	return gameObject;
+}
+
+std::shared_ptr<GameObject> GameObject::getChildNode(uint64 id) const
+{
+	auto findIter = std::find_if(_children.begin(), _children.end(), [&](const std::shared_ptr<GameObject> &gameObject)
+															 { return gameObject->getId() == id; });
+	if (findIter != _children.end())
+	{
+		return *findIter;
+	}
+	return nullptr;
+}
+
+void GameObject::removeChildNode(uint64 id)
+{
+	auto findIter = std::find_if(_children.begin(), _children.end(), [&](const std::shared_ptr<GameObject> &gameObject)
+															 { return gameObject->getId() == id; });
+	if (findIter != _children.end())
+	{
+		_children.erase(findIter);
+	}
 }
 
 void GameObject::updateChildNodeTransforms(float32 dt)
 {
-	for (auto childNode : _childNodes)
+	for (auto childNode : _children)
 	{
 		childNode->_globalTransform = _localTransform * childNode->_localTransform;
 	}
@@ -103,5 +129,21 @@ void GameObject::notifyComponents() const
 	for (auto component : _components)
 	{
 		component->notify(*this);
+	}
+}
+
+void GameObject::updateComponents(float32 dt)
+{
+	for (const auto &component : _components)
+	{
+		component->update(dt);
+	}
+}
+
+void GameObject::updateChildren(float32 dt)
+{
+	for (const auto &child : _children)
+	{
+		child->update(dt);
 	}
 }

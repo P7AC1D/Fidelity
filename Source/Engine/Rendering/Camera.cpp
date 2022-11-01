@@ -7,14 +7,13 @@ Camera::Camera() : _width(1280),
 									 _height(768),
 									 _fov(Degree(60.f)),
 									 _near(0.1f),
-									 _far(10000.0f),
+									 _far(1000.0f),
 									 _view(Matrix4::Identity),
 									 _proj(Matrix4::Identity),
 									 _modified(true),
 									 _fixFrustrum(false),
-									 Component(ComponentType::Camera)
+									 Component()
 {
-	updateProjection();
 }
 
 void Camera::drawInspector()
@@ -49,50 +48,34 @@ void Camera::drawInspector()
 	}
 }
 
-Camera &Camera::setPerspective(const Degree &fovY, int32 width, int32 height, float32 nearClip, float32 farClip)
-{
-	setWidth(width);
-	setHeight(height);
-	setFov(fovY);
-	setNear(nearClip);
-	setFar(farClip);
-	_modified = true;
-	return *this;
-}
-
-Camera &Camera::setHeight(int32 height)
+void Camera::setHeight(int32 height)
 {
 	_height = height;
 	_modified = true;
-	return *this;
 }
 
-Camera &Camera::setWidth(int32 width)
+void Camera::setWidth(int32 width)
 {
 	_width = width;
 	_modified = true;
-	return *this;
 }
 
-Camera &Camera::setFov(const Degree &fov)
+void Camera::setFov(const Degree &fov)
 {
 	_fov = Radian(fov);
 	_modified = true;
-	return *this;
 }
 
-Camera &Camera::setNear(float32 near)
+void Camera::setNear(float32 near)
 {
 	_near = near;
 	_modified = true;
-	return *this;
 }
 
-Camera &Camera::setFar(float32 far)
+void Camera::setFar(float32 far)
 {
 	_far = far;
 	_modified = true;
-	return *this;
 }
 
 void Camera::onUpdate(float32 dt)

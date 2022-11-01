@@ -10,51 +10,66 @@ Sponza::Sponza(const ApplicationDesc &desc) : Application(desc)
 
 void Sponza::onStart()
 {
-  GameObject &root = _scene.getRoot();
+  std::shared_ptr<GameObject> root(_scene.getRootGameObject());
+  _camera = GameObjectBuilder()
+                .withName("mainCamera")
+                .withComponent(CameraBuilder()
+                                   .withFar(500.0f)
+                                   .withNear(0.1f)
+                                   .withWidth(getWidth())
+                                   .withHeight(getHeight())
+                                   .withFov(Degree(67.67f))
+                                   .build())
+                .withPosition(Vector3(-105.0f, 70.0f, 9.0f))
+                .withTarget(Vector3::Zero)
+                .withRotation(Quaternion(Degree(59.552), Degree(53.438), Degree(53.802)))
+                .build();
+  root->addChildNode(_camera);
 
-  _camera = &GameObjectBuilder(_scene)
-                 .withName("mainCamera")
-                 .withComponent(_scene.createComponent<Camera>()
-                                    .setPerspective(Degree(67.67f), getWidth(), getHeight(), 0.1f, 500.0f))
-                 .withPosition(Vector3(-105.0f, 70.0f, 9.0f))
-                 .withTarget(Vector3::Zero)
-                 .withRotation(Quaternion(Degree(59.552), Degree(53.438), Degree(53.802)))
-                 .build();
-  _scene.addChildToNode(root, *_camera);
+  root->addChildNode(GameObjectBuilder()
+                         .withName("directionalLight")
+                         .withComponent(LightBuilder()
+                                            .withColour(Colour(244, 233, 155))
+                                            .withLightType(LightType::Directional)
+                                            .withIntensity(1.0f)
+                                            .build())
+                         .withRotation(Quaternion(Degree(36.139), Degree(-72.174), Degree(-30.861f)))
+                         .build());
 
-  _scene.addChildToNode(root, GameObjectBuilder(_scene)
-                                  .withName("directionalLight")
-                                  .withComponent(_scene.createComponent<Light>()
-                                                     .setLightType(LightType::Directional)
-                                                     .setColour(Colour(244, 233, 155))
-                                                     .setIntensity(10.0f))
-                                  .withRotation(Quaternion(Degree(36.139), Degree(-72.174), Degree(-30.861f)))
-                                  .build());
-  _scene.addChildToNode(root, GameObjectBuilder(_scene)
-                                  .withName("light1")
-                                  .withComponent(_scene.createComponent<Light>()
-                                                     .setColour(Colour(150, 25, 25))
-                                                     .setRadius(70.0f))
-                                  .withPosition(Vector3(95.0f, 8.0f, 0.0f))
-                                  .build());
-  _scene.addChildToNode(root, GameObjectBuilder(_scene)
-                                  .withName("light2")
-                                  .withComponent(_scene.createComponent<Light>()
-                                                     .setColour(Colour(25, 150, 25))
-                                                     .setRadius(70.0f))
-                                  .withPosition(Vector3(-51.0f, 8.0f, 0.0f))
-                                  .build());
-  _scene.addChildToNode(root, GameObjectBuilder(_scene)
-                                  .withName("light3")
-                                  .withComponent(_scene.createComponent<Light>()
-                                                     .setColour(Colour(25, 25, 100))
-                                                     .setRadius(70.0f))
-                                  .withPosition(Vector3(12.0f, 8.0f, 0.0f))
-                                  .build());
+  root->addChildNode(GameObjectBuilder()
+                         .withName("redLight")
+                         .withComponent(LightBuilder()
+                                            .withColour(Colour(150, 25, 25))
+                                            .withRadius(25.0f)
+                                            .withLightType(LightType::Point)
+                                            .withIntensity(10.0f)
+                                            .build())
+                         .withPosition(Vector3(95.0f, 8.0f, 0.0f))
+                         .build());
+  root->addChildNode(GameObjectBuilder()
+                         .withName("greenLight")
+                         .withComponent(LightBuilder()
+                                            .withColour(Colour(25, 150, 25))
+                                            .withRadius(25.0f)
+                                            .withLightType(LightType::Point)
+                                            .withIntensity(10.0f)
+                                            .build())
+                         .withPosition(Vector3(-51.0f, 8.0f, 0.0f))
+                         .build());
+  root->addChildNode(GameObjectBuilder()
+                         .withName("blueLight")
+                         .withComponent(LightBuilder()
+                                            .withColour(Colour(25, 25, 100))
+                                            .withRadius(25.0f)
+                                            .withLightType(LightType::Point)
+                                            .withIntensity(10.0f)
+                                            .build())
+                         .withPosition(Vector3(12.0f, 8.0f, 0.0f))
+                         .build());
 
-  auto &sponzaNode = ModelLoader::fromFile(_scene, "./Models/sponza_pbr/sponza.obj", true);
-  sponzaNode.transform().setScale(Vector3(0.1, 0.1, 0.1));
-  _scene.addChildToNode(root, sponzaNode);
+  std::shared_ptr<GameObject> sponzaNode = ModelLoader::fromFile(_scene, "./Models/sponza_pbr/sponza.obj", true);
+  sponzaNode->transform().setScale(Vector3(0.1, 0.1, 0.1));
+  root->addChildNode(sponzaNode);
 }
 
 void Sponza::onUpdate(uint32 dtMs)

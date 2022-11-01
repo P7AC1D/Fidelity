@@ -18,8 +18,8 @@ public:
 
   void drawInspector() override;
 
-  Drawable &setMesh(std::shared_ptr<StaticMesh> mesh);
-  Drawable &setMaterial(std::shared_ptr<Material> material);
+  void setMesh(std::shared_ptr<StaticMesh> mesh);
+  void setMaterial(std::shared_ptr<Material> material);
 
   std::shared_ptr<StaticMesh> getMesh() const { return _mesh; }
   std::shared_ptr<Material> getMaterial() const { return _material; }

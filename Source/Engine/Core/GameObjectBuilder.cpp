@@ -6,9 +6,9 @@
 #include "GameObject.h"
 #include "Scene.h"
 
-GameObjectBuilder::GameObjectBuilder(Scene &scene) : _scene(scene), _scale(Vector3::Identity),
-																										 _position(Vector3::Zero),
-																										 _rotation(Quaternion::Identity)
+GameObjectBuilder::GameObjectBuilder() : _scale(Vector3::Identity),
+																				 _position(Vector3::Zero),
+																				 _rotation(Quaternion::Identity)
 {
 }
 
@@ -18,13 +18,13 @@ GameObjectBuilder &GameObjectBuilder::withName(const std::string &name)
 	return *this;
 }
 
-GameObjectBuilder &GameObjectBuilder::withChild(GameObject &gameObject)
+GameObjectBuilder &GameObjectBuilder::withChild(const std::shared_ptr<GameObject> &childObject)
 {
-	_children.push_back(gameObject);
+	_children.push_back(childObject);
 	return *this;
 }
 
-GameObjectBuilder &GameObjectBuilder::withComponent(Component &component)
+GameObjectBuilder &GameObjectBuilder::withComponent(const std::shared_ptr<Component> &component)
 {
 	_components.push_back(component);
 	return *this;
@@ -54,14 +54,14 @@ GameObjectBuilder &GameObjectBuilder::withRotation(const Quaternion &rotation)
 	return *this;
 }
 
-GameObject &GameObjectBuilder::build()
+std::shared_ptr<GameObject> GameObjectBuilder::build()
 {
-	GameObject &gameObject = _scene.createGameObject(_name);
-	std::for_each(_children.begin(), _children.end(), [&](std::reference_wrapper<GameObject> g)
-								{ _scene.addChildToNode(gameObject, g.get()); });
-	std::for_each(_components.begin(), _components.end(), [&gameObject](std::reference_wrapper<Component> c)
-								{ gameObject.addComponent(c.get()); });
-	Transform &transform = gameObject.transform()
+	std::shared_ptr<GameObject> gameObject(new GameObject(_name));
+	std::for_each(_children.begin(), _children.end(), [&](const std::shared_ptr<GameObject> &g)
+								{ gameObject->addChildNode(g); });
+	std::for_each(_components.begin(), _components.end(), [&gameObject](const std::shared_ptr<Component> &c)
+								{ gameObject->addComponent(c); });
+	Transform &transform = gameObject->transform()
 														 .setPosition(_position)
 														 .setScale(_scale)
 														 .setRotation(_rotation);

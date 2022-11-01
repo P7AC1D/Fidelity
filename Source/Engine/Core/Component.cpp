@@ -12,6 +12,6 @@ void Component::notify(const GameObject &gameObject)
   onNotify(gameObject);
 }
 
-Component::Component(ComponentType componentType) : _componentType(componentType)
+Component::Component()
 {
 }

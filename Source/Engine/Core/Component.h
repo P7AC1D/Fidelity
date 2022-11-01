@@ -5,14 +5,6 @@
 
 class GameObject;
 
-enum class ComponentType
-{
-  Drawable,
-  Light,
-  Generic,
-  Camera
-};
-
 class Component
 {
 public:
@@ -22,13 +14,9 @@ public:
 
   virtual void drawInspector() = 0;
 
-  ComponentType getType() const { return _componentType; }
-
 protected:
-  Component(ComponentType componentType);
+  Component();
 
   virtual void onUpdate(float32 dt) = 0;
   virtual void onNotify(const GameObject &gameObject) = 0;
-
-  ComponentType _componentType;
 };

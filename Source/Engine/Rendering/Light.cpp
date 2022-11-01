@@ -3,7 +3,7 @@
 #include "../UI/ImGui/imgui.h"
 #include "../Core/GameObject.h"
 
-Light::Light() : Component(ComponentType::Light),
+Light::Light() : Component(),
 								 _colour(Colour::White),
 								 _radius(10.0f),
 								 _lightType(LightType::Point),
@@ -38,32 +38,28 @@ void Light::drawInspector()
 	}
 }
 
-Light &Light::setColour(const Colour &colour)
+void Light::setColour(const Colour &colour)
 {
 	_colour = colour;
 	_modified = true;
-	return *this;
 }
 
-Light &Light::setRadius(float32 radius)
+void Light::setRadius(float32 radius)
 {
 	_radius = radius;
 	_modified = true;
-	return *this;
 }
 
-Light &Light::setLightType(LightType lightType)
+void Light::setLightType(LightType lightType)
 {
 	_lightType = lightType;
 	_modified = true;
-	return *this;
 }
 
-Light &Light::setIntensity(float32 intensity)
+void Light::setIntensity(float32 intensity)
 {
 	_intensity = intensity;
 	_modified = true;
-	return *this;
 }
 
 void Light::onUpdate(float32 dt)

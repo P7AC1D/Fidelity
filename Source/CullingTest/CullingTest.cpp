@@ -10,26 +10,31 @@ CullingTest::CullingTest(const ApplicationDesc &desc) : Application(desc)
 
 void CullingTest::onStart()
 {
-  GameObject &root = _scene.getRoot();
+  std::shared_ptr<GameObject> root(_scene.getRootGameObject());
+  _camera = GameObjectBuilder()
+                .withName("mainCamera")
+                .withComponent(CameraBuilder()
+                                   .withFar(200.0f)
+                                   .withNear(0.1f)
+                                   .withWidth(getWidth())
+                                   .withHeight(getHeight())
+                                   .withFov(Degree(67.67f))
+                                   .build())
+                .withPosition(Vector3(-15.0f, 17.0f, -11.0f))
+                .withTarget(Vector3::Zero)
+                .withRotation(Quaternion(Degree(-123.0f), Degree(36.0f), Degree(138.0f)))
+                .build();
+  root->addChildNode(_camera);
 
-  _camera = &GameObjectBuilder(_scene)
-                 .withName("mainCamera")
-                 .withComponent(_scene.createComponent<Camera>()
-                                    .setPerspective(Degree(67.67f), getWidth(), getHeight(), 0.1f, 200.0f))
-                 .withPosition(Vector3(-15.0f, 17.0f, -11.0f))
-                 .withTarget(Vector3::Zero)
-                 .withRotation(Quaternion(Degree(-123.0f), Degree(36.0f), Degree(138.0f)))
-                 .build();
-  _scene.addChildToNode(root, *_camera);
-
-  _scene.addChildToNode(root, GameObjectBuilder(_scene)
-                                  .withName("directionalLight")
-                                  .withComponent(_scene.createComponent<Light>()
-                                                     .setLightType(LightType::Directional)
-                                                     .setColour(Colour(244, 233, 155))
-                                                     .setIntensity(1.0f))
-                                  .withRotation(Quaternion(Degree(36.139), Degree(-72.174), Degree(-30.861f)))
-                                  .build());
+  root->addChildNode(GameObjectBuilder()
+                         .withName("directionalLight")
+                         .withComponent(LightBuilder()
+                                            .withColour(Colour(244, 233, 155))
+                                            .withLightType(LightType::Directional)
+                                            .withIntensity(1.0f)
+                                            .build())
+                         .withRotation(Quaternion(Degree(36.139), Degree(-72.174), Degree(-30.861f)))
+                         .build());
 
   std::shared_ptr<Material> material(new Material());
   material->setDiffuseTexture(loadTextureFromFile("./Textures/crate0_diffuse.png", true, true));
@@ -43,13 +48,14 @@ void CullingTest::onStart()
     {
       for (int32 k = -5; k < 5; k++)
       {
-        _scene.addChildToNode(root, GameObjectBuilder(_scene)
-                                        .withName("cube" + std::to_string(count++))
-                                        .withComponent(_scene.createComponent<Drawable>()
-                                                           .setMesh(MeshFactory::createCube())
-                                                           .setMaterial(material))
-                                        .withPosition(Vector3(3 * i, 3 * j, 3 * k))
-                                        .build());
+        root->addChildNode(GameObjectBuilder()
+                               .withName("cube" + std::to_string(count++))
+                               .withComponent(DrawableBuilder()
+                                                  .withMesh(MeshFactory::createCube())
+                                                  .withMaterial(material)
+                                                  .build())
+                               .withPosition(Vector3(3 * i, 3 * j, 3 * k))
+                               .build());
       }
     }
   }
