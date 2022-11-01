@@ -156,23 +156,23 @@ void Scene::drawSceneGraphEditor(const std::shared_ptr<GameObject> &gameObject)
       SELECTED_GAME_OBJECT = gameObject;
       setAabbDrawOnGameObject(SELECTED_GAME_OBJECT, true);
     }
-    else
+  }
+  else
+  {
+    bool open = ImGui::TreeNodeEx(gameObject->getName().c_str(), flags);
+    if (ImGui::IsItemClicked())
     {
-      bool open = ImGui::TreeNodeEx(gameObject->getName().c_str(), flags);
-      if (ImGui::IsItemClicked())
+      setAabbDrawOnGameObject(SELECTED_GAME_OBJECT, false);
+      SELECTED_GAME_OBJECT = gameObject;
+      setAabbDrawOnGameObject(SELECTED_GAME_OBJECT, true);
+    }
+    if (open)
+    {
+      for (const auto &childNode : gameObject->getChildNodes())
       {
-        setAabbDrawOnGameObject(SELECTED_GAME_OBJECT, false);
-        SELECTED_GAME_OBJECT = gameObject;
-        setAabbDrawOnGameObject(SELECTED_GAME_OBJECT, true);
+        drawSceneGraphEditor(childNode);
       }
-      if (open)
-      {
-        for (const auto &childNode : gameObject->getChildNodes())
-        {
-          drawSceneGraphEditor(childNode);
-        }
-        ImGui::TreePop();
-      }
+      ImGui::TreePop();
     }
   }
 }

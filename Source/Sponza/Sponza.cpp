@@ -32,7 +32,7 @@ void Sponza::onStart()
                          .withComponent(LightBuilder()
                                             .withColour(Colour(244, 233, 155))
                                             .withLightType(LightType::Directional)
-                                            .withIntensity(1.0f)
+                                            .withIntensity(10.0f)
                                             .build())
                          .withRotation(Quaternion(Degree(36.139), Degree(-72.174), Degree(-30.861f)))
                          .build());

@@ -33,7 +33,7 @@ void Test3D::onStart()
                          .withComponent(LightBuilder()
                                             .withColour(Colour(244, 233, 155))
                                             .withLightType(LightType::Directional)
-                                            .withIntensity(1.0f)
+                                            .withIntensity(10.0f)
                                             .build())
                          .withRotation(Quaternion(Degree(-23), Degree(-73.f), Degree(26.0f)))
                          .build());
@@ -70,8 +70,8 @@ void Test3D::onStart()
 
   std::shared_ptr<Material> material(new Material());
   material->setDiffuseTexture(loadTextureFromFile("./Textures/crate0_diffuse.png", true, true));
-  material->setNormalTexture(loadTextureFromFile("./Textures/crate0_normal.png", false, false));
-  material->setMetallicTexture(loadTextureFromFile("./Textures/crate0_bump.png", false, false));
+  material->setNormalTexture(loadTextureFromFile("./Textures/crate0_normal.png", true, false));
+  material->setRoughnessTexture(loadTextureFromFile("./Textures/crate0_bump.png", true, false));
 
   std::random_device rd;
   std::mt19937 gen(rd());
