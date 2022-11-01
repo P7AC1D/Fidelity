@@ -26,6 +26,7 @@ void Test3D::onStart()
                 .withRotation(Quaternion(Degree(-123.0f), Degree(36.0f), Degree(138.0f)))
                 .build();
   root->addChildNode(_camera);
+  _scene.setMainCamera(_camera->getComponent<Camera>());
 
   root->addChildNode(GameObjectBuilder()
                          .withName("directionalLight")

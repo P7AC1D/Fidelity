@@ -25,6 +25,7 @@ void Sponza::onStart()
                 .withRotation(Quaternion(Degree(59.552), Degree(53.438), Degree(53.802)))
                 .build();
   root->addChildNode(_camera);
+  _scene.setMainCamera(_camera->getComponent<Camera>());
 
   root->addChildNode(GameObjectBuilder()
                          .withName("directionalLight")

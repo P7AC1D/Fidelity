@@ -19,6 +19,7 @@ GameObject::GameObject(const std::string &name) : _name(name),
 void GameObject::update(float32 dt)
 {
 	updateComponents(dt);
+	updateChildren(dt);
 
 	if (_localTransform.modified())
 	{

@@ -97,9 +97,12 @@ void Scene::drawFrame()
   std::sort(mousePickedObjects.begin(), mousePickedObjects.end(), [&](const std::shared_ptr<GameObject> &a, const std::shared_ptr<GameObject> &b) -> bool
             { return _mainCamera->distanceFrom(a->getGlobalTransform().getPosition()) < _mainCamera->distanceFrom(b->getGlobalTransform().getPosition()); });
 
-  setAabbDrawOnGameObject(SELECTED_GAME_OBJECT, false);
-  SELECTED_GAME_OBJECT = mousePickedObjects.front();
-  setAabbDrawOnGameObject(SELECTED_GAME_OBJECT, true);
+  if (!mousePickedObjects.empty())
+  {
+    setAabbDrawOnGameObject(SELECTED_GAME_OBJECT, false);
+    SELECTED_GAME_OBJECT = mousePickedObjects.front();
+    setAabbDrawOnGameObject(SELECTED_GAME_OBJECT, true);
+  }
 
   std::chrono::time_point end = std::chrono::high_resolution_clock::now();
   _scenePrepDuration = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
