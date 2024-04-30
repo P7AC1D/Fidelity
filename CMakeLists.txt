@@ -1,9 +1,11 @@
-cmake_minimum_required (VERSION 3.8 FATAL_ERROR)
+CMAKE_MINIMUM_REQUIRED( VERSION 3.10 )
 
 project(Fidelity)
 
 set(ENTITYX_BUILD_SHARED FALSE)
 set(CMAKE_CXX_STANDARD 17)
+
+set(ASSIMP_WARNINGS_AS_ERRORS OFF)
 
 find_package(OpenGL REQUIRED)
 find_package(Vulkan REQUIRED)
