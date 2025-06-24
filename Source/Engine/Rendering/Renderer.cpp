@@ -227,10 +227,10 @@ Renderer::Renderer(const Vector2I &windowDims) : _windowDims(windowDims),
                                                  _maxCascadeDistance(1.0f),
                                                  _cascadeLambda(0.4f),                                                 _toneMappingEnabled(true),
                                                  _bloomEnabled(true),
-                                                 _exposure(2.0f),
-                                                 _bloomStrength(0.04f),
+                                                 _exposure(3.0f),
+                                                 _bloomStrength(0.2f),
                                                  _bloomFilter(0.005f),
-                                                 _bloomThreshold(1.0f),
+                                                 _bloomThreshold(1.2f),
                                                  _debugDisplayType(DebugDisplayType::Disabled),
                                                  _shadowMapLayerToDraw(0),
                                                  _ssaoSettingsModified(true)
@@ -384,7 +384,7 @@ void Renderer::drawDebugUi()
     {
       _exposure = exposure;
     }    float32 bloomStrength = _bloomStrength;
-    if (ImGui::SliderFloat("Bloom Strength", &bloomStrength, 0.03f, 0.15f))
+    if (ImGui::SliderFloat("Bloom Strength", &bloomStrength, 0.0f, 1.0f))
     {
       _bloomStrength = bloomStrength;
     }

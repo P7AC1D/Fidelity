@@ -52,10 +52,9 @@ void main()
   vec4 colourSample = texture(LightingMap, TexCoord);
   vec3 hdrSample = colourSample.rgb;
   vec3 bloomSample = texture(BloomMap, TexCoord).rgb;
-  // Linear interpolation between HDR and bloom.
+
+  // Linear interpolation between exposed HDR and bloom (both already exposed)
   hdrSample = mix(hdrSample, bloomSample, Constants.BloomStrength);
-  // Apply exposure adjustment first
-  hdrSample *= Constants.Exposure;
 
   // Perform Reinhard tone mapping: L_out = L_in / (L_in + 1)
   // This preserves contrast better than exponential tone mapping
@@ -67,6 +66,7 @@ void main()
   }
   else
   {
-    FinalColour = colourSample;
+    // When tone mapping is disabled, clamp to avoid over-bright values
+    FinalColour = vec4(min(hdrSample, vec3(1.0)), colourSample.a);
   }
 }

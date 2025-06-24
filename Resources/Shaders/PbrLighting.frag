@@ -179,9 +179,13 @@ void main()
                                     metalness, 
                                     F0);
   }
-    // Ambient light contribution.
+  // Ambient light contribution.
   totalRadiance += albedo.rgb * Constants.AmbientColour * Constants.AmbientIntensity * occlusionFactor;
-  // Extract bright areas for bloom using luminance threshold
+
+  // Apply exposure to the HDR result
+  totalRadiance *= Constants.Exposure;
+
+  // Extract bright areas for bloom using luminance threshold (on exposed values)
   float luminance = dot(totalRadiance.rgb, vec3(0.2126, 0.7152, 0.0722));
   BloomColour = vec4(max(vec3(0.0), totalRadiance.rgb - Constants.BloomThreshold), 1.0);
 
