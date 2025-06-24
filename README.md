@@ -260,17 +260,6 @@ The **[Documentation/](Documentation/)** folder contains comprehensive technical
 - **[Shadow Mapping Analysis](Documentation/Shadow-Mapping-Analysis.md)**: Complete breakdown of the cascaded shadow mapping implementation, including performance optimizations, contact hardening, and quality analysis
 - **[Documentation Index](Documentation/README.md)**: Full list of available technical documents
 
-### Key Documentation Features
-- **Implementation Analysis**: Detailed algorithmic breakdowns with code examples
-- **Performance Benchmarks**: Measured performance impacts and optimization results  
-- **Configuration Guides**: Parameter tuning for different hardware tiers
-- **Best Practices**: Architectural decisions and coding standards
-
-The documentation is maintained alongside code changes to ensure accuracy and serves as both reference material for developers and educational content for graphics programming learners.
-- **glad**: Modern OpenGL loader with extensions support
-- **glfw**: Cross-platform window and input management
-- **glm**: Header-only mathematics library for graphics
-
 ## Contributing
 
 We welcome contributions! Please see our contributing guidelines for:
