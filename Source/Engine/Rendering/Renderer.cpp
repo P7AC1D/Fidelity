@@ -92,12 +92,14 @@ struct PerFrameBufferData
   // --------- Alignment ----------
   LightData Lights[MAX_LIGHTS];
   // --------- Alignment ----------
-  Vector4 CascadePlaneDistances[MAX_CASCADE_LAYERS];
+  Vector4 CascadePlaneDistances[MAX_CASCADE_LAYERS];  
   // --------- Alignment ----------
   uint32 LightCount;
   float32 Exposure;
   int32 ToneMappingEnabled;
   float32 BloomStrength;
+  // --------- Alignment ----------
+  float32 BloomThreshold;
 };
 
 struct BloomBuffer
@@ -926,7 +928,6 @@ void Renderer::initLightingPass(const std::shared_ptr<RenderDevice> &renderDevic
   pipelineDesc.ShaderParams = shaderParams;
 
   _lightingPso = renderDevice->createPipelineState(pipelineDesc);
-
   TextureDesc colourTexDesc;
   colourTexDesc.Width = _windowDims.X;
   colourTexDesc.Height = _windowDims.Y;
@@ -934,8 +935,16 @@ void Renderer::initLightingPass(const std::shared_ptr<RenderDevice> &renderDevic
   colourTexDesc.Type = TextureType::Texture2D;
   colourTexDesc.Format = TextureFormat::RGB16F;
 
+  TextureDesc bloomTexDesc;
+  bloomTexDesc.Width = _windowDims.X;
+  bloomTexDesc.Height = _windowDims.Y;
+  bloomTexDesc.Usage = TextureUsage::RenderTarget;
+  bloomTexDesc.Type = TextureType::Texture2D;
+  bloomTexDesc.Format = TextureFormat::RGB16F;
+
   RenderTargetDesc rtDesc;
   rtDesc.ColourTargets[0] = renderDevice->createTexture(colourTexDesc);
+  rtDesc.ColourTargets[1] = renderDevice->createTexture(bloomTexDesc);
   rtDesc.Height = _windowDims.X;
   rtDesc.Width = _windowDims.Y;
 
@@ -1394,7 +1403,7 @@ void Renderer::bloomPass(const std::shared_ptr<RenderDevice> &renderDevice)
 {
   std::chrono::time_point start = std::chrono::high_resolution_clock::now();
 
-  renderDevice->setTexture(0, _lightingPassRto->getColourTarget(0));
+  renderDevice->setTexture(0, _lightingPassRto->getColourTarget(1)); // Use bloom output
   renderDevice->setSamplerState(0, _bloomSamplerState);
   renderDevice->setPipelineState(_bloomDownSamplePso);
 

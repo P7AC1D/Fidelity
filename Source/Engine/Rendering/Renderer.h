@@ -142,13 +142,13 @@ private:
   float32 _shadowSampleSpread;
   float32 _minCascadeDistance, _maxCascadeDistance;
   float32 _cascadeLambda;
-
   // ----- HDR settings -----
   bool _toneMappingEnabled;
   bool _bloomEnabled;
   float32 _exposure;
   float32 _bloomStrength;
   float32 _bloomFilter;
+  float32 _bloomThreshold;
 
   // ----- Editor settings -----
   DebugDisplayType _debugDisplayType;

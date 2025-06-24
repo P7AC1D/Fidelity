@@ -38,6 +38,7 @@ layout(std140) uniform PerFrameBuffer
   float Exposure;
   bool ToneMappingEnabled;
   float BloomStrength;
+  float BloomThreshold;
 } Constants;
 
 uniform sampler2D AlbedoMap;
@@ -178,9 +179,11 @@ void main()
                                     metalness, 
                                     F0);
   }
-  
-  // Ambient light contribution.
+    // Ambient light contribution.
   totalRadiance += albedo.rgb * Constants.AmbientColour * Constants.AmbientIntensity * occlusionFactor;
+  // Extract bright areas for bloom using luminance threshold
+  float luminance = dot(totalRadiance.rgb, vec3(0.2126, 0.7152, 0.0722));
+  BloomColour = vec4(max(vec3(0.0), totalRadiance.rgb - Constants.BloomThreshold), 1.0);
 
   if (Constants.DrawCascadeLayers)
   {
