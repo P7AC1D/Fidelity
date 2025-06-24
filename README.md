@@ -16,6 +16,86 @@ It is still under heavy development so expect bugs and performance issues.
 ![](./Resources/Screenshots/sponza_pbr_1.png)
 ![](./Resources/Screenshots/sponza_pbr_2.png)
 
+## Building
+
+### Prerequisites
+- **CMake 3.21 or higher** - [Download from cmake.org](https://cmake.org/download/)
+- **Visual Studio 2019 or later** (on Windows) with C++ development tools
+- **Git** for cloning the repository and submodules
+
+### Clone with Submodules
+```bash
+git clone --recursive https://github.com/your-username/Fidelity.git
+cd Fidelity
+```
+
+If you already cloned without `--recursive`, initialize submodules:
+```bash
+git submodule update --init --recursive
+```
+
+### Windows Build Instructions
+
+#### Option 1: Using the Build Script (Recommended)
+The easiest way to build on Windows is using the provided PowerShell script:
+
+```powershell
+# From the project root directory
+.\build-windows.ps1
+```
+
+This script will:
+- Create a `build/release` directory
+- Configure CMake with Release settings
+- Build all targets
+- Copy resources to the output directory
+
+#### Option 2: Manual CMake Build
+If you prefer to build manually or need custom configuration:
+
+```powershell
+# Create and enter build directory
+mkdir build\release
+cd build\release
+
+# Configure with CMake
+cmake -G "Visual Studio 17 2022" -A x64 -DCMAKE_BUILD_TYPE=Release ..\..
+
+# Build the project
+cmake --build . --config Release
+
+# Copy resources (optional, for running examples)
+cmake --build . --target copy_resources --config Release
+```
+
+### Build Options
+The CMake build system supports several options:
+
+- `FIDELITY_ENABLE_WARNINGS` (ON by default) - Enable compiler warnings
+- `FIDELITY_BUILD_TESTS` (ON by default) - Build test executables
+- `CMAKE_BUILD_TYPE` - Build configuration (Debug/Release/RelWithDebInfo)
+
+Example with custom options:
+```powershell
+cmake -G "Visual Studio 17 2022" -A x64 -DCMAKE_BUILD_TYPE=Debug -DFIDELITY_ENABLE_WARNINGS=OFF ..\..
+```
+
+### Running the Examples
+After building, you can find the executable files in:
+- `build/release/Source/Test3D/Release/Test3D.exe` - Basic 3D test application
+- `build/release/Source/Sponza/Release/Sponza.exe` - Sponza scene demo
+- `build/release/Source/CullingTest/Release/CullingTest.exe` - Frustum culling test
+
+The build script automatically copies resources, so the examples should run directly.
+
+### Troubleshooting
+- **CMake version error**: Ensure you have CMake 3.21 or higher installed
+- **Missing submodules**: Run `git submodule update --init --recursive`
+- **Visual Studio not found**: Install Visual Studio with C++ development tools
+- **Build errors**: Check that all prerequisites are installed and try a clean build
+
+For more details on the modernized build system, see [CMAKE_MODERNIZATION.md](CMAKE_MODERNIZATION.md).
+
 ## Future Work
 - [x] Cascaded Shadow Maps for Directional Lights
 - [x] Soft Shadows using Poisson disc sampling and PCF
