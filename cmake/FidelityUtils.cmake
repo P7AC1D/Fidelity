@@ -100,12 +100,19 @@ function(fidelity_copy_resources target_name)
         set(copy_commands)
         foreach(resource_dir ${RESOURCE_DIRS})
             set(src_path "${CMAKE_SOURCE_DIR}/Resources/${resource_dir}")
-            set(dst_path "${CMAKE_BINARY_DIR}/bin/${resource_dir}")
+            # Copy to both bin/ and bin/Release to handle different output directories
+            set(dst_path_root "${CMAKE_BINARY_DIR}/bin/${resource_dir}")
+            set(dst_path_release "${CMAKE_BINARY_DIR}/bin/Release/${resource_dir}")
+            set(dst_path_debug "${CMAKE_BINARY_DIR}/bin/Debug/${resource_dir}")
             
             if(EXISTS "${src_path}")
                 list(APPEND copy_commands
-                    COMMAND ${CMAKE_COMMAND} -E make_directory "${dst_path}"
-                    COMMAND ${CMAKE_COMMAND} -E copy_directory "${src_path}" "${dst_path}"
+                    COMMAND ${CMAKE_COMMAND} -E make_directory "${dst_path_root}"
+                    COMMAND ${CMAKE_COMMAND} -E copy_directory "${src_path}" "${dst_path_root}"
+                    COMMAND ${CMAKE_COMMAND} -E make_directory "${dst_path_release}"
+                    COMMAND ${CMAKE_COMMAND} -E copy_directory "${src_path}" "${dst_path_release}"
+                    COMMAND ${CMAKE_COMMAND} -E make_directory "${dst_path_debug}"
+                    COMMAND ${CMAKE_COMMAND} -E copy_directory "${src_path}" "${dst_path_debug}"
                 )
             endif()
         endforeach()
@@ -113,7 +120,7 @@ function(fidelity_copy_resources target_name)
         # Create single custom target for all resource copying
         add_custom_target(copy_fidelity_resources
             ${copy_commands}
-            COMMENT "Copying Fidelity resources to build directory"
+            COMMENT "Copying Fidelity resources to build directories"
             VERBATIM
         )
     endif()
