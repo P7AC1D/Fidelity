@@ -37,6 +37,7 @@ layout(std140) uniform PerFrameBuffer
   float Exposure;
   bool ToneMappingEnabled;
   float BloomStrength;
+  float BloomThreshold;
 } Constants;
 
 uniform sampler2D LightingMap;
@@ -51,12 +52,14 @@ void main()
   vec4 colourSample = texture(LightingMap, TexCoord);
   vec3 hdrSample = colourSample.rgb;
   vec3 bloomSample = texture(BloomMap, TexCoord).rgb;
-
-  // Linear interpolation.
+  // Linear interpolation between HDR and bloom.
   hdrSample = mix(hdrSample, bloomSample, Constants.BloomStrength);
+  // Apply exposure adjustment first
+  hdrSample *= Constants.Exposure;
 
-  // Perform Reinhard tone mapping.
-  vec3 ldrSample = vec3(1.0) - exp(-hdrSample * Constants.Exposure);
+  // Perform Reinhard tone mapping: L_out = L_in / (L_in + 1)
+  // This preserves contrast better than exponential tone mapping
+  vec3 ldrSample = hdrSample / (hdrSample + vec3(1.0));
 
   if (Constants.ToneMappingEnabled == true)
   {

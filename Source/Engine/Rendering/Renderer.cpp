@@ -225,12 +225,12 @@ Renderer::Renderer(const Vector2I &windowDims) : _windowDims(windowDims),
                                                  _shadowSampleSpread(700.0f),
                                                  _minCascadeDistance(0.0f),
                                                  _maxCascadeDistance(1.0f),
-                                                 _cascadeLambda(0.4f),
-                                                 _toneMappingEnabled(true),
+                                                 _cascadeLambda(0.4f),                                                 _toneMappingEnabled(true),
                                                  _bloomEnabled(true),
                                                  _exposure(2.0f),
                                                  _bloomStrength(0.04f),
                                                  _bloomFilter(0.005f),
+                                                 _bloomThreshold(1.0f),
                                                  _debugDisplayType(DebugDisplayType::Disabled),
                                                  _shadowMapLayerToDraw(0),
                                                  _ssaoSettingsModified(true)
@@ -383,12 +383,16 @@ void Renderer::drawDebugUi()
     if (ImGui::SliderFloat("Exposure", &exposure, 0.1f, 10.0f))
     {
       _exposure = exposure;
-    }
-
-    float32 bloomStrength = _bloomStrength;
+    }    float32 bloomStrength = _bloomStrength;
     if (ImGui::SliderFloat("Bloom Strength", &bloomStrength, 0.03f, 0.15f))
     {
       _bloomStrength = bloomStrength;
+    }
+
+    float32 bloomThreshold = _bloomThreshold;
+    if (ImGui::SliderFloat("Bloom Threshold", &bloomThreshold, 0.5f, 3.0f))
+    {
+      _bloomThreshold = bloomThreshold;
     }
 
     bool toneMappingEnabled = _toneMappingEnabled;
@@ -1785,10 +1789,10 @@ void Renderer::writePerFrameConstantData(const std::shared_ptr<Camera> &camera,
   perFrameBufferData->Proj = camera->getProj();
   perFrameBufferData->ProjInv = perFrameBufferData->Proj.Inverse();
   perFrameBufferData->ProjViewInv = (perFrameBufferData->Proj * perFrameBufferData->View).Inverse();
-  perFrameBufferData->ViewPosition = camera->getParentTransform().getPosition();
-  perFrameBufferData->Exposure = _exposure;
+  perFrameBufferData->ViewPosition = camera->getParentTransform().getPosition();  perFrameBufferData->Exposure = _exposure;
   perFrameBufferData->ToneMappingEnabled = _toneMappingEnabled;
   perFrameBufferData->BloomStrength = _bloomStrength;
+  perFrameBufferData->BloomThreshold = _bloomThreshold;
 
   std::vector<LightData> lightDataArray;
   for (uint32 i = 0; i < lights.size(); i++)
