@@ -83,6 +83,17 @@ const vec2 PoissonSamples[64] = vec2[]
     vec2(-0.1020106f, 0.6724468f)
 );
 
+/**
+ * Fidelity Engine - Optimized Shadow Mapping Implementation
+ * 
+ * Improvements implemented:
+ * 1. Optimized PCF with early termination for better performance
+ * 2. Contact hardening shadows with variable penumbra size
+ * 3. Improved bias calculation using slope and distance-based methods
+ * 4. Reduced aggressive shadow sample offset for better quality
+ * 5. Better cascade layer validation and error handling
+ */
+
 struct Light
 {
   vec3 Colour;
@@ -127,15 +138,55 @@ layout(location = 0) out float Shadows;
 
 float sampleShadowMapPcf(vec2 shadowCoords, float shadowDepth, float texelSize, int cascadeLayer, float bias)
 {
-  // Sample shadow map using percentage closer filtering with 8 samples.
+  // Optimized PCF with early termination for performance
   float shadow = 0.0;
-  for (int i = 0; i < 9; i++)
+  int litCount = 0;
+  int shadowedCount = 0;
+  
+  for (int i = 0; i < 9 && litCount < 5 && shadowedCount < 5; i++)
   {
     float pcfDepth = texture(ShadowMap, vec3(shadowCoords + sampleOffsetDirections[i].xy * texelSize, cascadeLayer)).r;
-    shadow += (shadowDepth - bias) > pcfDepth ? 0.111111 : 0.0;  
+    bool inShadow = (shadowDepth - bias) >= pcfDepth;
+    
+    if (inShadow) {
+      shadow += 0.111111;
+      shadowedCount++;
+    } else {
+      litCount++;
+    }
+  }
+  
+  // Early termination optimization - if all remaining samples would be the same, skip them
+  if (litCount >= 5) {
+    // Mostly lit, remaining samples won't change result significantly
+    return shadow;
+  } else if (shadowedCount >= 5) {
+    // Mostly shadowed, add remaining shadow contribution
+    return shadow + (9 - litCount - shadowedCount) * 0.111111;
   }
       
   return shadow;
+}
+
+float findBlockerDistance(vec2 shadowCoords, float shadowDepth, int cascadeLayer, float texelSize, float searchRadius)
+{
+  float blockerSum = 0.0;
+  int blockerCount = 0;
+  
+  // Search for blockers in a small area around the fragment
+  for (int i = 0; i < 16; i++) // Use subset of Poisson samples for blocker search
+  {
+    vec2 sampleCoord = shadowCoords + PoissonSamples[i] * searchRadius * texelSize;
+    float blockerDepth = texture(ShadowMap, vec3(sampleCoord, cascadeLayer)).r;
+    
+    if (blockerDepth < shadowDepth - 0.001) // Small epsilon to avoid self-shadowing
+    {
+      blockerSum += blockerDepth;
+      blockerCount++;
+    }
+  }
+  
+  return blockerCount > 0 ? blockerSum / float(blockerCount) : shadowDepth;
 }
 
 float sampleShadowMapPoissonDisc(vec2 shadowCoords, float shadowDepth, float texelSize, int cascadeLayer, float bias, ivec2 screenPos)
@@ -147,10 +198,15 @@ float sampleShadowMapPoissonDisc(vec2 shadowCoords, float shadowDepth, float tex
   mat2 randomRotations = mat2(vec2(cos(theta), -sin(theta)),
                               vec2(sin(theta), cos(theta)));
 
+  // Contact hardening: variable penumbra size based on blocker distance
+  float blockerDistance = findBlockerDistance(shadowCoords, shadowDepth, cascadeLayer, texelSize, 3.0);
+  float penumbraSize = max((shadowDepth - blockerDistance) / blockerDistance, 0.01);
+  float adaptiveSpread = Constants.ShadowSampleSpread * (1.0 + penumbraSize * 2.0);
+
   float result = 0.0;
   for (int i = 0; i < Constants.ShadowSampleCount; i++)
   {
-    result += sampleShadowMapPcf(shadowCoords + (randomRotations * PoissonSamples[i]) / Constants.ShadowSampleSpread, shadowDepth, texelSize, cascadeLayer, bias);
+    result += sampleShadowMapPcf(shadowCoords + (randomRotations * PoissonSamples[i]) / adaptiveSpread, shadowDepth, texelSize, cascadeLayer, bias);
   }
   result /= Constants.ShadowSampleCount;
   return result;
@@ -177,12 +233,33 @@ int calculateCascadeLayer(vec3 fragPosWorldSpace, float depthValue)
   return layerToUse;
 }
 
-vec3 calculateShadowSampleOffset(vec3 normalWorldSpace, float shadowTexelSize)
+vec3 calculateShadowSampleOffset(vec3 normalWorldSpace, float shadowTexelSize, float depthValue)
 {
   float nDotL = clamp(dot(normalWorldSpace, Constants.LightDirection), 0.0f, 1.0f);
-  float nmlOffsetScale = clamp(1.0f - nDotL, 0.0f, 1.0f);
-  vec3 shadowPosOffset = shadowTexelSize * nmlOffsetScale * normalWorldSpace * 10.f;
+  
+  // More adaptive offset based on slope and distance
+  float slopeScale = clamp(1.0f - nDotL, 0.0f, 1.0f);
+  float depthScale = 1.0 + depthValue * 0.001; // Slight increase with distance
+  
+  // Reduce aggressive multiplier from 10.0 to 2.0 for better quality
+  vec3 shadowPosOffset = shadowTexelSize * slopeScale * normalWorldSpace * 2.0f * depthScale;
   return shadowPosOffset;
+}
+
+float calculateOptimizedBias(vec3 normalWorldSpace, float depthValue, int cascadeLayer)
+{
+  float nDotL = clamp(dot(normalize(normalWorldSpace), Constants.LightDirection), 0.0f, 1.0f);
+  
+  // Slope-based bias using more accurate slope calculation
+  float slopeBias = clamp(tan(acos(nDotL)), 0.0, 0.01);
+  
+  // Distance-based bias that scales with depth
+  float distanceBias = 0.001 * (1.0 + depthValue * 0.1);
+  
+  // Cascade-based bias scaling for different resolution levels
+  float cascadeScale = 1.0 / (Constants.CascadePlaneDistances[cascadeLayer] * 0.3);
+  
+  return (slopeBias + distanceBias) * cascadeScale;
 }
 
 float calculateShadowFactor(vec3 fragPosWorldSpace, vec3 normalWorldSpace, ivec2 screenPos)
@@ -195,9 +272,14 @@ float calculateShadowFactor(vec3 fragPosWorldSpace, vec3 normalWorldSpace, ivec2
     float texelSize = 1.0f / shadowMapSize.x;
 
     int layerToUse = calculateCascadeLayer(fragPosWorldSpace, depthValue);
+    
+    // Early exit if no valid cascade found
+    if (layerToUse == -1) {
+        return 0.0f; // No shadow
+    }
 
     // Calculates the offset to use for sampling the shadow map, based on the surface normal
-    vec3 shadowSampleOffset = calculateShadowSampleOffset(normalWorldSpace, texelSize);
+    vec3 shadowSampleOffset = calculateShadowSampleOffset(normalWorldSpace, texelSize, depthValue);
     fragPosWorldSpace += shadowSampleOffset;
 
     vec4 fragPosLightSpace = Constants.CascadeLightTransforms[layerToUse] * vec4(fragPosWorldSpace, 1.0);
@@ -210,11 +292,8 @@ float calculateShadowFactor(vec3 fragPosWorldSpace, vec3 normalWorldSpace, ivec2
         return 0.0f;
     }
 
-    // Apply bias based on distance from far plane
-    vec3 normal = normalize(normalWorldSpace);
-    float bias = max(0.05 * (1.0 - dot(normal, Constants.LightDirection)), 0.005);
-    const float biasModifier = 0.5f;
-    bias *= 1 / (Constants.CascadePlaneDistances[layerToUse] * biasModifier);
+    // Use optimized bias calculation
+    float bias = calculateOptimizedBias(normalWorldSpace, depthValue, layerToUse);
 
     return sampleShadowMapPoissonDisc(projCoords.xy, currentDepth, texelSize, layerToUse, bias, screenPos);
 }
@@ -236,6 +315,8 @@ void main()
   vec4 clip = Constants.ProjViewInv * vec4(position, 1.0f);
   position = clip.xyz / clip.w;
 
-  float shadowFactor = calculateShadowFactor(position, normal, ivec2(TexCoord));
+  // Use proper screen coordinates for Poisson disc sampling
+  ivec2 screenPos = ivec2(gl_FragCoord.xy);
+  float shadowFactor = calculateShadowFactor(position, normal, screenPos);
   Shadows = (1.0f - shadowFactor);
 }

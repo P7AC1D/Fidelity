@@ -218,11 +218,10 @@ Renderer::Renderer(const Vector2I &windowDims) : _windowDims(windowDims),
                                                  _ssaoIntensity(2.0f),
                                                  _ssaoEnabled(true),
                                                  _drawCascadeLayers(false),
-                                                 _shadowResolutionChanged(true),
-                                                 _shadowMapResolution(2048),
+                                                 _shadowResolutionChanged(true),                                                 _shadowMapResolution(2048),
                                                  _cascadeCount(4),
                                                  _shadowSampleCount(16),
-                                                 _shadowSampleSpread(700.0f),
+                                                 _shadowSampleSpread(800.0f),
                                                  _minCascadeDistance(0.0f),
                                                  _maxCascadeDistance(1.0f),
                                                  _cascadeLambda(0.4f),                                                 _toneMappingEnabled(true),
@@ -342,37 +341,82 @@ void Renderer::drawDebugUi()
     }
 
     ImGui::Separator();
-    ImGui::Text("Shadows");
+    ImGui::Text("Shadow Quality");
 
     int shadowMapResolution = _shadowMapResolution;
-    if (ImGui::SliderInt("Resolution", &shadowMapResolution, 256, 8192))
+    if (ImGui::SliderInt("Shadow Resolution", &shadowMapResolution, 512, 4096))
     {
       _shadowMapResolution = shadowMapResolution;
       _shadowResolutionChanged = true;
     }
 
     int sampleCount = _shadowSampleCount;
-    if (ImGui::SliderInt("Sample Count", &sampleCount, 1, 64))
+    if (ImGui::SliderInt("Shadow Samples", &sampleCount, 4, 32))
     {
       _shadowSampleCount = sampleCount;
     }
 
     float32 sampleSpread = _shadowSampleSpread;
-    if (ImGui::SliderFloat("Sample Spread", &sampleSpread, 1.0f, 1000.0f))
+    if (ImGui::SliderFloat("Shadow Softness", &sampleSpread, 100.0f, 2000.0f))
     {
       _shadowSampleSpread = sampleSpread;
     }
+
+    // Quality presets
+    ImGui::Spacing();
+    ImGui::Text("Quality Presets:");
+    ImGui::SameLine();
+    if (ImGui::Button("Low"))
+    {
+      _shadowMapResolution = 1024;
+      _shadowSampleCount = 8;
+      _shadowSampleSpread = 600.0f;
+      _cascadeCount = 3;
+      _shadowResolutionChanged = true;
+    }
+    ImGui::SameLine();
+    if (ImGui::Button("Balanced"))
+    {
+      _shadowMapResolution = 2048;
+      _shadowSampleCount = 16;
+      _shadowSampleSpread = 800.0f;
+      _cascadeCount = 4;
+      _shadowResolutionChanged = true;
+    }
+    ImGui::SameLine();
+    if (ImGui::Button("High"))
+    {
+      _shadowMapResolution = 4096;
+      _shadowSampleCount = 24;
+      _shadowSampleSpread = 1000.0f;
+      _cascadeCount = 4;
+      _shadowResolutionChanged = true;
+    }
+
     ImGui::Separator();
     ImGui::Text("Cascaded Shadow Maps");
 
+    int cascadeCount = _cascadeCount;
+    if (ImGui::SliderInt("Cascade Levels", &cascadeCount, 2, 6))
+    {
+      _cascadeCount = cascadeCount;
+      _shadowResolutionChanged = true; // Trigger shadow map rebuild
+    }
+
     float32 cascadeLambda = _cascadeLambda;
-    if (ImGui::SliderFloat("Lambda", &cascadeLambda, 0.01f, 1.0f))
+    if (ImGui::SliderFloat("Cascade Distribution", &cascadeLambda, 0.1f, 0.9f))
     {
       _cascadeLambda = cascadeLambda;
     }
 
+    float32 shadowDistance = _maxCascadeDistance;
+    if (ImGui::SliderFloat("Shadow Distance", &shadowDistance, 0.3f, 1.0f))
+    {
+      _maxCascadeDistance = shadowDistance;
+    }
+
     bool shouldDrawCascadeLayers = _drawCascadeLayers;
-    if (ImGui::Checkbox("Draw Layers", &shouldDrawCascadeLayers))
+    if (ImGui::Checkbox("Show Cascade Layers", &shouldDrawCascadeLayers))
     {
       _drawCascadeLayers = shouldDrawCascadeLayers;
     }
@@ -1728,7 +1772,7 @@ void Renderer::createDirectionalLightShadowDepthMap(const std::shared_ptr<Render
   shadowMapDesc.Usage = TextureUsage::Depth;
   shadowMapDesc.Type = TextureType::Texture2DArray;
   shadowMapDesc.Format = TextureFormat::D32F;
-  shadowMapDesc.Count = 4;
+  shadowMapDesc.Count = _cascadeCount;
 
   RenderTargetDesc rtDesc;
   rtDesc.DepthStencilTarget = renderDevice->createTexture(shadowMapDesc);
