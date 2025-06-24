@@ -94,8 +94,6 @@ The build script automatically copies resources, so the examples should run dire
 - **Visual Studio not found**: Install Visual Studio with C++ development tools
 - **Build errors**: Check that all prerequisites are installed and try a clean build
 
-For more details on the modernized build system, see [CMAKE_MODERNIZATION.md](CMAKE_MODERNIZATION.md).
-
 ## Future Work
 - [x] Cascaded Shadow Maps for Directional Lights
 - [x] Soft Shadows using Poisson disc sampling and PCF
