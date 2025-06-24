@@ -88,27 +88,38 @@ endfunction()
 
 # Function to copy game resources to build directory
 function(fidelity_copy_resources target_name)
-    set(RESOURCE_DIRS
-        "Shaders"
-        "Fonts" 
-        "Models"
-        "Textures"
-    )
+    # Create a global resource copying target if it doesn't exist
+    if(NOT TARGET copy_fidelity_resources)
+        set(RESOURCE_DIRS
+            "Shaders"
+            "Fonts" 
+            "Models"
+            "Textures"
+        )
 
-    foreach(resource_dir ${RESOURCE_DIRS})
-        set(src_path "${CMAKE_SOURCE_DIR}/Resources/${resource_dir}")
-        set(dst_path "${CMAKE_BINARY_DIR}/bin/${resource_dir}")
-        
-        if(EXISTS "${src_path}")
-            # Use custom target for proper dependency tracking
-            add_custom_command(TARGET ${target_name} POST_BUILD
-                COMMAND ${CMAKE_COMMAND} -E copy_directory
-                "${src_path}" "${dst_path}"
-                COMMENT "Copying ${resource_dir} resources for ${target_name}"
-                VERBATIM
-            )
-        endif()
-    endforeach()
+        set(copy_commands)
+        foreach(resource_dir ${RESOURCE_DIRS})
+            set(src_path "${CMAKE_SOURCE_DIR}/Resources/${resource_dir}")
+            set(dst_path "${CMAKE_BINARY_DIR}/bin/${resource_dir}")
+            
+            if(EXISTS "${src_path}")
+                list(APPEND copy_commands
+                    COMMAND ${CMAKE_COMMAND} -E make_directory "${dst_path}"
+                    COMMAND ${CMAKE_COMMAND} -E copy_directory "${src_path}" "${dst_path}"
+                )
+            endif()
+        endforeach()
+
+        # Create single custom target for all resource copying
+        add_custom_target(copy_fidelity_resources
+            ${copy_commands}
+            COMMENT "Copying Fidelity resources to build directory"
+            VERBATIM
+        )
+    endif()
+    
+    # Make the target depend on the resource copying
+    add_dependencies(${target_name} copy_fidelity_resources)
 endfunction()
 
 # Function to add compiler warnings
