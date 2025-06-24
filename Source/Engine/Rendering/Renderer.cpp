@@ -1877,6 +1877,8 @@ void Renderer::writePerFrameConstantData(const std::shared_ptr<Camera> &camera,
 void Renderer::writeSsaoConstantData(const std::shared_ptr<RenderDevice> &renderDevice,
                                      const std::shared_ptr<Camera> &camera) const
 {
+  // reset RNG to ensure identical sample kernel each update
+  g_ssaoGenerator.seed(0);
   std::uniform_real_distribution<float32> randomFloats(0.0f, 1.0f);
   // reuse global deterministic RNG for sample kernel
   auto &generator = g_ssaoGenerator;
