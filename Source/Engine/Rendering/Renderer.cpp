@@ -1,8 +1,11 @@
+// Core headers
 #include "Renderer.h"
-
+#include <random>  // for mt19937 and uniform distributions
 #include <chrono>
 #include <iostream>
-#include <random>
+
+// Global deterministic RNG for SSAO noise and kernel
+static std::mt19937 g_ssaoGenerator(0);
 
 #include "../Core/Maths.h"
 #include "../RenderApi/BlendState.hpp"
@@ -610,14 +613,15 @@ void Renderer::initTextures(const std::shared_ptr<RenderDevice> &renderDevice)
   ssaoNoiseTextureDesc.Format = TextureFormat::RGB32F;
   _ssaoNoiseTexture = renderDevice->createTexture(ssaoNoiseTextureDesc);
 
-  std::uniform_real_distribution<float32> randomFloats(0.0, 1.0);
-  std::default_random_engine generator;
+  std::uniform_real_distribution<float32> randomFloats(0.0f, 1.0f);
+  // use global SSAO RNG to keep noise texture stable when reloading
+  auto &generator = g_ssaoGenerator;
 
   std::vector<Vector3> ssaoNoise;
   for (uint32 i = 0; i < SSAO_NOISE_TEXTURE_SIZE * SSAO_NOISE_TEXTURE_SIZE; i++)
   {
-    Vector3 noise(randomFloats(generator) * 2.0 - 1.0,
-                  randomFloats(generator) * 2.0 - 1.0,
+    Vector3 noise(randomFloats(generator, randomFloats.param()) * 2.0f - 1.0f,
+                  randomFloats(generator, randomFloats.param()) * 2.0f - 1.0f,
                   0.0f);
     ssaoNoise.push_back(noise);
   }
@@ -1558,14 +1562,14 @@ void Renderer::debugPass(const std::shared_ptr<RenderDevice> &renderDevice,
     drawDebugRenderTarget(renderDevice, _gBufferRto->getColourTarget(0), camera);
     break;
   }
-  case DebugDisplayType::Normal:
+   case DebugDisplayType::Normal:
   {
     drawDebugRenderTarget(renderDevice, _gBufferRto->getColourTarget(1), camera);
     break;
   }
   case DebugDisplayType::Specular:
   {
-       drawDebugRenderTarget(renderDevice, _gBufferRto->getColourTarget(2), camera);
+           drawDebugRenderTarget(renderDevice, _gBufferRto->getColourTarget(2), camera);
     break;
   }
   case DebugDisplayType::Depth:
@@ -1873,19 +1877,20 @@ void Renderer::writePerFrameConstantData(const std::shared_ptr<Camera> &camera,
 void Renderer::writeSsaoConstantData(const std::shared_ptr<RenderDevice> &renderDevice,
                                      const std::shared_ptr<Camera> &camera) const
 {
-  // generate only as many samples as requested, using a single static random engine
   std::uniform_real_distribution<float32> randomFloats(0.0f, 1.0f);
-  static std::default_random_engine generator(std::random_device{}());
-  std::vector<Vector3> ssaoKernel;
-  ssaoKernel.reserve(_ssaoSamples);
-  for (uint32 i = 0; i < _ssaoSamples; ++i)
-  {
-    Vector3 sample(randomFloats(generator) * 2.0f - 1.0f,
-                   randomFloats(generator) * 2.0f - 1.0f,
-                   randomFloats(generator));
+  // reuse global deterministic RNG for sample kernel
+  auto &generator = g_ssaoGenerator;
+   std::vector<Vector3> ssaoKernel;
+   ssaoKernel.reserve(_ssaoSamples);
+
+   for (uint32 i = 0; i < _ssaoSamples; ++i)
+   {
+     Vector3 sample(randomFloats(generator, randomFloats.param()) * 2.0f - 1.0f,
+                    randomFloats(generator, randomFloats.param()) * 2.0f - 1.0f,
+                    randomFloats(generator, randomFloats.param()));
 
     sample.Normalize();
-    sample *= randomFloats(generator);
+    sample *= randomFloats(generator, randomFloats.param());
     float32 scale = float32(i) / _ssaoSamples;
 
     // scale samples to be more centered around center of kernel
