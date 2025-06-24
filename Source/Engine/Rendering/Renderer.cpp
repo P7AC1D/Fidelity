@@ -306,39 +306,49 @@ void Renderer::drawDebugUi()
     ImGui::Separator();
     ImGui::Text("Ambient Occlusion");
 
-    float32 ssaoRadius = _ssaoRadius;
-    if (ImGui::SliderFloat("Radius", &ssaoRadius, 0.1f, 1.0f))
+    // Ambient Occlusion controls
+    float32 aoRadius = _ssaoRadius;
+    if (ImGui::SliderFloat("AO Radius", &aoRadius, 0.1f, 2.0f))
     {
-      _ssaoRadius = ssaoRadius;
+      _ssaoRadius = aoRadius;
       _ssaoSettingsModified = true;
     }
 
-    float32 ssaoBias = _ssaoBias;
-    if (ImGui::SliderFloat("Bias", &ssaoBias, 0.0f, 0.1f))
+    float32 aoBias = _ssaoBias;
+    if (ImGui::SliderFloat("AO Bias", &aoBias, 0.0f, 0.1f))
     {
-      _ssaoBias = ssaoBias;
+      _ssaoBias = aoBias;
       _ssaoSettingsModified = true;
     }
 
-    float32 ssaoIntensity = _ssaoIntensity;
-    if (ImGui::SliderFloat("SSAO Intensity", &ssaoIntensity, 0.1f, 10.0f))
+    float32 aoStrength = _ssaoIntensity;
+    if (ImGui::SliderFloat("AO Strength", &aoStrength, 0.1f, 5.0f))
     {
-      _ssaoIntensity = ssaoIntensity;
+      _ssaoIntensity = aoStrength;
       _ssaoSettingsModified = true;
     }
 
-    int32 ssaoSamples = _ssaoSamples;
-    if (ImGui::SliderInt("Samples", &ssaoSamples, 1, SSAO_MAX_KERNAL_SIZE))
+    int32 sampleCount = _ssaoSamples;
+    if (ImGui::SliderInt("Sample Count", &sampleCount, 8, 512))
     {
-      _ssaoSamples = ssaoSamples;
+      _ssaoSamples = sampleCount;
       _ssaoSettingsModified = true;
     }
 
-    bool ssaoEnabled = _ssaoEnabled;
-    if (ImGui::Checkbox("Enabled", &ssaoEnabled))
+    bool aoEnabled = _ssaoEnabled;
+    if (ImGui::Checkbox("AO On", &aoEnabled))
     {
-      _ssaoEnabled = ssaoEnabled;
+      _ssaoEnabled = aoEnabled;
     }
+    
+    // AO Quality Presets
+    ImGui::Spacing();
+    ImGui::Text("AO Presets:"); ImGui::SameLine();
+    if (ImGui::Button("Low")) { _ssaoSamples = 16; _ssaoIntensity = 1.0f; _ssaoSettingsModified = true; }
+    ImGui::SameLine();
+    if (ImGui::Button("Medium")) { _ssaoSamples = 64; _ssaoIntensity = 2.0f; _ssaoSettingsModified = true; }
+    ImGui::SameLine();
+    if (ImGui::Button("High")) { _ssaoSamples = 128; _ssaoIntensity = 3.0f; _ssaoSettingsModified = true; }
 
     ImGui::Separator();
     ImGui::Text("Shadow Quality");
@@ -350,10 +360,10 @@ void Renderer::drawDebugUi()
       _shadowResolutionChanged = true;
     }
 
-    int sampleCount = _shadowSampleCount;
-    if (ImGui::SliderInt("Shadow Samples", &sampleCount, 4, 32))
+    int shadowSamplesUI = _shadowSampleCount;
+    if (ImGui::SliderInt("Shadow Samples", &shadowSamplesUI, 4, 32))
     {
-      _shadowSampleCount = sampleCount;
+      _shadowSampleCount = shadowSamplesUI;
     }
 
     float32 sampleSpread = _shadowSampleSpread;
@@ -1555,7 +1565,7 @@ void Renderer::debugPass(const std::shared_ptr<RenderDevice> &renderDevice,
   }
   case DebugDisplayType::Specular:
   {
-    drawDebugRenderTarget(renderDevice, _gBufferRto->getColourTarget(2), camera);
+       drawDebugRenderTarget(renderDevice, _gBufferRto->getColourTarget(2), camera);
     break;
   }
   case DebugDisplayType::Depth:
