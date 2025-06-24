@@ -258,6 +258,7 @@ The engine implements a modern deferred rendering pipeline with the following st
 The **[Documentation/](Documentation/)** folder contains comprehensive technical analysis and architectural guides for the engine's core systems:
 
 - **[Shadow Mapping Analysis](Documentation/Shadow-Mapping-Analysis.md)**: Complete breakdown of the cascaded shadow mapping implementation, including performance optimizations, contact hardening, and quality analysis
+- **[Screen Space Ambient Occlusion Analysis](Documentation/SSAO-Analysis.md)**: Comprehensive technical analysis of the SSAO implementation, including kernel generation strategy, noise texture creation, performance considerations, and best practices
 - **[Documentation Index](Documentation/README.md)**: Full list of available technical documents
 
 ## Contributing
