@@ -835,8 +835,8 @@ void Renderer::initShadowPass(const std::shared_ptr<RenderDevice> &renderDevice)
 
   RenderTargetDesc rtDesc;
   rtDesc.ColourTargets[0] = renderDevice->createTexture(colourTexDesc);
-  rtDesc.Height = _windowDims.X;
-  rtDesc.Width = _windowDims.Y;
+  rtDesc.Width = _windowDims.X;
+  rtDesc.Height = _windowDims.Y;
 
   _shadowsRto = renderDevice->createRenderTarget(rtDesc);
 }
@@ -925,8 +925,8 @@ void Renderer::initSsaoPass(const std::shared_ptr<RenderDevice> &renderDevice)
 
   RenderTargetDesc rtDesc;
   rtDesc.ColourTargets[0] = renderDevice->createTexture(colourTexDesc);
-  rtDesc.Height = _windowDims.X;
-  rtDesc.Width = _windowDims.Y;
+  rtDesc.Width = _windowDims.X;
+  rtDesc.Height = _windowDims.Y;
 
   _ssaoRto = renderDevice->createRenderTarget(rtDesc);
   _ssaoBlurRto = renderDevice->createRenderTarget(rtDesc);
@@ -1083,7 +1083,7 @@ void Renderer::initBloomUpSamplePass(const std::shared_ptr<RenderDevice> &render
   depthStencilStateDesc.DepthReadEnabled = false;
   depthStencilStateDesc.DepthWriteEnabled = false;
 
-  BlendStateDesc blendStateDesc{};
+  BlendStateDesc blendStateDesc;
   blendStateDesc.RTBlendState[0].BlendEnabled = true;
   blendStateDesc.RTBlendState[0].Blend = BlendDesc(BlendFactor::One, BlendFactor::One, BlendOperation::Add);
 
@@ -1863,11 +1863,12 @@ void Renderer::writePerFrameConstantData(const std::shared_ptr<Camera> &camera,
 void Renderer::writeSsaoConstantData(const std::shared_ptr<RenderDevice> &renderDevice,
                                      const std::shared_ptr<Camera> &camera) const
 {
-  std::uniform_real_distribution<float32> randomFloats(0.0, 1.0);
-  std::default_random_engine generator;
+  // generate only as many samples as requested, using a single static random engine
+  std::uniform_real_distribution<float32> randomFloats(0.0f, 1.0f);
+  static std::default_random_engine generator(std::random_device{}());
   std::vector<Vector3> ssaoKernel;
-
-  for (uint32 i = 0; i < SSAO_MAX_KERNAL_SIZE; ++i)
+  ssaoKernel.reserve(_ssaoSamples);
+  for (uint32 i = 0; i < _ssaoSamples; ++i)
   {
     Vector3 sample(randomFloats(generator) * 2.0f - 1.0f,
                    randomFloats(generator) * 2.0f - 1.0f,
@@ -1877,18 +1878,19 @@ void Renderer::writeSsaoConstantData(const std::shared_ptr<RenderDevice> &render
     sample *= randomFloats(generator);
     float32 scale = float32(i) / _ssaoSamples;
 
-    // scale samples to be more centered around the center of kernel
+    // scale samples to be more centered around center of kernel
     scale = Math::Lerp(0.1f, 1.0f, scale * scale);
     sample *= scale;
     ssaoKernel.push_back(sample);
   }
 
-  SsaoConstantsData ssaoConstantsData;
+  // initialize struct and set only the used samples
+  SsaoConstantsData ssaoConstantsData{};
   ssaoConstantsData.Bias = _ssaoBias;
   ssaoConstantsData.Radius = _ssaoRadius;
   ssaoConstantsData.KernelSize = _ssaoSamples;
   ssaoConstantsData.Intensity = _ssaoIntensity;
-  for (uint32 i = 0; i < SSAO_MAX_KERNAL_SIZE; ++i)
+  for (uint32 i = 0; i < _ssaoSamples; ++i)
   {
     ssaoConstantsData.NoiseSamples[i] = ssaoKernel[i];
   }
