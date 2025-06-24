@@ -1,20 +1,37 @@
-cmake_minimum_required (VERSION 3.8 FATAL_ERROR)
+# ============================================================================
+# Test3D Example Application
+# ============================================================================
+cmake_minimum_required(VERSION 3.21 FATAL_ERROR)
 
-include_directories ("${CMAKE_SOURCE_DIR}/Source/Engine/")
+# ============================================================================
+# Project Definition
+# ============================================================================
+if(NOT PROJECT_NAME STREQUAL "Fidelity")
+    project(Test3D
+        VERSION 1.0.0
+        DESCRIPTION "Test3D Example Application"
+        LANGUAGES CXX
+    )
+endif()
 
-file(GLOB Test3DSrc ${CMAKE_CURRENT_SOURCE_DIR}/**/*.*, ${CMAKE_CURRENT_SOURCE_DIR}/*.*)
+# ============================================================================
+# Create Executable using Fidelity utilities
+# ============================================================================
 
-source_group(Test3D FILES ${Test3DSrc})
-add_executable(Test3D ${Test3DSrc})
+fidelity_add_executable(Test3D
+    COPY_RESOURCES
+)
 
-target_link_libraries (Test3D engine)
+# ============================================================================
+# Additional Configuration
+# ============================================================================
 
-set_target_properties(Test3D PROPERTIES CXX_STANDARD 17 CXX_EXTENSIONS OFF)
-set_target_properties(Test3D PROPERTIES LINKER_LANGUAGE CXX)
+# Apply common build configurations
+fidelity_set_build_config(Test3D)
 
-target_link_libraries(Test3D ${OPENGL_LIBRARIES})
+# Add compiler warnings if enabled
+if(FIDELITY_ENABLE_WARNINGS)
+    fidelity_add_warnings(Test3D)
+endif()
 
-file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/../../Resources/Shaders/ DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/Shaders/)
-file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/../../Resources/Fonts/ DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/Fonts/)
-file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/../../Resources/Models/ DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/Models/)
-file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/../../Resources/Textures/ DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/Textures/)
+message(STATUS "Test3D example application configured")

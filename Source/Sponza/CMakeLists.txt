@@ -1,20 +1,37 @@
-cmake_minimum_required (VERSION 3.8 FATAL_ERROR)
+# ============================================================================
+# Sponza Example Application
+# ============================================================================
+cmake_minimum_required(VERSION 3.21 FATAL_ERROR)
 
-include_directories ("${CMAKE_SOURCE_DIR}/Source/Engine/")
+# ============================================================================
+# Project Definition
+# ============================================================================
+if(NOT PROJECT_NAME STREQUAL "Fidelity")
+    project(Sponza
+        VERSION 1.0.0
+        DESCRIPTION "Sponza Example Application"
+        LANGUAGES CXX
+    )
+endif()
 
-file(GLOB SponzaSrc ${CMAKE_CURRENT_SOURCE_DIR}/**/*.*, ${CMAKE_CURRENT_SOURCE_DIR}/*.*)
+# ============================================================================
+# Create Executable using Fidelity utilities
+# ============================================================================
 
-source_group(Sponza FILES ${SponzaSrc})
-add_executable(Sponza ${SponzaSrc})
+fidelity_add_executable(Sponza
+    COPY_RESOURCES
+)
 
-target_link_libraries (Sponza engine)
+# ============================================================================
+# Additional Configuration
+# ============================================================================
 
-set_target_properties(Sponza PROPERTIES CXX_STANDARD 17 CXX_EXTENSIONS OFF)
-set_target_properties(Sponza PROPERTIES LINKER_LANGUAGE CXX)
+# Apply common build configurations
+fidelity_set_build_config(Sponza)
 
-target_link_libraries(Sponza ${OPENGL_LIBRARIES})
+# Add compiler warnings if enabled
+if(FIDELITY_ENABLE_WARNINGS)
+    fidelity_add_warnings(Sponza)
+endif()
 
-file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/../../Resources/Shaders/ DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/Shaders/)
-file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/../../Resources/Fonts/ DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/Fonts/)
-file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/../../Resources/Models/ DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/Models/)
-file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/../../Resources/Textures/ DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/Textures/)
+message(STATUS "Sponza example application configured")
