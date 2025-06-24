@@ -105,21 +105,48 @@ cmake -G "Visual Studio 17 2022" -A x64 -DCMAKE_BUILD_TYPE=Debug -DFIDELITY_ENAB
 
 ### Application Targets
 
-After building, you'll find several executable applications:
+After building, you'll find several executable applications in the `build/release/bin/Release/` directory:
 
-- **Test3D** (`build/release/Source/Test3D/Release/Test3D.exe`)  
+- **Test3D** (`build/release/bin/Release/Test3D.exe`)  
   Basic 3D rendering test with primitive shapes and basic lighting
 
-- **Sponza** (`build/release/Source/Sponza/Release/Sponza.exe`)  
+- **Sponza** (`build/release/bin/Release/Sponza.exe`)  
   Comprehensive scene demonstration featuring the classic Sponza atrium with full PBR pipeline
 
-- **CullingTest** (`build/release/Source/CullingTest/Release/CullingTest.exe`)  
+- **CullingTest** (`build/release/bin/Release/CullingTest.exe`)  
   Frustum culling performance demonstration with large numbers of objects
 
-- **Tests** (`build/release/Source/Tests/Release/Tests.exe`)  
+- **Tests** (`build/release/bin/Release/Tests.exe`)  
   Comprehensive unit test suite for engine mathematics and core systems
 
 All applications include the editor UI for real-time parameter adjustment and debugging.
+
+### Running the Applications
+
+You can run the applications from the project root directory:
+
+```powershell
+# Run the Sponza demo (most comprehensive)
+.\build\release\bin\Release\Sponza.exe
+
+# Run the basic 3D test
+.\build\release\bin\Release\Test3D.exe
+
+# Run the culling performance test
+.\build\release\bin\Release\CullingTest.exe
+
+# Run the unit tests
+.\build\release\bin\Release\Tests.exe
+```
+
+Or navigate to the executable directory and run them directly:
+
+```powershell
+cd build\release\bin\Release
+.\Sponza.exe
+```
+
+**Note**: All required resources (shaders, textures, models, fonts) are automatically copied to the executable directory during the build process, so the applications will find all necessary assets regardless of how they are launched.
 
 ### Troubleshooting
 
