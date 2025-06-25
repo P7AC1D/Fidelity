@@ -47,26 +47,46 @@ layout(location = 0) in vec2 TexCoord;
 
 layout(location = 0) out vec4 FinalColour;
 
+vec3 ACESFilm(vec3 x)
+{
+    // ACES approximation constants
+    const float a = 2.51;
+    const float b = 0.03;
+    const float c = 2.43;
+    const float d = 0.59;
+    const float e = 0.14;
+    return clamp((x * (a * x + b)) / (x * (c * x + d) + e), 0.0, 1.0);
+}
+
+// Gamma correction function (sRGB approx)
+vec3 GammaCorrect(vec3 color, float gamma)
+{
+    return pow(color, vec3(1.0 / gamma));
+}
+
 void main()
 {
-  vec4 colourSample = texture(LightingMap, TexCoord);
-  vec3 hdrSample = colourSample.rgb;
-  vec3 bloomSample = texture(BloomMap, TexCoord).rgb;
+    vec4 colourSample = texture(LightingMap, TexCoord);
+    vec3 hdrSample = colourSample.rgb;
+    vec3 bloomSample = texture(BloomMap, TexCoord).rgb;
 
-  // Linear interpolation between exposed HDR and bloom (both already exposed)
-  hdrSample = mix(hdrSample, bloomSample, Constants.BloomStrength);
+    // Linear interpolation between exposed HDR and bloom
+    hdrSample = mix(hdrSample, bloomSample, Constants.BloomStrength);
 
-  // Perform Reinhard tone mapping: L_out = L_in / (L_in + 1)
-  // This preserves contrast better than exponential tone mapping
-  vec3 ldrSample = hdrSample / (hdrSample + vec3(1.0));
+    vec3 mapped;
+    if (Constants.ToneMappingEnabled)
+    {
+        // Apply ACES tone mapping
+        mapped = ACESFilm(hdrSample);
+    }
+    else
+    {
+        // Just clamp if tone mapping disabled
+        mapped = min(hdrSample, vec3(1.0));
+    }
 
-  if (Constants.ToneMappingEnabled == true)
-  {
-    FinalColour = vec4(ldrSample, colourSample.a);
-  }
-  else
-  {
-    // When tone mapping is disabled, clamp to avoid over-bright values
-    FinalColour = vec4(min(hdrSample, vec3(1.0)), colourSample.a);
-  }
+    // Apply gamma correction
+    vec3 finalColor = GammaCorrect(mapped, 2.2);
+
+    FinalColour = vec4(finalColor, colourSample.a);
 }
