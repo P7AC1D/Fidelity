@@ -95,14 +95,4 @@ vec3 evaluateLighting(...) {
 
 ---
 
-## ✅ Checklist & Validation
-
-- [ ] G-buffer format matches shader declarations
-- [ ] Uniform buffer alignment (std140) verified
-- [ ] Bloom & tone mapping thresholds correctly applied
-- [ ] Light attenuation curves artist-approved
-- [ ] RenderDoc captures show expected outputs
-
----
-
 *End of PBR Pipeline Analysis*
