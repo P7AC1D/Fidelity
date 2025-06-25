@@ -10,7 +10,7 @@ The project focuses on providing an accessible yet powerful framework for implem
 
 ### Rendering Pipeline
 - **Physically Based Deferred Rendering**: Modern PBR implementation with metallic-roughness workflow
-- **Cascaded Shadow Maps**: High-quality directional light shadows with multiple cascade levels
+- **Cascaded Shadow Maps**: High-quality directional light shadows with 4 cascade levels
 - **Soft Shadows**: Advanced shadow filtering using Poisson disc sampling and PCF
 - **Screen Space Ambient Occlusion (SSAO)**: Enhanced depth-based ambient occlusion
 - **HDR Rendering**: High Dynamic Range rendering with exposure control

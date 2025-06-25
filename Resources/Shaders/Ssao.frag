@@ -2,7 +2,7 @@
 const uint MaxKernelSize = 512;
 
 const int MAX_LIGHTS = 1024;
-const int MAX_CASCADE_LAYERS = 8;
+const int MAX_CASCADE_LAYERS = 4;
     
 struct Light
 {

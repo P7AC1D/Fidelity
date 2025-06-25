@@ -1,6 +1,6 @@
 #version 410
     
-#define MAX_CASCADE_LAYERS 8
+#define MAX_CASCADE_LAYERS 4
 #define MAX_LIGHTS 1024
 layout(triangles, invocations = MAX_CASCADE_LAYERS) in;
 layout(triangle_strip, max_vertices = 3) out;

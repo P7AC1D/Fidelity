@@ -34,7 +34,7 @@ const static uint32 RANDOM_ROTATION_TEXTURE_SIZE = 64;
 const static uint32 SSAO_NOISE_TEXTURE_SIZE = 4;
 const static uint32 SSAO_MAX_KERNAL_SIZE = 512;
 const static uint32 MAX_LIGHTS = 1024;
-const static uint32 MAX_CASCADE_LAYERS = 8;
+const static uint32 MAX_CASCADE_LAYERS = 4;
 
 struct SsaoConstantsData
 {
@@ -415,7 +415,8 @@ void Renderer::drawDebugUi()
     ImGui::Text("Cascaded Shadow Maps");
 
     int cascadeCount = _cascadeCount;
-    if (ImGui::SliderInt("Cascade Levels", &cascadeCount, 2, 6))
+    // Clamp maximum levels to MAX_CASCADE_LAYERS
+    if (ImGui::SliderInt("Cascade Levels", &cascadeCount, 2, static_cast<int>(MAX_CASCADE_LAYERS)))
     {
       _cascadeCount = cascadeCount;
       _shadowResolutionChanged = true; // Trigger shadow map rebuild

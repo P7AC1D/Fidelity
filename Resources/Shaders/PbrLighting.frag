@@ -3,7 +3,7 @@
 #define M_PI 3.1415926535897932384626433832795
 
 const int MAX_LIGHTS = 1024;
-const int MAX_CASCADE_LAYERS = 8;
+const int MAX_CASCADE_LAYERS = 4;
 
 struct Light
 {

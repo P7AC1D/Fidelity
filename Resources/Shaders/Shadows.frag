@@ -3,7 +3,7 @@
 #define DEBUG_SHADOW_ARTIFACTS 0
 
 const int MAX_LIGHTS = 1024;
-const int MAX_CASCADE_LAYERS = 8;
+const int MAX_CASCADE_LAYERS = 4;
 const float Pi2 = 6.283185307f;
 
 // TODO: Make this a constant buffer
