@@ -1,7 +1,5 @@
 # ⚙️ Fidelity Engine PBR Pipeline Analysis
 
----
-
 ## 📋 Overview
 
 This document analyzes the Fidelity Engine's **Physically Based Rendering (PBR)** pipeline, detailing its deferred shading approach, BRDF implementation, resource bindings, and performance considerations.
@@ -87,5 +85,3 @@ vec3 evaluateLighting(...) {
 - **Precision**: Use `highp` for world-space operations
 - **Batching**: Group draw calls by material to reduce state changes
 - **Tuning**: Expose roughness/metalness sliders in ImGui for artists
-
----

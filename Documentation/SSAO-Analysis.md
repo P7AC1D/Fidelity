@@ -1,7 +1,5 @@
 # 🔍 Fidelity Engine SSAO System Analysis
 
----
-
 ## 📋 Overview
 
 This document provides an in-depth analysis of the Fidelity Engine's **Screen-Space Ambient Occlusion (SSAO)** implementation within a deferred rendering pipeline. We cover the generation of sample kernels, noise texture creation, dual-pass SSAO + blur strategy, and integration into the PBR lighting stage.
@@ -144,5 +142,3 @@ color += calcDirectLighting(...);
 color += ambientColor * ao;
 ```
 - Only the ambient component is multiplied by the SSAO term to avoid darkening direct lights.
-
----

@@ -1,7 +1,5 @@
 # 🔍 Fidelity Engine Shadow Fragment Shader Analysis
 
----
-
 ## 📋 Overview
 
 This document provides a comprehensive analysis of the Fidelity Engine's optimized **Cascaded Shadow Mapping (CSM)** fragment shader implementation. The shader operates as part of a deferred rendering pipeline, processing screen-space fragments to determine shadow occlusion with advanced soft shadow techniques and performance optimizations.
@@ -273,5 +271,3 @@ float sampleShadowMapPoissonDisc(...) {
 | **Light bleeding** | Insufficient bias | Multi-factor bias calculation |
 | **Cascade transitions** | Resolution mismatches | Cascade-aware bias scaling |
 | **Temporal aliasing** | Static sampling patterns | Random Poisson rotation |
-
----
