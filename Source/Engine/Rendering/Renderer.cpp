@@ -1162,8 +1162,8 @@ void Renderer::initToneMappingPass(const std::shared_ptr<RenderDevice> &renderDe
 
   RenderTargetDesc rtDesc;
   rtDesc.ColourTargets[0] = renderDevice->createTexture(colourTexDesc);
-  rtDesc.Height = _windowDims.X;
-  rtDesc.Width = _windowDims.Y;
+  rtDesc.Width = _windowDims.X;
+  rtDesc.Height = _windowDims.Y;
 
   _toneMappingRto = renderDevice->createRenderTarget(rtDesc);
 }
