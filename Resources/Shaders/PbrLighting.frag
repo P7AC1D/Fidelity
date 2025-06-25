@@ -81,37 +81,21 @@ vec3 calcPointLight(Light light,
 
 vec3 drawCascadeLayers(vec3 position)
 {
-  vec3 cascadeDebugColour = vec3(0.0,0.0,0.0);
-  vec4 fragPosViewSpace = Constants.View * vec4(position, 1.0);
-  float depthValue = abs(fragPosViewSpace.z);
-
-  int layerToUse = -1;
-  for (int i = 0; i < 4; i++)
+  // Reconstruct view-space depth
+  float depthValue = abs((Constants.View * vec4(position, 1.0)).z);
+  // Predefined debug colors for up to 8 cascades
+  vec3 colors[8] = vec3[]( vec3(1,0,0), vec3(0,1,0), vec3(0,0,1), vec3(1,0,1),
+                           vec3(1,1,0), vec3(0,1,1), vec3(1,1,1), vec3(0.5,0.5,0.5) );
+  int maxLayers = int(Constants.CascadeLayerCount);
+  for (int i = 0; i < maxLayers; ++i)
   {
     if (depthValue < Constants.CascadePlaneDistances[i])
     {
-      layerToUse = i;
-      break;
+      return colors[i];
     }
   }
-
-  if (layerToUse == 0)
-  {
-    cascadeDebugColour = vec3(1.0,0.0,0.0);
-  }
-  else if (layerToUse == 1)
-  {
-    cascadeDebugColour = vec3(0.0,1.0,0.0);
-  }
-  else if (layerToUse == 2)
-  {
-    cascadeDebugColour = vec3(0.0,0.0,1.0);
-  }
-  else if (layerToUse == 2)
-  {
-    cascadeDebugColour = vec3(1.0,0.0,1.0);
-  }
-  return cascadeDebugColour;
+  // Default color if beyond last cascade
+  return vec3(0.0);
 }
 
 vec3 calculatePositionWS(vec2 screenCoords)

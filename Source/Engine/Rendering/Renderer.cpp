@@ -970,7 +970,7 @@ void Renderer::initLightingPass(const std::shared_ptr<RenderDevice> &renderDevic
   shaderParams->addParam(ShaderParam("NormalMap", ShaderParamType::Texture, 2));
   shaderParams->addParam(ShaderParam("MaterialMap", ShaderParamType::Texture, 3));
   shaderParams->addParam(ShaderParam("ShadowMap", ShaderParamType::Texture, 4));
-  shaderParams->addParam(ShaderParam("OcculusionMap", ShaderParamType::Texture, 5));
+  shaderParams->addParam(ShaderParam("OcclusionMap", ShaderParamType::Texture, 5));
 
   RasterizerStateDesc rasterizerStateDesc{};
 
