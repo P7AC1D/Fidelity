@@ -1,5 +1,7 @@
 #version 410
 
+#define DEBUG_SHADOW_ARTIFACTS 0
+
 const int MAX_LIGHTS = 1024;
 const int MAX_CASCADE_LAYERS = 8;
 const float Pi2 = 6.283185307f;
@@ -279,7 +281,12 @@ float calculateShadowFactor(vec3 fragPosWorldSpace, vec3 normalWorldSpace, ivec2
     }
 
     // Calculates the offset to use for sampling the shadow map, based on the surface normal
+#ifdef DEBUG_SHADOW_ARTIFACTS
+    // Bypass normal-based offset for debugging artifacts
+    vec3 shadowSampleOffset = vec3(0.0);
+#else
     vec3 shadowSampleOffset = calculateShadowSampleOffset(normalWorldSpace, texelSize, depthValue);
+#endif
     fragPosWorldSpace += shadowSampleOffset;
 
     vec4 fragPosLightSpace = Constants.CascadeLightTransforms[layerToUse] * vec4(fragPosWorldSpace, 1.0);
@@ -287,15 +294,46 @@ float calculateShadowFactor(vec3 fragPosWorldSpace, vec3 normalWorldSpace, ivec2
     projCoords = projCoords * 0.5 + 0.5;
 
     float currentDepth = projCoords.z;
-    if (currentDepth > 1.0)
-    {
-        return 0.0f;
-    }
+    // In debug modes >=3, skip far-plane cutoff to visualize full depth range
+    #if DEBUG_SHADOW_ARTIFACTS < 3
+        if (currentDepth > 1.0)
+        {
+            return 0.0f;
+        }
+    #endif
 
     // Use optimized bias calculation
     float bias = calculateOptimizedBias(normalWorldSpace, depthValue, layerToUse);
 
-    return sampleShadowMapPoissonDisc(projCoords.xy, currentDepth, texelSize, layerToUse, bias, screenPos);
+    // Debugging artifact modes:
+    // 1: simple PCF without offset
+    // 2: visualize bias value
+    // 3: visualize light-space depth (currentDepth)
+    // 4: visualize selected cascade layer index
+    #if DEBUG_SHADOW_ARTIFACTS == 2
+        // Visualize raw slope+distance bias without cascade scale, plus dithering to reduce banding
+        {
+            float nDotL = clamp(dot(normalWorldSpace, Constants.LightDirection), 0.0, 1.0);
+            float slopeBias = clamp(tan(acos(nDotL)), 0.0, 0.01);
+            float distanceBias = 0.001 * (1.0 + depthValue * 0.1);
+            float rawBias = slopeBias + distanceBias;
+            float maxRaw = 0.02; // adjust to fit your range
+            // dither noise based on screen position
+            float rand = fract(sin(dot(vec2(screenPos), vec2(12.9898,78.233))) * 43758.5453);
+            float dither = (rand - 0.5) / 256.0;
+            return clamp(rawBias / maxRaw + dither, 0.0, 1.0);
+        }
+    #elif DEBUG_SHADOW_ARTIFACTS == 3
+        // Global normalized view-space depth for continuous gradient
+        return clamp(depthValue / Constants.FarPlane, 0.0, 1.0);
+    #elif DEBUG_SHADOW_ARTIFACTS == 4
+        return float(layerToUse) / float(Constants.CascadeLayerCount);
+    #elif DEBUG_SHADOW_ARTIFACTS == 1
+        // Use simple PCF sampling for debugging artifacts
+        return sampleShadowMapPcf(projCoords.xy, currentDepth, texelSize, layerToUse, bias);
+    #else
+        return sampleShadowMapPoissonDisc(projCoords.xy, currentDepth, texelSize, layerToUse, bias, screenPos);
+    #endif
 }
 
 void main()
