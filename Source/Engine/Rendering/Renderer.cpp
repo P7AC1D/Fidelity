@@ -356,6 +356,7 @@ void Renderer::drawDebugUi()
     ImGui::Separator();
     ImGui::Text("Shadow Quality");
 
+    // Shadow Quality Sliders
     int shadowMapResolution = _shadowMapResolution;
     if (ImGui::SliderInt("Shadow Resolution", &shadowMapResolution, 512, 4096))
     {
@@ -367,19 +368,20 @@ void Renderer::drawDebugUi()
     if (ImGui::SliderInt("Shadow Samples", &shadowSamplesUI, 4, 32))
     {
       _shadowSampleCount = shadowSamplesUI;
+      _shadowResolutionChanged = true;
     }
 
     float32 sampleSpread = _shadowSampleSpread;
     if (ImGui::SliderFloat("Shadow Softness", &sampleSpread, 100.0f, 2000.0f))
     {
       _shadowSampleSpread = sampleSpread;
+      _shadowResolutionChanged = true;
     }
-
-    // Quality presets
+    
+    // Shadow Quality Presets
     ImGui::Spacing();
-    ImGui::Text("Quality Presets:");
-    ImGui::SameLine();
-    if (ImGui::Button("Low"))
+    ImGui::Text("Quality Presets:"); ImGui::SameLine();
+    if (ImGui::Button("Low##ShadowPreset"))
     {
       _shadowMapResolution = 1024;
       _shadowSampleCount = 8;
@@ -388,7 +390,7 @@ void Renderer::drawDebugUi()
       _shadowResolutionChanged = true;
     }
     ImGui::SameLine();
-    if (ImGui::Button("Balanced"))
+    if (ImGui::Button("Balanced##ShadowPreset"))
     {
       _shadowMapResolution = 2048;
       _shadowSampleCount = 16;
@@ -397,7 +399,7 @@ void Renderer::drawDebugUi()
       _shadowResolutionChanged = true;
     }
     ImGui::SameLine();
-    if (ImGui::Button("High"))
+    if (ImGui::Button("High##ShadowPreset"))
     {
       _shadowMapResolution = 4096;
       _shadowSampleCount = 24;
@@ -1557,6 +1559,7 @@ void Renderer::debugPass(const std::shared_ptr<RenderDevice> &renderDevice,
     drawDebugRenderTarget(renderDevice, _shadowMapRto->getDepthStencilTarget(), camera, false, true);
     break;
   }
+
   case DebugDisplayType::Diffuse:
   {
     drawDebugRenderTarget(renderDevice, _gBufferRto->getColourTarget(0), camera);
