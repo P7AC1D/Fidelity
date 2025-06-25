@@ -247,7 +247,7 @@ The **[Documentation/](Documentation/)** folder contains comprehensive technical
 - **[Shadow Mapping Analysis](Documentation/Shadow-Mapping-Analysis.md)**: Complete breakdown of the cascaded shadow mapping implementation, including performance optimizations, contact hardening, and quality analysis
 - **[Screen Space Ambient Occlusion Analysis](Documentation/SSAO-Analysis.md)**: Comprehensive technical analysis of the SSAO implementation, including kernel generation strategy, noise texture creation, performance considerations, and best practices
 - **[PBR Pipeline Analysis](Documentation/PBR-Analysis.md)**: In-depth review of the deferred PBR workflow, BRDF implementation, resource bindings, and performance tuning
-  
+
 ## References and Acknowledgments
 
 The Fidelity Engine is built upon the collective knowledge of the graphics programming community. The following resources have been instrumental in the development of various engine systems:
@@ -278,6 +278,10 @@ The Fidelity Engine is built upon the collective knowledge of the graphics progr
 ### HDR and Post-Processing
 - [HDR Bloom Tutorial](https://web.archive.org/web/20060818101028/http://harkal.sylphis3d.com/2006/05/20/how-to-do-good-bloom-for-hdr-rendering) - High-quality bloom implementation for HDR rendering
 - [Catlike Coding Bloom](https://catlikecoding.com/unity/tutorials/advanced-rendering/bloom/) - Step-by-step bloom effect implementation
+
+### HDR and Tone Mapping References
+- [ACES Tone Mapping Curve](https://knarkowicz.wordpress.com/2016/01/06/aces-filmic-tone-mapping-curve/) - In-depth article on ACES filmic curve
+- [Unreal Engine ACES Implementation](https://docs.unrealengine.com) - Guidance on ACES integration in UE pipeline
 
 ### Advanced Lighting
 - [Clustered Shading](http://www.aortiz.me/2018/12/21/CG.html) - Modern many-light rendering techniques
