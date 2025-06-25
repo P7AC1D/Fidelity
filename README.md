@@ -162,19 +162,6 @@ cd build\release\bin\Release
 
 **Debug Build Performance**: Debug builds include extensive validation and may run significantly slower than Release builds.
 
-## Technical Requirements
-
-### Minimum System Requirements
-- **OS**: Windows 10+ or macOS 10.14+
-- **Graphics**: OpenGL 4.1 compatible GPU
-- **Memory**: 4GB RAM minimum, 8GB recommended
-- **Storage**: 2GB available space for full build
-
-### Development Requirements  
-- **Compiler**: MSVC 2019+ (Windows) or Clang 10+ (macOS)
-- **CMake**: Version 3.21 or higher
-- **Git**: For repository and submodule management
-
 ## Development Roadmap
 
 ### Completed Features ✅
@@ -260,15 +247,6 @@ The **[Documentation/](Documentation/)** folder contains comprehensive technical
 - **[Shadow Mapping Analysis](Documentation/Shadow-Mapping-Analysis.md)**: Complete breakdown of the cascaded shadow mapping implementation, including performance optimizations, contact hardening, and quality analysis
 - **[Screen Space Ambient Occlusion Analysis](Documentation/SSAO-Analysis.md)**: Comprehensive technical analysis of the SSAO implementation, including kernel generation strategy, noise texture creation, performance considerations, and best practices
 - **[PBR Pipeline Analysis](Documentation/PBR-Analysis.md)**: In-depth review of the deferred PBR workflow, BRDF implementation, resource bindings, and performance tuning
-- **[Documentation Index](Documentation/README.md)**: Full list of available technical documents
-
-## Contributing
-
-We welcome contributions! Please see our contributing guidelines for:
-- Code style and formatting requirements
-- Testing procedures and requirements  
-- Documentation standards
-- Pull request submission process
   
 ## References and Acknowledgments
 

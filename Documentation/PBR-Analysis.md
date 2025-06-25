@@ -1,10 +1,5 @@
 # ⚙️ Fidelity Engine PBR Pipeline Analysis
 
-**Document Version**: 1.0  
-**Date**: June 24, 2025  
-**Author**: Technical Analysis  
-**Status**: Draft - Review Recommended
-
 ---
 
 ## 📋 Overview
@@ -94,5 +89,3 @@ vec3 evaluateLighting(...) {
 - **Tuning**: Expose roughness/metalness sliders in ImGui for artists
 
 ---
-
-*End of PBR Pipeline Analysis*
