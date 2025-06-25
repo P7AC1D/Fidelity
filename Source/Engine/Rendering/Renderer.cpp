@@ -3,6 +3,7 @@
 #include <random>  // for mt19937 and uniform distributions
 #include <chrono>
 #include <iostream>
+#include <stdexcept>
 
 // Global deterministic RNG for SSAO noise and kernel
 static std::mt19937 g_ssaoGenerator(0);
@@ -534,13 +535,17 @@ void Renderer::drawFrame(const std::shared_ptr<RenderDevice> &renderDevice,
       break;
     }
   }
+  if (!directionalLight)
+  {
+    throw std::runtime_error("No directional light found.");
+  }
 
   writePerFrameConstantData(camera, directionalLight, lights);
 
-  directionalLightDepthPass(renderDevice, allDrawables, directionalLight, camera);
+  if (directionalLight) directionalLightDepthPass(renderDevice, allDrawables, directionalLight, camera);
   gbufferPass(renderDevice, opaqueDrawables, camera);
   transparencyPass(renderDevice, transparentDrawables, camera);
-  shadowPass(renderDevice);
+  if (directionalLight) shadowPass(renderDevice);
   ssaoPass(renderDevice, camera);
   lightingPass(renderDevice, lights, camera);
   bloomPass(renderDevice);

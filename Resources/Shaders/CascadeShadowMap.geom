@@ -1,10 +1,10 @@
 #version 410
     
-layout(triangles, invocations = 4) in;
+#define MAX_CASCADE_LAYERS 8
+#define MAX_LIGHTS 1024
+layout(triangles, invocations = MAX_CASCADE_LAYERS) in;
 layout(triangle_strip, max_vertices = 3) out;
 
-const int MAX_LIGHTS = 1024;
-const int MAX_CASCADE_LAYERS = 8;
     
 struct Light
 {
@@ -53,12 +53,16 @@ out gl_PerVertex
 };
     
 void main()
-{          
-  for (int i = 0; i < 3; ++i)
-  {
-    gl_Position = Constants.CascadeLightTransforms[gl_InvocationID] * gl_in[i].gl_Position;
-    gl_Layer = gl_InvocationID;
-    EmitVertex();
-  }
-  EndPrimitive();
-}  
+{
+    // Skip invocations beyond the actual cascade count
+    if (gl_InvocationID >= Constants.CascadeLayerCount) {
+        return;
+    }
+    for (int i = 0; i < 3; ++i)
+    {
+        gl_Position = Constants.CascadeLightTransforms[gl_InvocationID] * gl_in[i].gl_Position;
+        gl_Layer = gl_InvocationID;
+        EmitVertex();
+    }
+    EndPrimitive();
+}
