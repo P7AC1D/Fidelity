@@ -52,15 +52,17 @@ function(fidelity_add_executable target_name)
         VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
     )
 
-    # Include engine headers
+    # Include engine and GLFW headers
     target_include_directories(${target_name} PRIVATE
         "${CMAKE_SOURCE_DIR}/Source/Engine"
+        "${CMAKE_SOURCE_DIR}/Externals/glfw/include"
     )
 
     # Link common dependencies
     target_link_libraries(${target_name} PRIVATE
         engine
         OpenGL::GL
+        glfw
         ${FIDELITY_DEPENDENCIES}
     )    # Platform-specific settings
     if(WIN32)

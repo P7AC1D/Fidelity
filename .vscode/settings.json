@@ -83,6 +83,9 @@
         "variant": "cpp",
         "xlocbuf": "cpp",
         "xlocmes": "cpp",
-        "*.rh": "cpp"
+        "*.rh": "cpp",
+        "coroutine": "cpp",
+        "expected": "cpp",
+        "span": "cpp"
     }
 }
