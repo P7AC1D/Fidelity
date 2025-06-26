@@ -35,6 +35,7 @@ const static uint32 SSAO_NOISE_TEXTURE_SIZE = 4;
 const static uint32 SSAO_MAX_KERNAL_SIZE = 512;
 const static uint32 MAX_LIGHTS = 1024;
 const static uint32 MAX_CASCADE_LAYERS = 4;
+const static uint32 MAX_POINT_LIGHT_SHADOW_CASTERS = 8;
 
 struct SsaoConstantsData
 {

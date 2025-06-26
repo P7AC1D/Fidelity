@@ -91,6 +91,8 @@ GLenum getTextureTarget(TextureType textureType)
 {
   switch (textureType)
   {
+  case TextureType::TextureCubeArray:
+    return GL_TEXTURE_CUBE_MAP_ARRAY;
   case TextureType::Texture1D:
     return GL_TEXTURE_1D;
   case TextureType::Texture1DArray:
@@ -112,6 +114,8 @@ GLenum getTextureBindingTarget(TextureType textureType)
 {
   switch (textureType)
   {
+  case TextureType::TextureCubeArray:
+    return GL_TEXTURE_BINDING_CUBE_MAP_ARRAY;
   case TextureType::Texture1D:
     return GL_TEXTURE_BINDING_1D;
   case TextureType::Texture1DArray:
@@ -173,6 +177,14 @@ void GLTexture::writeData(uint32 mipLevel, uint32 face, const std::shared_ptr<Im
     break;
   case TextureType::TextureCube:
     glCall(glTexSubImage2D(target, mipLevel, data->getLeft(), 0, data->getWidth(), face, format, type, &pixelData[0]));
+    break;
+  case TextureType::TextureCubeArray:
+    // z offset = layer * 6 + face
+    glCall(glTexSubImage3D(target, mipLevel,
+                           data->getLeft(), data->getBottom(),
+                           face + 6 * (int)data->getDepth(),
+                           data->getWidth(), data->getHeight(), 1,
+                           format, type, &pixelData[0]));
     break;
   default:
     throw std::runtime_error("Unsupported TextureType");
@@ -305,6 +317,22 @@ void GLTexture::Allocate()
     {
       glCall(glTexImage3D(GL_TEXTURE_3D, i, internalFormat, _desc.Width, _desc.Height, _desc.Depth, 0, format, type, nullptr));
     }
+    break;
+  case TextureType::TextureCubeArray:
+    for (uint32 layer = 0; layer < _desc.Count; ++layer)
+    {
+      for (uint32 face = 0; face < 6; ++face)
+      {
+        for (uint32 i = 0; i < _desc.MipLevels; i++)
+        {
+          glCall(glTexImage3D(GL_TEXTURE_CUBE_MAP_ARRAY, i, internalFormat,
+                              _desc.Width, _desc.Height,
+                              6 * _desc.Count, // total depth = 6 faces * layers
+                              0, format, type, nullptr));
+        }
+      }
+    }
+    break;
   default:
     throw std::runtime_error("Unsupported TextureType");
   }

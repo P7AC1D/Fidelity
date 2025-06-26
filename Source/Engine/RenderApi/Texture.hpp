@@ -43,6 +43,7 @@ enum class TextureType
   Texture2D,
   Texture2DArray,
   TextureCube,
+  TextureCubeArray,
   Texture3D,
 };
 

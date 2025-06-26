@@ -29,6 +29,8 @@ GLenum getTextureTargetFromType(TextureType textureType)
     return GL_TEXTURE_3D;
   case TextureType::TextureCube:
     return GL_TEXTURE_CUBE_MAP;
+  case TextureType::TextureCubeArray:
+    return GL_TEXTURE_CUBE_MAP_ARRAY;
   default:
     return GL_TEXTURE_2D;
   }
