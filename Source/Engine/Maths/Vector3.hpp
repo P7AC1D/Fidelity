@@ -10,6 +10,13 @@ public:
   static Vector3 Zero;
   static Vector3 Up;
   static Vector3 Identity;
+  
+  // Direction constants for cubemap faces and general use
+  static Vector3 Right;
+  static Vector3 Left;
+  static Vector3 Down;
+  static Vector3 Forward;
+  static Vector3 Backward;
 
   static float32 Length(const Vector3 &a);
   static float32 Dot(const Vector3 &a, const Vector3 &b);

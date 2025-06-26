@@ -10,6 +10,13 @@ Vector3 Vector3::Zero = Vector3(0.0f);
 Vector3 Vector3::Up = Vector3(0.0f, 1.0f, 0.0f);
 Vector3 Vector3::Identity = Vector3(1.0f);
 
+// Direction constants for cubemap faces and general use
+Vector3 Vector3::Right = Vector3(1.0f, 0.0f, 0.0f);
+Vector3 Vector3::Left = Vector3(-1.0f, 0.0f, 0.0f);
+Vector3 Vector3::Down = Vector3(0.0f, -1.0f, 0.0f);
+Vector3 Vector3::Forward = Vector3(0.0f, 0.0f, 1.0f);
+Vector3 Vector3::Backward = Vector3(0.0f, 0.0f, -1.0f);
+
 float32 Vector3::Length(const Vector3 &a)
 {
   return a.Length();
