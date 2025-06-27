@@ -304,11 +304,18 @@ void GLTexture::Allocate()
     }
     break;
   case TextureType::TextureCube:
-    for (uint32 face = 0; face < 6; face++)
-    {
-      for (uint32 i = 0; i < _desc.MipLevels; i++)
-      {
-        glCall(glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + face, i, internalFormat, _desc.Width, _desc.Height, 0, format, type, nullptr));
+    // allocate all six cube-map faces at each mip level
+    for (uint32 face = 0; face < 6; ++face) {
+      for (uint32 level = 0; level < _desc.MipLevels; ++level) {
+        glCall(glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + face,
+                            level,
+                            internalFormat,
+                            _desc.Width,
+                            _desc.Height,
+                            0,
+                            format,
+                            type,
+                            nullptr));
       }
     }
     break;

@@ -225,6 +225,7 @@ Renderer::Renderer(const Vector2I &windowDims) : _windowDims(windowDims),
                                                  _drawCascadeLayers(false),
                                                  _shadowResolutionChanged(true),                                                 
                                                  _shadowMapResolution(2048),
+                                                 _pointLightShadowMapResolution(1024),
                                                  _cascadeCount(4),
                                                  _shadowSampleCount(16),
                                                  _shadowSampleSpread(800.0f),
@@ -667,6 +668,62 @@ void Renderer::initDirectionalLightDepthPass(const std::shared_ptr<RenderDevice>
   ShaderDesc gsDesc;
   gsDesc.ShaderType = ShaderType::Geometry;
   gsDesc.Source = String::foadFromFile("./Shaders/CascadeShadowMap.geom");
+
+  ShaderDesc psDesc;
+  psDesc.ShaderType = ShaderType::Fragment;
+  psDesc.Source = String::foadFromFile("./Shaders/Empty.frag");
+
+  std::vector<VertexLayoutDesc> vertexLayoutDesc{
+      VertexLayoutDesc(SemanticType::Position, SemanticFormat::Float3),
+      VertexLayoutDesc(SemanticType::Normal, SemanticFormat::Float3),
+      VertexLayoutDesc(SemanticType::TexCoord, SemanticFormat::Float2),
+      VertexLayoutDesc(SemanticType::Tangent, SemanticFormat::Float3),
+      VertexLayoutDesc(SemanticType::Bitangent, SemanticFormat::Float3)};
+
+  std::shared_ptr<ShaderParams> shaderParams(new ShaderParams());
+  shaderParams->addParam(ShaderParam("PerObjectBuffer", ShaderParamType::ConstBuffer, 0));
+  shaderParams->addParam(ShaderParam("PerFrameBuffer", ShaderParamType::ConstBuffer, 1));
+
+  RasterizerStateDesc rasterizerStateDesc;
+  rasterizerStateDesc.CullMode = CullMode::Clockwise;
+
+  PipelineStateDesc pipelineDesc;
+  pipelineDesc.VS = renderDevice->createShader(vsDesc);
+  pipelineDesc.GS = renderDevice->createShader(gsDesc);
+  pipelineDesc.FS = renderDevice->createShader(psDesc);
+  pipelineDesc.BlendState = renderDevice->createBlendState(BlendStateDesc{});
+  pipelineDesc.RasterizerState = renderDevice->createRasterizerState(RasterizerStateDesc{});
+  pipelineDesc.DepthStencilState = renderDevice->createDepthStencilState(DepthStencilStateDesc());
+  pipelineDesc.VertexLayout = renderDevice->createVertexLayout(vertexLayoutDesc);
+  pipelineDesc.ShaderParams = shaderParams;
+
+  _shadowMapPso = renderDevice->createPipelineState(pipelineDesc);
+}
+
+void Renderer::initPointLightDepthPass(const std::shared_ptr<RenderDevice> &renderDevice)
+{
+  TextureDesc shadowMapDesc;
+  shadowMapDesc.Width = _pointLightShadowMapResolution;
+  shadowMapDesc.Height = _pointLightShadowMapResolution;
+  shadowMapDesc.Usage = TextureUsage::Depth;
+  shadowMapDesc.Type = TextureType::TextureCube;
+  shadowMapDesc.Format = TextureFormat::D32F;
+
+  RenderTargetDesc rtDesc;
+  rtDesc.DepthStencilTarget = renderDevice->createTexture(shadowMapDesc);
+  rtDesc.Height = _pointLightShadowMapResolution;
+  rtDesc.Width = _pointLightShadowMapResolution;
+
+  _shadowMapRto = renderDevice->createRenderTarget(rtDesc);
+
+  ShaderDesc vsDesc;
+  vsDesc.ShaderType = ShaderType::Vertex;
+  vsDesc.Source = String::foadFromFile("./Shaders/PointShadowMap.vert");
+
+  // TODO: Change to only use Pixel shaders as it allows for a dynamic cascade count - apparently doesn't affect performance that much
+  ShaderDesc gsDesc;
+  gsDesc.ShaderType = ShaderType::Geometry;
+  gsDesc.Source = String::foadFromFile("./Shaders/PointShadowMap.geom");
 
   ShaderDesc psDesc;
   psDesc.ShaderType = ShaderType::Fragment;

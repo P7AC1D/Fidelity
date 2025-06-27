@@ -60,6 +60,7 @@ private:
   void initTextures(const std::shared_ptr<RenderDevice> &renderDevice);
 
   void initDirectionalLightDepthPass(const std::shared_ptr<RenderDevice> &renderDevice);
+  void initPointLightDepthPass(const std::shared_ptr<RenderDevice> &renderDevice);
   void initGbufferPass(const std::shared_ptr<RenderDevice> &renderDevice);
   void initTransparencyPass(const std::shared_ptr<RenderDevice> &renderDevice);
   void initShadowPass(const std::shared_ptr<RenderDevice> &renderDevice);
@@ -137,6 +138,7 @@ private:
   bool _drawCascadeLayers;
   bool _shadowResolutionChanged;
   int32 _shadowMapResolution;
+  uint32 _pointLightShadowMapResolution;
   uint32 _cascadeCount;
   uint32 _shadowSampleCount;
   float32 _shadowSampleSpread;
@@ -162,6 +164,7 @@ private:
       _fullscreenQuadBuffer,
       _bloomBuffer;
   std::shared_ptr<RenderTarget> _shadowMapRto,
+      _pointLightDepthRto,
       _gBufferRto,
       _transparencyRto,
       _shadowsRto,
@@ -171,6 +174,7 @@ private:
       _toneMappingRto;
   std::vector<std::shared_ptr<RenderTarget>> _bloomDownSampleRtos;
   std::shared_ptr<PipelineState> _shadowMapPso,
+      _pointLightDepthPso,
       _gBufferPso,
       _transparencyPso,
       _shadowsPso,
