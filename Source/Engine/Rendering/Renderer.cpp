@@ -274,7 +274,7 @@ bool Renderer::init(const std::shared_ptr<RenderDevice> &renderDevice)
     initSamplers(renderDevice);
     initTextures(renderDevice);
     initConstantBuffers(renderDevice);
-
+    initPointLightDepthPass(renderDevice);
     initDirectionalLightDepthPass(renderDevice);
     initGbufferPass(renderDevice);
     initTransparencyPass(renderDevice);
@@ -720,7 +720,6 @@ void Renderer::initPointLightDepthPass(const std::shared_ptr<RenderDevice> &rend
   vsDesc.ShaderType = ShaderType::Vertex;
   vsDesc.Source = String::foadFromFile("./Shaders/PointShadowMap.vert");
 
-  // TODO: Change to only use Pixel shaders as it allows for a dynamic cascade count - apparently doesn't affect performance that much
   ShaderDesc gsDesc;
   gsDesc.ShaderType = ShaderType::Geometry;
   gsDesc.Source = String::foadFromFile("./Shaders/PointShadowMap.geom");
@@ -753,7 +752,7 @@ void Renderer::initPointLightDepthPass(const std::shared_ptr<RenderDevice> &rend
   pipelineDesc.VertexLayout = renderDevice->createVertexLayout(vertexLayoutDesc);
   pipelineDesc.ShaderParams = shaderParams;
 
-  _shadowMapPso = renderDevice->createPipelineState(pipelineDesc);
+  _pointLightDepthPso = renderDevice->createPipelineState(pipelineDesc);
 }
 
 void Renderer::initGbufferPass(const std::shared_ptr<RenderDevice> &renderDevice)
