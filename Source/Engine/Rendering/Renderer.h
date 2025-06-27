@@ -75,6 +75,10 @@ private:
                                  const std::vector<std::shared_ptr<Drawable>> &drawables,
                                  const std::shared_ptr<Light> &directionalLight,
                                  const std::shared_ptr<Camera> &camera);
+  void pointLightDepthPass(const std::shared_ptr<RenderDevice>& renderDevice,
+                           const std::vector<std::shared_ptr<Drawable>>& drawables,
+                           const std::vector<std::shared_ptr<Light>>& lights,
+                           const std::shared_ptr<Camera>& camera);
   void gbufferPass(std::shared_ptr<RenderDevice> renderDevice,
                    const std::vector<std::shared_ptr<Drawable>> &drawables,
                    const std::shared_ptr<Camera> &camera);

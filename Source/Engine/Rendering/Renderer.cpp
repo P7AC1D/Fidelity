@@ -1981,3 +1981,55 @@ void Renderer::writeSsaoConstantData(const std::shared_ptr<RenderDevice> &render
   }
   _ssaoConstantsBuffer->writeData(0, sizeof(SsaoConstantsData), &ssaoConstantsData, AccessType::WriteOnlyDiscard);
 }
+
+void Renderer::pointLightDepthPass(const std::shared_ptr<RenderDevice>& renderDevice,
+                                   const std::vector<std::shared_ptr<Drawable>>& drawables,
+                                   const std::vector<std::shared_ptr<Light>>& lights,
+                                   const std::shared_ptr<Camera>& camera)
+{
+    ViewportDesc viewportDesc;
+    viewportDesc.Height = _pointLightShadowMapResolution;
+    viewportDesc.Width = _pointLightShadowMapResolution;
+    renderDevice->setViewport(viewportDesc);
+    renderDevice->setRenderTarget(_pointLightDepthRto);
+    renderDevice->clearBuffers(RTT_Depth);
+    renderDevice->setConstantBuffer(0, _perObjectBuffer);
+    renderDevice->setConstantBuffer(1, _perFrameBuffer);
+
+    // process only the first point light
+    for (const auto& light : lights) {
+      if (light->getLightType() != LightType::Point)
+          continue;
+
+        // Compute six 90° view-proj matrices for this point light
+        Vector3 pos = light->getPosition();
+        float nearPlane = 0.1f;
+        float farPlane = light->getRadius();
+        const std::array<Vector3,6> dirs = {{
+          Vector3( 1, 0, 0), Vector3(-1, 0, 0),
+          Vector3( 0, 1, 0), Vector3( 0,-1, 0),
+          Vector3( 0, 0, 1), Vector3( 0, 0,-1)
+      }};
+      const std::array<Vector3,6> ups = {{
+          Vector3(0,-1, 0), Vector3(0,-1, 0),
+          Vector3(0, 0, 1), Vector3(0, 0,-1),
+          Vector3(0,-1, 0), Vector3(0,-1, 0)
+      }};
+      std::array<Matrix4,6> shadowMatrices;
+      Matrix4 proj = Matrix4::Perspective(Degree(90.0f), 1.0f, nearPlane, farPlane);
+      for (int i = 0; i < 6; ++i) {
+        Matrix4 view = Matrix4::LookAt(pos, pos + dirs[i], ups[i]);
+        shadowMatrices[i] = proj * view;
+      }
+      // upload matrices for point light index 0
+      writePointLightConstantData(0, pos, farPlane, shadowMatrices);
+
+      // Draw all shadow-casting drawables
+      for (const auto &drawable : drawables)
+      {
+        std::shared_ptr<Material> material(drawable->getMaterial());
+        drawDrawable(renderDevice, drawable, material, camera);
+      }
+      break; // only render first point light for testing
+    }
+}
