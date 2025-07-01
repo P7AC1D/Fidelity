@@ -903,6 +903,8 @@ void Renderer::initShadowPass(const std::shared_ptr<RenderDevice> &renderDevice)
   shaderParams->addParam(ShaderParam("NormalMap", ShaderParamType::Texture, 1));
   shaderParams->addParam(ShaderParam("ShadowMap", ShaderParamType::Texture, 2));
   shaderParams->addParam(ShaderParam("RandomRotationsMap", ShaderParamType::Texture, 3));
+  shaderParams->addParam(ShaderParam("PointShadowMap", ShaderParamType::Texture, 4));
+  shaderParams->addParam(ShaderParam("PointLightBuffer", ShaderParamType::ConstBuffer, 2));
 
   RasterizerStateDesc rasterizerStateDesc{};
   BlendStateDesc blendStateDesc{};
@@ -1297,7 +1299,6 @@ void Renderer::initDebugPass(const std::shared_ptr<RenderDevice> &renderDevice)
 
     std::shared_ptr<ShaderParams> shaderParams(new ShaderParams());
     shaderParams->addParam(ShaderParam("ObjectBuffer", ShaderParamType::ConstBuffer, 0));
-
     RasterizerStateDesc rasterizerStateDesc{};
     rasterizerStateDesc.FillMode = FillMode::WireFrame;
     rasterizerStateDesc.CullMode = CullMode::None;
@@ -1468,11 +1469,13 @@ void Renderer::shadowPass(const std::shared_ptr<RenderDevice> &renderDevice)
   renderDevice->setTexture(1, _gBufferRto->getColourTarget(1));
   renderDevice->setTexture(2, _shadowMapRto->getDepthStencilTarget());
   renderDevice->setTexture(3, _randomRotationsMap);
+  renderDevice->setTexture(4, _pointLightDepthRto->getDepthStencilTarget()); // Bind point light shadow cubemap
   renderDevice->setConstantBuffer(1, _perFrameBuffer);
   renderDevice->setSamplerState(0, _noMipSamplerState);
   renderDevice->setSamplerState(1, _noMipSamplerState);
   renderDevice->setSamplerState(2, _shadowMapSamplerState);
   renderDevice->setSamplerState(3, _noMipSamplerState);
+  renderDevice->setSamplerState(4, _shadowMapSamplerState); // Use same sampler for cubemap
   renderDevice->setVertexBuffer(_fsQuadVertexBuffer);
   renderDevice->draw(6, 0);
 

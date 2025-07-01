@@ -133,6 +133,13 @@ uniform sampler2D DepthMap;
 uniform sampler2D NormalMap;
 uniform sampler2DArray ShadowMap;
 uniform sampler2D RandomRotationsMap;
+uniform samplerCube PointShadowMap;  // Point light shadow cubemap
+
+layout(std140) uniform PointLightBuffer
+{
+    vec3 Position;
+    float FarPlane;
+} PLBFrag;
 
 layout(location = 0) in vec2 TexCoord;
 
@@ -338,23 +345,34 @@ float calculateShadowFactor(vec3 fragPosWorldSpace, vec3 normalWorldSpace, ivec2
 
 void main()
 {
-  // Rebuild position of fragment in screen space from frag-coord and depth texture
-  vec2 windowDimensions = textureSize(NormalMap, 0);
-  vec3 position = vec3((gl_FragCoord.x / windowDimensions.x), (gl_FragCoord.y / windowDimensions.y), 0.0f);
-  position.z = texture(DepthMap, position.xy).r;
+    // Rebuild position of fragment in screen space from frag-coord and depth texture
+    vec2 windowDimensions = textureSize(NormalMap, 0);
+    vec3 position = vec3((gl_FragCoord.x / windowDimensions.x), (gl_FragCoord.y / windowDimensions.y), 0.0f);
+    position.z = texture(DepthMap, position.xy).r;
 
-  // Transform normal vector to range [-1,1]
-  vec3 normal = normalize(texture(NormalMap, TexCoord).xyz * 2.0f - 1.0f);
+    // Transform normal vector to range [-1,1]
+    vec3 normal = normalize(texture(NormalMap, TexCoord).xyz * 2.0f - 1.0f);
 
-  // Transform position to NDC space.
-  position = position * 2.0f - 1.0f;
+    // Transform position to NDC space.
+    position = position * 2.0f - 1.0f;
 
-  // Transform position to world space and perform perspective divide.
-  vec4 clip = Constants.ProjViewInv * vec4(position, 1.0f);
-  position = clip.xyz / clip.w;
+    // Transform position to world space and perform perspective divide.
+    vec4 clip = Constants.ProjViewInv * vec4(position, 1.0f);
+    position = clip.xyz / clip.w;
 
-  // Use proper screen coordinates for Poisson disc sampling
-  ivec2 screenPos = ivec2(gl_FragCoord.xy);
-  float shadowFactor = calculateShadowFactor(position, normal, screenPos);
-  Shadows = (1.0f - shadowFactor);
+    // Directional shadow factor
+    ivec2 screenPos = ivec2(gl_FragCoord.xy);
+    float shadowFactor = calculateShadowFactor(position, normal, screenPos);
+    float dirLit = 1.0 - shadowFactor;
+
+    // Point light shadow sampling
+    vec3 toLight = position - PLBFrag.Position;
+    float currentDepth = length(toLight);
+    // Sample normalized depth from cubemap, then scale by far plane
+    float closestDepth = texture(PointShadowMap, toLight).r * PLBFrag.FarPlane;
+    float bias = 0.005;
+    float pointLit = currentDepth <= closestDepth + bias ? 1.0 : 0.0;
+
+    // Composite shadows: lit only if both directional and point-lit
+    Shadows = pointLit; //min(dirLit, pointLit);
 }
