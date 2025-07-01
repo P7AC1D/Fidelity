@@ -113,6 +113,13 @@ struct BloomBuffer
   float32 FilterRadius;
 };
 
+struct PointLightBufferData
+{
+  Vector3 Position;
+  float32 FarPlane;
+  Matrix4 shadowMatrices[6];
+};
+
 struct TexturedQuadBuffer
 {
   int32 PerspectiveDepth;
@@ -518,6 +525,12 @@ void Renderer::initConstantBuffers(const std::shared_ptr<RenderDevice> &renderDe
   bloomBufferDesc.BufferUsage = BufferUsage::Dynamic;
   bloomBufferDesc.ByteCount = sizeof(BloomBuffer);
   _bloomBuffer = renderDevice->createGpuBuffer(bloomBufferDesc);
+
+  GpuBufferDesc pointLightBufferDesc;
+  pointLightBufferDesc.BufferType = BufferType::Constant;
+  pointLightBufferDesc.BufferUsage = BufferUsage::Dynamic;
+  pointLightBufferDesc.ByteCount = sizeof(PointLightBufferData);
+  _pointLightBuffer = renderDevice->createGpuBuffer(pointLightBufferDesc);
 }
 
 void Renderer::drawFrame(const std::shared_ptr<RenderDevice> &renderDevice,
@@ -546,6 +559,7 @@ void Renderer::drawFrame(const std::shared_ptr<RenderDevice> &renderDevice,
   writePerFrameConstantData(camera, directionalLight, lights);
 
   if (directionalLight) directionalLightDepthPass(renderDevice, allDrawables, directionalLight, camera);
+  pointLightDepthPass(renderDevice, allDrawables, lights, camera);
   gbufferPass(renderDevice, opaqueDrawables, camera);
   transparencyPass(renderDevice, transparentDrawables, camera);
   if (directionalLight) shadowPass(renderDevice);
@@ -714,7 +728,7 @@ void Renderer::initPointLightDepthPass(const std::shared_ptr<RenderDevice> &rend
   rtDesc.Height = _pointLightShadowMapResolution;
   rtDesc.Width = _pointLightShadowMapResolution;
 
-  _shadowMapRto = renderDevice->createRenderTarget(rtDesc);
+  _pointLightDepthRto = renderDevice->createRenderTarget(rtDesc);
 
   ShaderDesc vsDesc;
   vsDesc.ShaderType = ShaderType::Vertex;
@@ -738,6 +752,7 @@ void Renderer::initPointLightDepthPass(const std::shared_ptr<RenderDevice> &rend
   std::shared_ptr<ShaderParams> shaderParams(new ShaderParams());
   shaderParams->addParam(ShaderParam("PerObjectBuffer", ShaderParamType::ConstBuffer, 0));
   shaderParams->addParam(ShaderParam("PerFrameBuffer", ShaderParamType::ConstBuffer, 1));
+  shaderParams->addParam(ShaderParam("PointLightBuffer", ShaderParamType::ConstBuffer, 2));
 
   RasterizerStateDesc rasterizerStateDesc;
   rasterizerStateDesc.CullMode = CullMode::Clockwise;
@@ -1982,6 +1997,20 @@ void Renderer::writeSsaoConstantData(const std::shared_ptr<RenderDevice> &render
   _ssaoConstantsBuffer->writeData(0, sizeof(SsaoConstantsData), &ssaoConstantsData, AccessType::WriteOnlyDiscard);
 }
 
+void Renderer::writePointLightConstantData(uint32 lightIndex, const Vector3& position, float32 farPlane, const std::array<Matrix4, 6>& shadowMatrices) const
+{
+  PointLightBufferData pointLightBufferData{};
+  pointLightBufferData.Position = position;
+  pointLightBufferData.FarPlane = farPlane;
+  
+  // Copy the 6 shadow matrices for the point light cubemap faces
+  for (uint32 i = 0; i < 6; ++i)
+  {
+    pointLightBufferData.shadowMatrices[i] = shadowMatrices[i];
+  }
+  _pointLightBuffer->writeData(0, sizeof(PointLightBufferData), &pointLightBufferData, AccessType::WriteOnlyDiscard);
+}
+
 void Renderer::pointLightDepthPass(const std::shared_ptr<RenderDevice>& renderDevice,
                                    const std::vector<std::shared_ptr<Drawable>>& drawables,
                                    const std::vector<std::shared_ptr<Light>>& lights,
@@ -1991,10 +2020,12 @@ void Renderer::pointLightDepthPass(const std::shared_ptr<RenderDevice>& renderDe
     viewportDesc.Height = _pointLightShadowMapResolution;
     viewportDesc.Width = _pointLightShadowMapResolution;
     renderDevice->setViewport(viewportDesc);
+    renderDevice->setPipelineState(_pointLightDepthPso);
     renderDevice->setRenderTarget(_pointLightDepthRto);
     renderDevice->clearBuffers(RTT_Depth);
     renderDevice->setConstantBuffer(0, _perObjectBuffer);
     renderDevice->setConstantBuffer(1, _perFrameBuffer);
+    renderDevice->setConstantBuffer(2, _pointLightBuffer);
 
     // process only the first point light
     for (const auto& light : lights) {
@@ -2004,7 +2035,7 @@ void Renderer::pointLightDepthPass(const std::shared_ptr<RenderDevice>& renderDe
         // Compute six 90° view-proj matrices for this point light
         Vector3 pos = light->getPosition();
         float nearPlane = 0.1f;
-        float farPlane = light->getRadius();
+        float farPlane = 10000.0f; // light->getRadius();
         const std::array<Vector3,6> dirs = {{
           Vector3( 1, 0, 0), Vector3(-1, 0, 0),
           Vector3( 0, 1, 0), Vector3( 0,-1, 0),

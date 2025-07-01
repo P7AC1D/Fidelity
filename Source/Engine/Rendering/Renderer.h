@@ -125,6 +125,7 @@ private:
                                  const std::shared_ptr<Light> &directionalLight,
                                  const std::vector<std::shared_ptr<Light>> &lights) const;
   void writeSsaoConstantData(const std::shared_ptr<RenderDevice> &renderDevice, const std::shared_ptr<Camera> &camera) const;
+  void writePointLightConstantData(uint32 lightIndex, const Vector3& position, float32 farPlane, const std::array<Matrix4, 6>& shadowMatrices) const;
 
   Vector2I _windowDims;
   Colour _ambientColour;
@@ -166,7 +167,8 @@ private:
       _perFrameBuffer,
       _ssaoConstantsBuffer,
       _fullscreenQuadBuffer,
-      _bloomBuffer;
+      _bloomBuffer,
+      _pointLightBuffer;
   std::shared_ptr<RenderTarget> _shadowMapRto,
       _pointLightDepthRto,
       _gBufferRto,

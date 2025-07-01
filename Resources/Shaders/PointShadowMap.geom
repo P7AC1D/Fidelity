@@ -4,7 +4,11 @@
 layout(triangles) in;
 layout(triangle_strip, max_vertices = 18) out;
 
-uniform mat4 shadowMatrices[6];
+layout(std140) uniform PointLightBuffer {
+  vec3 Position;
+  float FarPlane;
+  mat4 shadowMatrices[6];
+} PLB;
 
 in gl_PerVertex
 {
@@ -27,7 +31,7 @@ void main()
     gl_Layer = face;
     for (int i = 0; i < 3; ++i)
     {
-      gl_Position = shadowMatrices[face] * gl_in[i].gl_Position;
+      gl_Position = PLB.shadowMatrices[face] * gl_in[i].gl_Position;
       EmitVertex();
     }
     EndPrimitive();
