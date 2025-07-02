@@ -343,6 +343,28 @@ float calculateShadowFactor(vec3 fragPosWorldSpace, vec3 normalWorldSpace, ivec2
     #endif
 }
 
+float getPointShadowPcf(vec3 fragPos, float bias) {
+    vec3 fragToLight = fragPos - PLBFrag.Position;
+    float currentDepth = length(fragToLight);
+
+    float shadow = 0.0f;
+    float diskRadius = 0.05f; // Adjust radius for point light shadow softening
+
+    for (int i = 0; i < Constants.ShadowSampleCount; i++) {
+        // Sample offset based on sample index and disk radius
+        vec3 sampleOffset = sampleOffsetDirections[i] * diskRadius;
+        float closestDepth = texture(PointShadowMap, fragToLight + sampleOffset).r;
+        closestDepth *= PLBFrag.FarPlane; // undo [0, 1] mapping
+
+        if (currentDepth - bias >= closestDepth) {
+            shadow += 1.0f;
+        }
+    }
+
+    shadow /= float(Constants.ShadowSampleCount);
+    return shadow;
+}
+
 void main()
 {
     // Rebuild position of fragment in screen space from frag-coord and depth texture
@@ -365,16 +387,14 @@ void main()
     float shadowFactor = calculateShadowFactor(position, normal, screenPos);
     float dirLit = 1.0 - shadowFactor;
 
-    // Point light shadow sampling
+    // Point light shadow factor
+    // Calculate point light shadow factor using PCF
     vec3 toLight = position - PLBFrag.Position;
-    float currentDepth = length(toLight);
-    // Sample normalized depth from cubemap, then scale by far plane
     vec3 dir = normalize(toLight);
-    float closestDepth = texture(PointShadowMap, dir).r * PLBFrag.FarPlane;
     float nl = max(dot(normal, dir), 0.0);
     float bias = max(0.001, (1.0 - nl) * 0.01);
-    float pointLit = currentDepth <= closestDepth + bias ? 1.0 : 0.0;
+    float pointShadowFactor = getPointShadowPcf(position, bias);
 
     // Composite shadows: lit only if both directional and point-lit
-    Shadows = pointLit; //min(dirLit, pointLit);
+    Shadows = 1.0f - pointShadowFactor; //min(dirLit, pointLit);
 }
