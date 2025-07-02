@@ -706,7 +706,7 @@ void Renderer::initDirectionalLightDepthPass(const std::shared_ptr<RenderDevice>
   pipelineDesc.GS = renderDevice->createShader(gsDesc);
   pipelineDesc.FS = renderDevice->createShader(psDesc);
   pipelineDesc.BlendState = renderDevice->createBlendState(BlendStateDesc{});
-  pipelineDesc.RasterizerState = renderDevice->createRasterizerState(RasterizerStateDesc{});
+  pipelineDesc.RasterizerState = renderDevice->createRasterizerState(rasterizerStateDesc);
   pipelineDesc.DepthStencilState = renderDevice->createDepthStencilState(DepthStencilStateDesc());
   pipelineDesc.VertexLayout = renderDevice->createVertexLayout(vertexLayoutDesc);
   pipelineDesc.ShaderParams = shaderParams;
@@ -762,7 +762,7 @@ void Renderer::initPointLightDepthPass(const std::shared_ptr<RenderDevice> &rend
   pipelineDesc.GS = renderDevice->createShader(gsDesc);
   pipelineDesc.FS = renderDevice->createShader(psDesc);
   pipelineDesc.BlendState = renderDevice->createBlendState(BlendStateDesc{});
-  pipelineDesc.RasterizerState = renderDevice->createRasterizerState(RasterizerStateDesc{});
+  pipelineDesc.RasterizerState = renderDevice->createRasterizerState(rasterizerStateDesc);
   pipelineDesc.DepthStencilState = renderDevice->createDepthStencilState(DepthStencilStateDesc());
   pipelineDesc.VertexLayout = renderDevice->createVertexLayout(vertexLayoutDesc);
   pipelineDesc.ShaderParams = shaderParams;

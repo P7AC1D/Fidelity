@@ -369,8 +369,10 @@ void main()
     vec3 toLight = position - PLBFrag.Position;
     float currentDepth = length(toLight);
     // Sample normalized depth from cubemap, then scale by far plane
-    float closestDepth = texture(PointShadowMap, toLight).r * PLBFrag.FarPlane;
-    float bias = 0.005;
+    vec3 dir = normalize(toLight);
+    float closestDepth = texture(PointShadowMap, dir).r * PLBFrag.FarPlane;
+    float nl = max(dot(normal, dir), 0.0);
+    float bias = max(0.001, (1.0 - nl) * 0.01);
     float pointLit = currentDepth <= closestDepth + bias ? 1.0 : 0.0;
 
     // Composite shadows: lit only if both directional and point-lit
