@@ -24,6 +24,8 @@ out gl_PerVertex
   float gl_ClipDistance[];
 };
 
+out vec4 FragPos;
+
 void main()
 {
   for (int face = 0; face < 6; ++face)
@@ -31,7 +33,8 @@ void main()
     gl_Layer = face;
     for (int i = 0; i < 3; ++i)
     {
-      gl_Position = PLB.shadowMatrices[face] * gl_in[i].gl_Position;
+      FragPos = gl_in[i].gl_Position;
+      gl_Position = PLB.shadowMatrices[face] * FragPos;
       EmitVertex();
     }
     EndPrimitive();

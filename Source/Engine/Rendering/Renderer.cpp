@@ -740,7 +740,7 @@ void Renderer::initPointLightDepthPass(const std::shared_ptr<RenderDevice> &rend
 
   ShaderDesc psDesc;
   psDesc.ShaderType = ShaderType::Fragment;
-  psDesc.Source = String::foadFromFile("./Shaders/Empty.frag");
+  psDesc.Source = String::foadFromFile("./Shaders/PointShadowMap.frag");
 
   std::vector<VertexLayoutDesc> vertexLayoutDesc{
       VertexLayoutDesc(SemanticType::Position, SemanticFormat::Float3),
@@ -2038,7 +2038,7 @@ void Renderer::pointLightDepthPass(const std::shared_ptr<RenderDevice>& renderDe
         // Compute six 90° view-proj matrices for this point light
         Vector3 pos = light->getPosition();
         float nearPlane = 0.1f;
-        float farPlane = 10000.0f; // light->getRadius();
+        float farPlane = light->getRadius();
         const std::array<Vector3,6> dirs = {{
           Vector3( 1, 0, 0), Vector3(-1, 0, 0),
           Vector3( 0, 1, 0), Vector3( 0,-1, 0),
