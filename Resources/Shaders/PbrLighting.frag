@@ -323,7 +323,8 @@ vec3 calcPointLight(Light light,
   float nDotL = max(dot(normal, lightDir), 0.0f);
 
   float distance = length(lightPosition - fragPos);
-  float attenuation = pow(clamp(1 - pow((distance / radius), 4.0f), 0.0f, 1.0f), 2.0f)/(1.0f  + (distance * distance) );
+  float attenuation = clamp(1.0 - distance/radius, 0.0, 1.0);
+  attenuation = attenuation*attenuation / max(distance*distance, 0.0001);
   if (attenuation > 0.0f)
   {
     vec3 radianceIn = colour * attenuation * intensity;
