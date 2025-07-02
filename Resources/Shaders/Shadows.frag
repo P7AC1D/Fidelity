@@ -394,7 +394,8 @@ void main()
     float nl = max(dot(normal, dir), 0.0);
     float bias = max(0.001, (1.0 - nl) * 0.01);
     float pointShadowFactor = getPointShadowPcf(position, bias);
+    float pointLit = 1.0f - pointShadowFactor;
+    float combinedLit = dirLit + pointLit; // or dirLit + pointLit for additive shadows
 
-    // Composite shadows: lit only if both directional and point-lit
-    Shadows = 1.0f - pointShadowFactor; //min(dirLit, pointLit);
+    Shadows = combinedLit;
 }
