@@ -1056,6 +1056,11 @@ void Renderer::initLightingPass(const std::shared_ptr<RenderDevice> &renderDevic
   shaderParams->addParam(ShaderParam("ShadowMap", ShaderParamType::Texture, 4));
   shaderParams->addParam(ShaderParam("OcclusionMap", ShaderParamType::Texture, 5));
 
+  // Expose directional shadow mask from shadow pass
+  shaderParams->addParam(ShaderParam("ShadowMask", ShaderParamType::Texture, 6));
+  // Expose point-light shadow cubemap for point shadows
+  shaderParams->addParam(ShaderParam("PointShadowMap", ShaderParamType::Texture, 7));
+
   RasterizerStateDesc rasterizerStateDesc{};
 
   DepthStencilStateDesc depthStencilStateDesc{};
@@ -1531,16 +1536,21 @@ void Renderer::lightingPass(const std::shared_ptr<RenderDevice> &renderDevice,
   renderDevice->setTexture(3, _gBufferRto->getColourTarget(2));
   renderDevice->setTexture(4, _shadowsRto->getColourTarget(0));
   renderDevice->setTexture(5, _ssaoBlurRto->getColourTarget(0));
+  // Bind new shadow textures
+  renderDevice->setTexture(6, _shadowsRto->getColourTarget(0));  // directional shadow mask
+  renderDevice->setTexture(7, _pointLightDepthRto->getDepthStencilTarget());  // point-light depth cubemap
   renderDevice->setSamplerState(0, _noMipSamplerState);
   renderDevice->setSamplerState(1, _noMipSamplerState);
   renderDevice->setSamplerState(2, _noMipSamplerState);
   renderDevice->setSamplerState(3, _noMipSamplerState);
   renderDevice->setSamplerState(4, _noMipSamplerState);
   renderDevice->setSamplerState(5, _noMipSamplerState);
+  renderDevice->setSamplerState(6, _shadowMapSamplerState);
+  renderDevice->setSamplerState(7, _shadowMapSamplerState);
   renderDevice->setConstantBuffer(1, _perFrameBuffer);
 
   renderDevice->setVertexBuffer(_fsQuadVertexBuffer);
-  renderDevice->draw(6, 0);
+   renderDevice->draw(6, 0);
 
   std::chrono::time_point end = std::chrono::high_resolution_clock::now();
   _renderPassTimings[5].Duration = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();

@@ -13,6 +13,15 @@ struct Light
   float Radius;
 };
 
+const vec3 sampleOffsetDirections[20] = vec3[]
+(
+   vec3( 1,  1,  1), vec3( 1, -1,  1), vec3(-1, -1,  1), vec3(-1,  1,  1), 
+   vec3( 1,  1, -1), vec3( 1, -1, -1), vec3(-1, -1, -1), vec3(-1,  1, -1),
+   vec3( 1,  1,  0), vec3( 1, -1,  0), vec3(-1, -1,  0), vec3(-1,  1,  0),
+   vec3( 1,  0,  1), vec3(-1,  0,  1), vec3( 1,  0, -1), vec3(-1,  0, -1),
+   vec3( 0,  1,  1), vec3( 0, -1,  1), vec3( 0, -1, -1), vec3( 0,  1, -1)
+);
+
 layout(std140) uniform PerFrameBuffer
 {
   mat4 CascadeLightTransforms[MAX_CASCADE_LAYERS];
@@ -45,8 +54,9 @@ uniform sampler2D AlbedoMap;
 uniform sampler2D DepthMap;
 uniform sampler2D NormalMap;
 uniform sampler2D MaterialMap;
-uniform sampler2D ShadowMap;
+uniform sampler2D ShadowMask; // precomputed directional shadow mask
 uniform sampler2D OcclusionMap;
+uniform samplerCube PointShadowMap; // point-light shadow cubemap
 
 layout(location = 0) in vec2 TexCoord;
 layout(location = 0) out vec4 FinalColour;
@@ -108,13 +118,37 @@ vec3 calculatePositionWS(vec2 screenCoords)
   return fragPos.xyz;
 }
 
+float getPointShadowPcf(Light light, vec3 fragPos, float bias) {
+    vec3 fragToLight = fragPos - light.Position;
+    float currentDepth = length(fragToLight);
+
+    float shadow = 0.0f;
+    float diskRadius = 0.05f; // Adjust radius for point light shadow softening
+
+    for (int i = 0; i < Constants.ShadowSampleCount; i++) {
+        // Sample offset based on sample index and disk radius
+        vec3 sampleOffset = sampleOffsetDirections[i] * diskRadius;
+        float closestDepth = texture(PointShadowMap, fragToLight + sampleOffset).r;
+        closestDepth *= light.Radius; // undo [0, 1] mapping
+
+        if (currentDepth - bias >= closestDepth) {
+            shadow += 1.0f;
+        }
+    }
+
+    shadow /= float(Constants.ShadowSampleCount);
+    return shadow;
+}
+
 void main()
 {
   // Rebuild world position of fragment from frag-coord and depth texture.
   vec3 position = calculatePositionWS(gl_FragCoord.xy);
   vec2 windowDimensions = textureSize(NormalMap, 0);
 
-  float shadowFactor = texture(ShadowMap, TexCoord).r;
+  // Sample combined directional shadow mask
+  float shadowFactor = texture(ShadowMask, TexCoord).r;
+  
   float occlusionFactor = texture(OcclusionMap, TexCoord).r;
   if (Constants.SsaoEnabled == false)
   {
@@ -140,28 +174,38 @@ void main()
   vec3 totalRadiance = vec3(0.0);  
 
   // Directional light contribution.
-  totalRadiance += calcDirLight(Constants.LightDirection, 
-                                Constants.LightColour, 
-                                Constants.LightIntensity, 
-                                normal, 
-                                viewDir,
-                                albedo, 
-                                roughness, 
-                                metalness, 
-                                shadowFactor, 
-                                F0);
+  totalRadiance += calcDirLight(Constants.LightDirection,
+                                 Constants.LightColour, 
+                                 Constants.LightIntensity, 
+                                 normal, 
+                                 viewDir,
+                                 albedo, 
+                                 roughness, 
+                                 metalness, 
+                                 shadowFactor, 
+                                 F0);
 
   // Point light contributions.
   for (int i = 0; i < Constants.LightCount; i++)
   {
+    Light currentLight = Constants.Lights[i];
+    vec3 toLight = position - currentLight.Position;
+    vec3 dir = normalize(toLight);
+    float nl = max(dot(normal, dir), 0.0);
+    float bias = max(0.001, (1.0 - nl) * 0.01);
+    float pointShadowFactor = getPointShadowPcf(currentLight, position, bias);
+
+    // accumulate PBR with point-light shadow
     totalRadiance += calcPointLight(Constants.Lights[i], 
-                                    normal, 
-                                    position, 
-                                    viewDir, 
-                                    albedo, 
-                                    roughness, 
-                                    metalness, 
-                                    F0);
+                                     normal, 
+                                     position, 
+                                     viewDir, 
+                                     albedo, 
+                                     roughness, 
+                                     metalness, 
+                                     F0) * (1.0 - pointShadowFactor);
+    // Uncomment the following line to break after the first light for testing
+    break;
   }
   // Ambient light contribution.
   totalRadiance += albedo.rgb * Constants.AmbientColour * Constants.AmbientIntensity * occlusionFactor;

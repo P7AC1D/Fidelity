@@ -397,5 +397,5 @@ void main()
     float pointLit = 1.0f - pointShadowFactor;
     float combinedLit = dirLit + pointLit; // or dirLit + pointLit for additive shadows
 
-    Shadows = combinedLit;
+    Shadows = dirLit;
 }
