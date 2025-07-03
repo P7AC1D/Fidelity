@@ -323,29 +323,25 @@ vec3 calcPointLight(Light light,
   float nDotL = max(dot(normal, lightDir), 0.0f);
 
   float distance = length(lightPosition - fragPos);
-  float attenuation = clamp(1.0 - distance/radius, 0.0, 1.0);
-  attenuation = attenuation*attenuation / max(distance*distance, 0.0001);
-  if (attenuation > 0.0f)
-  {
-    vec3 radianceIn = colour * attenuation * intensity;
+  // Use inverse-square falloff for energy-conserving attenuation
+  float attenuation = 1.0 / max(distance * distance, 0.0001);
+  // Fold intensity and color into radianceIn
+  vec3 radianceIn = colour * intensity * attenuation;
 
-    // Calculating Cook-Torrance BRDF terms.
-    float NDF = distributionGGX(normal, halfway, roughness);
-    float G = geometrySmith(nDotV, nDotL, roughness);
-    vec3 F = fresnelSchlick(max(dot(halfway, viewDir), 0.0f), F0);
+  // Calculating Cook-Torrance BRDF terms.
+  float NDF = distributionGGX(normal, halfway, roughness);
+  float G = geometrySmith(nDotV, nDotL, roughness);
+  vec3 F = fresnelSchlick(max(dot(halfway, viewDir), 0.0f), F0);
 
-    vec3 kS = F;
-    vec3 kD = vec3(1.0f) - kS;
-    kD *= 1.0 - metalness;
+  vec3 kS = F;
+  vec3 kD = vec3(1.0f) - kS;
+  kD *= 1.0 - metalness;
 
-    vec3 numerator = NDF * G * F;
-    float denominator = 4.0f * nDotV * nDotL;
-    vec3 specular = numerator / max(denominator, 0.0001f);
+  vec3 numerator = NDF * G * F;
+  float denominator = 4.0f * nDotV * nDotL;
+  vec3 specular = numerator / max(denominator, 0.0001f);
 
-    vec3 radiance = (kD * (albedo / M_PI) + specular ) * radianceIn * nDotL;
+  vec3 radiance = (kD * (albedo / M_PI) + specular ) * radianceIn * nDotL;
 
-    return radiance;
-  }
-
-  return vec3(0.0f);
+  return radiance;
 }
