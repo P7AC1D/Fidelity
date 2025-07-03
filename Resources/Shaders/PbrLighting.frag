@@ -48,6 +48,7 @@ layout(std140) uniform PerFrameBuffer
   bool ToneMappingEnabled;
   float BloomStrength;
   float BloomThreshold;
+  float MaxPointLightShadowCasters;
 } Constants;
 
 uniform sampler2D AlbedoMap;
@@ -56,7 +57,7 @@ uniform sampler2D NormalMap;
 uniform sampler2D MaterialMap;
 uniform sampler2D ShadowMask; // precomputed directional shadow mask
 uniform sampler2D OcclusionMap;
-uniform samplerCube PointShadowMap; // point-light shadow cubemap
+uniform samplerCubeArray PointShadowMaps; // point-light shadow cubemap
 
 layout(location = 0) in vec2 TexCoord;
 layout(location = 0) out vec4 FinalColour;
@@ -118,7 +119,7 @@ vec3 calculatePositionWS(vec2 screenCoords)
   return fragPos.xyz;
 }
 
-float getPointShadowPcf(Light light, vec3 fragPos, float bias) {
+float getPointShadowPcf(Light light, int lightIndex, vec3 fragPos, float bias) {
     vec3 fragToLight = fragPos - light.Position;
     float currentDepth = length(fragToLight);
 
@@ -128,7 +129,10 @@ float getPointShadowPcf(Light light, vec3 fragPos, float bias) {
     for (int i = 0; i < Constants.ShadowSampleCount; i++) {
         // Sample offset based on sample index and disk radius
         vec3 sampleOffset = sampleOffsetDirections[i] * diskRadius;
-        float closestDepth = texture(PointShadowMap, fragToLight + sampleOffset).r;
+
+        // Sample from cube array using 4D texture coordinate
+        // vec4(direction, layer) where layer = lightIndex
+        float closestDepth = texture(PointShadowMaps, vec4(fragToLight + sampleOffset, float(lightIndex))).r;
         closestDepth *= light.Radius; // undo [0, 1] mapping
 
         if (currentDepth - bias >= closestDepth) {
@@ -193,7 +197,10 @@ void main()
     vec3 dir = normalize(toLight);
     float nl = max(dot(normal, dir), 0.0);
     float bias = max(0.001, (1.0 - nl) * 0.01);
-    float pointShadowFactor = getPointShadowPcf(currentLight, position, bias);
+    float pointShadowFactor = 1.0f;
+    if (i < Constants.MaxPointLightShadowCasters) {
+      pointShadowFactor = getPointShadowPcf(currentLight, i, position, bias);
+    }
 
     // accumulate PBR with point-light shadow
     totalRadiance += calcPointLight(Constants.Lights[i], 

@@ -105,6 +105,7 @@ struct PerFrameBufferData
   float32 BloomStrength;
   // --------- Alignment ----------
   float32 BloomThreshold;
+  float32 MaxPointLightShadowCasters; // Maximum number of point lights that cast shadows
 };
 
 struct BloomBuffer
@@ -1539,7 +1540,6 @@ void Renderer::lightingPass(const std::shared_ptr<RenderDevice> &renderDevice,
   renderDevice->setTexture(3, _gBufferRto->getColourTarget(2));
   renderDevice->setTexture(4, _shadowsRto->getColourTarget(0));
   renderDevice->setTexture(5, _ssaoBlurRto->getColourTarget(0));
-  // Bind new shadow textures
   renderDevice->setTexture(6, _shadowsRto->getColourTarget(0));  // directional shadow mask
   renderDevice->setTexture(7, _pointLightDepthRto->getDepthStencilTarget());  // point-light depth cubemap
   renderDevice->setSamplerState(0, _noMipSamplerState);
@@ -1950,6 +1950,7 @@ void Renderer::writePerFrameConstantData(const std::shared_ptr<Camera> &camera,
   perFrameBufferData->ToneMappingEnabled = _toneMappingEnabled;
   perFrameBufferData->BloomStrength = _bloomStrength;
   perFrameBufferData->BloomThreshold = _bloomThreshold;
+  perFrameBufferData->MaxPointLightShadowCasters = MAX_POINT_LIGHT_SHADOW_CASTERS;
 
   std::vector<LightData> lightDataArray;
   for (uint32 i = 0; i < lights.size(); i++)
