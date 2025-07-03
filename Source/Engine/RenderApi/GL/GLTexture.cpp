@@ -227,6 +227,16 @@ void GLTexture::writeData(uint32 mipLevel, uint32 face, uint32 xStart, uint32 xC
   case TextureType::TextureCube:
     glCall(glTexSubImage2D(target, mipLevel, xStart, 0, yStart, face, format, type, data));
     break;
+  case TextureType::TextureCubeArray:
+    // For cube arrays: z offset = cube_index * 6 + face
+    // face parameter represents the cube face (0-5)
+    // zStart parameter represents the cube index
+    glCall(glTexSubImage3D(target, mipLevel,
+                           xStart, yStart,
+                           face + 6 * zStart,  // z offset calculation
+                           xCount, yCount, 1,  // always 1 layer deep for single face
+                           format, type, data));
+    break;
   default:
     throw std::runtime_error("Unsupported TextureType");
   }
@@ -326,18 +336,23 @@ void GLTexture::Allocate()
     }
     break;
   case TextureType::TextureCubeArray:
-    for (uint32 layer = 0; layer < _desc.Count; ++layer)
+    // For cube arrays, depth = 6 * number_of_cubes
+    // Each cube has 6 faces, so total layers = 6 * cube_count
+    for (uint32 i = 0; i < _desc.MipLevels; i++)
     {
-      for (uint32 face = 0; face < 6; ++face)
-      {
-        for (uint32 i = 0; i < _desc.MipLevels; i++)
-        {
-          glCall(glTexImage3D(GL_TEXTURE_CUBE_MAP_ARRAY, i, internalFormat,
-                              _desc.Width, _desc.Height,
-                              6 * _desc.Count, // total depth = 6 faces * layers
-                              0, format, type, nullptr));
-        }
-      }
+      uint32 mipWidth = std::max(1u, _desc.Width >> i);
+      uint32 mipHeight = std::max(1u, _desc.Height >> i);
+      
+      glCall(glTexImage3D(GL_TEXTURE_CUBE_MAP_ARRAY, 
+                          i,                           // mip level
+                          internalFormat,              // internal format
+                          mipWidth,                    // width
+                          mipHeight,                   // height  
+                          6 * _desc.Count,            // depth = 6 faces * cube count
+                          0,                          // border (must be 0)
+                          format,                     // format
+                          type,                       // type
+                          nullptr));                  // data (null for allocation)
     }
     break;
   default:
