@@ -323,8 +323,10 @@ vec3 calcPointLight(Light light,
   float nDotL = max(dot(normal, lightDir), 0.0f);
 
   float distance = length(lightPosition - fragPos);
-  // Use inverse-square falloff for energy-conserving attenuation
-  float attenuation = 1.0 / max(distance * distance, 0.0001);
+  // Use inverse-square falloff with smooth attenuation cutoff
+  float falloffMargin = light.Radius * 0.1; // 10% margin for smooth falloff
+  float smoothFactor = smoothstep(light.Radius, light.Radius + falloffMargin, distance);
+  float attenuation = (1.0 - smoothFactor) * (1.0 / max(distance * distance, 0.0001));
   // Fold intensity and color into radianceIn
   vec3 radianceIn = colour * intensity * attenuation;
 
