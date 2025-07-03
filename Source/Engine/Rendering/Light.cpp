@@ -9,7 +9,7 @@ Light::Light() : Component(ComponentType::Light),
 								 _lightType(LightType::Point),
 								 _modified(true),
 								 _direction(Vector3::Identity),
-								 _intensity(100.0f),
+								 _intensity(1000.0f),
 								 // Initialize shadow properties
 								 _castsShadows(false),
 								 _shadowResolution(1024),
@@ -36,7 +36,7 @@ void Light::drawInspector()
 		}
 
 		float32 intensity = _intensity;
-		if (ImGui::SliderFloat("Intensity", &intensity, 0.0f, 100.0f))
+		if (ImGui::SliderFloat("Intensity", &intensity, 0.0f, 2500.0f))
 		{
 			setIntensity(intensity);
 		}
