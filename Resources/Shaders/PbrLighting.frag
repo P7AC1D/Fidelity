@@ -204,7 +204,7 @@ void main()
                                      roughness, 
                                      metalness, 
                                      F0) * (1.0 - pointShadowFactor);
-    // Uncomment the following line to break after the first light for testing
+    // Breaking after first light as we have not implemented multiple point light shadow depth cube generation / passes yet.
     break;
   }
   // Ambient light contribution.
