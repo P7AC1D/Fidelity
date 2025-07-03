@@ -118,6 +118,8 @@ struct PointLightBufferData
   Vector3 Position;
   float32 FarPlane;
   Matrix4 shadowMatrices[6];
+  int32 LightIndex; // Index of the light in the global light array
+  float32 __Padding[3]; // Padding for alignment
 };
 
 struct TexturedQuadBuffer
@@ -720,8 +722,9 @@ void Renderer::initPointLightDepthPass(const std::shared_ptr<RenderDevice> &rend
   shadowMapDesc.Width = _pointLightShadowMapResolution;
   shadowMapDesc.Height = _pointLightShadowMapResolution;
   shadowMapDesc.Usage = TextureUsage::Depth;
-  shadowMapDesc.Type = TextureType::TextureCube;
+  shadowMapDesc.Type = TextureType::TextureCubeArray;
   shadowMapDesc.Format = TextureFormat::D32F;
+  shadowMapDesc.Count = MAX_POINT_LIGHT_SHADOW_CASTERS;
 
   RenderTargetDesc rtDesc;
   rtDesc.DepthStencilTarget = renderDevice->createTexture(shadowMapDesc);
@@ -2015,6 +2018,7 @@ void Renderer::writePointLightConstantData(uint32 lightIndex, const Vector3& pos
   PointLightBufferData pointLightBufferData{};
   pointLightBufferData.Position = position;
   pointLightBufferData.FarPlane = farPlane;
+  pointLightBufferData.LightIndex = lightIndex;
   
   // Copy the 6 shadow matrices for the point light cubemap faces
   for (uint32 i = 0; i < 6; ++i)
@@ -2040,8 +2044,14 @@ void Renderer::pointLightDepthPass(const std::shared_ptr<RenderDevice>& renderDe
     renderDevice->setConstantBuffer(1, _perFrameBuffer);
     renderDevice->setConstantBuffer(2, _pointLightBuffer);
 
-    // process only the first point light
+    int lightCount = 0;
+
+    // TODO: Choose closest lights first
     for (const auto& light : lights) {
+      if (lightCount >= MAX_POINT_LIGHT_SHADOW_CASTERS) {
+        break;
+      }
+
       if (light->getLightType() != LightType::Point)
           continue;
 
@@ -2065,8 +2075,8 @@ void Renderer::pointLightDepthPass(const std::shared_ptr<RenderDevice>& renderDe
         Matrix4 view = Matrix4::LookAt(pos, pos + dirs[i], ups[i]);
         shadowMatrices[i] = proj * view;
       }
-      // upload matrices for point light index 0
-      writePointLightConstantData(0, pos, farPlane, shadowMatrices);
+      
+      writePointLightConstantData(lightCount++, pos, farPlane, shadowMatrices);
 
       // Draw all shadow-casting drawables
       for (const auto &drawable : drawables)
@@ -2074,6 +2084,5 @@ void Renderer::pointLightDepthPass(const std::shared_ptr<RenderDevice>& renderDe
         std::shared_ptr<Material> material(drawable->getMaterial());
         drawDrawable(renderDevice, drawable, material, camera);
       }
-      break; // only render first point light for testing
     }
 }
