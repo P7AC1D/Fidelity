@@ -11,6 +11,7 @@ The project focuses on providing an accessible yet powerful framework for implem
 ### Rendering Pipeline
 - **Physically Based Deferred Rendering**: Modern PBR implementation with metallic-roughness workflow
 - **Cascaded Shadow Maps**: High-quality directional light shadows with 4 cascade levels
+- **Omnidirectional Point Light Shadows**: TextureCubeArray-based shadow mapping for up to 8 point lights
 - **Soft Shadows**: Advanced shadow filtering using Poisson disc sampling and PCF
 - **Screen Space Ambient Occlusion (SSAO)**: Enhanced depth-based ambient occlusion
 - **HDR Rendering**: High Dynamic Range rendering with exposure control
@@ -168,13 +169,13 @@ cd build\release\bin\Release
 - [x] **Core Rendering Pipeline**: Deferred rendering with G-buffer
 - [x] **Physically Based Rendering**: Full PBR material system
 - [x] **Shadow System**: Cascaded shadow maps with soft shadows
+- [x] **Point Light Shadows**: Omnidirectional shadow mapping with TextureCubeArray support
 - [x] **Post-Processing**: SSAO, HDR bloom, tone mapping
 - [x] **Scene Management**: Component-based architecture with scene graph
 - [x] **Resource Loading**: Model, texture, and shader loading systems
 
 ### In Progress 🚧
 - [ ] **Octree Spatial Partitioning**: Improved culling and spatial queries
-- [ ] **Point Light Shadows**: Omnidirectional shadow mapping
 - [ ] **Image Based Lighting**: Environment mapping and reflection probes
 
 ### Future Enhancements 🎯
@@ -215,8 +216,8 @@ Fidelity Engine follows a modular, component-based architecture designed for ext
 The engine implements a modern deferred rendering pipeline with the following stages:
 
 1. **Geometry Pass**: Renders scene geometry to G-buffer
-2. **Shadow Pass**: Generates cascaded shadow maps for directional lights
-3. **Lighting Pass**: Performs physically-based lighting calculations
+2. **Shadow Pass**: Generates cascaded shadow maps for directional lights and omnidirectional cubemap arrays for point lights
+3. **Lighting Pass**: Performs physically-based lighting calculations with shadow sampling
 4. **Post-Processing**: Applies SSAO, bloom, tone mapping, and other effects
 5. **Forward Pass**: Handles transparent objects and UI elements
 
@@ -245,6 +246,7 @@ The engine implements a modern deferred rendering pipeline with the following st
 The **[Documentation/](Documentation/)** folder contains comprehensive technical analysis and architectural guides for the engine's core systems:
 
 - **[Shadow Mapping Analysis](Documentation/Shadow-Mapping-Analysis.md)**: Complete breakdown of the cascaded shadow mapping implementation, including performance optimizations, contact hardening, and quality analysis
+- **[Point Light Shadows Analysis](Documentation/Point-Light-Shadows-Analysis.md)**: Comprehensive guide to omnidirectional point light shadow mapping using TextureCubeArray, including multi-light support, soft shadow filtering, and performance optimization
 - **[Screen Space Ambient Occlusion Analysis](Documentation/SSAO-Analysis.md)**: Comprehensive technical analysis of the SSAO implementation, including kernel generation strategy, noise texture creation, performance considerations, and best practices
 - **[PBR Pipeline Analysis](Documentation/PBR-Analysis.md)**: In-depth review of the deferred PBR workflow, BRDF implementation, resource bindings, and performance tuning
 - **[Tone Mapping Analysis](Documentation/ToneMapping-Analysis.md)**: Detailed analysis of the tone mapping implementation, including operator selection, exposure control, and performance considerations
