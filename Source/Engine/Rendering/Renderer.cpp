@@ -1230,6 +1230,7 @@ void Renderer::initDebugPass(const std::shared_ptr<RenderDevice> &renderDevice)
     std::shared_ptr<ShaderParams> shaderParams(new ShaderParams());
     shaderParams->addParam(ShaderParam("Texture", ShaderParamType::Texture, 0));
     shaderParams->addParam(ShaderParam("TextureArray", ShaderParamType::Texture, 1));
+    shaderParams->addParam(ShaderParam("TextureCubeArray", ShaderParamType::Texture, 2));
     shaderParams->addParam(ShaderParam("TexturedQuadBuffer", ShaderParamType::ConstBuffer, 0));
 
     RasterizerStateDesc rasterizerStateDesc;
