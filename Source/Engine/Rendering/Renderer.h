@@ -63,7 +63,6 @@ private:
   void initPointLightDepthPass(const std::shared_ptr<RenderDevice> &renderDevice);
   void initGbufferPass(const std::shared_ptr<RenderDevice> &renderDevice);
   void initTransparencyPass(const std::shared_ptr<RenderDevice> &renderDevice);
-  void initShadowPass(const std::shared_ptr<RenderDevice> &renderDevice);
   void initSsaoPass(const std::shared_ptr<RenderDevice> &renderDevice);
   void initLightingPass(const std::shared_ptr<RenderDevice> &renderDevice);
   void initBloomDownSamplePass(const std::shared_ptr<RenderDevice> &renderDevice);
@@ -85,7 +84,6 @@ private:
   void transparencyPass(const std::shared_ptr<RenderDevice> &renderDevice,
                         const std::vector<std::shared_ptr<Drawable>> &transparentDrawables,
                         const std::shared_ptr<Camera> &camera);
-  void shadowPass(const std::shared_ptr<RenderDevice> &renderDevice);
   void ssaoPass(const std::shared_ptr<RenderDevice> &renderDevice,
                 const std::shared_ptr<Camera> &camera);
   void lightingPass(const std::shared_ptr<RenderDevice> &renderDevice,
@@ -160,6 +158,7 @@ private:
   // ----- Editor settings -----
   DebugDisplayType _debugDisplayType;
   int32 _shadowMapLayerToDraw;
+  int32 _pointLightCubeMapToDraw;
 
   std::vector<RenderPassTimings> _renderPassTimings;
 
@@ -173,7 +172,6 @@ private:
       _pointLightDepthRto,
       _gBufferRto,
       _transparencyRto,
-      _shadowsRto,
       _ssaoRto,
       _ssaoBlurRto,
       _lightingPassRto,
@@ -183,7 +181,6 @@ private:
       _pointLightDepthPso,
       _gBufferPso,
       _transparencyPso,
-      _shadowsPso,
       _ssaoPso,
       _ssaoBlurPso,
       _lightingPso,

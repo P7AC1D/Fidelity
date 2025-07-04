@@ -132,7 +132,7 @@ struct TexturedQuadBuffer
   float32 NearClip;
   float32 FarClip;
   uint32 ArraySlice;
-  float32 __Padding;
+  int32 CubeArray;
 };
 
 struct FullscreenQuadVertex
@@ -250,6 +250,7 @@ Renderer::Renderer(const Vector2I &windowDims) : _windowDims(windowDims),
                                                  _bloomThreshold(1.0f),
                                                  _debugDisplayType(DebugDisplayType::Disabled),
                                                  _shadowMapLayerToDraw(0),
+                                                 _pointLightCubeMapToDraw(0),
                                                  _ssaoSettingsModified(true)
 
 {
@@ -288,7 +289,6 @@ bool Renderer::init(const std::shared_ptr<RenderDevice> &renderDevice)
     initDirectionalLightDepthPass(renderDevice);
     initGbufferPass(renderDevice);
     initTransparencyPass(renderDevice);
-    initShadowPass(renderDevice);
     initSsaoPass(renderDevice);
     initLightingPass(renderDevice);
     initBloomDownSamplePass(renderDevice);
@@ -479,7 +479,7 @@ void Renderer::drawDebugUi()
 
   if (ImGui::CollapsingHeader("Visualize Render Pass"))
   {
-    std::vector<const char *> debugRenderingItems = {"Disabled", "Shadow Depth", "Albedo", "Normal", "MetalRoughness", "Depth", "Shadows", "Lighting", "Occulsion"};
+    std::vector<const char *> debugRenderingItems = {"Disabled", "Shadow Depth", "Albedo", "Normal", "MetalRoughness", "Depth", "Point Light Shadows", "Lighting", "Occulsion"};
     static int debugRenderingCurrentItem = 0;
     if (ImGui::Combo("Target", &debugRenderingCurrentItem, debugRenderingItems.data(), debugRenderingItems.size()))
     {
@@ -492,6 +492,14 @@ void Renderer::drawDebugUi()
       if (ImGui::SliderInt("Layer", &shadowMapLayerToDraw, 0, 3))
       {
         _shadowMapLayerToDraw = shadowMapLayerToDraw;
+      }
+    }
+    else if (_debugDisplayType == DebugDisplayType::Shadows)
+    {
+      int pointLightCubeMapToDraw = _pointLightCubeMapToDraw;
+      if (ImGui::SliderInt("Point Light Index", &pointLightCubeMapToDraw, 0, 7))
+      {
+        _pointLightCubeMapToDraw = pointLightCubeMapToDraw;
       }
     }
   }
@@ -565,7 +573,7 @@ void Renderer::drawFrame(const std::shared_ptr<RenderDevice> &renderDevice,
   pointLightDepthPass(renderDevice, allDrawables, lights, camera);
   gbufferPass(renderDevice, opaqueDrawables, camera);
   transparencyPass(renderDevice, transparentDrawables, camera);
-  if (directionalLight) shadowPass(renderDevice);
+  // if (directionalLight) shadowPass(renderDevice);  // Commented out - using direct shadows now
   ssaoPass(renderDevice, camera);
   lightingPass(renderDevice, lights, camera);
   bloomPass(renderDevice);
@@ -886,60 +894,6 @@ void Renderer::initTransparencyPass(const std::shared_ptr<RenderDevice> &renderD
   _transparencyPso = renderDevice->createPipelineState(pipelineDesc);
 }
 
-void Renderer::initShadowPass(const std::shared_ptr<RenderDevice> &renderDevice)
-{
-  ShaderDesc vsDesc;
-  vsDesc.ShaderType = ShaderType::Vertex;
-  vsDesc.Source = String::foadFromFile("./Shaders/FSPassThrough.vert");
-
-  ShaderDesc psDesc;
-  psDesc.ShaderType = ShaderType::Fragment;
-  psDesc.Source = String::foadFromFile("./Shaders/Shadows.frag");
-
-  std::vector<VertexLayoutDesc> vertexLayoutDesc{
-      VertexLayoutDesc(SemanticType::Position, SemanticFormat::Float2),
-      VertexLayoutDesc(SemanticType::TexCoord, SemanticFormat::Float2),
-  };
-
-  std::shared_ptr<ShaderParams> shaderParams(new ShaderParams());
-  shaderParams->addParam(ShaderParam("PerFrameBuffer", ShaderParamType::ConstBuffer, 1));
-  shaderParams->addParam(ShaderParam("DepthMap", ShaderParamType::Texture, 0));
-  shaderParams->addParam(ShaderParam("NormalMap", ShaderParamType::Texture, 1));
-  shaderParams->addParam(ShaderParam("ShadowMap", ShaderParamType::Texture, 2));
-  shaderParams->addParam(ShaderParam("RandomRotationsMap", ShaderParamType::Texture, 3));
-
-  RasterizerStateDesc rasterizerStateDesc{};
-  BlendStateDesc blendStateDesc{};
-
-  DepthStencilStateDesc depthStencilStateDesc{};
-  depthStencilStateDesc.DepthReadEnabled = false;
-  depthStencilStateDesc.DepthWriteEnabled = false;
-
-  PipelineStateDesc pipelineDesc;
-  pipelineDesc.VS = renderDevice->createShader(vsDesc);
-  pipelineDesc.FS = renderDevice->createShader(psDesc);
-  pipelineDesc.BlendState = renderDevice->createBlendState(blendStateDesc);
-  pipelineDesc.RasterizerState = renderDevice->createRasterizerState(rasterizerStateDesc);
-  pipelineDesc.DepthStencilState = renderDevice->createDepthStencilState(depthStencilStateDesc);
-  pipelineDesc.VertexLayout = renderDevice->createVertexLayout(vertexLayoutDesc);
-  pipelineDesc.ShaderParams = shaderParams;
-
-  _shadowsPso = renderDevice->createPipelineState(pipelineDesc);
-
-  TextureDesc colourTexDesc;
-  colourTexDesc.Width = _windowDims.X;
-  colourTexDesc.Height = _windowDims.Y;
-  colourTexDesc.Usage = TextureUsage::RenderTarget;
-  colourTexDesc.Type = TextureType::Texture2D;
-  colourTexDesc.Format = TextureFormat::R8;
-
-  RenderTargetDesc rtDesc;
-  rtDesc.ColourTargets[0] = renderDevice->createTexture(colourTexDesc);
-  rtDesc.Width = _windowDims.X;
-  rtDesc.Height = _windowDims.Y;
-
-  _shadowsRto = renderDevice->createRenderTarget(rtDesc);
-}
 
 void Renderer::initSsaoPass(const std::shared_ptr<RenderDevice> &renderDevice)
 {
@@ -1466,27 +1420,6 @@ void Renderer::transparencyPass(const std::shared_ptr<RenderDevice> &renderDevic
   _renderPassTimings[2].Duration = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
 }
 
-void Renderer::shadowPass(const std::shared_ptr<RenderDevice> &renderDevice)
-{
-  std::chrono::time_point start = std::chrono::high_resolution_clock::now();
-
-  renderDevice->setPipelineState(_shadowsPso);
-  renderDevice->setRenderTarget(_shadowsRto);
-  renderDevice->setTexture(0, _gBufferRto->getDepthStencilTarget());
-  renderDevice->setTexture(1, _gBufferRto->getColourTarget(1));
-  renderDevice->setTexture(2, _shadowMapRto->getDepthStencilTarget());
-  renderDevice->setTexture(3, _randomRotationsMap);
-  renderDevice->setConstantBuffer(1, _perFrameBuffer);
-  renderDevice->setSamplerState(0, _noMipSamplerState);
-  renderDevice->setSamplerState(1, _noMipSamplerState);
-  renderDevice->setSamplerState(2, _shadowMapSamplerState);
-  renderDevice->setSamplerState(3, _noMipSamplerState);
-  renderDevice->setVertexBuffer(_fsQuadVertexBuffer);
-  renderDevice->draw(6, 0);
-
-  std::chrono::time_point end = std::chrono::high_resolution_clock::now();
-  _renderPassTimings[3].Duration = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
-}
 
 void Renderer::ssaoPass(const std::shared_ptr<RenderDevice> &renderDevice,
                         const std::shared_ptr<Camera> &camera)
@@ -1534,10 +1467,10 @@ void Renderer::lightingPass(const std::shared_ptr<RenderDevice> &renderDevice,
   renderDevice->setTexture(1, _gBufferRto->getDepthStencilTarget());
   renderDevice->setTexture(2, _gBufferRto->getColourTarget(1));
   renderDevice->setTexture(3, _gBufferRto->getColourTarget(2));
-  renderDevice->setTexture(4, _shadowsRto->getColourTarget(0));
+  renderDevice->setTexture(4, _shadowMapRto->getDepthStencilTarget());  // cascade shadow maps for direct calculation
   renderDevice->setTexture(5, _ssaoBlurRto->getColourTarget(0));
-  renderDevice->setTexture(6, _shadowsRto->getColourTarget(0));  // directional shadow mask
   renderDevice->setTexture(7, _pointLightDepthRto->getDepthStencilTarget());  // point-light depth cubemap
+  renderDevice->setTexture(8, _randomRotationsMap);  // random rotations for Poisson sampling
   renderDevice->setSamplerState(0, _noMipSamplerState);
   renderDevice->setSamplerState(1, _noMipSamplerState);
   renderDevice->setSamplerState(2, _noMipSamplerState);
@@ -1675,7 +1608,27 @@ void Renderer::debugPass(const std::shared_ptr<RenderDevice> &renderDevice,
   }
   case DebugDisplayType::Shadows:
   {
-    drawDebugRenderTarget(renderDevice, _shadowsRto->getColourTarget(0), camera, true);
+    // Show point light shadow cube maps - need to handle cube array differently
+    TexturedQuadBuffer texturedQuadBufferData{};
+    texturedQuadBufferData.NearClip = camera->getNear();
+    texturedQuadBufferData.FarClip = camera->getFar();
+    texturedQuadBufferData.SingleChannel = true;
+    texturedQuadBufferData.ArraySlice = _pointLightCubeMapToDraw;
+    texturedQuadBufferData.TextureArray = false;  // Not a regular array
+    texturedQuadBufferData.OrthographicDepth = false;
+    texturedQuadBufferData.PerspectiveDepth = true;
+    texturedQuadBufferData.CubeArray = true;  // This is a cube array
+
+    renderDevice->setPipelineState(_editorDrawTexturedQuadPso);
+    renderDevice->setConstantBuffer(0, _fullscreenQuadBuffer);
+    renderDevice->setTexture(2, _pointLightDepthRto->getDepthStencilTarget());  // Bind to slot 2 for cube array
+    renderDevice->setSamplerState(2, _noMipSamplerState);
+
+    _fullscreenQuadBuffer->writeData(0, sizeof(TexturedQuadBuffer), &texturedQuadBufferData, AccessType::WriteOnlyDiscard);
+    renderDevice->setRenderTarget(nullptr);
+    renderDevice->clearBuffers(RTT_Colour | RTT_Depth);
+    renderDevice->setVertexBuffer(_fsQuadVertexBuffer);
+    renderDevice->draw(6, 0);
     break;
   }
   case DebugDisplayType::Lighting:
