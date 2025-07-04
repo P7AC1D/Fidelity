@@ -328,6 +328,20 @@ void GLRenderDevice::setTexture(uint32 slot, const std::shared_ptr<Texture> &tex
     glCall(glActiveTexture(GL_TEXTURE0 + slot));
     glCall(glBindTexture(getTextureTargetFromType(glTexture->getTextureType()), glTexture->getId()));
     _boundTextures[slot] = glTexture;
+    
+    // Bind texture uniform if pipeline state and shader params are available
+    if (_pipelineState && _shaderParams)
+    {
+      std::string textureName = _shaderParams->getParamName(ShaderParamType::Texture, slot);
+      if (!textureName.empty())
+      {
+        auto glPs = std::static_pointer_cast<GLShader>(_pipelineState->getFS());
+        if (glPs && glPs->hasUniform(textureName))
+        {
+          glPs->bindTextureUnit(textureName, slot);
+        }
+      }
+    }
   }
 }
 

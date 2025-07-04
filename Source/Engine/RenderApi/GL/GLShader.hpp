@@ -36,6 +36,7 @@ private:
 		Sampler2D,
 		Sampler2DArray,
 		SamplerCube,
+		SamplerCubeArray,
 		UniformBlock
 	};
 

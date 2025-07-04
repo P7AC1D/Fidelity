@@ -165,6 +165,14 @@ void GLShader::buildUniformDefinitions()
 		{
 			_uniforms.emplace(name, Uniform{static_cast<uint32>(location), name, UniformType::SamplerCube});
 		}
+		else if (type == GL_SAMPLER_CUBE_MAP_ARRAY)
+		{
+			_uniforms.emplace(name, Uniform{static_cast<uint32>(location), name, UniformType::SamplerCubeArray});
+		}
+		else if (type == GL_SAMPLER_CUBE_MAP_ARRAY_SHADOW)
+		{
+			_uniforms.emplace(name, Uniform{static_cast<uint32>(location), name, UniformType::SamplerCubeArray});
+		}
 	}
 }
 

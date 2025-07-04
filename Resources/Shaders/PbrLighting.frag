@@ -211,8 +211,6 @@ void main()
                                      roughness, 
                                      metalness, 
                                      F0) * (1.0 - pointShadowFactor);
-    // Breaking after first light as we have not implemented multiple point light shadow depth cube generation / passes yet.
-    break;
   }
   // Ambient light contribution.
   totalRadiance += albedo.rgb * Constants.AmbientColour * Constants.AmbientIntensity * occlusionFactor;

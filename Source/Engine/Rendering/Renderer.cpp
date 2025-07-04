@@ -907,8 +907,6 @@ void Renderer::initShadowPass(const std::shared_ptr<RenderDevice> &renderDevice)
   shaderParams->addParam(ShaderParam("NormalMap", ShaderParamType::Texture, 1));
   shaderParams->addParam(ShaderParam("ShadowMap", ShaderParamType::Texture, 2));
   shaderParams->addParam(ShaderParam("RandomRotationsMap", ShaderParamType::Texture, 3));
-  shaderParams->addParam(ShaderParam("PointShadowMap", ShaderParamType::Texture, 4));
-  shaderParams->addParam(ShaderParam("PointLightBuffer", ShaderParamType::ConstBuffer, 2));
 
   RasterizerStateDesc rasterizerStateDesc{};
   BlendStateDesc blendStateDesc{};
@@ -1063,7 +1061,7 @@ void Renderer::initLightingPass(const std::shared_ptr<RenderDevice> &renderDevic
   // Expose directional shadow mask from shadow pass
   shaderParams->addParam(ShaderParam("ShadowMask", ShaderParamType::Texture, 6));
   // Expose point-light shadow cubemap for point shadows
-  shaderParams->addParam(ShaderParam("PointShadowMap", ShaderParamType::Texture, 7));
+  shaderParams->addParam(ShaderParam("PointShadowMaps", ShaderParamType::Texture, 7));
 
   RasterizerStateDesc rasterizerStateDesc{};
 
@@ -1478,13 +1476,11 @@ void Renderer::shadowPass(const std::shared_ptr<RenderDevice> &renderDevice)
   renderDevice->setTexture(1, _gBufferRto->getColourTarget(1));
   renderDevice->setTexture(2, _shadowMapRto->getDepthStencilTarget());
   renderDevice->setTexture(3, _randomRotationsMap);
-  renderDevice->setTexture(4, _pointLightDepthRto->getDepthStencilTarget()); // Bind point light shadow cubemap
   renderDevice->setConstantBuffer(1, _perFrameBuffer);
   renderDevice->setSamplerState(0, _noMipSamplerState);
   renderDevice->setSamplerState(1, _noMipSamplerState);
   renderDevice->setSamplerState(2, _shadowMapSamplerState);
   renderDevice->setSamplerState(3, _noMipSamplerState);
-  renderDevice->setSamplerState(4, _shadowMapSamplerState); // Use same sampler for cubemap
   renderDevice->setVertexBuffer(_fsQuadVertexBuffer);
   renderDevice->draw(6, 0);
 
@@ -1551,6 +1547,7 @@ void Renderer::lightingPass(const std::shared_ptr<RenderDevice> &renderDevice,
   renderDevice->setSamplerState(6, _shadowMapSamplerState);
   renderDevice->setSamplerState(7, _shadowMapSamplerState);
   renderDevice->setConstantBuffer(1, _perFrameBuffer);
+  renderDevice->setConstantBuffer(2, _perFrameBuffer);  // CascadeShadowMapBuffer uses same data as PerFrameBuffer
 
   renderDevice->setVertexBuffer(_fsQuadVertexBuffer);
    renderDevice->draw(6, 0);
