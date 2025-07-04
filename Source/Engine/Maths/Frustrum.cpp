@@ -24,6 +24,7 @@ Frustrum::Frustrum(const Camera &camera)
 	float32 farWidth = farHeight * camera.getAspectRatio();
 
 	// Calculate the center of the far plane by taking the position and scaling the forward vector by the distance to the far plane.
+	// NOTE: Using subtraction (-) because the camera's forward vector points in the negative Z direction in OpenGL convention
 	Vector3 zFarCenter = position - forward * zFar;
 	// Similarly, we calculate the center of the near plane.
 	Vector3 zNearCenter = position - forward * zNear;
@@ -55,22 +56,55 @@ Frustrum::Frustrum(const Camera &camera)
 
 bool Frustrum::contains(const Aabb &aabb, const Transform &transform) const
 {
+	// Check if transform is axis-aligned (identity rotation) for optimization
+	if (isTransformAxisAligned(transform))
+	{
+		return containsAxisAligned(aabb, transform);
+	}
+	
+	// Handle oriented bounding boxes with full transform
+	return containsOriented(aabb, transform);
+}
+
+bool Frustrum::isTransformAxisAligned(const Transform &transform) const
+{
+	// For now, assume all transforms are oriented (conservative approach)
+	// This can be optimized later by checking if the rotation is identity
+	// TODO: Add Transform::isAxisAligned() method for better optimization
+	return false;
+}
+
+bool Frustrum::containsAxisAligned(const Aabb &aabb, const Transform &transform) const
+{
+	// Simple case: just translate the AABB center and test directly
+	Vector3 globalCenter = transform.getPosition() + aabb.getCenter();
+	Aabb globalAabb(globalCenter, aabb.getExtents().X, aabb.getExtents().Y, aabb.getExtents().Z);
+	
+	return globalAabb.isOnOrForwardPlane(_near) &&
+				 globalAabb.isOnOrForwardPlane(_far) &&
+				 globalAabb.isOnOrForwardPlane(_right) &&
+				 globalAabb.isOnOrForwardPlane(_left) &&
+				 globalAabb.isOnOrForwardPlane(_top) &&
+				 globalAabb.isOnOrForwardPlane(_bottom);
+}
+
+bool Frustrum::containsOriented(const Aabb &aabb, const Transform &transform) const
+{
 	Vector3 extents(aabb.getExtents());
 	Vector3 globalCenter(transform.getPosition() + aabb.getCenter());
 
+	// Transform the AABB axes by the object's rotation
 	Vector3 right(transform.getRight() * extents.X);
 	Vector3 up(transform.getUp() * extents.Y);
 	Vector3 forward(transform.getForward() * extents.Z);
 
-	Vector3 globalExtents(std::abs(Vector3::Dot(Vector3{1.f, 0.f, 0.f}, right)) +
-														std::abs(Vector3::Dot(Vector3{1.f, 0.f, 0.f}, up)) +
-														std::abs(Vector3::Dot(Vector3{1.f, 0.f, 0.f}, forward)),
-												std::abs(Vector3::Dot(Vector3{0.f, 1.f, 0.f}, right)) +
-														std::abs(Vector3::Dot(Vector3{0.f, 1.f, 0.f}, up)) +
-														std::abs(Vector3::Dot(Vector3{0.f, 1.f, 0.f}, forward)),
-												std::abs(Vector3::Dot(Vector3{0.f, 0.f, 1.f}, right)) +
-														std::abs(Vector3::Dot(Vector3{0.f, 0.f, 1.f}, up)) +
-														std::abs(Vector3::Dot(Vector3{0.f, 0.f, 1.f}, forward)));
+	// Calculate the global extents by projecting the transformed axes onto world axes
+	// This gives us the axis-aligned bounding box that contains the oriented box
+	Vector3 globalExtents(
+		std::abs(right.X) + std::abs(up.X) + std::abs(forward.X),
+		std::abs(right.Y) + std::abs(up.Y) + std::abs(forward.Y),
+		std::abs(right.Z) + std::abs(up.Z) + std::abs(forward.Z)
+	);
 
 	Aabb globalAabb(globalCenter, globalExtents.X, globalExtents.Y, globalExtents.Z);
 

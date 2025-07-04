@@ -12,6 +12,7 @@ Camera::Camera() : _width(1280),
 									 _proj(Matrix4::Identity),
 									 _modified(true),
 									 _fixFrustrum(false),
+									 _frustumDirty(true),
 									 Component(ComponentType::Camera)
 {
 	updateProjection();
@@ -64,6 +65,7 @@ Camera &Camera::setHeight(int32 height)
 {
 	_height = height;
 	_modified = true;
+	invalidateFrustumCache();
 	return *this;
 }
 
@@ -71,6 +73,7 @@ Camera &Camera::setWidth(int32 width)
 {
 	_width = width;
 	_modified = true;
+	invalidateFrustumCache();
 	return *this;
 }
 
@@ -78,6 +81,7 @@ Camera &Camera::setFov(const Degree &fov)
 {
 	_fov = Radian(fov);
 	_modified = true;
+	invalidateFrustumCache();
 	return *this;
 }
 
@@ -85,6 +89,7 @@ Camera &Camera::setNear(float32 near)
 {
 	_near = near;
 	_modified = true;
+	invalidateFrustumCache();
 	return *this;
 }
 
@@ -92,6 +97,7 @@ Camera &Camera::setFar(float32 far)
 {
 	_far = far;
 	_modified = true;
+	invalidateFrustumCache();
 	return *this;
 }
 
@@ -120,13 +126,33 @@ void Camera::updateView(const Transform &transform)
 	translation[3][2] = -translation[3][2];
 
 	_view = rotation * translation;
-	_frustrum = Frustrum(*this);
+	invalidateFrustumCache();
 }
 
 void Camera::updateProjection()
 {
 	_proj = Matrix4::Perspective(_fov, _width / static_cast<float32>(_height), _near, _far);
-	_frustrum = Frustrum(*this);
+	invalidateFrustumCache();
+}
+
+const Frustrum &Camera::getFrustumCached() const
+{
+	if (_frustumDirty)
+	{
+		// Only create frustum if we have a valid transform
+		// This prevents creating frustum with uninitialized transform data
+		if (_transform.getPosition() != Vector3::Zero || _transform.getRotation() != Quaternion::Identity)
+		{
+			_frustrum = Frustrum(*this);
+		}
+		_frustumDirty = false;
+	}
+	return _frustrum;
+}
+
+void Camera::invalidateFrustumCache()
+{
+	_frustumDirty = true;
 }
 
 bool Camera::contains(const Aabb &aabb, const Transform &transform) const
@@ -136,7 +162,15 @@ bool Camera::contains(const Aabb &aabb, const Transform &transform) const
 		return _fixedFrustrum.contains(aabb, transform);
 	}
 
-	return _frustrum.contains(aabb, transform);
+	// Check if we have a valid camera transform before doing frustum culling
+	// If transform is not initialized (all zeros), assume everything is visible
+	if (_transform.getPosition() == Vector3::Zero && _transform.getRotation() == Quaternion::Identity)
+	{
+		// Camera transform not yet initialized, don't cull anything
+		return true;
+	}
+
+	return getFrustumCached().contains(aabb, transform);
 }
 
 float32 Camera::distanceFrom(const Vector3 &position) const

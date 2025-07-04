@@ -32,7 +32,7 @@ public:
   float32 getAspectRatio() const { return _width / static_cast<float32>(_height); }
   const Transform &getParentTransform() const { return _transform; }
 
-  const Frustrum &getFustrum() const { return _frustrum; }
+  const Frustrum &getFustrum() const { return getFrustumCached(); }
 
   bool contains(const Aabb &aabb, const Transform &transform) const;
   float32 distanceFrom(const Vector3 &position) const;
@@ -43,9 +43,14 @@ private:
 
   void updateView(const Transform &transform);
   void updateProjection();
+  
+  // Frustum caching for performance optimization
+  const Frustrum &getFrustumCached() const;
+  void invalidateFrustumCache();
 
   bool _modified;
   bool _fixFrustrum;
+  mutable bool _frustumDirty;
 
   int32 _width;
   int32 _height;
@@ -58,5 +63,6 @@ private:
 
   Transform _transform;
 
-  Frustrum _frustrum, _fixedFrustrum;
+  mutable Frustrum _frustrum;
+  Frustrum _fixedFrustrum;
 };
