@@ -202,6 +202,151 @@ vec3 calculatePositionWS(vec2 screenCoords)
   return fragPos.xyz;
 }
 
+// Advanced bias calculation for point lights (similar to directional lights)
+float calculatePointLightBias(vec3 normalWorldSpace, vec3 fragToLight, float lightRadius) {
+    vec3 lightDir = normalize(-fragToLight); // Direction from fragment to light
+    float nDotL = clamp(dot(normalize(normalWorldSpace), lightDir), 0.0f, 1.0f);
+    
+    // Slope-based bias using more accurate slope calculation
+    float slopeBias = clamp(tan(acos(nDotL)), 0.0, 0.01);
+    
+    // Distance-based bias that scales with distance from light
+    float lightDistance = length(fragToLight);
+    float distanceBias = 0.001 * (1.0 + lightDistance / lightRadius * 0.1);
+    
+    // Light radius-based bias scaling for different light sizes
+    float radiusScale = 1.0 / (lightRadius * 0.1);
+    
+    return (slopeBias + distanceBias) * radiusScale;
+}
+
+// Point light blocker search for contact hardening
+float findPointBlockerDistance(vec3 fragToLight, float currentDepth, int lightIndex, float searchRadius) {
+    float blockerSum = 0.0;
+    int blockerCount = 0;
+    
+    // Use first 16 Poisson samples for blocker search (adapted for 3D)
+    for (int i = 0; i < 16; i++) {
+        // Convert 2D Poisson sample to 3D by projecting onto sphere around light direction
+        vec2 poissonSample = PoissonSamples[i] * searchRadius;
+        
+        // Create orthogonal basis for the light direction
+        vec3 lightDir = normalize(fragToLight);
+        vec3 up = abs(lightDir.y) < 0.999 ? vec3(0, 1, 0) : vec3(1, 0, 0);
+        vec3 right = normalize(cross(up, lightDir));
+        up = cross(lightDir, right);
+        
+        // Project 2D sample to 3D offset
+        vec3 sampleOffset = right * poissonSample.x + up * poissonSample.y;
+        vec3 sampleDirection = fragToLight + sampleOffset;
+        
+        float blockerDepth = texture(PointShadowMaps, vec4(sampleDirection, float(lightIndex))).r;
+        blockerDepth *= Constants.Lights[lightIndex].Radius; // Convert back to world space
+        
+        if (blockerDepth < currentDepth - 0.001) { // Small epsilon to avoid self-shadowing
+            blockerSum += blockerDepth;
+            blockerCount++;
+        }
+    }
+    
+    return blockerCount > 0 ? blockerSum / float(blockerCount) : currentDepth;
+}
+
+// Point light PCF with early termination optimization
+float samplePointShadowPcfOptimized(vec3 fragToLight, float currentDepth, int lightIndex, float bias, float adaptiveDiskRadius, mat2 randomRotations) {
+    float shadow = 0.0;
+    int litCount = 0;
+    int shadowedCount = 0;
+    
+    // Early termination PCF - similar to directional lights but adapted for point lights
+    int maxEarlySamples = min(int(Constants.ShadowSampleCount), 16); // Limit early termination samples
+    
+    for (int i = 0; i < maxEarlySamples && litCount < 8 && shadowedCount < 8; i++) {
+        // Apply random rotation to Poisson disc pattern
+        vec2 rotatedPoissonSample = randomRotations * PoissonSamples[i % 64];
+        vec2 poissonSample = rotatedPoissonSample * adaptiveDiskRadius;
+        
+        // Create orthogonal basis for the light direction
+        vec3 lightDir = normalize(fragToLight);
+        vec3 up = abs(lightDir.y) < 0.999 ? vec3(0, 1, 0) : vec3(1, 0, 0);
+        vec3 right = normalize(cross(up, lightDir));
+        up = cross(lightDir, right);
+        
+        // Project 2D Poisson sample to 3D offset
+        vec3 sampleOffset = right * poissonSample.x + up * poissonSample.y;
+        vec3 sampleDirection = fragToLight + sampleOffset;
+        
+        float closestDepth = texture(PointShadowMaps, vec4(sampleDirection, float(lightIndex))).r;
+        closestDepth *= Constants.Lights[lightIndex].Radius; // undo [0, 1] mapping
+        
+        bool inShadow = (currentDepth - bias) >= closestDepth;
+        
+        if (inShadow) {
+            shadow += 1.0 / float(Constants.ShadowSampleCount);
+            shadowedCount++;
+        } else {
+            litCount++;
+        }
+    }
+    
+    // Early termination optimization
+    if (litCount >= 8) {
+        // Mostly lit, remaining samples won't change result significantly
+        return shadow;
+    } else if (shadowedCount >= 8) {
+        // Mostly shadowed, add remaining shadow contribution
+        int remainingSamples = int(Constants.ShadowSampleCount) - litCount - shadowedCount;
+        return shadow + (remainingSamples * (1.0 / float(Constants.ShadowSampleCount)));
+    }
+    
+    // Continue with remaining samples if no early termination
+    for (int i = maxEarlySamples; i < Constants.ShadowSampleCount; i++) {
+        vec2 rotatedPoissonSample = randomRotations * PoissonSamples[i % 64];
+        vec2 poissonSample = rotatedPoissonSample * adaptiveDiskRadius;
+        
+        vec3 lightDir = normalize(fragToLight);
+        vec3 up = abs(lightDir.y) < 0.999 ? vec3(0, 1, 0) : vec3(1, 0, 0);
+        vec3 right = normalize(cross(up, lightDir));
+        up = cross(lightDir, right);
+        
+        vec3 sampleOffset = right * poissonSample.x + up * poissonSample.y;
+        vec3 sampleDirection = fragToLight + sampleOffset;
+        
+        float closestDepth = texture(PointShadowMaps, vec4(sampleDirection, float(lightIndex))).r;
+        closestDepth *= Constants.Lights[lightIndex].Radius;
+        
+        if ((currentDepth - bias) >= closestDepth) {
+            shadow += 1.0 / float(Constants.ShadowSampleCount);
+        }
+    }
+    
+    return shadow;
+}
+
+// Enhanced point light shadow with contact hardening, random rotation, and early termination
+float getPointShadowPcfContactHardening(Light light, int lightIndex, vec3 fragPos, float bias, ivec2 screenPos) {
+    vec3 fragToLight = fragPos - light.Position;
+    float currentDepth = length(fragToLight);
+    
+    // Contact hardening: find average blocker distance
+    float blockerDistance = findPointBlockerDistance(fragToLight, currentDepth, lightIndex, 0.1);
+    
+    // Calculate adaptive penumbra size based on blocker distance
+    float penumbraSize = max((currentDepth - blockerDistance) / blockerDistance, 0.01);
+    float adaptiveDiskRadius = 0.05f * (1.0 + penumbraSize * 2.0); // Base radius with adaptive scaling
+    
+    // Random rotation for temporal stability (similar to directional shadows)
+    ivec2 randomRotationsSize = textureSize(RandomRotationsMap, 0);
+    vec2 randomSamplePos = screenPos % randomRotationsSize;
+    float theta = texture(RandomRotationsMap, randomSamplePos).r * Pi2;
+    mat2 randomRotations = mat2(vec2(cos(theta), -sin(theta)),
+                                vec2(sin(theta), cos(theta)));
+    
+    // Use optimized PCF with early termination
+    return samplePointShadowPcfOptimized(fragToLight, currentDepth, lightIndex, bias, adaptiveDiskRadius, randomRotations);
+}
+
+// Fallback basic PCF for compatibility
 float getPointShadowPcf(Light light, int lightIndex, vec3 fragPos, float bias) {
     vec3 fragToLight = fragPos - light.Position;
     float currentDepth = length(fragToLight);
@@ -278,12 +423,15 @@ void main()
   {
     Light currentLight = Constants.Lights[i];
     vec3 toLight = position - currentLight.Position;
-    vec3 dir = normalize(toLight);
-    float nl = max(dot(normal, dir), 0.0);
-    float bias = max(0.001, (1.0 - nl) * 0.01);
+    vec3 lightDir = normalize(-toLight); // Direction from fragment to light
+    float nl = max(dot(normal, lightDir), 0.0);
+    
+    // Advanced bias calculation for point lights (similar to directional lights)
+    float bias = calculatePointLightBias(normal, toLight, currentLight.Radius);
+    
     float pointShadowFactor = 1.0f;
     if (i < Constants.MaxPointLightShadowCasters) {
-      pointShadowFactor = getPointShadowPcf(currentLight, i, position, bias);
+      pointShadowFactor = getPointShadowPcfContactHardening(currentLight, i, position, bias, ivec2(gl_FragCoord.xy));
     }
 
     // accumulate PBR with point-light shadow
