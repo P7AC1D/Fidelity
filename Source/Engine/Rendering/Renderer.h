@@ -12,10 +12,15 @@ class Light;
 class Material;
 class PipelineState;
 class RenderDevice;
+class RenderQueue;
 class RenderTarget;
 class SamplerState;
 class Texture;
 class VertexBuffer;
+
+// Forward declarations that need full definitions for unique_ptr
+#include "ShadowFrustum.h"
+#include "RenderQueue.h"
 
 struct RenderPassTimings
 {
@@ -45,9 +50,6 @@ public:
   void drawDebugUi();
 
   void drawFrame(const std::shared_ptr<RenderDevice> &renderDevice,
-                 const std::vector<std::shared_ptr<Drawable>> &aabbDrawables,
-                 const std::vector<std::shared_ptr<Drawable>> &opaqueDrawables,
-                 const std::vector<std::shared_ptr<Drawable>> &transparentDrawables,
                  const std::vector<std::shared_ptr<Drawable>> &allDrawables,
                  const std::vector<std::shared_ptr<Light>> &lights,
                  const std::shared_ptr<Camera> &camera);
@@ -125,6 +127,13 @@ private:
   void writeSsaoConstantData(const std::shared_ptr<RenderDevice> &renderDevice, const std::shared_ptr<Camera> &camera) const;
   void writePointLightConstantData(uint32 lightIndex, const Vector3& position, float32 farPlane, const std::array<Matrix4, 6>& shadowMatrices) const;
 
+  // Frustum culling and object categorization
+  void performFrustumCulling(const std::vector<std::shared_ptr<Drawable>>& allDrawables,
+                             const std::shared_ptr<Camera>& camera,
+                             std::vector<std::shared_ptr<Drawable>>& opaqueDrawables,
+                             std::vector<std::shared_ptr<Drawable>>& transparentDrawables,
+                             std::vector<std::shared_ptr<Drawable>>& aabbDrawables);
+
   Vector2I _windowDims;
   Colour _ambientColour;
   float32 _ambientIntensity;
@@ -199,4 +208,12 @@ private:
       _aabbVertexBuffer;
   std::shared_ptr<Texture> _randomRotationsMap,
       _ssaoNoiseTexture;
+  
+  // Render queues for culling and sorting
+  std::unique_ptr<RenderQueue> _opaqueQueue;
+  std::unique_ptr<RenderQueue> _transparentQueue;
+  
+  // Shadow culling system
+  std::unique_ptr<ShadowFrustum> _shadowFrustum;
+  std::unique_ptr<RenderQueue> _shadowQueue;
 };

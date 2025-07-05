@@ -175,5 +175,11 @@ bool Camera::contains(const Aabb &aabb, const Transform &transform) const
 
 float32 Camera::distanceFrom(const Vector3 &position) const
 {
-	return (_transform.getPosition() - position).Length();
+  return (_transform.getPosition() - position).Length();
+}
+
+void Camera::setTransformForTesting(const Transform &transform)
+{
+  _transform = transform;
+  updateView(transform);
 }

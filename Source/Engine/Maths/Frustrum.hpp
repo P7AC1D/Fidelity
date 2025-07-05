@@ -13,6 +13,8 @@ class Frustrum
 public:
 	Frustrum();
 	Frustrum(const Camera &camera);
+	Frustrum(const Plane& left, const Plane& right, const Plane& top, 
+	         const Plane& bottom, const Plane& near, const Plane& far);
 
 	bool contains(const Aabb &box, const Transform &transform) const;
 

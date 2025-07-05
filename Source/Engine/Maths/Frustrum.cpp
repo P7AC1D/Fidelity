@@ -8,6 +8,12 @@ Frustrum::Frustrum()
 {
 }
 
+Frustrum::Frustrum(const Plane& left, const Plane& right, const Plane& top, 
+                   const Plane& bottom, const Plane& near, const Plane& far)
+	: _left(left), _right(right), _top(top), _bottom(bottom), _near(near), _far(far)
+{
+}
+
 Frustrum::Frustrum(const Camera &camera)
 {
 	// Taken from https://www.lighthouse3d.com/tutorials/view-frustum-culling/geometric-approach-extracting-the-planes/

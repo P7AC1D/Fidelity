@@ -8,7 +8,8 @@ class Camera;
 
 enum class QueueType {
     Opaque,      // Front-to-back after material sorting
-    Transparent  // Back-to-front after material sorting
+    Transparent, // Back-to-front after material sorting
+    Shadow       // Material batching prioritized for shadow passes
 };
 
 class RenderQueue {
@@ -40,4 +41,7 @@ private:
     bool compareTransparent(const std::shared_ptr<Drawable>& a, 
                            const std::shared_ptr<Drawable>& b, 
                            const Camera& camera) const;
+    bool compareShadow(const std::shared_ptr<Drawable>& a, 
+                      const std::shared_ptr<Drawable>& b, 
+                      const Camera& camera) const;
 };

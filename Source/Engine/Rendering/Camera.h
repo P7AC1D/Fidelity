@@ -36,6 +36,9 @@ public:
 
   bool contains(const Aabb &aabb, const Transform &transform) const;
   float32 distanceFrom(const Vector3 &position) const;
+  
+  // Public method for testing - allows manual camera transform setup
+  void setTransformForTesting(const Transform &transform);
 
 private:
   void onUpdate(float32 dt) override;

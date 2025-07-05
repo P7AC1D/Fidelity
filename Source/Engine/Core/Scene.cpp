@@ -15,7 +15,6 @@
 #include "../Rendering/Drawable.h"
 #include "../Rendering/Material.h"
 #include "../Rendering/Light.h"
-#include "../Rendering/RenderQueue.h"
 #include "../RenderApi/RenderDevice.hpp"
 #include "GameObject.h"
 #include "InputHandler.h"
@@ -48,9 +47,7 @@ Ray buildRayFromMouseCoords(const Vector2I &mouseCoords, const Vector2I &windowD
 
 Scene::Scene(const std::shared_ptr<InputHandler> &inputHandler) : _objectAddedToScene(false),
                                                                   _scenePrepDuration(0),
-                                                                  _inputHandler(inputHandler),
-                                                                  _opaqueQueue(std::make_unique<RenderQueue>(QueueType::Opaque)),
-                                                                  _transparentQueue(std::make_unique<RenderQueue>(QueueType::Transparent))
+                                                                  _inputHandler(inputHandler)
 {
 }
 
@@ -123,40 +120,15 @@ void Scene::drawFrame()
   std::shared_ptr<Camera> camera(std::static_pointer_cast<Camera>(cameraFindIter->second[0]));
   performObjectPicker(*camera.get());
 
-  // Clear render queues for this frame
-  _opaqueQueue->clear();
-  _transparentQueue->clear();
-
-  std::vector<std::shared_ptr<Drawable>> aabbDrawables, allDrawables;
+  // Collect all drawables - let Renderer handle culling and categorization
+  std::vector<std::shared_ptr<Drawable>> allDrawables;
   for (auto component : drawableFindIter->second)
   {
     auto drawable = std::dynamic_pointer_cast<Drawable>(component);
-    
-    // PERFORMANCE OPTIMIZATION: Use cached transform instead of creating new Transform every frame
-    if (camera->contains(drawable->getAabb(), drawable->getCachedTransform()))
-    {
-      if (drawable->getMaterial()->hasOpacityTexture())
-      {
-        _transparentQueue->add(drawable);
-      }
-      else
-      {
-        _opaqueQueue->add(drawable);
-      }
-    }
-
-    if (drawable->shouldDrawAabb())
-    {
-      aabbDrawables.push_back(drawable);
-    }
-
     allDrawables.push_back(drawable);
   }
 
-  // Sort render queues using multi-level sorting
-  _opaqueQueue->sort(*camera);
-  _transparentQueue->sort(*camera);
-
+  // Collect all lights
   std::vector<std::shared_ptr<Light>> lights;
   for (auto component : _components.find(ComponentType::Light)->second)
   {
@@ -166,13 +138,9 @@ void Scene::drawFrame()
 
   std::chrono::time_point end = std::chrono::high_resolution_clock::now();
   _scenePrepDuration = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
-  _renderer->drawFrame(_renderDevice,
-                       aabbDrawables,
-                       _opaqueQueue->getDrawables(),
-                       _transparentQueue->getDrawables(),
-                       allDrawables,
-                       lights,
-                       camera);
+  
+  // Pass raw data to Renderer - let it handle all rendering decisions
+  _renderer->drawFrame(_renderDevice, allDrawables, lights, camera);
 }
 
 void Scene::drawDebugUi()

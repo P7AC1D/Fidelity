@@ -29,6 +29,8 @@ static std::mt19937 g_ssaoGenerator(0);
 #include "Material.h"
 #include "Light.h"
 #include "StaticMesh.h"
+#include "ShadowFrustum.h"
+#include "RenderQueue.h"
 
 const static uint32 RANDOM_ROTATION_TEXTURE_SIZE = 64;
 const static uint32 SSAO_NOISE_TEXTURE_SIZE = 4;
@@ -262,6 +264,14 @@ Renderer::Renderer(const Vector2I &windowDims) : _windowDims(windowDims),
   _renderPassTimings.push_back({0, "Lighting"});
   _renderPassTimings.push_back({0, "Bloom Blur"});
   _renderPassTimings.push_back({0, "Tone Mapping"});
+  
+  // Initialize render queues
+  _opaqueQueue = std::make_unique<RenderQueue>(QueueType::Opaque);
+  _transparentQueue = std::make_unique<RenderQueue>(QueueType::Transparent);
+  
+  // Initialize shadow culling system
+  _shadowFrustum = std::make_unique<ShadowFrustum>();
+  _shadowQueue = std::make_unique<RenderQueue>(QueueType::Shadow);
 }
 
 bool Renderer::init(const std::shared_ptr<RenderDevice> &renderDevice)
@@ -545,9 +555,6 @@ void Renderer::initConstantBuffers(const std::shared_ptr<RenderDevice> &renderDe
 }
 
 void Renderer::drawFrame(const std::shared_ptr<RenderDevice> &renderDevice,
-                         const std::vector<std::shared_ptr<Drawable>> &aabbDrawables,
-                         const std::vector<std::shared_ptr<Drawable>> &opaqueDrawables,
-                         const std::vector<std::shared_ptr<Drawable>> &transparentDrawables,
                          const std::vector<std::shared_ptr<Drawable>> &allDrawables,
                          const std::vector<std::shared_ptr<Light>> &lights,
                          const std::shared_ptr<Camera> &camera)
@@ -566,6 +573,10 @@ void Renderer::drawFrame(const std::shared_ptr<RenderDevice> &renderDevice,
   {
     throw std::runtime_error("No directional light found.");
   }
+
+  // Perform frustum culling and object categorization
+  std::vector<std::shared_ptr<Drawable>> opaqueDrawables, transparentDrawables, aabbDrawables;
+  performFrustumCulling(allDrawables, camera, opaqueDrawables, transparentDrawables, aabbDrawables);
 
   writePerFrameConstantData(camera, directionalLight, lights);
 
@@ -1297,6 +1308,22 @@ void Renderer::directionalLightDepthPass(const std::shared_ptr<RenderDevice> &re
 
   std::chrono::time_point start = std::chrono::high_resolution_clock::now();
 
+  // Setup shadow frustum culling
+  std::vector<Matrix4> lightTransforms = calculateCascadeLightTransforms(camera, directionalLight);
+  _shadowFrustum->buildFromLightTransforms(lightTransforms, _cascadeCount);
+  _shadowFrustum->buildExtendedCameraFrustum(*camera, _maxCascadeDistance);
+  
+  // Perform shadow culling
+  std::vector<std::shared_ptr<Drawable>> broadPhaseCulled = _shadowFrustum->broadPhaseCull(drawables);
+  std::vector<std::shared_ptr<Drawable>> shadowCasters = _shadowFrustum->shadowRelevanceFilter(broadPhaseCulled);
+  
+  // Setup shadow queue and sort for optimal rendering
+  _shadowQueue->clear();
+  for (const auto& drawable : shadowCasters) {
+    _shadowQueue->add(drawable);
+  }
+  _shadowQueue->sort(*camera);
+
   renderDevice->setPipelineState(_shadowMapPso);
 
   ViewportDesc viewportDesc;
@@ -1308,7 +1335,8 @@ void Renderer::directionalLightDepthPass(const std::shared_ptr<RenderDevice> &re
   renderDevice->setConstantBuffer(0, _perObjectBuffer);
   renderDevice->setConstantBuffer(1, _perFrameBuffer);
 
-  for (const auto &drawable : drawables)
+  // Render culled and sorted shadow casters
+  for (const auto &drawable : _shadowQueue->getDrawables())
   {
     std::shared_ptr<Material> material(drawable->getMaterial());
     drawDrawable(renderDevice, drawable, material, camera);
@@ -1978,6 +2006,53 @@ void Renderer::writePointLightConstantData(uint32 lightIndex, const Vector3& pos
     pointLightBufferData.shadowMatrices[i] = shadowMatrices[i];
   }
   _pointLightBuffer->writeData(0, sizeof(PointLightBufferData), &pointLightBufferData, AccessType::WriteOnlyDiscard);
+}
+
+void Renderer::performFrustumCulling(const std::vector<std::shared_ptr<Drawable>>& allDrawables,
+                                     const std::shared_ptr<Camera>& camera,
+                                     std::vector<std::shared_ptr<Drawable>>& opaqueDrawables,
+                                     std::vector<std::shared_ptr<Drawable>>& transparentDrawables,
+                                     std::vector<std::shared_ptr<Drawable>>& aabbDrawables)
+{
+  // Clear render queues for this frame
+  _opaqueQueue->clear();
+  _transparentQueue->clear();
+
+  // Clear output vectors
+  opaqueDrawables.clear();
+  transparentDrawables.clear();
+  aabbDrawables.clear();
+
+  for (const auto& drawable : allDrawables)
+  {
+    // PERFORMANCE OPTIMIZATION: Use cached transform instead of creating new Transform every frame
+    if (camera->contains(drawable->getAabb(), drawable->getCachedTransform()))
+    {
+      if (drawable->getMaterial()->hasOpacityTexture())
+      {
+        _transparentQueue->add(drawable);
+        transparentDrawables.push_back(drawable);
+      }
+      else
+      {
+        _opaqueQueue->add(drawable);
+        opaqueDrawables.push_back(drawable);
+      }
+    }
+
+    if (drawable->shouldDrawAabb())
+    {
+      aabbDrawables.push_back(drawable);
+    }
+  }
+
+  // Sort render queues using multi-level sorting
+  _opaqueQueue->sort(*camera);
+  _transparentQueue->sort(*camera);
+
+  // Update output vectors with sorted results
+  opaqueDrawables = _opaqueQueue->getDrawables();
+  transparentDrawables = _transparentQueue->getDrawables();
 }
 
 void Renderer::pointLightDepthPass(const std::shared_ptr<RenderDevice>& renderDevice,
