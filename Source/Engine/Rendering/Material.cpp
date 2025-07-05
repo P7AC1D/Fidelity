@@ -44,6 +44,7 @@ Material &Material::setDiffuseTexture(const std::shared_ptr<Texture> &diffuseTex
 {
   _diffuseTexture = diffuseTexture;
   _diffuseEnabled = true;
+  invalidateSortingKeys();
   return *this;
 }
 
@@ -51,6 +52,7 @@ Material &Material::setNormalTexture(const std::shared_ptr<Texture> &normalTextu
 {
   _normalTexture = normalTexture;
   _normalEnabled = true;
+  invalidateSortingKeys();
   return *this;
 }
 
@@ -58,6 +60,7 @@ Material &Material::setMetallicTexture(const std::shared_ptr<Texture> &metallicT
 {
   _metallicTexture = metallicTexture;
   _metallicEnabled = true;
+  invalidateSortingKeys();
   return *this;
 }
 
@@ -65,6 +68,7 @@ Material &Material::setRoughnessTexture(const std::shared_ptr<Texture> &roughnes
 {
   _roughnessTexture = roughnessTexture;
   _roughnessEnabled = true;
+  invalidateSortingKeys();
   return *this;
 }
 
@@ -72,6 +76,7 @@ Material &Material::setOcclusionTexture(const std::shared_ptr<Texture> &occlusio
 {
   _occlusionTexture = occlusionTexture;
   _occlusionEnabled = true;
+  invalidateSortingKeys();
   return *this;
 }
 
@@ -79,5 +84,89 @@ Material &Material::setOpacityTexture(const std::shared_ptr<Texture> &opacityTex
 {
   _opacityTexture = opacityTexture;
   _opacityEnabled = true;
+  invalidateSortingKeys();
   return *this;
+}
+
+uint32 Material::getShaderID() const
+{
+  if (_sortingKeysDirty) {
+    updateSortingKeys();
+  }
+  return _cachedShaderID;
+}
+
+uint64 Material::getTextureHash() const
+{
+  if (_sortingKeysDirty) {
+    updateSortingKeys();
+  }
+  return _cachedTextureHash;
+}
+
+void Material::updateSortingKeys() const
+{
+  // Generate shader ID based on enabled texture flags
+  // This represents different shader variants/paths
+  _cachedShaderID = 0;
+  if (_diffuseEnabled) _cachedShaderID |= (1 << 0);
+  if (_normalEnabled) _cachedShaderID |= (1 << 1);
+  if (_metallicEnabled) _cachedShaderID |= (1 << 2);
+  if (_roughnessEnabled) _cachedShaderID |= (1 << 3);
+  if (_occlusionEnabled) _cachedShaderID |= (1 << 4);
+  if (_opacityEnabled) _cachedShaderID |= (1 << 5);
+  
+  // Generate texture hash based on texture pointers
+  // This groups materials with similar texture binding requirements
+  _cachedTextureHash = 0;
+  
+  // Simple hash combination using FNV-1a algorithm
+  const uint64 FNV_OFFSET_BASIS = 14695981039346656037ULL;
+  const uint64 FNV_PRIME = 1099511628211ULL;
+  
+  _cachedTextureHash = FNV_OFFSET_BASIS;
+  
+  // Hash each texture pointer if enabled
+  if (_diffuseEnabled && _diffuseTexture) {
+    uint64 ptr = reinterpret_cast<uint64>(_diffuseTexture.get());
+    _cachedTextureHash ^= ptr;
+    _cachedTextureHash *= FNV_PRIME;
+  }
+  
+  if (_normalEnabled && _normalTexture) {
+    uint64 ptr = reinterpret_cast<uint64>(_normalTexture.get());
+    _cachedTextureHash ^= ptr;
+    _cachedTextureHash *= FNV_PRIME;
+  }
+  
+  if (_metallicEnabled && _metallicTexture) {
+    uint64 ptr = reinterpret_cast<uint64>(_metallicTexture.get());
+    _cachedTextureHash ^= ptr;
+    _cachedTextureHash *= FNV_PRIME;
+  }
+  
+  if (_roughnessEnabled && _roughnessTexture) {
+    uint64 ptr = reinterpret_cast<uint64>(_roughnessTexture.get());
+    _cachedTextureHash ^= ptr;
+    _cachedTextureHash *= FNV_PRIME;
+  }
+  
+  if (_occlusionEnabled && _occlusionTexture) {
+    uint64 ptr = reinterpret_cast<uint64>(_occlusionTexture.get());
+    _cachedTextureHash ^= ptr;
+    _cachedTextureHash *= FNV_PRIME;
+  }
+  
+  if (_opacityEnabled && _opacityTexture) {
+    uint64 ptr = reinterpret_cast<uint64>(_opacityTexture.get());
+    _cachedTextureHash ^= ptr;
+    _cachedTextureHash *= FNV_PRIME;
+  }
+  
+  _sortingKeysDirty = false;
+}
+
+void Material::invalidateSortingKeys()
+{
+  _sortingKeysDirty = true;
 }

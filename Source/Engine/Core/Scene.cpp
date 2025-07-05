@@ -15,6 +15,7 @@
 #include "../Rendering/Drawable.h"
 #include "../Rendering/Material.h"
 #include "../Rendering/Light.h"
+#include "../Rendering/RenderQueue.h"
 #include "../RenderApi/RenderDevice.hpp"
 #include "GameObject.h"
 #include "InputHandler.h"
@@ -47,7 +48,9 @@ Ray buildRayFromMouseCoords(const Vector2I &mouseCoords, const Vector2I &windowD
 
 Scene::Scene(const std::shared_ptr<InputHandler> &inputHandler) : _objectAddedToScene(false),
                                                                   _scenePrepDuration(0),
-                                                                  _inputHandler(inputHandler)
+                                                                  _inputHandler(inputHandler),
+                                                                  _opaqueQueue(std::make_unique<RenderQueue>(QueueType::Opaque)),
+                                                                  _transparentQueue(std::make_unique<RenderQueue>(QueueType::Transparent))
 {
 }
 
@@ -120,8 +123,11 @@ void Scene::drawFrame()
   std::shared_ptr<Camera> camera(std::static_pointer_cast<Camera>(cameraFindIter->second[0]));
   performObjectPicker(*camera.get());
 
-  std::vector<std::shared_ptr<Drawable>>
-      aabbDrawables, allDrawables, opaqueDrawables, transparentDrawables, mousePickedDrawables;
+  // Clear render queues for this frame
+  _opaqueQueue->clear();
+  _transparentQueue->clear();
+
+  std::vector<std::shared_ptr<Drawable>> aabbDrawables, allDrawables;
   for (auto component : drawableFindIter->second)
   {
     auto drawable = std::dynamic_pointer_cast<Drawable>(component);
@@ -131,11 +137,11 @@ void Scene::drawFrame()
     {
       if (drawable->getMaterial()->hasOpacityTexture())
       {
-        transparentDrawables.push_back(drawable);
+        _transparentQueue->add(drawable);
       }
       else
       {
-        opaqueDrawables.push_back(drawable);
+        _opaqueQueue->add(drawable);
       }
     }
 
@@ -147,8 +153,9 @@ void Scene::drawFrame()
     allDrawables.push_back(drawable);
   }
 
-  std::sort(opaqueDrawables.begin(), opaqueDrawables.end(), [&](const std::shared_ptr<Drawable> &a, const std::shared_ptr<Drawable> &b) -> bool
-            { return camera->distanceFrom(a->getPosition()) < camera->distanceFrom(b->getPosition()); });
+  // Sort render queues using multi-level sorting
+  _opaqueQueue->sort(*camera);
+  _transparentQueue->sort(*camera);
 
   std::vector<std::shared_ptr<Light>> lights;
   for (auto component : _components.find(ComponentType::Light)->second)
@@ -161,8 +168,8 @@ void Scene::drawFrame()
   _scenePrepDuration = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
   _renderer->drawFrame(_renderDevice,
                        aabbDrawables,
-                       opaqueDrawables,
-                       transparentDrawables,
+                       _opaqueQueue->getDrawables(),
+                       _transparentQueue->getDrawables(),
                        allDrawables,
                        lights,
                        camera);

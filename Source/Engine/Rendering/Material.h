@@ -54,7 +54,19 @@ public:
   bool occlusionTextureEnabled() const { return _occlusionEnabled; }
   bool opacityTextureEnabled() const { return _opacityEnabled; }
 
+  // Sorting support for RenderQueue
+  uint32 getShaderID() const;      // Unique ID for shader/material variant
+  uint64 getTextureHash() const;   // Combined hash of all textures
+
 private:
+  // Sorting key caching
+  mutable uint32 _cachedShaderID = 0;
+  mutable uint64 _cachedTextureHash = 0;
+  mutable bool _sortingKeysDirty = true;
+  
+  void updateSortingKeys() const;
+  void invalidateSortingKeys();
+
   uint32 _id;
   Colour _diffuseColour;
   float32 _metalness;

@@ -16,6 +16,7 @@ class GameObject;
 class InputHandler;
 class Renderer;
 class RenderDevice;
+class RenderQueue;
 class SceneGraph;
 
 class Scene
@@ -74,6 +75,10 @@ private:
   std::shared_ptr<Renderer> _renderer;
   std::shared_ptr<RenderDevice> _renderDevice;
   std::shared_ptr<InputHandler> _inputHandler;
+  
+  // Render queues for optimized sorting
+  std::unique_ptr<RenderQueue> _opaqueQueue;
+  std::unique_ptr<RenderQueue> _transparentQueue;
 };
 
 template <typename T>
