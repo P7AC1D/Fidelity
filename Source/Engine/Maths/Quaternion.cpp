@@ -167,7 +167,7 @@ Quaternion &Quaternion::operator+=(const Quaternion &rhs)
 {
   W += rhs.W;
   X += rhs.X;
-  Y += rhs.Z;
+  Y += rhs.Y;
   Z += rhs.Z;
   return *this;
 }
@@ -176,7 +176,7 @@ Quaternion &Quaternion::operator-=(const Quaternion &rhs)
 {
   W -= rhs.W;
   X -= rhs.X;
-  Y -= rhs.Z;
+  Y -= rhs.Y;
   Z -= rhs.Z;
   return *this;
 }
@@ -198,7 +198,7 @@ bool Quaternion::operator==(const Quaternion &rhs) const
 
 bool Quaternion::operator!=(const Quaternion &rhs) const
 {
-  return W != rhs.W && X != rhs.X && Y != rhs.Y && Z != rhs.Z;
+  return W != rhs.W || X != rhs.X || Y != rhs.Y || Z != rhs.Z;
 }
 
 float32 Quaternion::Norm() const
