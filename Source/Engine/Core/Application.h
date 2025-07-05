@@ -10,6 +10,7 @@
 #include "../UI/UiManager.hpp"
 #include "Scene.h"
 #include "Maths.h"
+#include "GpuPreference.h"
 
 class Renderer;
 class RenderDevice;

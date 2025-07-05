@@ -397,14 +397,38 @@ bool Application::initialize()
   }
   glfwSetErrorCallback(errorCallback);
 
+  // Enhanced GLFW hints for better GPU selection
   glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);
   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+  
+  // Request forward compatibility for better GPU driver support
+  glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GLFW_TRUE);
+  
+  // Request debug context for better GPU diagnostics
+  #ifdef _DEBUG
+  glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GLFW_TRUE);
+  #endif
+  
+  // Request robust buffer access for better GPU utilization
+  glfwWindowHint(GLFW_CONTEXT_ROBUSTNESS, GLFW_LOSE_CONTEXT_ON_RESET);
+  
+  // Request specific context creation API for better GPU selection
+  glfwWindowHint(GLFW_CONTEXT_CREATION_API, GLFW_NATIVE_CONTEXT_API);
+  
+  // Request double buffering and depth buffer
+  glfwWindowHint(GLFW_DOUBLEBUFFER, GLFW_TRUE);
+  glfwWindowHint(GLFW_DEPTH_BITS, 24);
+  glfwWindowHint(GLFW_STENCIL_BITS, 8);
+  
   // glfwWindowHint(GLFW_COCOA_RETINA_FRAMEBUFFER, GLFW_FALSE);
 
+  std::cout << "Creating OpenGL context with enhanced GPU preferences..." << std::endl;
+  
   _window = glfwCreateWindow(_desc.Width, _desc.Height, _desc.Name.c_str(), nullptr, nullptr);
   if (!_window)
   {
+    std::cerr << "Failed to create GLFW window" << std::endl;
     return false;
   }
 
@@ -422,8 +446,13 @@ bool Application::initialize()
 
   if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
   {
+    std::cerr << "Failed to initialize GLAD" << std::endl;
     return false;
   }
+
+  // Log GPU information now that OpenGL context is available
+  std::cout << "OpenGL context created successfully!" << std::endl;
+  GpuPreference::logGpuInfo();
 
   try
   {
@@ -431,10 +460,12 @@ bool Application::initialize()
     renderDeviceDesc.RenderWidth = fbWidth;
     renderDeviceDesc.RenderHeight = fbHeight;
     _renderDevice.reset(new GLRenderDevice(renderDeviceDesc));
+    
+    std::cout << "Render device initialized successfully." << std::endl;
   }
   catch (const std::exception &exception)
   {
-    std::cerr << "Renderdevice exception thrown. " << exception.what();
+    std::cerr << "Renderdevice exception thrown. " << exception.what() << std::endl;
     return false;
   }
 
