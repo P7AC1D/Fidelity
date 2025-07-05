@@ -68,10 +68,7 @@ bool Frustrum::contains(const Aabb &aabb, const Transform &transform) const
 
 bool Frustrum::isTransformAxisAligned(const Transform &transform) const
 {
-	// For now, assume all transforms are oriented (conservative approach)
-	// This can be optimized later by checking if the rotation is identity
-	// TODO: Add Transform::isAxisAligned() method for better optimization
-	return false;
+	return transform.isAxisAligned();
 }
 
 bool Frustrum::containsAxisAligned(const Aabb &aabb, const Transform &transform) const

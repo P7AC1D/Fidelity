@@ -77,12 +77,6 @@ void UiManager::update(Scene &scene)
 			{
 				ImGui::Text("(%.1f FPS)", ImGui::GetIO().Framerate);
 			}
-
-			if (show_demo_window)
-			{
-				ImGui::SetNextWindowPos(ImVec2(650, 20), ImGuiCond_FirstUseEver);
-				ImGui::ShowDemoWindow(&show_demo_window);
-			}
 		}
 		ImGui::End();
 	}

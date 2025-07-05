@@ -31,6 +31,7 @@ public:
   Vector3 getRight() const { return Vector3::Normalize(Vector3(_transform[0][0], _transform[1][0], _transform[2][0])); }
 
   bool modified() const { return _modified; }
+  bool isAxisAligned() const;
 
   Transform operator*(const Transform &rhs) const;
 

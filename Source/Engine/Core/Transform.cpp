@@ -94,6 +94,18 @@ void Transform::updateTransform()
   _transform = translation * scale * rotation;
 }
 
+bool Transform::isAxisAligned() const
+{
+  // Check if rotation is identity quaternion (no rotation)
+  // Use small epsilon for floating point comparison
+  const float32 epsilon = 0.001f;
+  return (std::abs(_rotation.X) < epsilon && 
+          std::abs(_rotation.Y) < epsilon && 
+          std::abs(_rotation.Z) < epsilon && 
+          std::abs(_rotation.W - 1.0f) < epsilon) ||
+         (_rotation == Quaternion::Identity);
+}
+
 Transform Transform::operator*(const Transform &rhs) const
 {
   Transform result(_transform * rhs._transform);

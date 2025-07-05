@@ -6,6 +6,7 @@
 #include "../Core/Component.h"
 #include "../Core/GameObject.h"
 #include "../Core/Maths.h"
+#include "../Core/Transform.h"
 #include "../Maths/Radian.hpp"
 
 class StaticMesh;
@@ -32,11 +33,14 @@ public:
   Vector3 getPosition() const { return _position; }
   Matrix4 getMatrix() const { return _transform; }
 
+  const Transform &getCachedTransform() const;
+
 private:
   void onUpdate(float32 dt) override;
   void onNotify(const GameObject &gameObject) override;
 
   void updateAabb(Vector3 scalingDelta, Quaternion rotationDelta);
+  void invalidateTransformCache();
 
   std::shared_ptr<StaticMesh> _mesh;
   std::shared_ptr<Material> _material;
@@ -50,6 +54,9 @@ private:
   Quaternion _rotation;
 
   Matrix4 _transform;
+
+  mutable Transform _cachedTransform;
+  mutable bool _transformDirty;
 
   bool _drawAabb;
   bool _modified;

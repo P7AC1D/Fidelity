@@ -14,7 +14,8 @@ Drawable::Drawable() : Component(ComponentType::Drawable),
 											 _modified(true),
 											 _scale(Vector3::Identity),
 											 _position(Vector3::Zero),
-											 _rotation(Quaternion::Zero)
+											 _rotation(Quaternion::Zero),
+											 _transformDirty(true)
 {
 	_currentRotationEuler[0] = Radian(0.0f);
 	_currentRotationEuler[1] = Radian(0.0f);
@@ -222,6 +223,8 @@ void Drawable::onUpdate(float32 dt)
 		Matrix4 rotation = Matrix4::Rotation(_rotation);
 		_transform = translation * scale * rotation;
 
+		invalidateTransformCache();
+
 		_modified = false;
 	}
 }
@@ -233,6 +236,8 @@ void Drawable::onNotify(const GameObject &gameObject)
 	_rotation = transform.getRotation();
 	_position = transform.getPosition();
 	_modified = true;
+	
+	invalidateTransformCache();
 }
 
 void Drawable::updateAabb(Vector3 scalingDelta, Quaternion rotationDelta)
@@ -260,4 +265,19 @@ void Drawable::updateAabb(Vector3 scalingDelta, Quaternion rotationDelta)
 	}
 
 	_currAabb = Aabb(newMax, newMin);
+}
+
+const Transform &Drawable::getCachedTransform() const
+{
+	if (_transformDirty)
+	{
+		_cachedTransform = Transform(getMatrix());
+		_transformDirty = false;
+	}
+	return _cachedTransform;
+}
+
+void Drawable::invalidateTransformCache()
+{
+	_transformDirty = true;
 }

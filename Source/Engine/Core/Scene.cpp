@@ -125,7 +125,9 @@ void Scene::drawFrame()
   for (auto component : drawableFindIter->second)
   {
     auto drawable = std::dynamic_pointer_cast<Drawable>(component);
-    if (camera->contains(drawable->getAabb(), Transform(drawable->getMatrix())))
+    
+    // PERFORMANCE OPTIMIZATION: Use cached transform instead of creating new Transform every frame
+    if (camera->contains(drawable->getAabb(), drawable->getCachedTransform()))
     {
       if (drawable->getMaterial()->hasOpacityTexture())
       {
