@@ -9,6 +9,6 @@ int main()
   applicationDesc.Name = "Test3D";
   applicationDesc.Width = 1920;
   applicationDesc.Height = 1080;
-  Application *sdlApp = new Test3DModern(applicationDesc);
+  Application *sdlApp = new Test3D(applicationDesc);
   return sdlApp->run();
 }

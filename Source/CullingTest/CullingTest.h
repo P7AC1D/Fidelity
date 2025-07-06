@@ -8,10 +8,10 @@
 #include "../Engine/Rendering/LightComponent.h"
 #include "../Engine/Rendering/DrawableComponent.h"
 
-class CullingTestModern : public Application
+class CullingTest : public Application
 {
 public:
-    CullingTestModern(const ApplicationDesc &desc);
+    CullingTest(const ApplicationDesc &desc);
 
     void onStart() override;
     void onUpdate(uint32 dtMs) override;

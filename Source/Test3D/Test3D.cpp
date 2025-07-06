@@ -4,7 +4,7 @@
 #include <random>
 #include <sstream>
 
-Test3DModern::Test3DModern(const ApplicationDesc &desc) 
+Test3D::Test3D(const ApplicationDesc &desc) 
     : Application(desc)
     , _scene(_inputHandler)
     , _camera(nullptr)
@@ -12,7 +12,7 @@ Test3DModern::Test3DModern(const ApplicationDesc &desc)
 {
 }
 
-void Test3DModern::onStart()
+void Test3D::onStart()
 {
     // Initialize the modern scene - for now, pass nullptr for render device
     // The scene will handle renderer creation internally
@@ -134,7 +134,7 @@ void Test3DModern::onStart()
     }
 }
 
-void Test3DModern::onUpdate(uint32 dtMs)
+void Test3D::onUpdate(uint32 dtMs)
 {
     // Update the modern scene
     _scene.update(static_cast<float32>(dtMs) / 1000.0f);
@@ -173,7 +173,7 @@ void Test3DModern::onUpdate(uint32 dtMs)
     _scene.drawFrame();
 }
 
-void Test3DModern::translateCamera(float32 deltaX, float32 deltaY)
+void Test3D::translateCamera(float32 deltaX, float32 deltaY)
 {
     if (!_camera || !_cameraComponent)
         return;
@@ -194,7 +194,7 @@ void Test3DModern::translateCamera(float32 deltaX, float32 deltaY)
     transform->setPosition(currentPos + movement);
 }
 
-void Test3DModern::fpsCameraLook(int32 mouseDeltaX, int32 mouseDeltaY, uint32 dtMs)
+void Test3D::fpsCameraLook(int32 mouseDeltaX, int32 mouseDeltaY, uint32 dtMs)
 {
     if (!_camera)
         return;

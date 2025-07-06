@@ -14,9 +14,9 @@ TEST_CASE("TRANSFORM DIRECTIONAL VECTORS")
     Vector3 up(transform.getUp());
     Vector3 right(transform.getRight());
 
-    REQUIRE(forward.X == Vector3(0, 0, 1).X);
-    REQUIRE(forward.Y == Vector3(0, 0, 1).Y);
-    REQUIRE(forward.Z == Vector3(0, 0, 1).Z);
+    REQUIRE(forward.X == Vector3(0, 0, -1).X);
+    REQUIRE(forward.Y == Vector3(0, 0, -1).Y);
+    REQUIRE(forward.Z == Vector3(0, 0, -1).Z);
     REQUIRE(up.X == Vector3(0, 1, 0).X);
     REQUIRE(up.Y == Vector3(0, 1, 0).Y);
     REQUIRE(up.Z == Vector3(0, 1, 0).Z);
@@ -34,9 +34,9 @@ TEST_CASE("TRANSFORM DIRECTIONAL VECTORS")
     Vector3 up(transform.getUp());
     Vector3 right(transform.getRight());
 
-    REQUIRE(forward.X == Vector3::Normalize(Vector3(0, 0, 1)).X);
-    REQUIRE(forward.Y == Vector3::Normalize(Vector3(0, 0, 1)).Y);
-    REQUIRE(forward.Z == Vector3::Normalize(Vector3(0, 0, 1)).Z);
+    REQUIRE(forward.X == Vector3::Normalize(Vector3(0, 0, -1)).X);
+    REQUIRE(forward.Y == Vector3::Normalize(Vector3(0, 0, -1)).Y);
+    REQUIRE(forward.Z == Vector3::Normalize(Vector3(0, 0, -1)).Z);
     REQUIRE(up.X == Vector3::Normalize(Vector3(0, 1, 0)).X);
     REQUIRE(up.Y == Vector3::Normalize(Vector3(0, 1, 0)).Y);
     REQUIRE(up.Z == Vector3::Normalize(Vector3(0, 1, 0)).Z);

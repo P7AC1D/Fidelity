@@ -5,69 +5,32 @@
 #include "../Engine/Core/GameObject.h"
 #include "../Engine/Core/TransformComponent.h"
 #include "../Engine/Rendering/DrawableComponent.h"
+#include "../Engine/Rendering/StaticMesh.h"
+#include "../Engine/Rendering/Material.h"
 
-// Mock classes for testing
-class MockStaticMesh
+// Helper function to create a StaticMesh with specific bounds
+std::shared_ptr<StaticMesh> createTestMesh(const Aabb& bounds)
 {
-public:
-    MockStaticMesh(const Aabb& bounds) : _bounds(bounds) {}
-    const Aabb& getAabb() const { return _bounds; }
+    auto mesh = std::make_shared<StaticMesh>();
     
-private:
-    Aabb _bounds;
-};
-
-class MockMaterial
-{
-public:
-    MockMaterial() = default;
+    Vector3 min = bounds.getMin();
+    Vector3 max = bounds.getMax();
     
-    // Mock material interface
-    Colour getDiffuseColour() const { return Colour(255, 255, 255); }
-    void setDiffuseColour(const Colour& colour) { _diffuseColour = colour; }
+    // Create a simple cube with 8 vertices
+    std::vector<Vector3> vertices = {
+        {min.X, min.Y, min.Z}, // 0
+        {max.X, min.Y, min.Z}, // 1
+        {max.X, max.Y, min.Z}, // 2
+        {min.X, max.Y, min.Z}, // 3
+        {min.X, min.Y, max.Z}, // 4
+        {max.X, min.Y, max.Z}, // 5
+        {max.X, max.Y, max.Z}, // 6
+        {min.X, max.Y, max.Z}  // 7
+    };
     
-    float32 getMetalness() const { return _metalness; }
-    void setMetalness(float32 value) { _metalness = value; }
-    
-    float32 getRoughness() const { return _roughness; }
-    void setRoughness(float32 value) { _roughness = value; }
-    
-    // Texture methods
-    bool hasDiffuseTexture() const { return false; }
-    bool diffuseTextureEnabled() const { return false; }
-    void enableDiffuseTexture(bool enable) {}
-    
-    bool hasNormalTexture() const { return false; }
-    bool normalTextureEnabled() const { return false; }
-    void enableNormalTexture(bool enable) {}
-    
-    bool hasMetallicTexture() const { return false; }
-    bool metallicTextureEnabled() const { return false; }
-    void enableMetallicTexture(bool enable) {}
-    
-    bool hasRoughnessTexture() const { return false; }
-    bool roughnessTextureEnabled() const { return false; }
-    void enableRoughnessTexture(bool enable) {}
-    
-    bool hasOcclusionTexture() const { return false; }
-    bool occlusionTextureEnabled() const { return false; }
-    void enableOcclusionTexture(bool enable) {}
-    
-    bool hasOpacityTexture() const { return false; }
-    bool opacityTextureEnabled() const { return false; }
-    void enableOppacityTexture(bool enable) {}
-    
-    std::shared_ptr<class Texture> getDiffuseTexture() const { return nullptr; }
-    std::shared_ptr<class Texture> getNormalTexture() const { return nullptr; }
-    std::shared_ptr<class Texture> getMetallicTexture() const { return nullptr; }
-    std::shared_ptr<class Texture> getRoughnessTexture() const { return nullptr; }
-    std::shared_ptr<class Texture> getOpacityTexture() const { return nullptr; }
-    
-private:
-    Colour _diffuseColour = Colour(255, 255, 255);
-    float32 _metalness = 0.0f;
-    float32 _roughness = 0.5f;
-};
+    mesh->setPositionVertexData(vertices);
+    return mesh;
+}
 
 TEST_CASE("DRAWABLE_COMPONENT_TESTS")
 {
@@ -87,14 +50,13 @@ TEST_CASE("DRAWABLE_COMPONENT_TESTS")
         REQUIRE(drawable.getMesh() == nullptr);
         REQUIRE(drawable.getMaterial() == nullptr);
         
-        // Create mock mesh and material
-        Aabb testBounds(Vector3(1.0f, 1.0f, 1.0f), Vector3(-1.0f, -1.0f, -1.0f));
-        auto mockMesh = std::make_shared<MockStaticMesh>(testBounds);
-        auto mockMaterial = std::make_shared<MockMaterial>();
+        // Create real mesh and material objects
+        auto testMesh = std::make_shared<StaticMesh>();
+        auto testMaterial = std::make_shared<Material>();
         
         // Set mesh and material
-        drawable.setMesh(std::reinterpret_pointer_cast<StaticMesh>(mockMesh));
-        drawable.setMaterial(std::reinterpret_pointer_cast<Material>(mockMaterial));
+        drawable.setMesh(testMesh);
+        drawable.setMaterial(testMaterial);
         
         REQUIRE(drawable.getMesh() != nullptr);
         REQUIRE(drawable.getMaterial() != nullptr);
@@ -103,13 +65,10 @@ TEST_CASE("DRAWABLE_COMPONENT_TESTS")
     SECTION("CONSTRUCTOR_WITH_MESH_AND_MATERIAL")
     {
         Aabb testBounds(Vector3(2.0f, 2.0f, 2.0f), Vector3(-2.0f, -2.0f, -2.0f));
-        auto mockMesh = std::make_shared<MockStaticMesh>(testBounds);
-        auto mockMaterial = std::make_shared<MockMaterial>();
+        auto testMesh = createTestMesh(testBounds);
+        auto testMaterial = std::make_shared<Material>();
         
-        DrawableComponent drawable(
-            std::reinterpret_pointer_cast<StaticMesh>(mockMesh),
-            std::reinterpret_pointer_cast<Material>(mockMaterial)
-        );
+        DrawableComponent drawable(testMesh, testMaterial);
         
         REQUIRE(drawable.getMesh() != nullptr);
         REQUIRE(drawable.getMaterial() != nullptr);
@@ -143,22 +102,23 @@ TEST_CASE("DRAWABLE_COMPONENT_TESTS")
     {
         DrawableComponent drawable;
         
-        // Without mesh, bounds should be empty
+        // Without mesh, bounds should be default AABB (center=0, extents=1)
         const Aabb& localBounds = drawable.getLocalBounds();
         const Aabb& worldBounds = drawable.getWorldBounds();
         
-        // Initially both should be empty/default AABBs
-        REQUIRE(localBounds.getMin() == Vector3::Zero);
-        REQUIRE(localBounds.getMax() == Vector3::Zero);
+        // Default AABB has center=(0,0,0), extents=(1,1,1)
+        // So min = center - extents = (-1,-1,-1), max = center + extents = (1,1,1)
+        REQUIRE(localBounds.getMin() == Vector3(-1.0f, -1.0f, -1.0f));
+        REQUIRE(localBounds.getMax() == Vector3(1.0f, 1.0f, 1.0f));
     }
     
     SECTION("BOUNDS_CALCULATION_WITH_MESH")
     {
         Aabb testBounds(Vector3(3.0f, 3.0f, 3.0f), Vector3(-3.0f, -3.0f, -3.0f));
-        auto mockMesh = std::make_shared<MockStaticMesh>(testBounds);
+        auto testMesh = createTestMesh(testBounds);
         
         DrawableComponent drawable;
-        drawable.setMesh(std::reinterpret_pointer_cast<StaticMesh>(mockMesh));
+        drawable.setMesh(testMesh);
         
         const Aabb& localBounds = drawable.getLocalBounds();
         
@@ -175,13 +135,13 @@ TEST_CASE("DRAWABLE_COMPONENT_TESTS")
         auto& transform = gameObject.addComponent<TransformComponent>();
         auto& drawable = gameObject.addComponent<DrawableComponent>();
         
-        // Set up the transform dependency
-        auto transformPtr = gameObject.tryGetComponent<TransformComponent>();
+        // Set up the transform dependency using the same approach as ComponentDependency
+        auto* transformPtr = gameObject.tryGetComponent<TransformComponent>();
         REQUIRE(transformPtr != nullptr);
         
-        // In a real system, this dependency would be automatically resolved
-        // For now, we manually set it for testing
-        drawable.setTransformComponent(std::shared_ptr<TransformComponent>(transformPtr, [](TransformComponent*){}));
+        // Create a shared_ptr that doesn't own the object (since GameObject owns it)
+        auto transformSharedPtr = std::shared_ptr<TransformComponent>(transformPtr, [](TransformComponent*){});
+        drawable.setTransformComponent(transformSharedPtr);
         
         // Test world position access
         transform.setPosition(Vector3(10.0f, 20.0f, 30.0f));
@@ -198,8 +158,8 @@ TEST_CASE("DRAWABLE_COMPONENT_TESTS")
         
         // Create a mesh to set bounds
         Aabb testBounds(Vector3(1.0f, 1.0f, 1.0f), Vector3(-1.0f, -1.0f, -1.0f));
-        auto mockMesh = std::make_shared<MockStaticMesh>(testBounds);
-        drawable.setMesh(std::reinterpret_pointer_cast<StaticMesh>(mockMesh));
+        auto testMesh = createTestMesh(testBounds);
+        drawable.setMesh(testMesh);
         
         // Setting mesh should mark as changed
         REQUIRE(drawable.hasChanged() == true);

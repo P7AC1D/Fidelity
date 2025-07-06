@@ -8,10 +8,10 @@
 #include "../Engine/Rendering/LightComponent.h"
 #include "../Engine/Rendering/DrawableComponent.h"
 
-class Test3DModern : public Application
+class Test3D : public Application
 {
 public:
-    Test3DModern(const ApplicationDesc &desc);
+    Test3D(const ApplicationDesc &desc);
 
     void onStart() override;
     void onUpdate(uint32 dtMs) override;
