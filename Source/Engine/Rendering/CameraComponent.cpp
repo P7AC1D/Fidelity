@@ -275,9 +275,8 @@ void CameraComponent::updateFrustum() const
         updateView();
     }
     
-    // For now, use default frustum constructor
-    // TODO: Implement proper frustum extraction from view-projection matrix
-    _frustum = Frustrum();
+    // Build frustum from this camera
+    _frustum = Frustrum(*this);
     _frustumDirty = false;
 }
 

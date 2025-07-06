@@ -24,6 +24,11 @@ private:
 	bool containsAxisAligned(const Aabb &aabb, const TransformComponent &transform) const;
 	bool containsOriented(const Aabb &aabb, const TransformComponent &transform) const;
 	bool isTransformAxisAligned(const TransformComponent &transform) const;
+	
+	// Frustum plane extraction and testing
+	void extractPlanesFromMatrix(const Matrix4& viewProjMatrix);
+	bool testAABBAgainstPlane(const Vector3& min, const Vector3& max, const Plane& plane) const;
+	Plane createPlaneFromVector4(const Vector4& planeVector) const;
 
 	Plane _left;
 	Plane _right;
