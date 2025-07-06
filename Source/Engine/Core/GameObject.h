@@ -1,70 +1,183 @@
 #pragma once
-#include <functional>
-#include <string>
-#include <list>
-#include <stdexcept>
-#include <vector>
 
-#include "Component.h"
-#include "Transform.h"
+#include <unordered_map>
+#include <memory>
+#include <string>
+#include <vector>
+#include <stdexcept>
+
+#include "IComponent.h"
+#include "ComponentManager.h"
+#include "ComponentTypeId.h"
+#include "TransformComponent.h"
 #include "Types.hpp"
+#include "ComponentDependency.h"
+
+/// Modern GameObject implementation with type-safe component management.
+/// This is the new version that will eventually replace the old GameObject.
+class ComponentDependencyResolver;
 
 class GameObject
 {
+    friend class ComponentDependencyResolver;
+    
 public:
-  GameObject();
-  GameObject(const std::string &name, uint64 index);
+    GameObject(const std::string& name, uint64 index, ComponentManager* componentManager);
+    ~GameObject();
 
-  void update(float32 dt);
-  void drawInspector();
+    /// Add a component of type T with given constructor arguments.
+    template<typename T, typename... Args>
+    T& addComponent(Args&&... args);
 
-  GameObject &addComponent(Component &component);
-  GameObject &addChildNode(GameObject &gameObject);
-  template <typename T>
-  T &getComponent();
-  template <typename T>
-  bool hasComponent();
+    /// Get a component of type T. Throws if not found.
+    template<typename T>
+    T& getComponent();
 
-  Transform &transform() { return _localTransform; }
-  const Transform &getLocalTransform() const { return _localTransform; }
-  const Transform &getGlobalTransform() const { return _globalTransform; }
+    /// Get a component of type T. Returns nullptr if not found.
+    template<typename T>
+    T* tryGetComponent();
 
-  std::string getName() const { return _name; }
+    /// Check if this GameObject has a component of type T.
+    template<typename T>
+    bool hasComponent() const;
 
-  uint64 getIndex() const { return _index; }
+    /// Remove a component of type T.
+    template<typename T>
+    bool removeComponent();
 
-protected:
-  Transform _localTransform, _globalTransform;
-  GameObject *_parent;
-  std::string _name;
-  uint64 _index;
+    /// Add a child GameObject.
+    GameObject& addChild(std::unique_ptr<GameObject> child);
+
+    /// Get the transform component (always present).
+    TransformComponent& transform() { return *_transform; }
+    const TransformComponent& transform() const { return *_transform; }
+
+    /// Update this GameObject and all its children.
+    void update(float32 dt);
+
+    /// Draw inspector UI for this GameObject.
+    void drawInspector();
+
+    /// Getters
+    const std::string& getName() const { return _name; }
+    uint64 getIndex() const { return _index; }
+    GameObject* getParent() const { return _parent; }
+    const std::vector<std::unique_ptr<GameObject>>& getChildren() const { return _children; }
+
+    /// Activate/deactivate this GameObject.
+    void setActive(bool active);
+    bool isActive() const { return _active; }
 
 private:
-  void updateChildNodeTransforms(float32 dt);
-  void notifyComponents() const;
+    std::string _name;
+    uint64 _index;
+    bool _active = true;
 
-  std::list<Component *> _components;
-  std::list<GameObject *> _childNodes;
+    GameObject* _parent = nullptr;
+    std::vector<std::unique_ptr<GameObject>> _children;
+
+    ComponentManager* _componentManager;
+    std::unordered_map<ComponentTypeId, std::unique_ptr<IComponent>> _components;
+
+    // Transform is always present
+    TransformComponent* _transform;
+
+    void onActivated();
+    void onDeactivated();
 };
 
-template <typename T>
-T &GameObject::getComponent()
+// Template implementations
+template<typename T, typename... Args>
+T& GameObject::addComponent(Args&&... args)
 {
-  auto iter = std::find_if(_components.begin(), _components.end(), [](Component *c)
-                           { return dynamic_cast<T *>(c) != nullptr; });
+    static_assert(std::is_base_of_v<IComponent, T>, "T must derive from IComponent");
 
-  if (iter == _components.end())
-  {
-    throw std::runtime_error("Component type does not exist.");
-  }
+    ComponentTypeId typeId = getComponentTypeId<T>();
 
-  return *dynamic_cast<T *>(*iter);
+    // Check if component already exists
+    if (_components.find(typeId) != _components.end())
+    {
+        throw std::runtime_error("Component of this type already exists on GameObject");
+    }
+
+    // Create the component
+    auto component = _componentManager->createComponent<T>(std::forward<Args>(args)...);
+    T* componentPtr = component.get();
+
+    // Store it
+    _components[typeId] = std::move(component);
+
+    // Activate if GameObject is active
+    if (_active)
+    {
+        componentPtr->activate();
+    }
+
+    // Resolve dependencies automatically
+    ComponentDependencyResolver::resolveDependencies(*this);
+
+    return *componentPtr;
 }
 
-template <typename T>
-bool GameObject::hasComponent()
+template<typename T>
+T& GameObject::getComponent()
 {
-  auto iter = std::find_if(_components.begin(), _components.end(), [](Component *c)
-                           { return dynamic_cast<T *>(c) != nullptr; });
-  return iter != _components.end();
+    static_assert(std::is_base_of_v<IComponent, T>, "T must derive from IComponent");
+
+    ComponentTypeId typeId = getComponentTypeId<T>();
+    auto it = _components.find(typeId);
+
+    if (it == _components.end())
+    {
+        throw std::runtime_error("Component of this type does not exist on GameObject");
+    }
+
+    return static_cast<T&>(*it->second);
+}
+
+template<typename T>
+T* GameObject::tryGetComponent()
+{
+    static_assert(std::is_base_of_v<IComponent, T>, "T must derive from IComponent");
+
+    ComponentTypeId typeId = getComponentTypeId<T>();
+    auto it = _components.find(typeId);
+
+    if (it == _components.end())
+    {
+        return nullptr;
+    }
+
+    return static_cast<T*>(it->second.get());
+}
+
+template<typename T>
+bool GameObject::hasComponent() const
+{
+    static_assert(std::is_base_of_v<IComponent, T>, "T must derive from IComponent");
+
+    ComponentTypeId typeId = getComponentTypeId<T>();
+    return _components.find(typeId) != _components.end();
+}
+
+template<typename T>
+bool GameObject::removeComponent()
+{
+    static_assert(std::is_base_of_v<IComponent, T>, "T must derive from IComponent");
+
+    ComponentTypeId typeId = getComponentTypeId<T>();
+    auto it = _components.find(typeId);
+
+    if (it == _components.end())
+    {
+        return false;
+    }
+
+    // Deactivate before removal
+    it->second->deactivate();
+
+    // Remove from storage
+    _components.erase(it);
+
+    return true;
 }

@@ -9,6 +9,6 @@ int main()
   applicationDesc.Name = "CullingTest";
   applicationDesc.Width = 1920;
   applicationDesc.Height = 1080;
-  Application *sdlApp = new CullingTest(applicationDesc);
+  Application *sdlApp = new CullingTestModern(applicationDesc);
   return sdlApp->run();
 }

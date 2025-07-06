@@ -24,13 +24,11 @@ static std::mt19937 g_ssaoGenerator(0);
 #include "../UI/ImGui/imgui.h"
 #include "../Utility/Assert.hpp"
 #include "../Utility/String.hpp"
-#include "Camera.h"
-#include "Drawable.h"
+#include "CameraComponent.h"
+#include "DrawableComponent.h"
+#include "LightComponent.h"
 #include "Material.h"
-#include "Light.h"
 #include "StaticMesh.h"
-#include "ShadowFrustum.h"
-#include "RenderQueue.h"
 
 const static uint32 RANDOM_ROTATION_TEXTURE_SIZE = 64;
 const static uint32 SSAO_NOISE_TEXTURE_SIZE = 4;
@@ -555,15 +553,14 @@ void Renderer::initConstantBuffers(const std::shared_ptr<RenderDevice> &renderDe
 }
 
 void Renderer::drawFrame(const std::shared_ptr<RenderDevice> &renderDevice,
-                         const std::vector<std::shared_ptr<Drawable>> &allDrawables,
-                         const std::vector<std::shared_ptr<Light>> &lights,
-                         const std::shared_ptr<Camera> &camera)
+                         const std::vector<std::shared_ptr<DrawableComponent>> &allDrawables,
+                         const std::vector<std::shared_ptr<LightComponent>> &lights,
+                         const std::shared_ptr<CameraComponent> &camera)
 {
-  // TODO: Need to improve this as we only support one direction light.
-  std::shared_ptr<Light> directionalLight;
+  std::shared_ptr<LightComponent> directionalLight;
   for (const auto &light : lights)
   {
-    if (light->getLightType() == LightType::Directional)
+    if (light->getLightType() == LightComponentType::Directional)
     {
       directionalLight = light;
       break;
@@ -575,7 +572,7 @@ void Renderer::drawFrame(const std::shared_ptr<RenderDevice> &renderDevice,
   }
 
   // Perform frustum culling and object categorization
-  std::vector<std::shared_ptr<Drawable>> opaqueDrawables, transparentDrawables, aabbDrawables;
+  std::vector<std::shared_ptr<DrawableComponent>> opaqueDrawables, transparentDrawables, aabbDrawables;
   performFrustumCulling(allDrawables, camera, opaqueDrawables, transparentDrawables, aabbDrawables);
 
   writePerFrameConstantData(camera, directionalLight, lights);
@@ -1297,9 +1294,9 @@ void Renderer::initDebugPass(const std::shared_ptr<RenderDevice> &renderDevice)
 }
 
 void Renderer::directionalLightDepthPass(const std::shared_ptr<RenderDevice> &renderDevice,
-                                         const std::vector<std::shared_ptr<Drawable>> &drawables,
-                                         const std::shared_ptr<Light> &directionalLight,
-                                         const std::shared_ptr<Camera> &camera)
+                                         const std::vector<std::shared_ptr<DrawableComponent>> &drawables,
+                                         const std::shared_ptr<LightComponent> &directionalLight,
+                                         const std::shared_ptr<CameraComponent> &camera)
 {
   if (_shadowResolutionChanged)
   {
@@ -1314,8 +1311,8 @@ void Renderer::directionalLightDepthPass(const std::shared_ptr<RenderDevice> &re
   _shadowFrustum->buildExtendedCameraFrustum(*camera, _maxCascadeDistance);
   
   // Perform shadow culling
-  std::vector<std::shared_ptr<Drawable>> broadPhaseCulled = _shadowFrustum->broadPhaseCull(drawables);
-  std::vector<std::shared_ptr<Drawable>> shadowCasters = _shadowFrustum->shadowRelevanceFilter(broadPhaseCulled);
+  std::vector<std::shared_ptr<DrawableComponent>> broadPhaseCulled = _shadowFrustum->broadPhaseCull(drawables);
+  std::vector<std::shared_ptr<DrawableComponent>> shadowCasters = _shadowFrustum->shadowRelevanceFilter(broadPhaseCulled);
   
   // Setup shadow queue and sort for optimal rendering
   _shadowQueue->clear();
@@ -1347,8 +1344,8 @@ void Renderer::directionalLightDepthPass(const std::shared_ptr<RenderDevice> &re
 }
 
 void Renderer::gbufferPass(std::shared_ptr<RenderDevice> renderDevice,
-                           const std::vector<std::shared_ptr<Drawable>> &drawables,
-                           const std::shared_ptr<Camera> &camera)
+                           const std::vector<std::shared_ptr<DrawableComponent>> &drawables,
+                           const std::shared_ptr<CameraComponent> &camera)
 {
   std::chrono::time_point start = std::chrono::high_resolution_clock::now();
 
@@ -1399,8 +1396,8 @@ void Renderer::gbufferPass(std::shared_ptr<RenderDevice> renderDevice,
 }
 
 void Renderer::transparencyPass(const std::shared_ptr<RenderDevice> &renderDevice,
-                                const std::vector<std::shared_ptr<Drawable>> &transparentDrawables,
-                                const std::shared_ptr<Camera> &camera)
+                                const std::vector<std::shared_ptr<DrawableComponent>> &transparentDrawables,
+                                const std::shared_ptr<CameraComponent> &camera)
 {
   std::chrono::time_point start = std::chrono::high_resolution_clock::now();
 
@@ -1451,7 +1448,7 @@ void Renderer::transparencyPass(const std::shared_ptr<RenderDevice> &renderDevic
 
 
 void Renderer::ssaoPass(const std::shared_ptr<RenderDevice> &renderDevice,
-                        const std::shared_ptr<Camera> &camera)
+                        const std::shared_ptr<CameraComponent> &camera)
 {
   std::chrono::time_point start = std::chrono::high_resolution_clock::now();
 
@@ -1485,8 +1482,8 @@ void Renderer::ssaoPass(const std::shared_ptr<RenderDevice> &renderDevice,
 }
 
 void Renderer::lightingPass(const std::shared_ptr<RenderDevice> &renderDevice,
-                            const std::vector<std::shared_ptr<Light>> &lights,
-                            const std::shared_ptr<Camera> &camera)
+                            const std::vector<std::shared_ptr<LightComponent>> &lights,
+                            const std::shared_ptr<CameraComponent> &camera)
 {
   std::chrono::time_point start = std::chrono::high_resolution_clock::now();
 
@@ -1599,8 +1596,8 @@ void Renderer::toneMappingPass(const std::shared_ptr<RenderDevice> &renderDevice
 }
 
 void Renderer::debugPass(const std::shared_ptr<RenderDevice> &renderDevice,
-                         const std::vector<std::shared_ptr<Drawable>> &aabbDrawables,
-                         const std::shared_ptr<Camera> &camera)
+                         const std::vector<std::shared_ptr<DrawableComponent>> &aabbDrawables,
+                         const std::shared_ptr<CameraComponent> &camera)
 {
   switch (_debugDisplayType)
   {
@@ -1676,9 +1673,9 @@ void Renderer::debugPass(const std::shared_ptr<RenderDevice> &renderDevice,
 }
 
 void Renderer::drawDrawable(const std::shared_ptr<RenderDevice> &renderDevice,
-                            const std::shared_ptr<Drawable> &drawable,
+                            const std::shared_ptr<DrawableComponent> &drawable,
                             const std::shared_ptr<Material> &material,
-                            const std::shared_ptr<Camera> &camera)
+                            const std::shared_ptr<CameraComponent> &camera)
 {
   writePerObjectConstantData(drawable, material, camera);
 
@@ -1699,8 +1696,8 @@ void Renderer::drawDrawable(const std::shared_ptr<RenderDevice> &renderDevice,
 }
 
 void Renderer::drawAabb(const std::shared_ptr<RenderDevice> &renderDevice,
-                        const std::vector<std::shared_ptr<Drawable>> &aabbDrawables,
-                        const std::shared_ptr<Camera> &camera)
+                        const std::vector<std::shared_ptr<DrawableComponent>> &aabbDrawables,
+                        const std::shared_ptr<CameraComponent> &camera)
 {
   _gBufferRto->copy(nullptr);
 
@@ -1710,7 +1707,7 @@ void Renderer::drawAabb(const std::shared_ptr<RenderDevice> &renderDevice,
     auto &aabb = drawable->getAabb();
 
     PerObjectBufferData objectBufferData;
-    objectBufferData.Model = Matrix4::Translation(drawable->getPosition()) * Matrix4::Scaling(aabb.getExtents());
+    objectBufferData.Model = Matrix4::Translation(drawable->getWorldPosition()) * Matrix4::Scaling(aabb.getExtents());
     objectBufferData.ModelView = camera->getView() * objectBufferData.Model;
     objectBufferData.ModelViewProjection = camera->getProj() * objectBufferData.ModelView;
     _perObjectBuffer->writeData(0, sizeof(PerObjectBufferData), &objectBufferData, AccessType::WriteOnlyDiscard);
@@ -1723,7 +1720,7 @@ void Renderer::drawAabb(const std::shared_ptr<RenderDevice> &renderDevice,
 
 void Renderer::drawDebugRenderTarget(std::shared_ptr<RenderDevice> renderDevice,
                                      std::shared_ptr<Texture> renderTarget,
-                                     const std::shared_ptr<Camera> &camera,
+                                     const std::shared_ptr<CameraComponent> &camera,
                                      bool singleChannel,
                                      bool orthographicDepth)
 {
@@ -1779,7 +1776,7 @@ void Renderer::drawDebugRenderTarget(std::shared_ptr<RenderDevice> renderDevice,
   renderDevice->draw(6, 0);
 }
 
-std::vector<Matrix4> Renderer::calculateCameraCascadeProjections(const std::shared_ptr<Camera> &camera) const
+std::vector<Matrix4> Renderer::calculateCameraCascadeProjections(const std::shared_ptr<CameraComponent> &camera) const
 {
   Radian fov = camera->getFov();
   float32 aspect = camera->getAspectRatio();
@@ -1819,7 +1816,7 @@ std::vector<float32> Renderer::calculateCascadeLevels(float32 nearClip, float32 
   return cascadeSplits;
 }
 
-std::vector<Matrix4> Renderer::calculateCascadeLightTransforms(const std::shared_ptr<Camera> &camera, const std::shared_ptr<Light> &directionalLight) const
+std::vector<Matrix4> Renderer::calculateCascadeLightTransforms(const std::shared_ptr<CameraComponent> &camera, const std::shared_ptr<LightComponent> &directionalLight) const
 {
   std::vector<Matrix4> results;
   std::vector<Matrix4> projections = calculateCameraCascadeProjections(camera);
@@ -1875,12 +1872,12 @@ void Renderer::createDirectionalLightShadowDepthMap(const std::shared_ptr<Render
   _shadowResolutionChanged = false;
 }
 
-void Renderer::writePerObjectConstantData(const std::shared_ptr<Drawable> &drawable,
+void Renderer::writePerObjectConstantData(const std::shared_ptr<DrawableComponent> &drawable,
                                           const std::shared_ptr<Material> &material,
-                                          const std::shared_ptr<Camera> &camera) const
+                                          const std::shared_ptr<CameraComponent> &camera) const
 {
   PerObjectBufferData perObjectBufferData{};
-  perObjectBufferData.Model = drawable->getMatrix();
+  perObjectBufferData.Model = drawable->getWorldMatrix();
   perObjectBufferData.ModelView = camera->getView() * perObjectBufferData.Model;
   perObjectBufferData.ModelViewProjection = camera->getProj() * perObjectBufferData.ModelView;
   perObjectBufferData.DiffuseColour = material->getDiffuseColour();
@@ -1896,9 +1893,9 @@ void Renderer::writePerObjectConstantData(const std::shared_ptr<Drawable> &drawa
   _perObjectBuffer->writeData(0, sizeof(PerObjectBufferData), &perObjectBufferData, AccessType::WriteOnlyDiscard);
 }
 
-void Renderer::writePerFrameConstantData(const std::shared_ptr<Camera> &camera,
-                                         const std::shared_ptr<Light> &directionalLight,
-                                         const std::vector<std::shared_ptr<Light>> &lights) const
+void Renderer::writePerFrameConstantData(const std::shared_ptr<CameraComponent> &camera,
+                                         const std::shared_ptr<LightComponent> &directionalLight,
+                                         const std::vector<std::shared_ptr<LightComponent>> &lights) const
 {
   // Creating this on the heap as I was exceeding stack size.
   PerFrameBufferData *perFrameBufferData = new PerFrameBufferData();
@@ -1925,7 +1922,8 @@ void Renderer::writePerFrameConstantData(const std::shared_ptr<Camera> &camera,
   perFrameBufferData->Proj = camera->getProj();
   perFrameBufferData->ProjInv = perFrameBufferData->Proj.Inverse();
   perFrameBufferData->ProjViewInv = (perFrameBufferData->Proj * perFrameBufferData->View).Inverse();
-  perFrameBufferData->ViewPosition = camera->getParentTransform().getPosition();  perFrameBufferData->Exposure = _exposure;
+  perFrameBufferData->ViewPosition = camera->getWorldPosition();
+  perFrameBufferData->Exposure = _exposure;
   perFrameBufferData->ToneMappingEnabled = _toneMappingEnabled;
   perFrameBufferData->BloomStrength = _bloomStrength;
   perFrameBufferData->BloomThreshold = _bloomThreshold;
@@ -1936,7 +1934,7 @@ void Renderer::writePerFrameConstantData(const std::shared_ptr<Camera> &camera,
   {
     const auto &light = lights[i];
     // TODO: Need to improve this as we only support one direction light.
-    if (light->getLightType() != LightType::Directional)
+    if (light->getLightType() != LightComponentType::Directional)
     {
       LightData lightData;
       lightData.Colour = light->getColour().ToVec3();
@@ -1954,7 +1952,7 @@ void Renderer::writePerFrameConstantData(const std::shared_ptr<Camera> &camera,
 }
 
 void Renderer::writeSsaoConstantData(const std::shared_ptr<RenderDevice> &renderDevice,
-                                     const std::shared_ptr<Camera> &camera) const
+                                     const std::shared_ptr<CameraComponent> &camera) const
 {
   // reset RNG to ensure identical sample kernel each update
   g_ssaoGenerator.seed(0);
@@ -2008,25 +2006,30 @@ void Renderer::writePointLightConstantData(uint32 lightIndex, const Vector3& pos
   _pointLightBuffer->writeData(0, sizeof(PointLightBufferData), &pointLightBufferData, AccessType::WriteOnlyDiscard);
 }
 
-void Renderer::performFrustumCulling(const std::vector<std::shared_ptr<Drawable>>& allDrawables,
-                                     const std::shared_ptr<Camera>& camera,
-                                     std::vector<std::shared_ptr<Drawable>>& opaqueDrawables,
-                                     std::vector<std::shared_ptr<Drawable>>& transparentDrawables,
-                                     std::vector<std::shared_ptr<Drawable>>& aabbDrawables)
+void Renderer::performFrustumCulling(const std::vector<std::shared_ptr<DrawableComponent>>& allDrawables,
+                                     const std::shared_ptr<CameraComponent>& camera,
+                                     std::vector<std::shared_ptr<DrawableComponent>>& opaqueDrawables,
+                                     std::vector<std::shared_ptr<DrawableComponent>>& transparentDrawables,
+                                     std::vector<std::shared_ptr<DrawableComponent>>& aabbDrawables)
 {
-  // Clear render queues for this frame
-  _opaqueQueue->clear();
-  _transparentQueue->clear();
-
-  // Clear output vectors
-  opaqueDrawables.clear();
-  transparentDrawables.clear();
-  aabbDrawables.clear();
+   opaqueDrawables.clear();
+   transparentDrawables.clear();
+   aabbDrawables.clear();
 
   for (const auto& drawable : allDrawables)
   {
     // PERFORMANCE OPTIMIZATION: Use cached transform instead of creating new Transform every frame
-    if (camera->contains(drawable->getAabb(), drawable->getCachedTransform()))
+    if (camera->contains(drawable->getAabb(), drawable->getCachedTransform().getWorldMatrix()))
+    {
+      // If the drawable is not visible, skip it
+      if (!drawable->isVisible())
+        continue;
+    }
+    else
+    {
+      // If the drawable is not in the camera's frustum, skip it
+      continue;
+    }
     {
       if (drawable->getMaterial()->hasOpacityTexture())
       {
@@ -2056,9 +2059,9 @@ void Renderer::performFrustumCulling(const std::vector<std::shared_ptr<Drawable>
 }
 
 void Renderer::pointLightDepthPass(const std::shared_ptr<RenderDevice>& renderDevice,
-                                   const std::vector<std::shared_ptr<Drawable>>& drawables,
-                                   const std::vector<std::shared_ptr<Light>>& lights,
-                                   const std::shared_ptr<Camera>& camera)
+                                   const std::vector<std::shared_ptr<DrawableComponent>> &drawables,
+                                   const std::vector<std::shared_ptr<LightComponent>> &lights,
+                                   const std::shared_ptr<CameraComponent> &camera)
 {
     ViewportDesc viewportDesc;
     viewportDesc.Height = _pointLightShadowMapResolution;
@@ -2079,7 +2082,7 @@ void Renderer::pointLightDepthPass(const std::shared_ptr<RenderDevice>& renderDe
         break;
       }
 
-      if (light->getLightType() != LightType::Point)
+      if (light->getLightType() != LightComponentType::Point)
           continue;
 
         // Compute six 90° view-proj matrices for this point light

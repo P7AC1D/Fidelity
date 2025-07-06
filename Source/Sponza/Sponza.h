@@ -1,15 +1,36 @@
 #pragma once
 #include <memory>
+#include <vector>
 
 #include "../Engine/Core/Fidelity.h"
+#include "../Engine/Core/GameObject.h"
 
-class GameObject;
+class CameraComponent;
+class LightComponent;
 
-class Sponza : public Application
+class SponzaModern : public Application
 {
 public:
-  Sponza(const ApplicationDesc &desc);
+    SponzaModern(const ApplicationDesc &desc);
 
-  void onStart() override;
-  void onUpdate(uint32 dtMs) override;
+    void onStart() override;
+    void onUpdate(uint32 dtMs) override;
+
+private:
+    // Camera references for easy access
+    CameraComponent* _cameraComponent = nullptr;
+
+    // Helper methods
+    void createCamera();
+    void createLights();
+    void loadSponzaModel();
+    
+    // Camera movement (modernized)
+    void translateCamera(float32 deltaX, float32 deltaY);
+    void fpsCameraLook(float32 deltaX, float32 deltaY, uint32 dtMs);
+    
+    // Constants
+    static constexpr float32 CAMERA_MOVE_FACTOR = 0.1f;
+    static constexpr float32 CAMERA_MOVE_SPRINT_FACTOR = 0.5f;
+    static constexpr float32 CAMERA_LOOK_SENSITIVITY = 0.1f;
 };

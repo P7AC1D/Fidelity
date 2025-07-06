@@ -3,8 +3,8 @@
 #include <memory>
 #include <functional>
 
-class Drawable;
-class Camera;
+class CameraComponent;
+class DrawableComponent;
 
 enum class QueueType {
     Opaque,      // Front-to-back after material sorting
@@ -18,11 +18,11 @@ public:
     
     // Queue management
     void clear();
-    void add(std::shared_ptr<Drawable> drawable);
-    void sort(const Camera& camera);
+    void add(std::shared_ptr<DrawableComponent> drawable);
+    void sort(const CameraComponent& camera);
     
     // Access
-    const std::vector<std::shared_ptr<Drawable>>& getDrawables() const { return _drawables; }
+    const std::vector<std::shared_ptr<DrawableComponent>>& getDrawables() const { return _drawables; }
     size_t size() const { return _drawables.size(); }
     bool empty() const { return _drawables.empty(); }
     
@@ -32,16 +32,16 @@ public:
 
 private:
     QueueType _type;
-    std::vector<std::shared_ptr<Drawable>> _drawables;
+    std::vector<std::shared_ptr<DrawableComponent>> _drawables;
     
     // Sorting functions
-    bool compareOpaque(const std::shared_ptr<Drawable>& a, 
-                      const std::shared_ptr<Drawable>& b, 
-                      const Camera& camera) const;
-    bool compareTransparent(const std::shared_ptr<Drawable>& a, 
-                           const std::shared_ptr<Drawable>& b, 
-                           const Camera& camera) const;
-    bool compareShadow(const std::shared_ptr<Drawable>& a, 
-                      const std::shared_ptr<Drawable>& b, 
-                      const Camera& camera) const;
+    bool compareOpaque(const std::shared_ptr<DrawableComponent>& a, 
+                       const std::shared_ptr<DrawableComponent>& b, 
+                       const CameraComponent& camera) const;
+    bool compareTransparent(const std::shared_ptr<DrawableComponent>& a, 
+                            const std::shared_ptr<DrawableComponent>& b, 
+                            const CameraComponent& camera) const;
+    bool compareShadow(const std::shared_ptr<DrawableComponent>& a, 
+                       const std::shared_ptr<DrawableComponent>& b, 
+                       const CameraComponent& camera) const;
 };

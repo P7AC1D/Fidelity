@@ -2,39 +2,39 @@
 
 #include "../Engine/Maths/Frustrum.hpp"
 #include "../Engine/Maths/AABB.hpp"
-#include "../Engine/Rendering/Camera.h"
-#include "../Engine/Core/Transform.h"
+#include "../Engine/Rendering/CameraComponent.h"
+#include "../Engine/Core/TransformComponent.h"
 #include "../Engine/Core/GameObject.h"
 
 // Helper class to create a properly initialized camera for testing
 class TestCameraHelper
 {
 public:
-    static Camera createCameraWithGameObject(const Vector3& position = Vector3::Zero, 
+    static CameraComponent createCameraWithGameObject(const Vector3& position = Vector3::Zero, 
                                             const Quaternion& rotation = Quaternion::Identity)
     {
         // Create a GameObject and set its transform
-        GameObject* gameObject = new GameObject("TestCamera", 0);
+        GameObject* gameObject = new GameObject("TestCamera", 0, nullptr);
         gameObject->transform().setPosition(position);
         gameObject->transform().setRotation(rotation);
         
         // Create camera and add it as a component
-        Camera camera;
+        CameraComponent camera;
         camera.setPerspective(Degree(60.0f), 1280, 768, 0.1f, 100.0f);
         
         // Add camera to the game object (this will trigger the notification)
-        gameObject->addComponent(camera);
+        gameObject->addComponent<CameraComponent>(camera);
         
         // Update the game object to trigger component updates
         gameObject->update(0.0f);
         
         // Get the camera back from the game object
-        Camera& updatedCamera = gameObject->getComponent<Camera>();
+        CameraComponent& updatedCamera = gameObject->getComponent<CameraComponent>();
         
         return updatedCamera;
     }
     
-    // Alternative approach: Test Frustum directly without Camera
+    // Alternative approach: Test Frustum directly without CameraComponent
     static Frustrum createFrustumDirect(const Vector3& cameraPos = Vector3::Zero,
                                        const Quaternion& cameraRot = Quaternion::Identity,
                                        float32 fov = 60.0f,
@@ -43,7 +43,7 @@ public:
                                        float32 farPlane = 100.0f)
     {
         // Create a minimal camera setup for frustum construction
-        Camera camera;
+        CameraComponent camera;
         camera.setPerspective(Degree(fov), 1280, 768, nearPlane, farPlane);
         
         // We'll need to manually construct the frustum since we can't easily set camera transform
@@ -56,7 +56,7 @@ TEST_CASE("FRUSTUM CONSTRUCTION")
 {
     SECTION("BASIC FRUSTUM CREATION")
     {
-        Camera camera;
+        CameraComponent camera;
         camera.setPerspective(Degree(60.0f), 1280, 768, 0.1f, 100.0f);
         
         // Create frustum directly from camera
@@ -71,13 +71,13 @@ TEST_CASE("FRUSTUM CULLING - DIRECT TESTING")
 {
     SECTION("AXIS-ALIGNED OBJECT AT ORIGIN")
     {
-        Camera camera;
+        CameraComponent camera;
         camera.setPerspective(Degree(60.0f), 1280, 768, 0.1f, 100.0f);
         Frustrum frustum(camera);
         
         // Create an AABB at origin
         Aabb aabb(Vector3::Zero, 1.0f, 1.0f, 1.0f);
-        Transform transform;
+        TransformComponent transform;
         transform.setPosition(Vector3::Zero);
         transform.setRotation(Quaternion::Identity);
         
@@ -91,20 +91,20 @@ TEST_CASE("FRUSTUM CULLING - DIRECT TESTING")
     
     SECTION("AXIS-ALIGNED VS ORIENTED OBJECTS")
     {
-        Camera camera;
+        CameraComponent camera;
         camera.setPerspective(Degree(60.0f), 1280, 768, 0.1f, 100.0f);
         Frustrum frustum(camera);
         
         // Test axis-aligned object
         Aabb aabb(Vector3::Zero, 1.0f, 1.0f, 1.0f);
-        Transform axisAlignedTransform;
+        TransformComponent axisAlignedTransform;
         axisAlignedTransform.setPosition(Vector3(0.0f, 0.0f, -5.0f));
         axisAlignedTransform.setRotation(Quaternion::Identity); // No rotation
         
         bool axisAlignedResult = frustum.contains(aabb, axisAlignedTransform);
         
         // Test oriented object
-        Transform orientedTransform;
+        TransformComponent orientedTransform;
         orientedTransform.setPosition(Vector3(0.0f, 0.0f, -5.0f));
         orientedTransform.setRotation(Quaternion(Vector3(0.0f, 1.0f, 0.0f), Radian(Degree(45.0f))));
         
@@ -120,26 +120,26 @@ TEST_CASE("CAMERA CULLING - INTEGRATION TESTS")
 {
     SECTION("CAMERA CONTAINS METHOD")
     {
-        Camera camera;
+        CameraComponent camera;
         camera.setPerspective(Degree(60.0f), 1280, 768, 0.1f, 100.0f);
         
         // Test various object positions
         Aabb aabb(Vector3::Zero, 1.0f, 1.0f, 1.0f);
         
         // Test object in front
-        Transform frontTransform;
+        TransformComponent frontTransform;
         frontTransform.setPosition(Vector3(0.0f, 0.0f, -5.0f));
-        bool frontResult = camera.contains(aabb, frontTransform);
+        bool frontResult = camera.contains(aabb, frontTransform.getWorldMatrix());
         
         // Test object behind
-        Transform behindTransform;
+        TransformComponent behindTransform;
         behindTransform.setPosition(Vector3(0.0f, 0.0f, 5.0f));
-        bool behindResult = camera.contains(aabb, behindTransform);
+        bool behindResult = camera.contains(aabb, behindTransform.getWorldMatrix());
         
         // Test object to the side
-        Transform sideTransform;
+        TransformComponent sideTransform;
         sideTransform.setPosition(Vector3(50.0f, 0.0f, -5.0f));
-        bool sideResult = camera.contains(aabb, sideTransform);
+        bool sideResult = camera.contains(aabb, sideTransform.getWorldMatrix());
         
         // All should return valid boolean results
         REQUIRE((frontResult == true || frontResult == false));
@@ -155,7 +155,7 @@ TEST_CASE("CAMERA CULLING - INTEGRATION TESTS")
     
     SECTION("CAMERA PARAMETER CHANGES")
     {
-        Camera camera;
+        CameraComponent camera;
         camera.setPerspective(Degree(60.0f), 1280, 768, 0.1f, 100.0f);
         
         // Test with different FOV
@@ -166,10 +166,10 @@ TEST_CASE("CAMERA CULLING - INTEGRATION TESTS")
         camera.setFar(50.0f);
         
         Aabb aabb(Vector3::Zero, 1.0f, 1.0f, 1.0f);
-        Transform transform;
+        TransformComponent transform;
         transform.setPosition(Vector3(0.0f, 0.0f, -5.0f));
         
-        bool result = camera.contains(aabb, transform);
+        bool result = camera.contains(aabb, transform.getWorldMatrix());
         REQUIRE((result == true || result == false));
     }
 }
@@ -178,26 +178,26 @@ TEST_CASE("TRANSFORM OPTIMIZATION PATHS")
 {
     SECTION("AXIS-ALIGNED DETECTION")
     {
-        Camera camera;
+        CameraComponent camera;
         camera.setPerspective(Degree(60.0f), 1280, 768, 0.1f, 100.0f);
         
         Aabb aabb(Vector3::Zero, 1.0f, 1.0f, 1.0f);
         
         // Test clearly axis-aligned transform
-        Transform axisAligned;
+        TransformComponent axisAligned;
         axisAligned.setPosition(Vector3(0.0f, 0.0f, -5.0f));
         axisAligned.setRotation(Quaternion::Identity);
         
         // This should use the axis-aligned fast path
-        bool axisAlignedResult = camera.contains(aabb, axisAligned);
+        bool axisAlignedResult = camera.contains(aabb, axisAligned.getWorldMatrix());
         
         // Test clearly oriented transform
-        Transform oriented;
+        TransformComponent oriented;
         oriented.setPosition(Vector3(0.0f, 0.0f, -5.0f));
         oriented.setRotation(Quaternion(Vector3(1.0f, 0.0f, 0.0f), Radian(Degree(90.0f))));
         
         // This should use the oriented path
-        bool orientedResult = camera.contains(aabb, oriented);
+        bool orientedResult = camera.contains(aabb, oriented.getWorldMatrix());
         
         // Both should work
         REQUIRE((axisAlignedResult == true || axisAlignedResult == false));
@@ -209,7 +209,7 @@ TEST_CASE("PERFORMANCE AND STRESS TESTS")
 {
     SECTION("MULTIPLE CULLING OPERATIONS")
     {
-        Camera camera;
+        CameraComponent camera;
         camera.setPerspective(Degree(60.0f), 1280, 768, 0.1f, 100.0f);
         
         // Test many objects to ensure no crashes or performance issues
@@ -218,7 +218,7 @@ TEST_CASE("PERFORMANCE AND STRESS TESTS")
         for (int i = 0; i < 1000; ++i)
         {
             Aabb aabb(Vector3::Zero, 1.0f, 1.0f, 1.0f);
-            Transform transform;
+            TransformComponent transform;
             
             // Spread objects around in a grid
             float32 x = (i % 10) * 2.0f - 10.0f;
@@ -237,7 +237,7 @@ TEST_CASE("PERFORMANCE AND STRESS TESTS")
                 transform.setRotation(Quaternion(Vector3(0.0f, 1.0f, 0.0f), Radian(Degree(i * 3.6f))));
             }
             
-            bool result = camera.contains(aabb, transform);
+            bool result = camera.contains(aabb, transform.getWorldMatrix());
             results.push_back(result);
         }
         
@@ -263,48 +263,48 @@ TEST_CASE("EDGE CASES AND BOUNDARY CONDITIONS")
 {
     SECTION("VERY LARGE OBJECTS")
     {
-        Camera camera;
+        CameraComponent camera;
         camera.setPerspective(Degree(60.0f), 1280, 768, 0.1f, 100.0f);
         
         // Test with very large AABB
         Aabb largeAabb(Vector3::Zero, 1000.0f, 1000.0f, 1000.0f);
-        Transform transform;
+        TransformComponent transform;
         transform.setPosition(Vector3(0.0f, 0.0f, -5.0f));
         
-        bool result = camera.contains(largeAabb, transform);
+        bool result = camera.contains(largeAabb, transform.getWorldMatrix());
         REQUIRE((result == true || result == false));
     }
     
     SECTION("VERY SMALL OBJECTS")
     {
-        Camera camera;
+        CameraComponent camera;
         camera.setPerspective(Degree(60.0f), 1280, 768, 0.1f, 100.0f);
         
         // Test with very small AABB
         Aabb smallAabb(Vector3::Zero, 0.001f, 0.001f, 0.001f);
-        Transform transform;
+        TransformComponent transform;
         transform.setPosition(Vector3(0.0f, 0.0f, -5.0f));
         
-        bool result = camera.contains(smallAabb, transform);
+        bool result = camera.contains(smallAabb, transform.getWorldMatrix());
         REQUIRE((result == true || result == false));
     }
     
     SECTION("EXTREME POSITIONS")
     {
-        Camera camera;
+        CameraComponent camera;
         camera.setPerspective(Degree(60.0f), 1280, 768, 0.1f, 100.0f);
         
         Aabb aabb(Vector3::Zero, 1.0f, 1.0f, 1.0f);
         
         // Test object very far away
-        Transform farTransform;
+        TransformComponent farTransform;
         farTransform.setPosition(Vector3(0.0f, 0.0f, -10000.0f));
-        bool farResult = camera.contains(aabb, farTransform);
+        bool farResult = camera.contains(aabb, farTransform.getWorldMatrix());
         
         // Test object very close
-        Transform closeTransform;
+        TransformComponent closeTransform;
         closeTransform.setPosition(Vector3(0.0f, 0.0f, -0.01f));
-        bool closeResult = camera.contains(aabb, closeTransform);
+        bool closeResult = camera.contains(aabb, closeTransform.getWorldMatrix());
         
         REQUIRE((farResult == true || farResult == false));
         REQUIRE((closeResult == true || closeResult == false));

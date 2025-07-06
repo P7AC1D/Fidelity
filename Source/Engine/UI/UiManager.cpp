@@ -313,6 +313,6 @@ void UiManager::setupFontAtlas()
 	_io->Fonts->TexID = &_textureAtlas;
 }
 
-void UiManager::drawDrawables(const std::vector<Drawable> &drawables)
+void UiManager::drawDrawables(const std::vector<DrawableComponent> &drawables)
 {
 }

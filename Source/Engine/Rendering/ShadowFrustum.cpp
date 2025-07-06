@@ -1,6 +1,6 @@
 #include "ShadowFrustum.h"
-#include "Camera.h"
-#include "Drawable.h"
+#include "CameraComponent.h"
+#include "DrawableComponent.h"
 #include "Material.h"
 #include "../Utility/Assert.hpp"
 
@@ -21,7 +21,7 @@ void ShadowFrustum::buildFromLightTransforms(const std::vector<Matrix4>& lightTr
     }
 }
 
-void ShadowFrustum::buildExtendedCameraFrustum(const Camera& camera, float32 shadowDistance)
+void ShadowFrustum::buildExtendedCameraFrustum(const CameraComponent& camera, float32 shadowDistance)
 {
     Matrix4 view = camera.getView();
     
@@ -61,12 +61,12 @@ void ShadowFrustum::buildExtendedCameraFrustum(const Camera& camera, float32 sha
     _extendedCameraFrustum = extractFrustumFromMatrix(extendedViewProj);
 }
 
-std::vector<std::shared_ptr<Drawable>> ShadowFrustum::cullForCascade(uint32 cascadeIndex, 
-                                                                     const std::vector<std::shared_ptr<Drawable>>& objects) const
+std::vector<std::shared_ptr<DrawableComponent>> ShadowFrustum::cullForCascade(uint32 cascadeIndex,
+                                                                     const std::vector<std::shared_ptr<DrawableComponent>>& objects) const
 {
     Assert::throwIfFalse(cascadeIndex < _cascadeCount, "Cascade index out of range");
     
-    std::vector<std::shared_ptr<Drawable>> culledObjects;
+    std::vector<std::shared_ptr<DrawableComponent>> culledObjects;
     culledObjects.reserve(objects.size() / 4); // Rough estimate to reduce allocations
     
     const Frustrum& cascadeFrustum = _cascadeFrustums[cascadeIndex];
@@ -83,9 +83,9 @@ std::vector<std::shared_ptr<Drawable>> ShadowFrustum::cullForCascade(uint32 casc
     return culledObjects;
 }
 
-std::vector<std::shared_ptr<Drawable>> ShadowFrustum::broadPhaseCull(const std::vector<std::shared_ptr<Drawable>>& objects) const
+std::vector<std::shared_ptr<DrawableComponent>> ShadowFrustum::broadPhaseCull(const std::vector<std::shared_ptr<DrawableComponent>>& objects) const
 {
-    std::vector<std::shared_ptr<Drawable>> culledObjects;
+    std::vector<std::shared_ptr<DrawableComponent>> culledObjects;
     culledObjects.reserve(objects.size() / 2); // Rough estimate
     
     for (const auto& drawable : objects)
@@ -100,9 +100,9 @@ std::vector<std::shared_ptr<Drawable>> ShadowFrustum::broadPhaseCull(const std::
     return culledObjects;
 }
 
-std::vector<std::shared_ptr<Drawable>> ShadowFrustum::shadowRelevanceFilter(const std::vector<std::shared_ptr<Drawable>>& objects) const
+std::vector<std::shared_ptr<DrawableComponent>> ShadowFrustum::shadowRelevanceFilter(const std::vector<std::shared_ptr<DrawableComponent>>& objects) const
 {
-    std::vector<std::shared_ptr<Drawable>> filteredObjects;
+    std::vector<std::shared_ptr<DrawableComponent>> filteredObjects;
     filteredObjects.reserve(objects.size());
     
     for (const auto& drawable : objects)
@@ -197,7 +197,7 @@ Frustrum ShadowFrustum::extractFrustumFromMatrix(const Matrix4& transform) const
     return Frustrum(left, right, top, bottom, near, far);
 }
 
-bool ShadowFrustum::shouldCastShadows(const std::shared_ptr<Drawable>& drawable) const
+bool ShadowFrustum::shouldCastShadows(const std::shared_ptr<DrawableComponent>& drawable) const
 {
     // Check material properties
     auto material = drawable->getMaterial();
@@ -234,22 +234,22 @@ bool ShadowFrustum::shouldCastShadows(const std::shared_ptr<Drawable>& drawable)
     return true;
 }
 
-bool ShadowFrustum::isLargeEnoughForShadows(const std::shared_ptr<Drawable>& drawable, const Camera& camera) const
+bool ShadowFrustum::isLargeEnoughForShadows(const std::shared_ptr<DrawableComponent>& drawable, const CameraComponent& camera) const
 {
     // Calculate approximate screen-space size
-    Vector3 objectPos = drawable->getPosition();
-    Vector3 cameraPos = camera.getParentTransform().getPosition();
+    Vector3 objectPos = drawable->getCachedTransform().getPosition();
+    Vector3 cameraPos = camera.getWorldPosition();
     float32 distance = (objectPos - cameraPos).Length();
     
     // Get object's bounding sphere radius
     const auto& aabb = drawable->getAabb();
     float32 radius = aabb.getExtents().Length(); // Approximate radius
-    
+
     // Calculate screen-space size (rough approximation)
     float32 screenSize = (radius / distance) * camera.getFov().InRadians();
-    
+
     // Skip objects that would be smaller than ~2 pixels on screen
     const float32 minScreenSize = 0.002f; // Roughly 2 pixels at 1080p
-    
+
     return screenSize > minScreenSize;
 }

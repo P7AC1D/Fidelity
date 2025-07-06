@@ -499,7 +499,7 @@ void Application::fpsCameraLook(int32 deltaX, int32 deltaY, uint32 dtMs)
     return;
   }
 
-  Transform &cameraTransform = _camera->transform();
+  TransformComponent &cameraTransform = _camera->transform();
   float32 velocity(CAMERA_LOOK_SENSITIVITY * static_cast<float32>(dtMs));
   Quaternion qPitch(Vector3(1.0f, 0.0f, 0.0f), -velocity * deltaY);
   Quaternion qYaw(Vector3(0.0f, 1.0f, 0.0f), -velocity * deltaX);
@@ -515,7 +515,7 @@ void Application::translateCamera(float32 forward, float32 right)
     return;
   }
 
-  Transform &cameraTransform = _camera->transform();
+  TransformComponent &cameraTransform = _camera->transform();
   Vector3 cameraForward = cameraTransform.getForward();
   Vector3 cameraRight = cameraTransform.getRight();
   cameraTransform.translate(-cameraForward * forward + cameraRight * right);

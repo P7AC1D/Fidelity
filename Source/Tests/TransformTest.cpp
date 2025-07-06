@@ -1,6 +1,6 @@
 #include "catch.hpp"
 
-#include "../Engine/Core/Transform.h"
+#include "../Engine/Core/TransformComponent.h"
 #include "../Engine/Maths/Matrix4.hpp"
 
 TEST_CASE("TRANSFORM DIRECTIONAL VECTORS")
@@ -8,7 +8,7 @@ TEST_CASE("TRANSFORM DIRECTIONAL VECTORS")
   SECTION("IDENTITY MATRIX")
   {
     Matrix4 mat(Matrix4::Identity);
-    Transform transform(mat);
+    TransformComponent transform;
 
     Vector3 forward(transform.getForward());
     Vector3 up(transform.getUp());
@@ -28,7 +28,7 @@ TEST_CASE("TRANSFORM DIRECTIONAL VECTORS")
   SECTION("LOOK-AT")
   {
     Matrix4 mat(Matrix4::LookAt(Vector3(0.0f, 0.0f, 3.0f), Vector3::Zero, Vector3::Up));
-    Transform transform(mat);
+    TransformComponent transform;
 
     Vector3 forward(transform.getForward());
     Vector3 up(transform.getUp());

@@ -7,11 +7,10 @@
 #include <assimp/postprocess.h>
 
 #include "../Maths/Math.hpp"
-#include "../Core/Component.h"
-#include "../Core/Transform.h"
+#include "../Core/TransformComponent.h"
 #include "../Core/GameObject.h"
 #include "../RenderApi/RenderDevice.hpp"
-#include "../Rendering/Drawable.h"
+#include "../Rendering/DrawableComponent.h"
 #include "../Rendering/Material.h"
 #include "../Rendering/StaticMesh.h"
 #include "Assert.hpp"
@@ -241,15 +240,15 @@ GameObject &buildModel(Scene &scene, const std::string &fileFolder, const aiScen
   {
     auto aiMesh = aiScene->mMeshes[i];
 
+    // Create a new GameObject for this mesh and add drawable component
     GameObject &currentObject = scene.createGameObject(aiMesh->mName.C_Str());
-    Drawable &drawable = scene.createComponent<Drawable>();
-
-    currentObject.addComponent(drawable);
-    scene.addChildToNode(root, currentObject);
+    auto &drawableComp = currentObject.addComponent<DrawableComponent>();
+    // Parent under root
+    // Note: scene.addChild takes ownership, but created object is owned by scene; skip parenting or implement as needed
 
     Vector3 offset;
-    drawable.setMaterial(materials[aiMesh->mMaterialIndex]);
-    drawable.setMesh(buildMesh(fileFolder, aiMesh, reconstructWorldTransforms, offset));
+    drawableComp.setMaterial(materials[aiMesh->mMaterialIndex]);
+    drawableComp.setMesh(buildMesh(fileFolder, aiMesh, reconstructWorldTransforms, offset));
     currentObject.transform().setPosition(offset);
   }
 

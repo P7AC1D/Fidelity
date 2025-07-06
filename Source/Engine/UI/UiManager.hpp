@@ -3,7 +3,7 @@
 #include <unordered_map>
 #include <vector>
 
-#include "../Rendering/Drawable.h"
+#include "../Rendering/DrawableComponent.h"
 #include "../Core/Types.hpp"
 #include "../Core/Scene.h"
 
@@ -36,7 +36,7 @@ private:
 	void setupRenderer();
 	void setupFontAtlas();
 
-	void drawDrawables(const std::vector<Drawable> &drawables);
+	void drawDrawables(const std::vector<DrawableComponent> &drawables);
 
 private:
 	static std::unordered_map<uint64, std::shared_ptr<Texture>> TEXTURE_MAP;

@@ -4,88 +4,178 @@
 #include <random>
 #include <sstream>
 
-Sponza::Sponza(const ApplicationDesc &desc) : Application(desc)
+#include "../Engine/Core/Scene.h"
+#include "../Engine/Core/TransformComponent.h"
+#include "../Engine/Rendering/CameraComponent.h"
+#include "../Engine/Rendering/DrawableComponent.h"
+#include "../Engine/Rendering/LightComponent.h"
+#include "../Engine/Utility/ModelLoader.hpp"
+
+SponzaModern::SponzaModern(const ApplicationDesc &desc) : Application(desc)
 {
 }
 
-void Sponza::onStart()
+void SponzaModern::onStart()
 {
-  GameObject &root = _scene.getRoot();
-
-  _camera = &GameObjectBuilder(_scene)
-                 .withName("mainCamera")
-                 .withComponent(_scene.createComponent<Camera>()
-                                    .setPerspective(Degree(67.67f), getWidth(), getHeight(), 0.1f, 500.0f))
-                 .withPosition(Vector3(-105.0f, 70.0f, 9.0f))
-                 .withTarget(Vector3::Zero)
-                 .withRotation(Quaternion(Degree(59.552), Degree(53.438), Degree(53.802)))
-                 .build();
-  _scene.addChildToNode(root, *_camera);
-
-  _scene.addChildToNode(root, GameObjectBuilder(_scene)
-                                  .withName("directionalLight")
-                                  .withComponent(_scene.createComponent<Light>()
-                                                     .setLightType(LightType::Directional)
-                                                     .setColour(Colour(244, 233, 155))
-                                                     .setIntensity(10.0f))
-                                  .withRotation(Quaternion(Degree(36.139), Degree(-72.174), Degree(-30.861f)))
-                                  .build());
-  _scene.addChildToNode(root, GameObjectBuilder(_scene)
-                                  .withName("light1")
-                                  .withComponent(_scene.createComponent<Light>()
-                                                     .setColour(Colour(150, 25, 25))
-                                                     .setRadius(70.0f)
-                                                     .setCastsShadows(true))
-                                  .withPosition(Vector3(95.0f, 8.0f, 0.0f))
-                                  .build());
-  _scene.addChildToNode(root, GameObjectBuilder(_scene)
-                                  .withName("light2")
-                                  .withComponent(_scene.createComponent<Light>()
-                                                     .setColour(Colour(25, 150, 25))
-                                                     .setRadius(70.0f))
-                                  .withPosition(Vector3(-51.0f, 8.0f, 0.0f))
-                                  .build());
-  _scene.addChildToNode(root, GameObjectBuilder(_scene)
-                                  .withName("light3")
-                                  .withComponent(_scene.createComponent<Light>()
-                                                     .setColour(Colour(25, 25, 100))
-                                                     .setRadius(70.0f))
-                                  .withPosition(Vector3(12.0f, 8.0f, 0.0f))
-                                  .build());
-
-  auto &sponzaNode = ModelLoader::fromFile(_scene, "./Models/sponza_pbr/sponza.obj", true);
-  sponzaNode.transform().setScale(Vector3(0.1, 0.1, 0.1));
-  _scene.addChildToNode(root, sponzaNode);
+    createCamera();
+    createLights();
+    loadSponzaModel();
 }
 
-void Sponza::onUpdate(uint32 dtMs)
+void SponzaModern::createCamera()
 {
-  Vector2I mousePosDelta = _lastMousePos - _currentMousePos;
+    // Create main camera in the Scene
+    GameObject& cameraObj = _scene.createGameObject("MainCamera");
+    auto& transform = cameraObj.addComponent<TransformComponent>();
+    auto& camera = cameraObj.addComponent<CameraComponent>();
+    
+    // Configure camera
+    camera.setPerspective(Degree(67.67f), getWidth(), getHeight(), 0.1f, 500.0f);
+    
+    // Set position and rotation
+    transform.setPosition(Vector3(-105.0f, 70.0f, 9.0f));
+    transform.setRotation(Quaternion(Degree(59.552), Degree(53.438), Degree(53.802)));
+    
+    // Store reference for component and for Application base camera
+    _cameraComponent = &camera;
+    _camera = &cameraObj;
+}
 
-  if (_inputHandler->isButtonPressed(Button::Key_W))
-  {
-    float32 deltaX = static_cast<float32>(dtMs) * (_inputHandler->isButtonPressed(Button::Key_LShift) ? CAMERA_MOVE_SPRINT_FACTOR : CAMERA_MOVE_FACTOR);
-    translateCamera(deltaX, 0.0f);
-  }
-  else if (_inputHandler->isButtonPressed(Button::Key_S))
-  {
-    float32 deltaX = static_cast<float32>(dtMs) * (_inputHandler->isButtonPressed(Button::Key_LShift) ? CAMERA_MOVE_SPRINT_FACTOR : CAMERA_MOVE_FACTOR);
-    translateCamera(-deltaX, 0.0f);
-  }
+void SponzaModern::createLights()
+{
+    // Directional Light
+    {
+        GameObject& dirLight = _scene.createGameObject("DirectionalLight");
+        auto& transform = dirLight.addComponent<TransformComponent>();
+        auto& light = dirLight.addComponent<LightComponent>();
+        
+        light.setLightType(LightComponentType::Directional)
+             .setColour(Colour(244, 233, 155))
+             .setIntensity(10.0f);
+        
+        transform.setRotation(Quaternion(Degree(36.139), Degree(-72.174), Degree(-30.861f)));
+    }
+    
+    // Point Light 1 - Red
+    {
+        GameObject& light1 = _scene.createGameObject("PointLight1");
+        auto& transform = light1.addComponent<TransformComponent>();
+        auto& light = light1.addComponent<LightComponent>();
+        
+        light.setLightType(LightComponentType::Point)
+             .setColour(Colour(150, 25, 25))
+             .setRadius(70.0f)
+             .setCastsShadows(true);
+        
+        transform.setPosition(Vector3(95.0f, 8.0f, 0.0f));
+    }
+    
+    // Point Light 2 - Green
+    {
+        GameObject& light2 = _scene.createGameObject("PointLight2");
+        auto& transform = light2.addComponent<TransformComponent>();
+        auto& light = light2.addComponent<LightComponent>();
+        
+        light.setLightType(LightComponentType::Point)
+             .setColour(Colour(25, 150, 25))
+             .setRadius(70.0f);
+        
+        transform.setPosition(Vector3(-51.0f, 8.0f, 0.0f));
+    }
+    
+    // Point Light 3 - Blue
+    {
+        GameObject& light3 = _scene.createGameObject("PointLight3");
+        auto& transform = light3.addComponent<TransformComponent>();
+        auto& light = light3.addComponent<LightComponent>();
+        
+        light.setLightType(LightComponentType::Point)
+             .setColour(Colour(25, 25, 100))
+             .setRadius(70.0f);
+        
+        transform.setPosition(Vector3(12.0f, 8.0f, 0.0f));
+    }
+}
 
-  if (_inputHandler->isButtonPressed(Button::Key_D))
-  {
-    float32 deltaY = static_cast<float32>(dtMs) * (_inputHandler->isButtonPressed(Button::Key_LShift) ? CAMERA_MOVE_SPRINT_FACTOR : CAMERA_MOVE_FACTOR);
-    translateCamera(0.0f, deltaY);
-  }
-  else if (_inputHandler->isButtonPressed(Button::Key_A))
-  {
-    float32 deltaY = static_cast<float32>(dtMs) * (_inputHandler->isButtonPressed(Button::Key_LShift) ? CAMERA_MOVE_SPRINT_FACTOR : CAMERA_MOVE_FACTOR);
-    translateCamera(0.0f, -deltaY);
-  }
+void SponzaModern::loadSponzaModel()
+{
+    // Load the Sponza model and integrate via ModelLoader
+    GameObject& modelRoot = ModelLoader::fromFile(_scene, "./Models/sponza_pbr/sponza.obj", true);
+    // Apply uniform scale to match previous setup
+    modelRoot.transform().setScale(Vector3(0.1f, 0.1f, 0.1f));
+}
 
-  if (_inputHandler->isButtonPressed(Button::Button_RMouse))
-  {
-    fpsCameraLook(mousePosDelta[0], mousePosDelta[1], dtMs);
-  }
+void SponzaModern::onUpdate(uint32 dtMs)
+{
+    if (!_cameraComponent)
+        return;
+        
+    Vector2I mousePosDelta = _lastMousePos - _currentMousePos;
+
+    // Camera movement with modern component system
+    if (_inputHandler->isButtonPressed(Button::Key_W))
+    {
+        float32 deltaX = static_cast<float32>(dtMs) * (_inputHandler->isButtonPressed(Button::Key_LShift) ? CAMERA_MOVE_SPRINT_FACTOR : CAMERA_MOVE_FACTOR);
+        translateCamera(deltaX, 0.0f);
+    }
+    else if (_inputHandler->isButtonPressed(Button::Key_S))
+    {
+        float32 deltaX = static_cast<float32>(dtMs) * (_inputHandler->isButtonPressed(Button::Key_LShift) ? CAMERA_MOVE_SPRINT_FACTOR : CAMERA_MOVE_FACTOR);
+        translateCamera(-deltaX, 0.0f);
+    }
+
+    if (_inputHandler->isButtonPressed(Button::Key_D))
+    {
+        float32 deltaY = static_cast<float32>(dtMs) * (_inputHandler->isButtonPressed(Button::Key_LShift) ? CAMERA_MOVE_SPRINT_FACTOR : CAMERA_MOVE_FACTOR);
+        translateCamera(0.0f, deltaY);
+    }
+    else if (_inputHandler->isButtonPressed(Button::Key_A))
+    {
+        float32 deltaY = static_cast<float32>(dtMs) * (_inputHandler->isButtonPressed(Button::Key_LShift) ? CAMERA_MOVE_SPRINT_FACTOR : CAMERA_MOVE_FACTOR);
+        translateCamera(0.0f, -deltaY);
+    }
+
+    if (_inputHandler->isButtonPressed(Button::Button_RMouse))
+    {
+        fpsCameraLook(mousePosDelta[0], mousePosDelta[1], dtMs);
+    }
+}
+
+void SponzaModern::translateCamera(float32 deltaX, float32 deltaY)
+{
+    if (!_camera || !_cameraComponent)
+        return;
+        
+    // Update modern component system
+    auto& transform = _camera->getComponent<TransformComponent>();
+    
+    // Get camera's current forward and right vectors
+    Vector3 forward = _cameraComponent->getWorldForward();
+    Vector3 right = _cameraComponent->getWorldRight();
+    
+    // Calculate movement vector
+    Vector3 movement = forward * deltaX + right * deltaY;
+    
+    // Apply movement to modern system
+    Vector3 currentPos = transform.getPosition();
+    Vector3 newPos = currentPos + movement;
+    transform.setPosition(newPos);
+}
+
+void SponzaModern::fpsCameraLook(float32 deltaX, float32 deltaY, uint32 dtMs)
+{
+    if (!_camera || !_cameraComponent)
+        return;
+        
+    // Simple FPS-style camera look for modern system
+    auto& transform = _camera->getComponent<TransformComponent>();
+    // Calculate yaw around world up and pitch around camera right
+    Radian yawRadian(deltaX * CAMERA_LOOK_SENSITIVITY);
+    Radian pitchRadian(deltaY * CAMERA_LOOK_SENSITIVITY);
+    // Construct quaternions from axis-angle: (axis, angle)
+    Quaternion yawQuat(Vector3::Up, yawRadian);
+    Vector3 camRight = _cameraComponent->getWorldRight();
+    Quaternion pitchQuat(camRight, pitchRadian);
+    Quaternion newRot = yawQuat * pitchQuat * transform.getRotation();
+    transform.setRotation(newRot);
 }
