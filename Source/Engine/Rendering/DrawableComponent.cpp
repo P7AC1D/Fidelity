@@ -40,6 +40,30 @@ void DrawableComponent::deactivate()
     // Component is now inactive - could unregister from rendering system here
 }
 
+std::vector<ComponentTypeId> DrawableComponent::getDependencies() const
+{
+    return { getComponentTypeId<TransformComponent>() };
+}
+
+void DrawableComponent::onDependenciesResolved(GameObject& gameObject)
+{
+    // Get the TransformComponent from the GameObject
+    if (auto* transform = gameObject.tryGetComponent<TransformComponent>())
+    {
+        // Create a shared_ptr that doesn't own the object (since GameObject owns it)
+        auto transformPtr = std::shared_ptr<TransformComponent>(transform, [](TransformComponent*){});
+        // Convert to weak_ptr for the drawable
+        std::weak_ptr<TransformComponent> weakPtr = transformPtr;
+        setTransformComponent(weakPtr);
+    }
+}
+
+void DrawableComponent::setTransformComponent(std::weak_ptr<TransformComponent> transform)
+{
+    _transformComponent = transform;
+    markDirty();
+}
+
 ComponentTypeId DrawableComponent::getTypeId() const
 {
     return GetTypeId();
@@ -114,30 +138,32 @@ const Aabb& DrawableComponent::getWorldBounds() const
     return _worldBounds;
 }
 
-const TransformComponent& DrawableComponent::getCachedTransform() const
+const TransformComponent* DrawableComponent::getCachedTransform() const
 {
-    if (!_gameObject)
+    if (auto transform = _transformComponent.lock())
     {
-        throw std::runtime_error("DrawableComponent has no parent GameObject");
+        return transform.get();
     }
-    
-    auto* transform = _gameObject->tryGetComponent<TransformComponent>();
-    if (!transform)
-    {
-        throw std::runtime_error("GameObject has no TransformComponent");
-    }
-    
-    return *transform;
+    return nullptr;
 }
 
 const Matrix4& DrawableComponent::getWorldMatrix() const
 {
-    return getCachedTransform().getWorldMatrix();
+    if (const TransformComponent* transform = getCachedTransform())
+    {
+        return transform->getWorldMatrix();
+    }
+    static Matrix4 identity = Matrix4::Identity;
+    return identity;
 }
 
 Vector3 DrawableComponent::getWorldPosition() const
 {
-    return getCachedTransform().getPosition();
+    if (const TransformComponent* transform = getCachedTransform())
+    {
+        return transform->getPosition();
+    }
+    return Vector3::Zero;
 }
 
 void DrawableComponent::updateWorldBounds() const
@@ -149,12 +175,11 @@ void DrawableComponent::updateWorldBounds() const
         return;
     }
     
-    try
+    const TransformComponent* transform = getCachedTransform();
+    if (transform)
     {
-        const TransformComponent& transform = getCachedTransform();
-        
         // Transform local bounds to world space
-        const Matrix4& worldMatrix = transform.getWorldMatrix();
+        const Matrix4& worldMatrix = transform->getWorldMatrix();
         
         // Get the 8 corners of the local AABB
         Vector3 min = _localBounds.getMin();
@@ -190,7 +215,7 @@ void DrawableComponent::updateWorldBounds() const
         
         _worldBounds = Aabb(worldMax, worldMin);
     }
-    catch (const std::runtime_error&)
+    else
     {
         // No transform available, world bounds = local bounds
         _worldBounds = _localBounds;

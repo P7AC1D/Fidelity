@@ -111,6 +111,10 @@ TEST_CASE("DRAWABLE_COMPONENT_TESTS")
         // So min = center - extents = (-1,-1,-1), max = center + extents = (1,1,1)
         REQUIRE(localBounds.getMin() == Vector3(-1.0f, -1.0f, -1.0f));
         REQUIRE(localBounds.getMax() == Vector3(1.0f, 1.0f, 1.0f));
+        
+        // Verify world bounds are also correct (should be same as local without transform)
+        REQUIRE(worldBounds.getMin() == Vector3(-1.0f, -1.0f, -1.0f));
+        REQUIRE(worldBounds.getMax() == Vector3(1.0f, 1.0f, 1.0f));
     }
     
     SECTION("BOUNDS_CALCULATION_WITH_MESH")

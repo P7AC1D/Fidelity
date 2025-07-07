@@ -52,8 +52,8 @@ public:
         Quaternion rotation(rotMatrix);
         transformComp.setRotation(rotation);
         
-        // Manually set the transform component for testing
-        cameraComp.setTransformComponentForTesting(&transformComp);
+        // Explicitly resolve dependencies to ensure transform is properly connected
+        ComponentDependencyResolver::resolveDependencies(*gameObject);
         
         return {gameObject, &cameraComp};
     }

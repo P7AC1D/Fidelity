@@ -34,7 +34,7 @@ void SponzaModern::createCamera()
     
     // Set position and rotation
     transform.setPosition(Vector3(-105.0f, 70.0f, 9.0f));
-    transform.setRotation(Quaternion(Degree(59.552), Degree(53.438), Degree(53.802)));
+    transform.setRotation(Quaternion(Degree(59.552f), Degree(53.438f), Degree(53.802f)));
     
     // Store reference for component and for Application base camera
     _cameraComponent = &camera;
@@ -53,7 +53,7 @@ void SponzaModern::createLights()
              .setColour(Colour(244, 233, 155))
              .setIntensity(10.0f);
         
-        transform.setRotation(Quaternion(Degree(36.139), Degree(-72.174), Degree(-30.861f)));
+        transform.setRotation(Quaternion(Degree(36.139f), Degree(-72.174f), Degree(-30.861f)));
     }
     
     // Point Light 1 - Red

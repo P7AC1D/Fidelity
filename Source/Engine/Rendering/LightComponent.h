@@ -1,6 +1,7 @@
 #pragma once
 #include "../Core/IComponent.h"
 #include "../Core/ComponentTypeId.h"
+#include "../Core/ComponentDependency.h"
 #include "../Core/Maths.h"
 #include <memory>
 
@@ -17,7 +18,8 @@ enum class LightComponentType
 
 /// Modern Light component that implements IComponent interface.
 /// Handles all light types with shadow support and proper transform integration.
-class LightComponent : public IComponent
+/// Depends on TransformComponent for spatial information.
+class LightComponent : public IComponent, public IComponentDependency
 {
 public:
     LightComponent();
@@ -47,7 +49,7 @@ public:
 
     // Getters
     Matrix4 getMatrix() const { return _matrix; }
-    Vector3 getPosition() const { return _position; }
+    Vector3 getPosition() const;
     Colour getColour() const { return _colour; }
     float32 getRadius() const { return _radius; }
     LightComponentType getLightType() const { return _lightType; }
@@ -59,6 +61,10 @@ public:
     uint32 getShadowResolution() const { return _shadowResolution; }
     float32 getShadowNearPlane() const { return _shadowNearPlane; }
     float32 getShadowFarPlane() const { return _shadowFarPlane; }
+
+    // IComponentDependency interface
+    std::vector<ComponentTypeId> getDependencies() const override;
+    void onDependenciesResolved(GameObject& gameObject) override;
 
     // Transform integration
     void setTransformComponent(std::weak_ptr<TransformComponent> transform);
@@ -75,8 +81,6 @@ private:
     Colour _colour;
     float32 _radius;
     LightComponentType _lightType;
-    Vector3 _position;
-    Quaternion _rotation;
     Matrix4 _matrix;
     Vector3 _direction;
     float32 _intensity;

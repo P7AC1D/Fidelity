@@ -74,7 +74,8 @@ std::vector<std::shared_ptr<DrawableComponent>> ShadowFrustum::cullForCascade(ui
     for (const auto& drawable : objects)
     {
         // Test object's AABB against cascade frustum
-        if (cascadeFrustum.contains(drawable->getAabb(), drawable->getCachedTransform()))
+        const TransformComponent* transform = drawable->getCachedTransform();
+        if (transform && cascadeFrustum.contains(drawable->getAabb(), *transform))
         {
             culledObjects.push_back(drawable);
         }
@@ -91,7 +92,8 @@ std::vector<std::shared_ptr<DrawableComponent>> ShadowFrustum::broadPhaseCull(co
     for (const auto& drawable : objects)
     {
         // Test against extended camera frustum
-        if (_extendedCameraFrustum.contains(drawable->getAabb(), drawable->getCachedTransform()))
+        const TransformComponent* transform = drawable->getCachedTransform();
+        if (transform && _extendedCameraFrustum.contains(drawable->getAabb(), *transform))
         {
             culledObjects.push_back(drawable);
         }
@@ -237,7 +239,11 @@ bool ShadowFrustum::shouldCastShadows(const std::shared_ptr<DrawableComponent>& 
 bool ShadowFrustum::isLargeEnoughForShadows(const std::shared_ptr<DrawableComponent>& drawable, const CameraComponent& camera) const
 {
     // Calculate approximate screen-space size
-    Vector3 objectPos = drawable->getCachedTransform().getPosition();
+    const TransformComponent* transform = drawable->getCachedTransform();
+    if (!transform) {
+        return false; // No transform, can't calculate size
+    }
+    Vector3 objectPos = transform->getPosition();
     Vector3 cameraPos = camera.getWorldPosition();
     float32 distance = (objectPos - cameraPos).Length();
     

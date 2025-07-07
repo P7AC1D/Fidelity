@@ -48,7 +48,7 @@ public:
     void clearDirty() { _dirty = false; }
 
     // Update for compatibility with GameObject update
-    void update(float32 dt) { /* no-op */ }
+    void update(float32 dt) { (void)dt; /* no-op */ }
 
     // Compatibility methods for Frustrum and Camera
     Vector3 getForward() const { /* assume default forward */ return Vector3(0,0,-1); }

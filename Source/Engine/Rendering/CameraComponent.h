@@ -55,9 +55,6 @@ public:
 
     // Transform integration
     void setTransformComponent(std::weak_ptr<TransformComponent> transform);
-    
-    // For testing purposes - direct access to set transform pointer
-    void setTransformComponentForTesting(TransformComponent* transform);
     std::weak_ptr<TransformComponent> getTransformComponentWeak() const { return _transformComponent; }
 
     // World space properties
@@ -90,7 +87,6 @@ private:
 
     // Transform dependency
     std::weak_ptr<TransformComponent> _transformComponent;
-    TransformComponent* _transformRawPtr = nullptr;
 
     // Helper methods
     void updateView() const;

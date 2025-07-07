@@ -5,6 +5,7 @@
 
 #include "../Core/IComponent.h"
 #include "../Core/ComponentTypeId.h"
+#include "../Core/ComponentDependency.h"
 #include "../Core/Maths.h"
 #include "../Core/Types.hpp"
 
@@ -14,7 +15,8 @@ class TransformComponent;
 
 /// Modern Drawable component that implements IComponent interface.
 /// Handles rendering of meshes with materials and proper transform integration.
-class DrawableComponent : public IComponent
+/// Depends on TransformComponent for spatial information.
+class DrawableComponent : public IComponent, public IComponentDependency
 {
 public:
   DrawableComponent();
@@ -55,13 +57,21 @@ public:
   void enableDrawAabb(bool enable) { _drawAabb = enable; }
   bool shouldDrawAabb() const { return _drawAabb; }
 
+  // IComponentDependency interface
+  std::vector<ComponentTypeId> getDependencies() const override;
+  void onDependenciesResolved(GameObject& gameObject) override;
+
+  // Transform integration
+  void setTransformComponent(std::weak_ptr<TransformComponent> transform);
+  std::weak_ptr<TransformComponent> getTransformComponent() const { return _transformComponent; }
+
   // Rendering data access
   const Matrix4 &getWorldMatrix() const;
   Vector3 getWorldPosition() const;
 
   // Frustum culling helpers
   const Aabb &getAabb() const { return getWorldBounds(); }
-  const TransformComponent &getCachedTransform() const;
+  const TransformComponent* getCachedTransform() const;
 
   // Change tracking for rendering optimization
   bool hasChanged() const { return _boundsValid == false; }
@@ -82,6 +92,9 @@ private:
   Aabb _localBounds;
   mutable Aabb _worldBounds;
   mutable bool _boundsValid = false;
+
+  // Transform dependency
+  std::weak_ptr<TransformComponent> _transformComponent;
 
   // Helper methods
   void updateWorldBounds() const;

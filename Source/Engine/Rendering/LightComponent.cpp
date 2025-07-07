@@ -1,13 +1,12 @@
 #include "LightComponent.h"
 #include "../Core/TransformComponent.h"
+#include "../Core/GameObject.h"
 #include "../UI/ImGui/imgui.h"
 
 LightComponent::LightComponent()
     : _colour(Colour::White)
     , _radius(10.0f)
     , _lightType(LightComponentType::Point)
-    , _position(Vector3::Zero)
-    , _rotation(Quaternion::Identity)
     , _matrix(Matrix4::Identity)
     , _direction(Vector3::Identity)
     , _intensity(1000.0f)
@@ -42,6 +41,33 @@ void LightComponent::activate()
 void LightComponent::deactivate()
 {
     // Called when component becomes inactive
+}
+
+std::vector<ComponentTypeId> LightComponent::getDependencies() const
+{
+    return { getComponentTypeId<TransformComponent>() };
+}
+
+void LightComponent::onDependenciesResolved(GameObject& gameObject)
+{
+    // Get the TransformComponent from the GameObject
+    if (auto* transform = gameObject.tryGetComponent<TransformComponent>())
+    {
+        // Create a shared_ptr that doesn't own the object (since GameObject owns it)
+        auto transformPtr = std::shared_ptr<TransformComponent>(transform, [](TransformComponent*){});
+        // Convert to weak_ptr for the light
+        std::weak_ptr<TransformComponent> weakPtr = transformPtr;
+        setTransformComponent(weakPtr);
+    }
+}
+
+Vector3 LightComponent::getPosition() const
+{
+    if (auto transform = _transformComponent.lock())
+    {
+        return transform->getPosition();
+    }
+    return Vector3::Zero;
 }
 
 void LightComponent::drawInspector()
@@ -128,7 +154,8 @@ void LightComponent::drawInspector()
         // Display current position and direction (read-only)
         ImGui::Separator();
         ImGui::Text("Transform Info (Read-Only)");
-        ImGui::Text("Position: %.2f, %.2f, %.2f", _position.X, _position.Y, _position.Z);
+        Vector3 position = getPosition();
+        ImGui::Text("Position: %.2f, %.2f, %.2f", position.X, position.Y, position.Z);
         ImGui::Text("Direction: %.2f, %.2f, %.2f", _direction.X, _direction.Y, _direction.Z);
     }
 }
@@ -210,9 +237,8 @@ void LightComponent::updateFromTransform()
 {
     if (auto transform = _transformComponent.lock())
     {
-        _position = transform->getPosition();
-        _rotation = transform->getRotation();
-        _direction = _rotation.Rotate(Vector3(0, -1, 0));
+        Quaternion rotation = transform->getRotation();
+        _direction = rotation.Rotate(Vector3(0, -1, 0));
         _direction.Normalize();
         _modified = true;
     }
@@ -220,8 +246,14 @@ void LightComponent::updateFromTransform()
 
 void LightComponent::recalculateMatrix()
 {
-    Matrix4 translation = Matrix4::Translation(_position);
-    Matrix4 scale = Matrix4::Scaling(Vector3(_radius));
-    Matrix4 rotation = Matrix4::Rotation(_rotation);
-    _matrix = translation * scale * rotation;
+    if (auto transform = _transformComponent.lock())
+    {
+        Vector3 position = transform->getPosition();
+        Quaternion rotation = transform->getRotation();
+        
+        Matrix4 translation = Matrix4::Translation(position);
+        Matrix4 scale = Matrix4::Scaling(Vector3(_radius));
+        Matrix4 rotationMatrix = Matrix4::Rotation(rotation);
+        _matrix = translation * scale * rotationMatrix;
+    }
 }

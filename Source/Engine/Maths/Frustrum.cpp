@@ -22,8 +22,22 @@ Frustrum::Frustrum(const CameraComponent &camera)
     // Extract frustum planes from camera's view-projection matrix
     Matrix4 viewMatrix = camera.getView();
     Matrix4 projMatrix = camera.getProj();
-    Matrix4 viewProjMatrix = projMatrix * viewMatrix;
     
+    // Check if the view matrix is identity (camera not properly set up)
+    if (viewMatrix == Matrix4::Identity)
+    {
+        // Create a default permissive frustum that includes most objects
+        // This prevents culling when the camera transform isn't properly set up
+        _left = Plane(Vector3(1.0f, 0.0f, 0.0f), Vector3(-1000.0f, 0.0f, 0.0f));
+        _right = Plane(Vector3(-1.0f, 0.0f, 0.0f), Vector3(1000.0f, 0.0f, 0.0f));
+        _top = Plane(Vector3(0.0f, -1.0f, 0.0f), Vector3(0.0f, 1000.0f, 0.0f));
+        _bottom = Plane(Vector3(0.0f, 1.0f, 0.0f), Vector3(0.0f, -1000.0f, 0.0f));
+        _near = Plane(Vector3(0.0f, 0.0f, 1.0f), Vector3(0.0f, 0.0f, -camera.getNear()));
+        _far = Plane(Vector3(0.0f, 0.0f, -1.0f), Vector3(0.0f, 0.0f, camera.getFar()));
+        return;
+    }
+    
+    Matrix4 viewProjMatrix = projMatrix * viewMatrix;
     extractPlanesFromMatrix(viewProjMatrix);
 }
 

@@ -112,8 +112,8 @@ void Test3D::onStart()
         auto* cubeTransform = cubeObj.tryGetComponent<TransformComponent>();
         if (cubeTransform)
         {
-            cubeTransform->setPosition(Vector3(dist(gen), std::fabsf(dist(gen)), dist(gen)));
-            cubeTransform->setRotation(Quaternion(Degree(dist(gen)), Degree(dist(gen)), Degree(dist(gen))));
+            cubeTransform->setPosition(Vector3(static_cast<float32>(dist(gen)), std::fabsf(static_cast<float32>(dist(gen))), static_cast<float32>(dist(gen))));
+            cubeTransform->setRotation(Quaternion(Degree(static_cast<float32>(dist(gen))), Degree(static_cast<float32>(dist(gen))), Degree(static_cast<float32>(dist(gen)))));
         }
     }
 
@@ -129,8 +129,8 @@ void Test3D::onStart()
     auto* floorTransform = floorObj.tryGetComponent<TransformComponent>();
     if (floorTransform)
     {
-        floorTransform->setPosition(Vector3(50, -5, 50));
-        floorTransform->setScale(Vector3(100, 100, 100));
+        floorTransform->setPosition(Vector3(50.0f, -5.0f, 50.0f));
+        floorTransform->setScale(Vector3(100.0f, 100.0f, 100.0f));
     }
 }
 
