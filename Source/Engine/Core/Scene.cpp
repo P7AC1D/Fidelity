@@ -55,10 +55,6 @@ bool Scene::init(const Vector2I &windowDims, std::shared_ptr<RenderDevice> rende
     return false;
   }
 
-  // Create root GameObject
-  _rootObject = std::make_unique<GameObject>("Root", 0, _componentManager.get());
-  _rootObject->addComponent<TransformComponent>();
-
   return true;
 }
 
@@ -85,13 +81,7 @@ void Scene::update(float32 dt)
 {
   auto startTime = std::chrono::high_resolution_clock::now();
 
-  // Update root object (which will update all children)
-  if (_rootObject)
-  {
-    _rootObject->update(dt);
-  }
-
-  // Update all standalone GameObjects
+  // Update all GameObjects
   for (auto &gameObject : _gameObjects)
   {
     gameObject->update(dt);
@@ -147,10 +137,13 @@ void Scene::drawFrame()
 void Scene::drawDebugUi()
 {
   ImGui::BeginChild("SceneGraph", ImVec2(ImGui::GetContentRegionAvail().x, 300), false, ImGuiWindowFlags_HorizontalScrollbar);
-  if (_rootObject)
+  
+  // Draw all game objects
+  for (const auto& gameObject : _gameObjects)
   {
-    drawSceneGraphUi(*_rootObject);
+    drawSceneGraphUi(*gameObject);
   }
+  
   drawGameObjectInspector(_selectedGameObject);
   ImGui::EndChild();
 
@@ -210,9 +203,7 @@ void Scene::performObjectPicker(const CameraComponent &camera)
   std::vector<std::pair<float32, GameObject *>> rayCastedObjects;
   Vector3 cameraPos = camera.getWorldPosition();
 
-  // Check all GameObjects (including root and its children)
-  checkGameObjectForPicking(*_rootObject, ray, cameraPos, rayCastedObjects);
-
+  // Check all GameObjects
   for (auto &gameObject : _gameObjects)
   {
     checkGameObjectForPicking(*gameObject, ray, cameraPos, rayCastedObjects);

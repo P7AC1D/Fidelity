@@ -44,9 +44,6 @@ public:
     /// Set mouse coordinates for object picking
     void setMouseCoordinates(const Vector2I& coords) { _mouseCoordinates = coords; }
 
-    /// Get the root GameObject
-    GameObject& getRoot() { return *_rootObject; }
-
     /// Get render device (for compatibility)
     std::shared_ptr<RenderDevice> getRenderDevice() { return _renderDevice; }
 
@@ -111,9 +108,8 @@ private:
     std::shared_ptr<InputHandler> _inputHandler;
 
     // Scene data
-    std::unique_ptr<GameObject> _rootObject;
     std::vector<std::unique_ptr<GameObject>> _gameObjects;
-    uint64 _nextGameObjectId = 1;
+    uint64 _nextGameObjectId = 0;
 
     // UI state
     Vector2I _mouseCoordinates;
@@ -128,10 +124,13 @@ template<typename T>
 std::vector<T*> Scene::collectComponents()
 {
     std::vector<T*> components;
-    if (_rootObject)
+    
+    // Collect from all game objects
+    for (const auto& gameObject : _gameObjects)
     {
-        collectComponentsRecursive<T>(*_rootObject, components);
+        collectComponentsRecursive<T>(*gameObject, components);
     }
+    
     return components;
 }
 
