@@ -6,8 +6,34 @@
 #include "../Rendering/LightComponent.h"
 #include "../Rendering/Renderer.h"
 #include "../UI/ImGui/imgui.h"
+#include "../Maths/Ray.hpp"
+#include "../Maths/AABB.hpp"
 #include "Scene.h"
 #include "TransformComponent.h"
+#include "InputHandler.h"
+
+/// @brief Builds a projected ray in world space from the a set of mouse coordinates in screen space.
+/// @param mouseCoords The current mouse coordinates in screen space.
+/// @param windowDims The current window's dimensions.
+/// @param camera The current active camera.
+/// @return The projected ray in world space.
+Ray buildRayFromMouseCoords(const Vector2I &mouseCoords, const Vector2I &windowDims, const CameraComponent &camera)
+{
+  float32 x = (static_cast<float32>(mouseCoords.X) / windowDims.X) * 2.0f - 1.0f;
+  float32 y = 1.0f - (static_cast<float32>(mouseCoords.Y) / windowDims.Y) * 2.0f;
+
+  // We want our ray's z to point forwards - this is usually the negative z direction in OpenGL style.
+  Vector4 rayClip(x, y, -1.0f, 1.0f);
+
+  Vector4 rayView = camera.getProj().Inverse() * rayClip;
+  rayView.Z = -1.0f;
+  rayView.W = 0.0f;
+
+  Vector3 rayWorld = Vector3(camera.getView().Inverse() * rayView);
+  rayWorld.Normalize();
+
+  return Ray(camera.getWorldPosition(), rayWorld);
+}
 
 Scene::Scene(const std::shared_ptr<InputHandler> &inputHandler)
     : _inputHandler(inputHandler)
@@ -77,6 +103,8 @@ void Scene::update(float32 dt)
 
 void Scene::drawFrame()
 {
+  auto startTime = std::chrono::high_resolution_clock::now();
+
   if (!_renderer)
     return;
 
@@ -84,6 +112,9 @@ void Scene::drawFrame()
   auto *mainCamera = getMainCamera();
   if (!mainCamera)
     return;
+
+  // Perform object picking if mouse coordinates are set
+  performObjectPicker(*mainCamera);
 
   // Get raw pointers from component system
   auto rawLights = getLights();
@@ -106,44 +137,44 @@ void Scene::drawFrame()
 
   auto sharedCamera = std::shared_ptr<CameraComponent>(mainCamera, [](CameraComponent *) {});
 
+  auto endTime = std::chrono::high_resolution_clock::now();
+  _scenePrepDuration = std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime).count();
+
   // Call renderer with shared_ptrs (temporary bridge solution)
   _renderer->drawFrame(_renderDevice, sharedDrawables, sharedLights, sharedCamera);
 }
 
 void Scene::drawDebugUi()
 {
-  if (ImGui::Begin("Scene"))
+  ImGui::BeginChild("SceneGraph", ImVec2(ImGui::GetContentRegionAvail().x, 300), false, ImGuiWindowFlags_HorizontalScrollbar);
+  if (_rootObject)
   {
-    // Scene statistics
-    ImGui::Text("Scene Statistics");
-    ImGui::Separator();
-    ImGui::Text("GameObjects: %zu", _gameObjects.size() + 1); // +1 for root
-    ImGui::Text("Cameras: %zu", getCameras().size());
-    ImGui::Text("Lights: %zu", getLights().size());
-    ImGui::Text("Drawables: %zu", getDrawables().size());
-    ImGui::Text("Scene Prep Time: %llu μs", _scenePrepDuration);
+    drawSceneGraphUi(*_rootObject);
+  }
+  drawGameObjectInspector(_selectedGameObject);
+  ImGui::EndChild();
 
-    ImGui::Spacing();
+  if (_renderer)
+  {
+    _renderer->drawDebugUi();
+  }
 
-    // Scene graph
-    ImGui::Text("Scene Graph");
-    ImGui::Separator();
-    if (_rootObject)
+  ImGui::Separator();
+  {
+    if (ImGui::CollapsingHeader("Frame Profiler"))
     {
-      drawSceneGraphUi(*_rootObject);
-    }
-
-    ImGui::Spacing();
-
-    // Selected object inspector
-    if (_selectedGameObject)
-    {
-      ImGui::Text("Inspector");
-      ImGui::Separator();
-      drawGameObjectInspector(_selectedGameObject);
+      float32 scenePrepDuration = static_cast<float32>(_scenePrepDuration) * 1e-6f;
+      ImGui::Text("Scene Prep: (%.3f ms)", scenePrepDuration);
+      float32 totalDuration = scenePrepDuration;
+      for (const auto &timings : _renderer->getRenderPassTimings())
+      {
+        float32 duration = static_cast<float32>(timings.Duration) * 1e-6f;
+        ImGui::Text("%s: (%.3f ms)", timings.Name.c_str(), duration);
+        totalDuration += duration;
+      }
+      ImGui::Text("All: (%.3f ms)", totalDuration);
     }
   }
-  ImGui::End();
 }
 
 std::vector<CameraComponent *> Scene::getCameras()
@@ -169,8 +200,81 @@ CameraComponent *Scene::getMainCamera()
 
 void Scene::performObjectPicker(const CameraComponent &camera)
 {
-  // TODO: Implement object picking using the camera's frustum
-  // This would involve ray casting from mouse coordinates
+  // Only perform picking if mouse coordinates are valid and input handler is available
+  if (_mouseCoordinates.X < 0 || _mouseCoordinates.Y < 0 || !_inputHandler)
+    return;
+
+  // Build ray from mouse coordinates
+  Ray ray = buildRayFromMouseCoords(_mouseCoordinates, _windowDims, camera);
+
+  std::vector<std::pair<float32, GameObject *>> rayCastedObjects;
+  Vector3 cameraPos = camera.getWorldPosition();
+
+  // Check all GameObjects (including root and its children)
+  checkGameObjectForPicking(*_rootObject, ray, cameraPos, rayCastedObjects);
+
+  for (auto &gameObject : _gameObjects)
+  {
+    checkGameObjectForPicking(*gameObject, ray, cameraPos, rayCastedObjects);
+  }
+
+  // Only process selection if left mouse button is pressed
+  if (!rayCastedObjects.empty() && _inputHandler->isButtonPressed(Button::Button_LMouse))
+  {
+    // Sort by distance (closest first)
+    std::sort(rayCastedObjects.begin(), rayCastedObjects.end(),
+              [](const std::pair<float32, GameObject *> &a, const std::pair<float32, GameObject *> &b)
+              {
+                return a.first < b.first;
+              });
+
+    // Clear previous selection
+    setAabbDrawOnGameObject(_selectedGameObject, false);
+
+    // Select the closest object
+    _selectedGameObject = rayCastedObjects.front().second;
+
+    // Enable AABB drawing for selected object
+    setAabbDrawOnGameObject(_selectedGameObject, true);
+  }
+}
+
+void Scene::checkGameObjectForPicking(GameObject &gameObject, const Ray &ray, const Vector3 &cameraPos, std::vector<std::pair<float32, GameObject *>> &results)
+{
+  // Check if this GameObject has a DrawableComponent
+  if (auto *drawable = gameObject.tryGetComponent<DrawableComponent>())
+  {
+    // Get the world AABB for this drawable
+    auto worldBounds = drawable->getWorldBounds();
+
+    // Check ray intersection with AABB
+    if (ray.Intersects(worldBounds))
+    {
+      // Calculate distance from camera for sorting
+      Vector3 objectPos = gameObject.transform().getPosition();
+      float32 distance = (objectPos - cameraPos).Length();
+
+      results.emplace_back(distance, &gameObject);
+    }
+  }
+
+  // Recursively check children
+  for (const auto &child : gameObject.getChildren())
+  {
+    checkGameObjectForPicking(*child, ray, cameraPos, results);
+  }
+}
+
+void Scene::setAabbDrawOnGameObject(GameObject *gameObject, bool enableAabbDraw)
+{
+  if (!gameObject)
+    return;
+
+  // Try to get DrawableComponent and enable/disable AABB drawing
+  if (auto *drawable = gameObject->tryGetComponent<DrawableComponent>())
+  {
+    drawable->enableDrawAabb(enableAabbDraw);
+  }
 }
 
 void Scene::drawSceneGraphUi(GameObject &gameObject, int depth)

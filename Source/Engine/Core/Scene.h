@@ -85,13 +85,19 @@ private:
     /// Draw GameObject inspector
     void drawGameObjectInspector(GameObject* selectedGameObject);
 
+    /// Enable/disable AABB drawing for a GameObject
+    void setAabbDrawOnGameObject(GameObject* gameObject, bool enableAabbDraw);
+
+    /// Check a GameObject (and its children) for ray intersection for object picking
+    void checkGameObjectForPicking(GameObject& gameObject, const Ray& ray, const Vector3& cameraPos, std::vector<std::pair<float32, GameObject*>>& results);
+
     /// Sort drawables by distance to camera for transparency
     struct DrawableDistance
     {
         float32 distance;
         DrawableComponent* drawable;
-        
-        DrawableDistance(float32 dist, DrawableComponent* comp) 
+
+        DrawableDistance(float32 dist, DrawableComponent* comp)
             : distance(dist), drawable(comp) {}
     };
 
