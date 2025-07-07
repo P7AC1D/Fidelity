@@ -34,11 +34,11 @@ TEST_CASE("MODERN_COMPONENT_SYSTEM_TESTS")
         ComponentManager manager;
         GameObject gameObject("TestObject", 1, &manager);
         
-        // Test adding components
-        auto& transform = gameObject.addComponent<TransformComponent>();
+        // GameObject automatically has TransformComponent
         REQUIRE(gameObject.hasComponent<TransformComponent>());
         
         // Test getting components
+        auto& transform = gameObject.getComponent<TransformComponent>();
         auto& retrievedTransform = gameObject.getComponent<TransformComponent>();
         REQUIRE(&transform == &retrievedTransform);
         
@@ -96,8 +96,7 @@ TEST_CASE("MODERN_COMPONENT_SYSTEM_TESTS")
         ComponentManager manager;
         GameObject gameObject("TestObject", 1, &manager);
         
-        // First component should succeed
-        gameObject.addComponent<TransformComponent>();
+        // GameObject already has TransformComponent
         REQUIRE(gameObject.hasComponent<TransformComponent>());
         
         // Second component of same type should throw
@@ -109,8 +108,7 @@ TEST_CASE("MODERN_COMPONENT_SYSTEM_TESTS")
         ComponentManager manager;
         GameObject gameObject("TestObject", 1, &manager);
         
-        // Add component
-        gameObject.addComponent<TransformComponent>();
+        // GameObject already has TransformComponent
         REQUIRE(gameObject.hasComponent<TransformComponent>());
         
         // Remove component
@@ -128,14 +126,14 @@ TEST_CASE("MODERN_COMPONENT_SYSTEM_TESTS")
         ComponentManager manager;
         GameObject gameObject("TestObject", 1, &manager);
         
-        // Try get when component doesn't exist
+        // GameObject already has TransformComponent
         auto* transform = gameObject.tryGetComponent<TransformComponent>();
-        REQUIRE(transform == nullptr);
-        
-        // Add component and try get again
-        gameObject.addComponent<TransformComponent>();
-        transform = gameObject.tryGetComponent<TransformComponent>();
         REQUIRE(transform != nullptr);
+        
+        // Remove component and try get again
+        gameObject.removeComponent<TransformComponent>();
+        transform = gameObject.tryGetComponent<TransformComponent>();
+        REQUIRE(transform == nullptr);
     }
     
     SECTION("GAMEOBJECT_ACTIVATION")
@@ -146,8 +144,8 @@ TEST_CASE("MODERN_COMPONENT_SYSTEM_TESTS")
         // GameObject should be active by default
         REQUIRE(gameObject.isActive());
         
-        // Add component while active
-        auto& transform = gameObject.addComponent<TransformComponent>();
+        // GameObject already has TransformComponent
+        auto& transform = gameObject.getComponent<TransformComponent>();
         
         // Deactivate GameObject
         gameObject.setActive(false);

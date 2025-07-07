@@ -62,9 +62,6 @@ GameObject &Scene::createGameObject(const std::string &name)
 {
   auto gameObject = std::make_unique<GameObject>(name, _nextGameObjectId++, _componentManager.get());
 
-  // Add basic transform component
-  gameObject->addComponent<TransformComponent>();
-
   GameObject &ref = *gameObject;
   _gameObjects.push_back(std::move(gameObject));
   _objectAddedToScene = true;
@@ -137,13 +134,13 @@ void Scene::drawFrame()
 void Scene::drawDebugUi()
 {
   ImGui::BeginChild("SceneGraph", ImVec2(ImGui::GetContentRegionAvail().x, 300), false, ImGuiWindowFlags_HorizontalScrollbar);
-  
+
   // Draw all game objects
-  for (const auto& gameObject : _gameObjects)
+  for (const auto &gameObject : _gameObjects)
   {
     drawSceneGraphUi(*gameObject);
   }
-  
+
   drawGameObjectInspector(_selectedGameObject);
   ImGui::EndChild();
 

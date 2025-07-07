@@ -131,8 +131,8 @@ TEST_CASE("DRAWABLE_COMPONENT_TESTS")
         ComponentManager manager;
         GameObject gameObject("TestObject", 1, &manager);
         
-        // Add both transform and drawable components
-        auto& transform = gameObject.addComponent<TransformComponent>();
+        // GameObject already has TransformComponent, add drawable component
+        auto& transform = gameObject.getComponent<TransformComponent>();
         auto& drawable = gameObject.addComponent<DrawableComponent>();
         
         // Set up the transform dependency using the same approach as ComponentDependency

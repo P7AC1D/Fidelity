@@ -4,9 +4,8 @@
 #include <iomanip>
 #include <sstream>
 
-CullingTestModern::CullingTestModern(const ApplicationDesc &desc) 
+CullingTest::CullingTest(const ApplicationDesc &desc) 
     : Application(desc)
-    , _scene(_inputHandler)
     , _camera(nullptr)
     , _cameraComponent(nullptr)
     , _totalObjects(0)
@@ -15,16 +14,9 @@ CullingTestModern::CullingTestModern(const ApplicationDesc &desc)
 {
 }
 
-void CullingTestModern::onStart()
+void CullingTest::onStart()
 {
-    // Initialize the modern scene
-    if (!_scene.init(Vector2I(getWidth(), getHeight()), nullptr))
-    {
-        // Handle initialization failure
-        return;
-    }
-
-    // Create main camera (same setup as legacy)
+    // Create main camera using inherited scene
     auto& cameraObj = _scene.createGameObject("mainCamera");
     _camera = &cameraObj;
     _cameraComponent = &cameraObj.addComponent<CameraComponent>();
@@ -40,7 +32,7 @@ void CullingTestModern::onStart()
         cameraTransform->setRotation(Quaternion(Degree(-123.0f), Degree(36.0f), Degree(138.0f)));
     }
 
-    // Create directional light (same as legacy)
+    // Create directional light
     auto& dirLightObj = _scene.createGameObject("directionalLight");
     auto& dirLight = dirLightObj.addComponent<LightComponent>();
     dirLight.setLightType(LightComponentType::Directional)
@@ -59,7 +51,7 @@ void CullingTestModern::onStart()
     material->setNormalTexture(loadTextureFromFile("./Textures/crate0_normal.png", false, false));
     material->setMetallicTexture(loadTextureFromFile("./Textures/crate0_bump.png", false, false));
 
-    // Create 10x10x10 grid of cubes for culling test (same as legacy)
+    // Create 10x10x10 grid of cubes for culling test
     uint32 count = 0;
     for (int32 i = -5; i < 5; i++)
     {
@@ -74,7 +66,7 @@ void CullingTestModern::onStart()
                 drawable.setMaterial(material);
                 drawable.setVisible(true);
                 
-                // Set transform (same spacing as legacy: 3 units apart)
+                // Set transform (3 units apart)
                 auto* cubeTransform = cubeObj.tryGetComponent<TransformComponent>();
                 if (cubeTransform)
                 {
@@ -87,95 +79,52 @@ void CullingTestModern::onStart()
     _totalObjects = count;
 }
 
-void CullingTestModern::onUpdate(uint32 dtMs)
+void CullingTest::onUpdate(uint32 dtMs)
 {
-    // Update the modern scene
+    // Update the scene
     _scene.update(static_cast<float32>(dtMs) / 1000.0f);
 
-    // Handle input (same logic as legacy)
+    // Handle input using inherited Application methods
     Vector2I mousePosDelta = _lastMousePos - _currentMousePos;
 
     if (_inputHandler->isButtonPressed(Button::Key_W))
     {
         float32 deltaX = static_cast<float32>(dtMs) * (_inputHandler->isButtonPressed(Button::Key_LShift) ? CAMERA_MOVE_SPRINT_FACTOR : CAMERA_MOVE_FACTOR);
-        translateCamera(deltaX, 0.0f);
+        Application::translateCamera(deltaX, 0.0f);
     }
     else if (_inputHandler->isButtonPressed(Button::Key_S))
     {
         float32 deltaX = static_cast<float32>(dtMs) * (_inputHandler->isButtonPressed(Button::Key_LShift) ? CAMERA_MOVE_SPRINT_FACTOR : CAMERA_MOVE_FACTOR);
-        translateCamera(-deltaX, 0.0f);
+        Application::translateCamera(-deltaX, 0.0f);
     }
 
     if (_inputHandler->isButtonPressed(Button::Key_D))
     {
         float32 deltaY = static_cast<float32>(dtMs) * (_inputHandler->isButtonPressed(Button::Key_LShift) ? CAMERA_MOVE_SPRINT_FACTOR : CAMERA_MOVE_FACTOR);
-        translateCamera(0.0f, deltaY);
+        Application::translateCamera(0.0f, deltaY);
     }
     else if (_inputHandler->isButtonPressed(Button::Key_A))
     {
         float32 deltaY = static_cast<float32>(dtMs) * (_inputHandler->isButtonPressed(Button::Key_LShift) ? CAMERA_MOVE_SPRINT_FACTOR : CAMERA_MOVE_FACTOR);
-        translateCamera(0.0f, -deltaY);
+        Application::translateCamera(0.0f, -deltaY);
     }
 
     if (_inputHandler->isButtonPressed(Button::Button_RMouse))
     {
-        fpsCameraLook(mousePosDelta[0], mousePosDelta[1], dtMs);
+        Application::fpsCameraLook(mousePosDelta[0], mousePosDelta[1], dtMs);
     }
 
     // Update culling statistics for performance analysis
     updateCullingStats();
 
-    // Render the scene using modern components with legacy renderer bridge
+    // Render the scene
     _scene.drawFrame();
     
     // Draw culling debug information
     drawCullingDebugInfo();
 }
 
-void CullingTestModern::translateCamera(float32 deltaX, float32 deltaY)
-{
-    if (!_camera || !_cameraComponent)
-        return;
-
-    auto* transform = _camera->tryGetComponent<TransformComponent>();
-    if (!transform)
-        return;
-
-    // Get camera's current orientation
-    Vector3 forward = transform->getRotation().Rotate(Vector3::Forward);
-    Vector3 right = transform->getRotation().Rotate(Vector3::Right);
-
-    // Calculate movement vector
-    Vector3 movement = forward * deltaX + right * deltaY;
-    
-    // Apply movement
-    Vector3 currentPos = transform->getPosition();
-    transform->setPosition(currentPos + movement);
-}
-
-void CullingTestModern::fpsCameraLook(int32 mouseDeltaX, int32 mouseDeltaY, uint32 dtMs)
-{
-    if (!_camera)
-        return;
-
-    auto* transform = _camera->tryGetComponent<TransformComponent>();
-    if (!transform)
-        return;
-
-    // Calculate rotation deltas
-    float32 yawDelta = static_cast<float32>(mouseDeltaX) * CAMERA_LOOK_SENSITIVITY * static_cast<float32>(dtMs) / 1000.0f;
-    float32 pitchDelta = static_cast<float32>(mouseDeltaY) * CAMERA_LOOK_SENSITIVITY * static_cast<float32>(dtMs) / 1000.0f;
-
-    // Apply rotation (simplified FPS camera rotation)
-    Quaternion currentRotation = transform->getRotation();
-    Quaternion yawRotation = Quaternion(Vector3::Up, Radian(Degree(yawDelta)));
-    Quaternion pitchRotation = Quaternion(Vector3::Right, Radian(Degree(pitchDelta)));
-    
-    Quaternion newRotation = yawRotation * currentRotation * pitchRotation;
-    transform->setRotation(newRotation);
-}
-
-void CullingTestModern::updateCullingStats()
+void CullingTest::updateCullingStats()
 {
     if (!_cameraComponent)
         return;
@@ -214,10 +163,10 @@ void CullingTestModern::updateCullingStats()
     }
 }
 
-void CullingTestModern::drawCullingDebugInfo()
+void CullingTest::drawCullingDebugInfo()
 {
     // Draw culling performance information using ImGui
-    if (ImGui::Begin("Modern Culling Test Performance"))
+    if (ImGui::Begin("Culling Test Performance"))
     {
         ImGui::Text("Culling Performance Analysis");
         ImGui::Separator();
@@ -233,7 +182,7 @@ void CullingTestModern::drawCullingDebugInfo()
         }
         
         ImGui::Spacing();
-        ImGui::Text("Modern Component System");
+        ImGui::Text("Component System Features");
         ImGui::Text("- Type-safe component access");
         ImGui::Text("- Automatic dependency injection");
         ImGui::Text("- Efficient frustum culling");
@@ -248,7 +197,7 @@ void CullingTestModern::drawCullingDebugInfo()
             Vector3 cameraPos = _cameraComponent->getWorldPosition();
             ImGui::Text("Position: (%.1f, %.1f, %.1f)", cameraPos.X, cameraPos.Y, cameraPos.Z);
             
-            ImGui::Text("FOV: %.1f degrees", 67.67f); // Static for now, will be dynamic when API is fixed
+            ImGui::Text("FOV: %.1f degrees", 67.67f);
             ImGui::Text("Near: %.2f", _cameraComponent->getNear());
             ImGui::Text("Far: %.1f", _cameraComponent->getFar());
         }

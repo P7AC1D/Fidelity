@@ -29,7 +29,7 @@ public:
     {
         auto* gameObject = new GameObject("TestCamera", id, componentManager);
         auto& cameraComp = gameObject->addComponent<CameraComponent>();
-        auto& transformComp = gameObject->addComponent<TransformComponent>();
+        auto& transformComp = gameObject->getComponent<TransformComponent>(); // Get existing transform
         
         // Set camera parameters
         cameraComp.setPerspective(Degree(fov), width, height, nearPlane, farPlane);
@@ -67,7 +67,7 @@ public:
     {
         auto* gameObject = new GameObject("TestDrawable", id, componentManager);
         auto& drawableComp = gameObject->addComponent<DrawableComponent>();
-        auto& transformComp = gameObject->addComponent<TransformComponent>();
+        auto& transformComp = gameObject->getComponent<TransformComponent>(); // Get existing transform
         
         // Set transform
         transformComp.setPosition(position);
