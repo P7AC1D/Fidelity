@@ -101,6 +101,9 @@ T &GameObject::addComponent(Args &&...args)
   auto component = _componentManager->createComponent<T>(std::forward<Args>(args)...);
   T *componentPtr = component.get();
 
+  // Set the GameObject reference
+  componentPtr->setGameObject(this);
+
   // Store it
   _components[typeId] = std::move(component);
 

@@ -2,6 +2,9 @@
 
 #include "ComponentTypeId.h"
 
+// Forward declaration to avoid circular dependency
+class GameObject;
+
 /// IComponent is the modern base interface for all engine components.
 /// It defines optional lifecycle methods and a type-safe identifier.
 class IComponent
@@ -23,4 +26,14 @@ public:
 
     /// Optional inspector hook for editor UI.
     virtual void drawInspector() {}
+
+    /// Set the parent GameObject (called by GameObject when component is added)
+    void setGameObject(GameObject* gameObject) { _gameObject = gameObject; }
+
+    /// Get the parent GameObject
+    GameObject* getGameObject() const { return _gameObject; }
+
+protected:
+    /// Pointer to the parent GameObject that owns this component
+    GameObject* _gameObject = nullptr;
 };

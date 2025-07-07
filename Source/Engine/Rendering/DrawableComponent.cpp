@@ -1,6 +1,7 @@
 #include "DrawableComponent.h"
 
 #include "../Core/TransformComponent.h"
+#include "../Core/GameObject.h"
 #include "../UI/ImGui/imgui.h"
 #include "../UI/UiManager.hpp"
 #include "StaticMesh.h"
@@ -113,28 +114,30 @@ const Aabb& DrawableComponent::getWorldBounds() const
     return _worldBounds;
 }
 
-void DrawableComponent::setTransformComponent(std::weak_ptr<TransformComponent> transform)
+const TransformComponent& DrawableComponent::getCachedTransform() const
 {
-    _transformComponent = transform;
-    markDirty(); // Bounds need recalculation
+    if (!_gameObject)
+    {
+        throw std::runtime_error("DrawableComponent has no parent GameObject");
+    }
+    
+    auto* transform = _gameObject->tryGetComponent<TransformComponent>();
+    if (!transform)
+    {
+        throw std::runtime_error("GameObject has no TransformComponent");
+    }
+    
+    return *transform;
 }
 
 const Matrix4& DrawableComponent::getWorldMatrix() const
 {
-    if (auto transform = _transformComponent.lock())
-    {
-        return transform->getWorldMatrix();
-    }
-    return Matrix4::Identity;
+    return getCachedTransform().getWorldMatrix();
 }
 
 Vector3 DrawableComponent::getWorldPosition() const
 {
-    if (auto transform = _transformComponent.lock())
-    {
-        return transform->getPosition();
-    }
-    return Vector3::Zero;
+    return getCachedTransform().getPosition();
 }
 
 void DrawableComponent::updateWorldBounds() const
@@ -146,10 +149,12 @@ void DrawableComponent::updateWorldBounds() const
         return;
     }
     
-    if (auto transform = _transformComponent.lock())
+    try
     {
+        const TransformComponent& transform = getCachedTransform();
+        
         // Transform local bounds to world space
-        const Matrix4& worldMatrix = transform->getWorldMatrix();
+        const Matrix4& worldMatrix = transform.getWorldMatrix();
         
         // Get the 8 corners of the local AABB
         Vector3 min = _localBounds.getMin();
@@ -185,9 +190,9 @@ void DrawableComponent::updateWorldBounds() const
         
         _worldBounds = Aabb(worldMax, worldMin);
     }
-    else
+    catch (const std::runtime_error&)
     {
-        // No transform, world bounds = local bounds
+        // No transform available, world bounds = local bounds
         _worldBounds = _localBounds;
     }
     

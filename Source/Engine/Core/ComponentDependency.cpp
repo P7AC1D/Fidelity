@@ -2,7 +2,6 @@
 #include "GameObject.h"
 #include "TransformComponent.h"
 #include "../Rendering/CameraComponent.h"
-#include "../Rendering/DrawableComponent.h"
 #include "../Rendering/LightComponent.h"
 
 std::unordered_map<ComponentTypeId, std::vector<ComponentDependencyResolver::DependencyResolver>>& 
@@ -29,19 +28,6 @@ void ComponentDependencyResolver::resolveDependencies(GameObject& gameObject)
                 resolver(gameObject, component.get());
             }
         }
-    }
-}
-
-// Specialized dependency resolution for DrawableComponent -> TransformComponent
-template<>
-void AutoDependency<DrawableComponent, TransformComponent>::resolve(GameObject& gameObject, DrawableComponent* drawable)
-{
-    auto* transform = gameObject.tryGetComponent<TransformComponent>();
-    if (transform)
-    {
-        // Create a shared_ptr that doesn't own the object (since GameObject owns it)
-        auto transformPtr = std::shared_ptr<TransformComponent>(transform, [](TransformComponent*){});
-        drawable->setTransformComponent(transformPtr);
     }
 }
 
@@ -78,9 +64,6 @@ namespace
     {
         DependencyRegistrar()
         {
-            // Register DrawableComponent's dependency on TransformComponent
-            ComponentDependencyResolver::registerDependency<DrawableComponent, TransformComponent>();
-            
             // Register CameraComponent's dependency on TransformComponent
             ComponentDependencyResolver::registerDependency<CameraComponent, TransformComponent>();
             

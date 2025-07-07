@@ -331,11 +331,16 @@ std::vector<Scene::DrawableDistance> Scene::sortDrawablesByDistance(const Camera
 
   for (auto *drawable : allDrawables)
   {
-    if (auto transform = drawable->getTransformComponent().lock())
+    try
     {
-      Vector3 objectPos = transform->getPosition();
+      const TransformComponent& transform = drawable->getCachedTransform();
+      Vector3 objectPos = transform.getPosition();
       float32 distance = (objectPos - cameraPos).Length();
       drawables.emplace_back(distance, drawable);
+    }
+    catch (const std::runtime_error&)
+    {
+      // Skip drawables without valid transform components
     }
   }
 
