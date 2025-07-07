@@ -26,7 +26,7 @@ void SponzaModern::createCamera()
 {
     // Create main camera in the Scene
     GameObject& cameraObj = _scene.createGameObject("MainCamera");
-    auto& transform = cameraObj.addComponent<TransformComponent>();
+    auto& transform = cameraObj.getComponent<TransformComponent>();
     auto& camera = cameraObj.addComponent<CameraComponent>();
     
     // Configure camera
@@ -46,7 +46,7 @@ void SponzaModern::createLights()
     // Directional Light
     {
         GameObject& dirLight = _scene.createGameObject("DirectionalLight");
-        auto& transform = dirLight.addComponent<TransformComponent>();
+        auto& transform = dirLight.getComponent<TransformComponent>();
         auto& light = dirLight.addComponent<LightComponent>();
         
         light.setLightType(LightComponentType::Directional)
@@ -59,7 +59,7 @@ void SponzaModern::createLights()
     // Point Light 1 - Red
     {
         GameObject& light1 = _scene.createGameObject("PointLight1");
-        auto& transform = light1.addComponent<TransformComponent>();
+        auto& transform = light1.getComponent<TransformComponent>();
         auto& light = light1.addComponent<LightComponent>();
         
         light.setLightType(LightComponentType::Point)
@@ -73,7 +73,7 @@ void SponzaModern::createLights()
     // Point Light 2 - Green
     {
         GameObject& light2 = _scene.createGameObject("PointLight2");
-        auto& transform = light2.addComponent<TransformComponent>();
+        auto& transform = light2.getComponent<TransformComponent>();
         auto& light = light2.addComponent<LightComponent>();
         
         light.setLightType(LightComponentType::Point)
@@ -86,7 +86,7 @@ void SponzaModern::createLights()
     // Point Light 3 - Blue
     {
         GameObject& light3 = _scene.createGameObject("PointLight3");
-        auto& transform = light3.addComponent<TransformComponent>();
+        auto& transform = light3.getComponent<TransformComponent>();
         auto& light = light3.addComponent<LightComponent>();
         
         light.setLightType(LightComponentType::Point)

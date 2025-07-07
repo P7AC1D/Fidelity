@@ -62,6 +62,11 @@ public:
     /// Get the main camera (first camera found)
     CameraComponent* getMainCamera();
 
+    /// Get shared_ptr versions for renderer compatibility
+    std::vector<std::shared_ptr<LightComponent>> getSharedLights();
+    std::vector<std::shared_ptr<DrawableComponent>> getSharedDrawables();
+    std::shared_ptr<CameraComponent> getSharedMainCamera();
+
 private:
     /// Collect all components of a specific type from all GameObjects
     template<typename T>
