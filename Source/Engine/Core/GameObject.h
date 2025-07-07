@@ -45,19 +45,23 @@ public:
   template <typename T>
   bool removeComponent();
 
+  /// Get a shared_ptr to a component for dependency management
+  template <typename T>
+  std::shared_ptr<T> getComponentShared();
+
   /// Add a child GameObject.
   GameObject &addChild(std::unique_ptr<GameObject> child);
 
   /// Get the transform component.
-  TransformComponent& transform() { return getComponent<TransformComponent>(); }
-  const TransformComponent& transform() const { return const_cast<GameObject*>(this)->getComponent<TransformComponent>(); }
+  TransformComponent &transform() { return getComponent<TransformComponent>(); }
+  const TransformComponent &transform() const { return const_cast<GameObject *>(this)->getComponent<TransformComponent>(); }
 
   /// Update this GameObject and all its children.
   void update(float32 dt);
 
   /// Draw inspector UI for this GameObject.
   void drawInspector();
-    
+
   /// Getters
   const std::string &getName() const { return _name; }
   uint64 getIndex() const { return _index; }
@@ -78,6 +82,9 @@ private:
 
   ComponentManager *_componentManager;
   std::unordered_map<ComponentTypeId, std::unique_ptr<IComponent>> _components;
+
+  /// Shared pointers for dependency management
+  std::unordered_map<ComponentTypeId, std::shared_ptr<IComponent>> _componentSharedPtrs;
 
   void onActivated();
   void onDeactivated();
@@ -179,5 +186,43 @@ bool GameObject::removeComponent()
   // Remove from storage
   _components.erase(it);
 
+  // Also remove from shared_ptr registry
+  auto sharedIt = _componentSharedPtrs.find(typeId);
+  if (sharedIt != _componentSharedPtrs.end())
+  {
+    _componentSharedPtrs.erase(sharedIt);
+  }
+
   return true;
+}
+
+template <typename T>
+std::shared_ptr<T> GameObject::getComponentShared()
+{
+  static_assert(std::is_base_of_v<IComponent, T>, "T must derive from IComponent");
+
+  ComponentTypeId typeId = getComponentTypeId<T>();
+
+  // Check if we already have a shared_ptr for this component
+  auto sharedIt = _componentSharedPtrs.find(typeId);
+  if (sharedIt != _componentSharedPtrs.end())
+  {
+    return std::static_pointer_cast<T>(sharedIt->second);
+  }
+
+  // Check if the component exists
+  auto it = _components.find(typeId);
+  if (it == _components.end())
+  {
+    return nullptr;
+  }
+
+  // Create a shared_ptr with custom deleter that doesn't actually delete
+  // (since GameObject owns the component)
+  T *rawPtr = static_cast<T *>(it->second.get());
+  auto sharedPtr = std::shared_ptr<T>(rawPtr, [](T *) {});
+
+  // Store in our registry and return
+  _componentSharedPtrs[typeId] = sharedPtr;
+  return sharedPtr;
 }

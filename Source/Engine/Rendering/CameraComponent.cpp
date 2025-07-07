@@ -36,13 +36,11 @@ std::vector<ComponentTypeId> CameraComponent::getDependencies() const
 
 void CameraComponent::onDependenciesResolved(GameObject &gameObject)
 {
-  // Get the TransformComponent from the GameObject
-  if (auto *transform = gameObject.tryGetComponent<TransformComponent>())
+  // Get the TransformComponent from the GameObject using shared_ptr
+  if (auto transformShared = gameObject.getComponentShared<TransformComponent>())
   {
-    // Create a shared_ptr that doesn't own the object (since GameObject owns it)
-    auto transformPtr = std::shared_ptr<TransformComponent>(transform, [](TransformComponent *) {});
     // Convert to weak_ptr for the camera
-    std::weak_ptr<TransformComponent> weakPtr = transformPtr;
+    std::weak_ptr<TransformComponent> weakPtr = transformShared;
     setTransformComponent(weakPtr);
   }
 }
