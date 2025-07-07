@@ -1,5 +1,6 @@
 #include "CameraComponent.h"
 #include "../Core/TransformComponent.h"
+#include "../Core/GameObject.h"
 #include "../UI/ImGui/imgui.h"
 
 CameraComponent::CameraComponent()
@@ -26,6 +27,23 @@ void CameraComponent::deactivate()
 ComponentTypeId CameraComponent::getTypeId() const
 {
     return GetTypeId();
+}
+
+std::vector<ComponentTypeId> CameraComponent::getDependencies() const
+{
+    return { getComponentTypeId<TransformComponent>() };
+}
+
+void CameraComponent::onDependenciesResolved(GameObject& gameObject)
+{
+    // Get the TransformComponent from the GameObject
+    if (auto* transform = gameObject.tryGetComponent<TransformComponent>())
+    {
+        // Store raw pointer since GameObject guarantees component lifetime
+        _transformRawPtr = transform;
+        _viewDirty = true;
+        _frustumDirty = true;
+    }
 }
 
 void CameraComponent::drawInspector()
@@ -72,7 +90,7 @@ void CameraComponent::drawInspector()
         ImGui::Text("Aspect Ratio: %.3f", getAspectRatio());
         
         // World space information
-        if (auto transform = _transformComponent.lock())
+        if (const TransformComponent* transform = getTransformComponent())
         {
             Vector3 worldPos = getWorldPosition();
             Vector3 worldForward = getWorldForward();
@@ -190,26 +208,33 @@ void CameraComponent::setTransformComponent(std::weak_ptr<TransformComponent> tr
     _frustumDirty = true;
 }
 
+void CameraComponent::setTransformComponentForTesting(TransformComponent* transform)
+{
+    _transformRawPtr = transform;
+    _viewDirty = true;
+    _frustumDirty = true;
+}
+
 Vector3 CameraComponent::getWorldPosition() const
 {
-    if (auto transform = _transformComponent.lock())
+    if (const TransformComponent* transform = getTransformComponent())
     {
         return transform->getPosition();
-    }
-    else if (_useTestTransform)
-    {
-        return _testTransform.getPosition();
     }
     return Vector3::Zero;
 }
 
 Vector3 CameraComponent::getWorldForward() const
 {
-    const TransformComponent& transform = getEffectiveTransform();
+    const TransformComponent* transform = getTransformComponent();
+    if (!transform)
+    {
+        return Vector3(0.0f, 0.0f, -1.0f); // Default forward
+    }
     
     // Transform forward vector (0, 0, -1) by rotation
     Vector3 forward(0.0f, 0.0f, -1.0f);
-    Matrix4 rotationMatrix = Matrix4::Rotation(transform.getRotation());
+    Matrix4 rotationMatrix = Matrix4::Rotation(transform->getRotation());
     Vector3 result = rotationMatrix * forward;
     result.Normalize();
     return result;
@@ -217,11 +242,15 @@ Vector3 CameraComponent::getWorldForward() const
 
 Vector3 CameraComponent::getWorldUp() const
 {
-    const TransformComponent& transform = getEffectiveTransform();
+    const TransformComponent* transform = getTransformComponent();
+    if (!transform)
+    {
+        return Vector3(0.0f, 1.0f, 0.0f); // Default up
+    }
     
     // Transform up vector (0, 1, 0) by rotation
     Vector3 up(0.0f, 1.0f, 0.0f);
-    Matrix4 rotationMatrix = Matrix4::Rotation(transform.getRotation());
+    Matrix4 rotationMatrix = Matrix4::Rotation(transform->getRotation());
     Vector3 result = rotationMatrix * up;
     result.Normalize();
     return result;
@@ -229,29 +258,31 @@ Vector3 CameraComponent::getWorldUp() const
 
 Vector3 CameraComponent::getWorldRight() const
 {
-    const TransformComponent& transform = getEffectiveTransform();
+    const TransformComponent* transform = getTransformComponent();
+    if (!transform)
+    {
+        return Vector3(1.0f, 0.0f, 0.0f); // Default right
+    }
     
     // Transform right vector (1, 0, 0) by rotation
     Vector3 right(1.0f, 0.0f, 0.0f);
-    Matrix4 rotationMatrix = Matrix4::Rotation(transform.getRotation());
+    Matrix4 rotationMatrix = Matrix4::Rotation(transform->getRotation());
     Vector3 result = rotationMatrix * right;
     result.Normalize();
     return result;
 }
 
-void CameraComponent::setTransformForTesting(const TransformComponent& transform)
-{
-    _testTransform = transform;
-    _useTestTransform = true;
-    _viewDirty = true;
-    _frustumDirty = true;
-}
-
 void CameraComponent::updateView() const
 {
-    const TransformComponent& transform = getEffectiveTransform();
+    const TransformComponent* transform = getTransformComponent();
+    if (!transform)
+    {
+        _view = Matrix4::Identity;
+        _viewDirty = false;
+        return;
+    }
     
-    Vector3 eye = transform.getPosition();
+    Vector3 eye = transform->getPosition();
     Vector3 forward = getWorldForward();
     Vector3 up = getWorldUp();
     Vector3 center = eye + forward;
@@ -280,25 +311,7 @@ void CameraComponent::updateFrustum() const
     _frustumDirty = false;
 }
 
-const TransformComponent& CameraComponent::getEffectiveTransform() const
+const TransformComponent* CameraComponent::getTransformComponent() const
 {
-    if (_useTestTransform)
-    {
-        return _testTransform;
-    }
-    
-    if (auto transform = _transformComponent.lock())
-    {
-        // Convert TransformComponent to Transform for compatibility
-        // This is a temporary solution until we fully modernize Transform
-        static TransformComponent tempTransform;
-        tempTransform.setPosition(transform->getPosition());
-        tempTransform.setRotation(transform->getRotation());
-        tempTransform.setScale(transform->getScale());
-        return tempTransform;
-    }
-    
-    // Return identity transform if no transform component
-    static TransformComponent identityTransform;
-    return identityTransform;
+    return _transformRawPtr;
 }

@@ -4,6 +4,7 @@
 #include "../Engine/Core/ComponentManager.h"
 #include "../Engine/Core/GameObject.h"
 #include "../Engine/Core/TransformComponent.h"
+#include "../Engine/Core/ComponentDependency.h"
 #include "../Engine/Rendering/DrawableComponent.h"
 #include "../Engine/Rendering/StaticMesh.h"
 #include "../Engine/Rendering/Material.h"
@@ -135,13 +136,8 @@ TEST_CASE("DRAWABLE_COMPONENT_TESTS")
         auto& transform = gameObject.getComponent<TransformComponent>();
         auto& drawable = gameObject.addComponent<DrawableComponent>();
         
-        // Set up the transform dependency using the same approach as ComponentDependency
-        auto* transformPtr = gameObject.tryGetComponent<TransformComponent>();
-        REQUIRE(transformPtr != nullptr);
-        
-        // Create a shared_ptr that doesn't own the object (since GameObject owns it)
-        auto transformSharedPtr = std::shared_ptr<TransformComponent>(transformPtr, [](TransformComponent*){});
-        drawable.setTransformComponent(transformSharedPtr);
+        // Explicitly resolve dependencies to ensure transform is properly connected
+        ComponentDependencyResolver::resolveDependencies(gameObject);
         
         // Test world position access
         transform.setPosition(Vector3(10.0f, 20.0f, 30.0f));

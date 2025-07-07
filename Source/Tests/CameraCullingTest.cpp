@@ -10,6 +10,7 @@
 #include "../Engine/Core/TransformComponent.h"
 #include "../Engine/Core/GameObject.h"
 #include "../Engine/Core/ComponentManager.h"
+#include "../Engine/Core/ComponentDependency.h"
 
 // Helper class for creating camera culling test scenarios
 class CameraCullingTestHelper
@@ -51,8 +52,8 @@ public:
         Quaternion rotation(rotMatrix);
         transformComp.setRotation(rotation);
         
-        // Use the testing method to set transform directly on camera
-        cameraComp.setTransformForTesting(transformComp);
+        // Manually set the transform component for testing
+        cameraComp.setTransformComponentForTesting(&transformComp);
         
         return {gameObject, &cameraComp};
     }
@@ -82,9 +83,8 @@ public:
         drawableComp.setMaterial(testMaterial);
         drawableComp.setVisible(true);
         
-        // Set up component dependency
-        auto transformPtr = std::shared_ptr<TransformComponent>(&transformComp, [](TransformComponent*){});
-        drawableComp.setTransformComponent(transformPtr);
+        // Explicitly resolve dependencies to ensure transform is properly connected
+        ComponentDependencyResolver::resolveDependencies(*gameObject);
         
         return {gameObject, &drawableComp};
     }

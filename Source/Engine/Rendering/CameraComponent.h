@@ -3,13 +3,15 @@
 #include <memory>
 #include "../Core/IComponent.h"
 #include "../Core/ComponentTypeId.h"
+#include "../Core/ComponentDependency.h"
 #include "../Core/Maths.h"
 #include "../Core/TransformComponent.h"
 #include "../Core/Types.hpp"
 
 /// Camera component that implements IComponent interface.
 /// Handles camera projection, view matrix calculation, and frustum culling.
-class CameraComponent : public IComponent
+/// Depends on TransformComponent for spatial information.
+class CameraComponent : public IComponent, public IComponentDependency
 {
 public:
     CameraComponent();
@@ -47,18 +49,22 @@ public:
     bool contains(const Aabb& aabb, const Matrix4& transform) const;
     float32 distanceFrom(const Vector3& position) const;
 
+    // IComponentDependency interface
+    std::vector<ComponentTypeId> getDependencies() const override;
+    void onDependenciesResolved(GameObject& gameObject) override;
+
     // Transform integration
     void setTransformComponent(std::weak_ptr<TransformComponent> transform);
-    std::weak_ptr<TransformComponent> getTransformComponent() const { return _transformComponent; }
+    
+    // For testing purposes - direct access to set transform pointer
+    void setTransformComponentForTesting(TransformComponent* transform);
+    std::weak_ptr<TransformComponent> getTransformComponentWeak() const { return _transformComponent; }
 
     // World space properties
     Vector3 getWorldPosition() const;
     Vector3 getWorldForward() const;
     Vector3 getWorldUp() const;
     Vector3 getWorldRight() const;
-
-    // Public method for testing - allows manual camera transform setup
-    void setTransformForTesting(const TransformComponent& transform);
 
     // Change tracking
     bool hasChanged() const { return _viewDirty || _projDirty; }
@@ -84,15 +90,12 @@ private:
 
     // Transform dependency
     std::weak_ptr<TransformComponent> _transformComponent;
-
-    // For testing compatibility
-    mutable TransformComponent _testTransform;
-    bool _useTestTransform = false;
+    TransformComponent* _transformRawPtr = nullptr;
 
     // Helper methods
     void updateView() const;
     void updateProjection();
     void updateFrustum() const;
     
-    const TransformComponent& getEffectiveTransform() const;
+    const TransformComponent* getTransformComponent() const;
 };

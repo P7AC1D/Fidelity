@@ -40,7 +40,9 @@ void AutoDependency<CameraComponent, TransformComponent>::resolve(GameObject& ga
     {
         // Create a shared_ptr that doesn't own the object (since GameObject owns it)
         auto transformPtr = std::shared_ptr<TransformComponent>(transform, [](TransformComponent*){});
-        camera->setTransformComponent(transformPtr);
+        // Convert to weak_ptr for the camera
+        std::weak_ptr<TransformComponent> weakPtr = transformPtr;
+        camera->setTransformComponent(weakPtr);
     }
 }
 

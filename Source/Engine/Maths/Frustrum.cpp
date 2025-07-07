@@ -8,12 +8,13 @@ Frustrum::Frustrum()
 {
     // Create a default frustum that contains everything
     // This ensures backward compatibility for uninitialized frustums
-    _left = Plane(Vector3(1.0f, 0.0f, 0.0f), -1000.0f);
-    _right = Plane(Vector3(-1.0f, 0.0f, 0.0f), -1000.0f);
-    _top = Plane(Vector3(0.0f, -1.0f, 0.0f), -1000.0f);
-    _bottom = Plane(Vector3(0.0f, 1.0f, 0.0f), -1000.0f);
-    _near = Plane(Vector3(0.0f, 0.0f, 1.0f), -0.01f);
-    _far = Plane(Vector3(0.0f, 0.0f, -1.0f), -1000.0f);
+    // The Plane constructor expects (normal, point_on_plane)
+    _left = Plane(Vector3(1.0f, 0.0f, 0.0f), Vector3(-1000.0f, 0.0f, 0.0f));
+    _right = Plane(Vector3(-1.0f, 0.0f, 0.0f), Vector3(1000.0f, 0.0f, 0.0f));
+    _top = Plane(Vector3(0.0f, -1.0f, 0.0f), Vector3(0.0f, 1000.0f, 0.0f));
+    _bottom = Plane(Vector3(0.0f, 1.0f, 0.0f), Vector3(0.0f, -1000.0f, 0.0f));
+    _near = Plane(Vector3(0.0f, 0.0f, 1.0f), Vector3(0.0f, 0.0f, -0.01f));
+    _far = Plane(Vector3(0.0f, 0.0f, -1.0f), Vector3(0.0f, 0.0f, 1000.0f));
 }
 
 Frustrum::Frustrum(const CameraComponent &camera)
@@ -205,8 +206,9 @@ Plane Frustrum::createPlaneFromVector4(const Vector4& planeVector) const
         distance /= length;
     }
     
-    // Create a plane from the normalized normal and distance
-    // We need to create a point on the plane for the constructor
+    // Create a plane directly using the normal and distance
+    // The Plane constructor expects normal and a point on the plane
+    // For plane equation ax + by + cz + d = 0, a point on the plane is normal * (-d)
     Vector3 pointOnPlane = normal * (-distance);
     
     return Plane(normal, pointOnPlane);
