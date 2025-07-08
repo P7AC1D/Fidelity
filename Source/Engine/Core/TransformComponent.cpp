@@ -1,5 +1,8 @@
 #include "TransformComponent.h"
 #include "../Core/Maths.h"
+#include "../UI/ImGui/imgui.h"
+#include "../Maths/Degree.hpp"
+#include "../Maths/Radian.hpp"
 
 TransformComponent::TransformComponent()
     : _position(Vector3::Zero), _rotation(Quaternion::Identity), _scale(Vector3::Identity)
@@ -34,35 +37,35 @@ ComponentTypeId TransformComponent::getTypeId() const
 
 void TransformComponent::drawInspector()
 {
-  // TODO: Implement ImGui inspector for Transform
-  // This would be similar to the old Transform's inspector
-  /*
   if (ImGui::CollapsingHeader("Transform", ImGuiTreeNodeFlags_DefaultOpen))
   {
-      float32 pos[3] = { _position.X, _position.Y, _position.Z };
-      if (ImGui::DragFloat3("Position", pos, 0.1f))
-      {
-          setPosition(Vector3(pos[0], pos[1], pos[2]));
-      }
+    // Position controls
+    float32 pos[3] = { _position.X, _position.Y, _position.Z };
+    if (ImGui::DragFloat3("Position", pos, 0.1f))
+    {
+      setPosition(Vector3(pos[0], pos[1], pos[2]));
+    }
 
-      float32 scl[3] = { _scale.X, _scale.Y, _scale.Z };
-      if (ImGui::DragFloat3("Scale", scl, 0.001f))
-      {
-          setScale(Vector3(scl[0], scl[1], scl[2]));
-      }
+    // Scale controls
+    float32 scl[3] = { _scale.X, _scale.Y, _scale.Z };
+    if (ImGui::DragFloat3("Scale", scl, 0.001f))
+    {
+      setScale(Vector3(scl[0], scl[1], scl[2]));
+    }
 
-      auto euler = _rotation.ToEuler();
-      float32 angles[3] = { euler[0].InDegrees(), euler[1].InDegrees(), euler[2].InDegrees() };
-      if (ImGui::DragFloat3("Rotation", angles, 1.0f, -180.0f, 180.0f))
-      {
-          // Convert back to quaternion
-          Quaternion xRot(Vector3(1.0f, 0.0f, 0.0f), Degree(angles[0]).InRadians());
-          Quaternion yRot(Vector3(0.0f, 1.0f, 0.0f), Degree(angles[1]).InRadians());
-          Quaternion zRot(Vector3(0.0f, 0.0f, 1.0f), Degree(angles[2]).InRadians());
-          setRotation(yRot * xRot * zRot);
-      }
+    // Rotation controls (using Euler angles for easier editing)
+    auto euler = _rotation.ToEuler();
+    float32 angles[3] = { euler[0].InDegrees(), euler[1].InDegrees(), euler[2].InDegrees() };
+    if (ImGui::DragFloat3("Orientation", angles, 1.0f, -180.0f, 180.0f))
+    {
+      // Convert back to quaternion
+      // Note: Using the same order as in your original code (YXZ)
+      Quaternion xRot(Vector3(1.0f, 0.0f, 0.0f), Degree(angles[0]).InRadians());
+      Quaternion yRot(Vector3(0.0f, 1.0f, 0.0f), Degree(angles[1]).InRadians());
+      Quaternion zRot(Vector3(0.0f, 0.0f, 1.0f), Degree(angles[2]).InRadians());
+      setRotation(yRot * xRot * zRot);
+    }
   }
-  */
 }
 
 void TransformComponent::setPosition(const Vector3 &position)

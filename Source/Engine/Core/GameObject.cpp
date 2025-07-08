@@ -1,4 +1,5 @@
 #include "GameObject.h"
+#include "../UI/ImGui/imgui.h"
 
 GameObject::GameObject(const std::string &name, uint64 index, ComponentManager *componentManager)
     : _name(name), _index(index), _componentManager(componentManager)
@@ -39,22 +40,6 @@ void GameObject::update(float32 dt)
 
 void GameObject::drawInspector()
 {
-  // Basic inspector implementation
-  // This would be expanded with ImGui calls similar to the old GameObject
-
-  // Draw name
-  // ImGui::Text("Name: %s", _name.c_str());
-
-  // Draw active checkbox
-  // bool active = _active;
-  // if (ImGui::Checkbox("Active", &active))
-  // {
-  //     setActive(active);
-  // }
-
-  // Draw transform
-  // _transform->drawInspector(); // Would need to be implemented
-
   // Draw all components
   for (auto &[typeId, component] : _components)
   {

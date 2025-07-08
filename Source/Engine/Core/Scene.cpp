@@ -36,7 +36,7 @@ Ray buildRayFromMouseCoords(const Vector2I &mouseCoords, const Vector2I &windowD
 }
 
 Scene::Scene(const std::shared_ptr<InputHandler> &inputHandler)
-    : _inputHandler(inputHandler)
+    : _inputHandler(inputHandler), _mouseCoordinates(-1, -1)
 {
   _componentManager = std::make_unique<ComponentManager>();
 }
@@ -141,8 +141,10 @@ void Scene::drawDebugUi()
     drawSceneGraphUi(*gameObject);
   }
 
-  drawGameObjectInspector(_selectedGameObject);
   ImGui::EndChild();
+
+  // Draw the inspector in a separate window
+  drawGameObjectInspector(_selectedGameObject);
 
   if (_renderer)
   {
@@ -287,7 +289,14 @@ void Scene::drawSceneGraphUi(GameObject &gameObject, int depth)
   // Handle selection
   if (ImGui::IsItemClicked())
   {
+    // Clear previous selection
+    setAabbDrawOnGameObject(_selectedGameObject, false);
+
+    // Select new object
     _selectedGameObject = &gameObject;
+
+    // Enable AABB drawing for selected object
+    setAabbDrawOnGameObject(_selectedGameObject, true);
   }
 
   // Draw children if node is open
@@ -306,9 +315,18 @@ void Scene::drawGameObjectInspector(GameObject *selectedGameObject)
   if (!selectedGameObject)
     return;
 
+  ImGui::Begin("Inspector", nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_AlwaysAutoResize);
+
+  // Position the inspector window on the right side of the screen
+  ImVec2 screenSize = ImGui::GetIO().DisplaySize;
+  auto windowPos = ImVec2(screenSize.x - ImGui::GetWindowWidth(), 0);
+  ImGui::SetWindowPos(windowPos);
+
   // GameObject properties
+  ImGui::Separator();
   ImGui::Text("Name: %s", selectedGameObject->getName().c_str());
   ImGui::Text("ID: %llu", selectedGameObject->getIndex());
+  ImGui::Separator();
 
   bool active = selectedGameObject->isActive();
   if (ImGui::Checkbox("Active", &active))
@@ -320,6 +338,8 @@ void Scene::drawGameObjectInspector(GameObject *selectedGameObject)
 
   // Draw all components
   selectedGameObject->drawInspector();
+
+  ImGui::End();
 }
 
 std::vector<Scene::DrawableDistance> Scene::sortDrawablesByDistance(const CameraComponent &camera)
