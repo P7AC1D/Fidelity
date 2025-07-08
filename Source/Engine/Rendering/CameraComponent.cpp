@@ -186,12 +186,16 @@ const Frustrum &CameraComponent::getFrustum() const
 
 bool CameraComponent::contains(const Aabb &aabb, const Matrix4 &transform) const
 {
-  // For now, use simple distance-based culling
-  // TODO: Implement proper AABB transformation and frustum testing
-  Vector3 aabbCenter = (aabb.getMin() + aabb.getMax()) * 0.5f;
-  Vector3 worldCenter = transform * aabbCenter;
+  // Get the frustum for proper culling
+  const Frustrum &frustum = getFrustum();
 
-  return distanceFrom(worldCenter) < _far;
+  // Create a temporary TransformComponent with the given matrix
+  // Note: This is not ideal, but works with the current Frustrum API
+  // TODO: Update Frustrum to accept Matrix4 directly
+  TransformComponent tempTransform;
+  tempTransform.setWorldMatrix(transform);
+
+  return frustum.contains(aabb, tempTransform);
 }
 
 float32 CameraComponent::distanceFrom(const Vector3 &position) const
@@ -205,6 +209,15 @@ void CameraComponent::setTransformComponent(std::weak_ptr<TransformComponent> tr
   _transformComponent = transform;
   _viewDirty = true;
   _frustumDirty = true;
+
+  // Register for transform change notifications
+  if (auto transformShared = transform.lock())
+  {
+    transformShared->addChangeObserver([this]()
+                                       {
+      _viewDirty = true;
+      _frustumDirty = true; });
+  }
 }
 
 Vector3 CameraComponent::getWorldPosition() const
