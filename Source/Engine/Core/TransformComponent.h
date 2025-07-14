@@ -64,9 +64,10 @@ public:
 
   // Observer pattern for change notifications
   using ChangeCallback = std::function<void()>;
+  using CallbackId = size_t;
 
-  void addChangeObserver(ChangeCallback callback);
-  void removeChangeObserver(ChangeCallback callback);
+  CallbackId addChangeObserver(ChangeCallback callback);
+  void removeChangeObserver(CallbackId callbackId);
 
 private:
   Vector3 _position = Vector3::Zero;
@@ -79,7 +80,8 @@ private:
 
   TransformComponent *_parent = nullptr;
 
-  std::vector<ChangeCallback> _changeObservers;
+  std::vector<std::pair<CallbackId, ChangeCallback>> _changeObservers;
+  CallbackId _nextCallbackId = 0;
 
   void updateWorldMatrix() const;
   void notifyChanged();

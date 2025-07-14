@@ -1,5 +1,6 @@
 #pragma once
 #include "../Core/IComponent.h"
+#include "../Core/IUpdatableComponent.h"
 #include "../Core/ComponentTypeId.h"
 #include "../Core/ComponentDependency.h"
 #include "../Core/Maths.h"
@@ -19,7 +20,7 @@ enum class LightComponentType
 /// Modern Light component that implements IComponent interface.
 /// Handles all light types with shadow support and proper transform integration.
 /// Depends on TransformComponent for spatial information.
-class LightComponent : public IComponent, public IComponentDependency
+class LightComponent : public IComponent, public IComponentDependency, public IUpdatableComponent
 {
 public:
     LightComponent();
@@ -71,7 +72,7 @@ public:
     std::weak_ptr<TransformComponent> getTransformComponent() const { return _transformComponent; }
 
     // Update method for recalculating matrices and positions
-    void update(float32 dt);
+    void update(float32 dt) override;
 
 private:
     void updateFromTransform();

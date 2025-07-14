@@ -218,4 +218,9 @@ private:
   // Shadow culling system
   std::unique_ptr<ShadowFrustum> _shadowFrustum;
   std::unique_ptr<RenderQueue> _shadowQueue;
+  
+  // Optimized frustum culling vectors - cached to avoid repeated allocations
+  std::vector<std::shared_ptr<DrawableComponent>> _cachedOpaqueDrawables;
+  std::vector<std::shared_ptr<DrawableComponent>> _cachedTransparentDrawables;
+  std::vector<std::shared_ptr<DrawableComponent>> _cachedAabbDrawables;
 };

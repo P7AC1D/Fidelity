@@ -120,8 +120,8 @@ T &GameObject::addComponent(Args &&...args)
     componentPtr->activate();
   }
 
-  // Resolve dependencies automatically
-  ComponentDependencyResolver::resolveDependencies(*this);
+  // Resolve dependencies only for this component (optimized)
+  ComponentDependencyResolver::resolveDependenciesForComponent(*this, componentPtr);
 
   return *componentPtr;
 }

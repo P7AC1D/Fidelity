@@ -2,6 +2,7 @@
 
 #include <memory>
 #include "../Core/IComponent.h"
+#include "../Core/IUpdatableComponent.h"
 #include "../Core/ComponentTypeId.h"
 #include "../Core/ComponentDependency.h"
 #include "../Core/Maths.h"
@@ -11,10 +12,11 @@
 /// Camera component that implements IComponent interface.
 /// Handles camera projection, view matrix calculation, and frustum culling.
 /// Depends on TransformComponent for spatial information.
-class CameraComponent : public IComponent, public IComponentDependency
+class CameraComponent : public IComponent, public IComponentDependency, public IUpdatableComponent
 {
 public:
     CameraComponent();
+    ~CameraComponent();
 
     // IComponent interface
     void initialize() override;
@@ -67,6 +69,9 @@ public:
     bool hasChanged() const { return _viewDirty || _projDirty; }
     void markDirty() { _viewDirty = _projDirty = _frustumDirty = true; }
 
+    // IUpdatableComponent interface
+    void update(float32 dt) override;
+
 private:
     // Camera parameters
     int32 _width = 1920;
@@ -87,6 +92,7 @@ private:
 
     // Transform dependency
     std::weak_ptr<TransformComponent> _transformComponent;
+    TransformComponent::CallbackId _transformObserverId = 0;
 
     // Helper methods
     void updateView() const;

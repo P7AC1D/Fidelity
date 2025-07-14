@@ -18,6 +18,7 @@ public:
 	         const Plane& bottom, const Plane& nearPlane, const Plane& farPlane);
 
 	bool contains(const Aabb &box, const TransformComponent &transform) const;
+	bool contains(const Aabb &box, const Matrix4 &transform) const;
 
 private:
 	// Helper methods for optimized culling

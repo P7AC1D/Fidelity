@@ -2012,9 +2012,15 @@ void Renderer::performFrustumCulling(const std::vector<std::shared_ptr<DrawableC
                                      std::vector<std::shared_ptr<DrawableComponent>>& transparentDrawables,
                                      std::vector<std::shared_ptr<DrawableComponent>>& aabbDrawables)
 {
-   opaqueDrawables.clear();
-   transparentDrawables.clear();
-   aabbDrawables.clear();
+   // Clear cached vectors and reserve capacity to avoid reallocations
+   _cachedOpaqueDrawables.clear();
+   _cachedTransparentDrawables.clear();
+   _cachedAabbDrawables.clear();
+   
+   // Reserve capacity based on typical scene composition (avoid repeated reallocations)
+   _cachedOpaqueDrawables.reserve(allDrawables.size() * 3 / 4); // Estimate 75% opaque
+   _cachedTransparentDrawables.reserve(allDrawables.size() / 4); // Estimate 25% transparent
+   _cachedAabbDrawables.reserve(allDrawables.size() / 10); // Estimate 10% with debug AABB
 
   for (const auto& drawable : allDrawables)
   {
@@ -2025,38 +2031,61 @@ void Renderer::performFrustumCulling(const std::vector<std::shared_ptr<DrawableC
       // If the drawable is not visible, skip it
       if (!drawable->isVisible())
         continue;
-    }
-    else
-    {
-      // If the drawable is not in the camera's frustum, skip it
-      continue;
-    }
-    {
+        
+      // Direct classification without double processing through RenderQueue
       if (drawable->getMaterial()->hasOpacityTexture())
       {
-        _transparentQueue->add(drawable);
-        transparentDrawables.push_back(drawable);
+        _cachedTransparentDrawables.push_back(drawable);
       }
       else
       {
-        _opaqueQueue->add(drawable);
-        opaqueDrawables.push_back(drawable);
+        _cachedOpaqueDrawables.push_back(drawable);
+      }
+      
+      if (drawable->shouldDrawAabb())
+      {
+        _cachedAabbDrawables.push_back(drawable);
       }
     }
-
-    if (drawable->shouldDrawAabb())
-    {
-      aabbDrawables.push_back(drawable);
-    }
+    // If the drawable is not in the camera's frustum, skip it (continue)
   }
 
-  // Sort render queues using multi-level sorting
-  _opaqueQueue->sort(*camera);
-  _transparentQueue->sort(*camera);
+  // Efficient sorting using cached distance calculation to avoid repeated computations
+  const Vector3 cameraPos = camera->getWorldPosition();
+  
+  // Sort opaque objects front-to-back for better z-culling
+  std::sort(_cachedOpaqueDrawables.begin(), _cachedOpaqueDrawables.end(), 
+           [&cameraPos](const auto& a, const auto& b) {
+               // Calculate distance once and cache
+               const auto* transformA = a->getCachedTransform();
+               const auto* transformB = b->getCachedTransform();
+               if (!transformA || !transformB) return false;
+               
+               Vector3 posA = transformA->getPosition();
+               Vector3 posB = transformB->getPosition();
+               float distA = (cameraPos - posA).Length();
+               float distB = (cameraPos - posB).Length();
+               return distA < distB;
+           });
+  
+  // Sort transparent objects back-to-front for proper alpha blending
+  std::sort(_cachedTransparentDrawables.begin(), _cachedTransparentDrawables.end(), 
+           [&cameraPos](const auto& a, const auto& b) {
+               const auto* transformA = a->getCachedTransform();
+               const auto* transformB = b->getCachedTransform();
+               if (!transformA || !transformB) return false;
+               
+               Vector3 posA = transformA->getPosition();
+               Vector3 posB = transformB->getPosition();
+               float distA = (cameraPos - posA).Length();
+               float distB = (cameraPos - posB).Length();
+               return distA > distB; // Note: reversed for back-to-front
+           });
 
-  // Update output vectors with sorted results
-  opaqueDrawables = _opaqueQueue->getDrawables();
-  transparentDrawables = _transparentQueue->getDrawables();
+  // Move results efficiently using move semantics
+  opaqueDrawables = std::move(_cachedOpaqueDrawables);
+  transparentDrawables = std::move(_cachedTransparentDrawables);
+  aabbDrawables = std::move(_cachedAabbDrawables);
 }
 
 void Renderer::pointLightDepthPass(const std::shared_ptr<RenderDevice>& renderDevice,

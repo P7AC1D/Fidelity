@@ -71,7 +71,13 @@ private:
 
     /// Recursively collect components from a GameObject and its children
     template<typename T>
-    void collectComponentsRecursive(GameObject& gameObject, std::vector<T*>& components);
+    void collectComponentsRecursive(GameObject& gameObject, std::vector<T*>& components) const;
+
+    /// Invalidate component caches (call when scene structure changes)
+    void invalidateComponentCaches();
+
+    /// Rebuild component caches if they're dirty
+    void rebuildComponentCaches() const;
 
     /// Perform object picking with the camera
     void performObjectPicker(const CameraComponent& camera);
@@ -111,6 +117,12 @@ private:
     std::vector<std::unique_ptr<GameObject>> _gameObjects;
     uint64 _nextGameObjectId = 0;
 
+    // Cached component lists (for performance)
+    mutable std::vector<CameraComponent*> _cachedCameras;
+    mutable std::vector<LightComponent*> _cachedLights;
+    mutable std::vector<DrawableComponent*> _cachedDrawables;
+    mutable bool _componentCachesDirty = true;
+
     // UI state
     Vector2I _mouseCoordinates;
     Vector2I _windowDims;
@@ -135,7 +147,7 @@ std::vector<T*> Scene::collectComponents()
 }
 
 template<typename T>
-void Scene::collectComponentsRecursive(GameObject& gameObject, std::vector<T*>& components)
+void Scene::collectComponentsRecursive(GameObject& gameObject, std::vector<T*>& components) const
 {
     // Check if this GameObject has the component
     if (auto* component = gameObject.tryGetComponent<T>())

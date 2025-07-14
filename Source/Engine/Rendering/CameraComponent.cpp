@@ -8,6 +8,15 @@ CameraComponent::CameraComponent()
   updateProjection();
 }
 
+CameraComponent::~CameraComponent()
+{
+  // Clean up transform observer
+  if (auto transform = _transformComponent.lock())
+  {
+    transform->removeChangeObserver(_transformObserverId);
+  }
+}
+
 void CameraComponent::initialize()
 {
   // Initialize camera projection
@@ -189,13 +198,8 @@ bool CameraComponent::contains(const Aabb &aabb, const Matrix4 &transform) const
   // Get the frustum for proper culling
   const Frustrum &frustum = getFrustum();
 
-  // Create a temporary TransformComponent with the given matrix
-  // Note: This is not ideal, but works with the current Frustrum API
-  // TODO: Update Frustrum to accept Matrix4 directly
-  TransformComponent tempTransform;
-  tempTransform.setWorldMatrix(transform);
-
-  return frustum.contains(aabb, tempTransform);
+  // Use the new Matrix4 overload to avoid temporary TransformComponent creation
+  return frustum.contains(aabb, transform);
 }
 
 float32 CameraComponent::distanceFrom(const Vector3 &position) const
@@ -206,6 +210,12 @@ float32 CameraComponent::distanceFrom(const Vector3 &position) const
 
 void CameraComponent::setTransformComponent(std::weak_ptr<TransformComponent> transform)
 {
+  // Remove previous observer if any
+  if (auto oldTransform = _transformComponent.lock())
+  {
+    oldTransform->removeChangeObserver(_transformObserverId);
+  }
+
   _transformComponent = transform;
   _viewDirty = true;
   _frustumDirty = true;
@@ -213,7 +223,7 @@ void CameraComponent::setTransformComponent(std::weak_ptr<TransformComponent> tr
   // Register for transform change notifications
   if (auto transformShared = transform.lock())
   {
-    transformShared->addChangeObserver([this]()
+    _transformObserverId = transformShared->addChangeObserver([this]()
                                        {
       _viewDirty = true;
       _frustumDirty = true; });
@@ -306,14 +316,31 @@ void CameraComponent::updateProjection()
 
 void CameraComponent::updateFrustum() const
 {
+  if (_frustumDirty)
+  {
+    _frustum = Frustrum(*this);
+    _frustumDirty = false;
+  }
+}
+
+void CameraComponent::update(float32 dt)
+{
+  // Only update view matrix if transform has changed
+  if (auto transform = _transformComponent.lock())
+  {
+    if (transform->hasChanged())
+    {
+      _viewDirty = true;
+      _frustumDirty = true;
+    }
+  }
+
+  // Update matrices if needed (lazy evaluation)
+  // Note: We don't update frustum here since getFrustum() will handle it lazily
   if (_viewDirty)
   {
     updateView();
   }
-
-  // Build frustum from this camera
-  _frustum = Frustrum(*this);
-  _frustumDirty = false;
 }
 
 const TransformComponent *CameraComponent::getTransformComponent() const

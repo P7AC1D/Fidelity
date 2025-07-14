@@ -65,6 +65,9 @@ GameObject &Scene::createGameObject(const std::string &name)
   GameObject &ref = *gameObject;
   _gameObjects.push_back(std::move(gameObject));
   _objectAddedToScene = true;
+  
+  // Invalidate component caches since scene structure changed
+  invalidateComponentCaches();
 
   return ref;
 }
@@ -72,6 +75,8 @@ GameObject &Scene::createGameObject(const std::string &name)
 void Scene::addChild(GameObject &parent, std::unique_ptr<GameObject> child)
 {
   parent.addChild(std::move(child));
+  // Invalidate component caches since scene structure changed
+  invalidateComponentCaches();
 }
 
 void Scene::update(float32 dt)
@@ -103,26 +108,40 @@ void Scene::drawFrame()
   // Perform object picking if mouse coordinates are set
   performObjectPicker(*mainCamera);
 
-  // Get raw pointers from component system
-  auto rawLights = getLights();
-  auto rawDrawables = getDrawables();
+  // Get component lists (now cached)
+  const auto& rawLights = getLights();
+  const auto& rawDrawables = getDrawables();
 
-  // Create temporary shared_ptrs with no-op deleters for renderer compatibility
-  // This is a bridge solution while we migrate the renderer to raw pointers
-  std::vector<std::shared_ptr<DrawableComponent>> sharedDrawables;
-  std::vector<std::shared_ptr<LightComponent>> sharedLights;
-
-  for (auto *drawable : rawDrawables)
+  // Use static caches to avoid per-frame allocations and shared_ptr construction
+  static std::vector<std::shared_ptr<DrawableComponent>> sharedDrawables;
+  static std::vector<std::shared_ptr<LightComponent>> sharedLights;
+  
+  // Create a static no-op deleter to avoid lambda allocation on every reset
+  static auto noOpDeleter = [](auto*) {}; // This lambda is created once and reused
+  
+  // Resize vectors if needed (this only allocates when size changes)
+  if (sharedDrawables.size() != rawDrawables.size())
   {
-    sharedDrawables.emplace_back(drawable, [](DrawableComponent *) {});
+    sharedDrawables.resize(rawDrawables.size());
+  }
+  
+  if (sharedLights.size() != rawLights.size())
+  {
+    sharedLights.resize(rawLights.size());
   }
 
-  for (auto *light : rawLights)
+  // Reuse existing shared_ptr objects, just update the raw pointer
+  for (size_t i = 0; i < rawDrawables.size(); ++i)
   {
-    sharedLights.emplace_back(light, [](LightComponent *) {});
+    sharedDrawables[i].reset(rawDrawables[i], noOpDeleter);
   }
 
-  auto sharedCamera = std::shared_ptr<CameraComponent>(mainCamera, [](CameraComponent *) {});
+  for (size_t i = 0; i < rawLights.size(); ++i)
+  {
+    sharedLights[i].reset(rawLights[i], noOpDeleter);
+  }
+
+  auto sharedCamera = std::shared_ptr<CameraComponent>(mainCamera, noOpDeleter);
 
   auto endTime = std::chrono::high_resolution_clock::now();
   _scenePrepDuration = std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime).count();
@@ -171,17 +190,20 @@ void Scene::drawDebugUi()
 
 std::vector<CameraComponent *> Scene::getCameras()
 {
-  return collectComponents<CameraComponent>();
+  rebuildComponentCaches();
+  return _cachedCameras;
 }
 
 std::vector<LightComponent *> Scene::getLights()
 {
-  return collectComponents<LightComponent>();
+  rebuildComponentCaches();
+  return _cachedLights;
 }
 
 std::vector<DrawableComponent *> Scene::getDrawables()
 {
-  return collectComponents<DrawableComponent>();
+  rebuildComponentCaches();
+  return _cachedDrawables;
 }
 
 CameraComponent *Scene::getMainCamera()
@@ -373,4 +395,30 @@ std::vector<Scene::DrawableDistance> Scene::sortDrawablesByDistance(const Camera
             });
 
   return drawables;
+}
+
+void Scene::invalidateComponentCaches()
+{
+  _componentCachesDirty = true;
+}
+
+void Scene::rebuildComponentCaches() const
+{
+  if (!_componentCachesDirty)
+    return;
+
+  // Clear existing caches
+  _cachedCameras.clear();
+  _cachedLights.clear();
+  _cachedDrawables.clear();
+
+  // Rebuild caches by traversing scene once
+  for (const auto& gameObject : _gameObjects)
+  {
+    collectComponentsRecursive<CameraComponent>(*gameObject, _cachedCameras);
+    collectComponentsRecursive<LightComponent>(*gameObject, _cachedLights);  
+    collectComponentsRecursive<DrawableComponent>(*gameObject, _cachedDrawables);
+  }
+
+  _componentCachesDirty = false;
 }

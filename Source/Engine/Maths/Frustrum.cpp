@@ -63,6 +63,58 @@ bool Frustrum::contains(const Aabb &box, const TransformComponent &transform) co
     }
 }
 
+bool Frustrum::contains(const Aabb &box, const Matrix4 &transform) const
+{
+    // For Matrix4, we can't easily determine if it's axis-aligned without decomposing it
+    // So we'll use the oriented bounding box approach directly
+    
+    // Get AABB min/max and compute the 8 corners
+    Vector3 min = box.getMin();
+    Vector3 max = box.getMax();
+    
+    Vector3 corners[8] = {
+        Vector3(min.X, min.Y, min.Z), // 0: min corner
+        Vector3(max.X, min.Y, min.Z), // 1: max X
+        Vector3(min.X, max.Y, min.Z), // 2: max Y  
+        Vector3(max.X, max.Y, min.Z), // 3: max X,Y
+        Vector3(min.X, min.Y, max.Z), // 4: max Z
+        Vector3(max.X, min.Y, max.Z), // 5: max X,Z
+        Vector3(min.X, max.Y, max.Z), // 6: max Y,Z
+        Vector3(max.X, max.Y, max.Z)  // 7: max corner
+    };
+    
+    // Transform all corners
+    for (int i = 0; i < 8; ++i)
+    {
+        Vector4 corner4D(corners[i].X, corners[i].Y, corners[i].Z, 1.0f);
+        Vector4 transformedCorner = transform * corner4D;
+        corners[i] = Vector3(transformedCorner.X, transformedCorner.Y, transformedCorner.Z);
+    }
+    
+    // Test the transformed AABB against each frustum plane
+    for (int i = 0; i < 8; ++i)
+    {
+        const Vector3& corner = corners[i];
+        
+        // If any corner is inside all planes, the AABB intersects the frustum
+        bool insideAll = true;
+        
+        if (_left.getSignedDistance(corner) < 0) insideAll = false;
+        if (_right.getSignedDistance(corner) < 0) insideAll = false;
+        if (_top.getSignedDistance(corner) < 0) insideAll = false;
+        if (_bottom.getSignedDistance(corner) < 0) insideAll = false;
+        if (_near.getSignedDistance(corner) < 0) insideAll = false;
+        if (_far.getSignedDistance(corner) < 0) insideAll = false;
+        
+        if (insideAll)
+        {
+            return true; // At least one corner is inside
+        }
+    }
+    
+    return false; // No corners are inside the frustum
+}
+
 bool Frustrum::isTransformAxisAligned(const TransformComponent &transform) const
 {
     // A transform is axis-aligned if it only has translation and uniform scale

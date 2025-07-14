@@ -212,7 +212,14 @@ void LightComponent::setTransformComponent(std::weak_ptr<TransformComponent> tra
 
 void LightComponent::update(float32 dt)
 {
-  updateFromTransform();
+  // Only update if transform has changed
+  if (auto transform = _transformComponent.lock())
+  {
+    if (transform->hasChanged())
+    {
+      updateFromTransform();
+    }
+  }
 
   if (_modified)
   {
@@ -226,9 +233,15 @@ void LightComponent::updateFromTransform()
   if (auto transform = _transformComponent.lock())
   {
     Quaternion rotation = transform->getRotation();
-    _direction = rotation.Rotate(Vector3(0, -1, 0));
-    _direction.Normalize();
-    _modified = true;
+    Vector3 newDirection = rotation.Rotate(Vector3(0, -1, 0));
+    newDirection.Normalize();
+    
+    // Only mark as modified if direction actually changed
+    if (_direction != newDirection)
+    {
+      _direction = newDirection;
+      _modified = true;
+    }
   }
 }
 

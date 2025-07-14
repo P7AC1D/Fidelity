@@ -33,6 +33,9 @@ public:
     /// Resolve all dependencies for a GameObject
     static void resolveDependencies(GameObject& gameObject);
     
+    /// Resolve dependencies for a specific component (optimized)
+    static void resolveDependenciesForComponent(GameObject& gameObject, IComponent* newComponent);
+    
     /// Check if a component type has dependencies
     template<typename ComponentType>
     static bool hasDependencies();

@@ -3,6 +3,7 @@
 #include "../UI/ImGui/imgui.h"
 #include "../Maths/Degree.hpp"
 #include "../Maths/Radian.hpp"
+#include <algorithm>
 
 TransformComponent::TransformComponent()
     : _position(Vector3::Zero), _rotation(Quaternion::Identity), _scale(Vector3::Identity)
@@ -159,22 +160,24 @@ void TransformComponent::updateWorldMatrix() const
   _worldMatrixDirty = false;
 }
 
-void TransformComponent::addChangeObserver(ChangeCallback callback)
+TransformComponent::CallbackId TransformComponent::addChangeObserver(ChangeCallback callback)
 {
-  _changeObservers.push_back(callback);
+  CallbackId id = _nextCallbackId++;
+  _changeObservers.emplace_back(id, std::move(callback));
+  return id;
 }
 
-void TransformComponent::removeChangeObserver(ChangeCallback callback)
+void TransformComponent::removeChangeObserver(CallbackId callbackId)
 {
-  (void)callback; // Suppress unused parameter warning
-                  // Note: This is simplified - in practice you'd need a more sophisticated approach
-                  // to remove specific callbacks since std::function doesn't have operator==
-                  // For now, we'll leave this as a no-op
+  _changeObservers.erase(
+    std::remove_if(_changeObservers.begin(), _changeObservers.end(),
+      [callbackId](const auto& pair) { return pair.first == callbackId; }),
+    _changeObservers.end());
 }
 
 void TransformComponent::notifyChanged()
 {
-  for (const auto &callback : _changeObservers)
+  for (const auto &[id, callback] : _changeObservers)
   {
     callback();
   }

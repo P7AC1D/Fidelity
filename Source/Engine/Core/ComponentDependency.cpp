@@ -39,6 +39,31 @@ void ComponentDependencyResolver::resolveDependencies(GameObject &gameObject)
   }
 }
 
+// Optimized version that only resolves dependencies for a specific component
+void ComponentDependencyResolver::resolveDependenciesForComponent(GameObject &gameObject, IComponent *newComponent)
+{
+  auto &dependencyMap = getDependencyMap();
+  ComponentTypeId typeId = newComponent->getTypeId();
+
+  // Check if this component implements IComponentDependency interface
+  if (auto *dependencyComponent = dynamic_cast<IComponentDependency *>(newComponent))
+  {
+    // Call the interface method
+    dependencyComponent->onDependenciesResolved(gameObject);
+  }
+
+  // Also check if this component type has registered dependencies (for AutoDependency system)
+  auto it = dependencyMap.find(typeId);
+  if (it != dependencyMap.end())
+  {
+    // Execute all dependency resolvers for this component
+    for (auto &resolver : it->second)
+    {
+      resolver(gameObject, newComponent);
+    }
+  }
+}
+
 // Specialized dependency resolution for CameraComponent -> TransformComponent
 template <>
 void AutoDependency<CameraComponent, TransformComponent>::resolve(GameObject &gameObject, CameraComponent *camera)
