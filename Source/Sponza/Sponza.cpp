@@ -169,13 +169,43 @@ void SponzaModern::fpsCameraLook(float32 deltaX, float32 deltaY, uint32 dtMs)
         
     // Simple FPS-style camera look for modern system
     auto& transform = _camera->getComponent<TransformComponent>();
+    
     // Calculate yaw around world up and pitch around camera right
     Radian yawRadian(deltaX * CAMERA_LOOK_SENSITIVITY);
     Radian pitchRadian(deltaY * CAMERA_LOOK_SENSITIVITY);
+    
+    // Get current pitch to check limits before applying new rotation
+    float32 currentPitch = extractPitchFromQuaternion(transform.getRotation());
+    float32 newPitch = currentPitch + pitchRadian.InRadians() * (180.0f / Math::Pi); // Convert to degrees
+    
+    // Clamp pitch to prevent gimbal lock and over-rotation
+    if (newPitch > CAMERA_MAX_PITCH_DEGREES)
+    {
+        pitchRadian = Radian((CAMERA_MAX_PITCH_DEGREES - currentPitch * (180.0f / Math::Pi)) * (Math::Pi / 180.0f));
+    }
+    else if (newPitch < -CAMERA_MAX_PITCH_DEGREES)
+    {
+        pitchRadian = Radian((-CAMERA_MAX_PITCH_DEGREES - currentPitch * (180.0f / Math::Pi)) * (Math::Pi / 180.0f));
+    }
+    
     // Construct quaternions from axis-angle: (axis, angle)
     Quaternion yawQuat(Vector3::Up, yawRadian);
     Vector3 camRight = _cameraComponent->getWorldRight();
     Quaternion pitchQuat(camRight, pitchRadian);
     Quaternion newRot = yawQuat * pitchQuat * transform.getRotation();
     transform.setRotation(newRot);
+}
+
+float32 SponzaModern::extractPitchFromQuaternion(const Quaternion& rotation) const
+{
+    // Extract pitch using the same formula as Quaternion::Pitch()
+    // but return in radians for internal calculations
+    const float32 y = 2.0f * (rotation.Y * rotation.Z + rotation.W * rotation.X);
+    const float32 x = rotation.W * rotation.W - rotation.X * rotation.X - rotation.Y * rotation.Y + rotation.Z * rotation.Z;
+
+    if (y == 0.0f && x == 0.0f)
+    {
+        return 2.0f * std::atan2(rotation.X, rotation.W);
+    }
+    return std::atan2(y, x);
 }

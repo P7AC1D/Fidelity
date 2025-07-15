@@ -29,8 +29,12 @@ private:
     void translateCamera(float32 deltaX, float32 deltaY);
     void fpsCameraLook(float32 deltaX, float32 deltaY, uint32 dtMs);
     
+    // Helper function to extract pitch from quaternion for clamping
+    float32 extractPitchFromQuaternion(const Quaternion& rotation) const;
+    
     // Constants
     static constexpr float32 CAMERA_MOVE_FACTOR = 0.1f;
     static constexpr float32 CAMERA_MOVE_SPRINT_FACTOR = 0.5f;
     static constexpr float32 CAMERA_LOOK_SENSITIVITY = 0.1f;
+    static constexpr float32 CAMERA_MAX_PITCH_DEGREES = 89.0f; // Prevent gimbal lock
 };

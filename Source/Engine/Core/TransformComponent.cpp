@@ -47,10 +47,12 @@ void TransformComponent::drawInspector()
     // Rotation controls (using Euler angles for easier editing)
     auto euler = _rotation.ToEuler();
     float32 angles[3] = { euler[0].InDegrees(), euler[1].InDegrees(), euler[2].InDegrees() };
-    if (ImGui::DragFloat3("Orientation", angles, 1.0f, -180.0f, 180.0f))
+    
+    if (ImGui::DragFloat3("Rotation", angles, 1.0f))
     {
-      // Convert back to quaternion
-      // Note: Using the same order as in your original code (YXZ)
+      // Clamp pitch to prevent gimbal lock
+      angles[0] = std::max(-89.5f, std::min(89.5f, angles[0]));
+      
       Quaternion xRot(Vector3(1.0f, 0.0f, 0.0f), Degree(angles[0]).InRadians());
       Quaternion yRot(Vector3(0.0f, 1.0f, 0.0f), Degree(angles[1]).InRadians());
       Quaternion zRot(Vector3(0.0f, 0.0f, 1.0f), Degree(angles[2]).InRadians());

@@ -502,7 +502,23 @@ void Application::fpsCameraLook(int32 deltaX, int32 deltaY, uint32 dtMs)
 
   TransformComponent &cameraTransform = _camera->transform();
   float32 velocity(CAMERA_LOOK_SENSITIVITY * static_cast<float32>(dtMs));
-  Quaternion qPitch(Vector3(1.0f, 0.0f, 0.0f), -velocity * deltaY);
+  
+  // Get current pitch to check limits before applying new rotation
+  float32 currentPitch = extractPitchFromQuaternion(cameraTransform.getRotation());
+  float32 pitchDelta = -velocity * deltaY;
+  float32 newPitch = currentPitch + pitchDelta * (180.0f / Math::Pi); // Convert to degrees
+  
+  // Clamp pitch to prevent gimbal lock and over-rotation
+  if (newPitch > CAMERA_MAX_PITCH_DEGREES)
+  {
+    pitchDelta = (CAMERA_MAX_PITCH_DEGREES - currentPitch * (180.0f / Math::Pi)) * (Math::Pi / 180.0f);
+  }
+  else if (newPitch < -CAMERA_MAX_PITCH_DEGREES)
+  {
+    pitchDelta = (-CAMERA_MAX_PITCH_DEGREES - currentPitch * (180.0f / Math::Pi)) * (Math::Pi / 180.0f);
+  }
+  
+  Quaternion qPitch(Vector3(1.0f, 0.0f, 0.0f), pitchDelta);
   Quaternion qYaw(Vector3(0.0f, 1.0f, 0.0f), -velocity * deltaX);
 
   cameraTransform.setRotation(qPitch * cameraTransform.getRotation() * qYaw);
@@ -520,4 +536,18 @@ void Application::translateCamera(float32 forward, float32 right)
   Vector3 cameraForward = cameraTransform.getForward();
   Vector3 cameraRight = cameraTransform.getRight();
   cameraTransform.translate(-cameraForward * forward + cameraRight * right);
+}
+
+float32 Application::extractPitchFromQuaternion(const Quaternion& rotation) const
+{
+  // Extract pitch using the same formula as Quaternion::Pitch()
+  // but return in radians for internal calculations
+  const float32 y = 2.0f * (rotation.Y * rotation.Z + rotation.W * rotation.X);
+  const float32 x = rotation.W * rotation.W - rotation.X * rotation.X - rotation.Y * rotation.Y + rotation.Z * rotation.Z;
+
+  if (y == 0.0f && x == 0.0f)
+  {
+    return 2.0f * std::atan2(rotation.X, rotation.W);
+  }
+  return std::atan2(y, x);
 }
