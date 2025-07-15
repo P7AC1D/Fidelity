@@ -114,11 +114,11 @@ const Matrix4 &TransformComponent::getWorldMatrix() const
 void TransformComponent::setWorldMatrix(const Matrix4 &matrix)
 {
   _worldMatrix = matrix;
-  _lastMatrixChangeId = _changeId;  // Matrix is now up-to-date with current change
-
+  
   // TODO: Extract position, rotation, scale from matrix
   // This would require matrix decomposition
-  markDirty();  // But we changed the matrix directly, so increment change ID
+  markDirty();  // We changed the matrix directly, so increment change ID
+  _lastMatrixChangeId = _changeId;  // Matrix is now up-to-date with current change
 }
 
 void TransformComponent::setParent(TransformComponent *parent)
