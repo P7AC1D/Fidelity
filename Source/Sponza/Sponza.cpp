@@ -135,10 +135,14 @@ void SponzaModern::onUpdate(uint32 dtMs)
     translateCamera(0.0f, -deltaY);
   }
 
+  // Mouse look (existing functionality)
   if (_inputHandler->isButtonPressed(Button::Button_RMouse))
   {
     fpsCameraLook(mousePosDelta[0], mousePosDelta[1], dtMs);
   }
+
+  // Arrow key look (new functionality)
+  handleArrowKeyLook(dtMs);
 }
 
 void SponzaModern::translateCamera(float32 deltaX, float32 deltaY)
@@ -194,6 +198,43 @@ void SponzaModern::fpsCameraLook(float32 deltaX, float32 deltaY, uint32 dtMs)
   Quaternion pitchQuat(camRight, pitchRadian);
   Quaternion newRot = yawQuat * pitchQuat * transform.getRotation();
   transform.setRotation(newRot);
+}
+
+void SponzaModern::handleArrowKeyLook(uint32 dtMs)
+{
+  if (!_camera || !_cameraComponent)
+    return;
+
+  // Calculate arrow key deltas based on pressed keys
+  float32 deltaX = 0.0f;
+  float32 deltaY = 0.0f;
+
+  // Horizontal rotation (yaw) - Left/Right arrows
+  if (_inputHandler->isButtonPressed(Button::Key_Left))
+  {
+    deltaX = -CAMERA_ARROW_LOOK_SENSITIVITY * static_cast<float32>(dtMs) / 1000.0f;
+  }
+  else if (_inputHandler->isButtonPressed(Button::Key_Right))
+  {
+    deltaX = CAMERA_ARROW_LOOK_SENSITIVITY * static_cast<float32>(dtMs) / 1000.0f;
+  }
+
+  // Vertical rotation (pitch) - Up/Down arrows
+  if (_inputHandler->isButtonPressed(Button::Key_Up))
+  {
+    deltaY = -CAMERA_ARROW_LOOK_SENSITIVITY * static_cast<float32>(dtMs) / 1000.0f;
+  }
+  else if (_inputHandler->isButtonPressed(Button::Key_Down))
+  {
+    deltaY = CAMERA_ARROW_LOOK_SENSITIVITY * static_cast<float32>(dtMs) / 1000.0f;
+  }
+
+  // Apply camera rotation if any arrow keys are pressed
+  if (deltaX != 0.0f || deltaY != 0.0f)
+  {
+    // Reuse the existing fpsCameraLook method for consistent behavior
+    fpsCameraLook(deltaX, deltaY, dtMs);
+  }
 }
 
 float32 SponzaModern::extractPitchFromQuaternion(const Quaternion &rotation) const
