@@ -47,8 +47,15 @@ void DrawableComponent::onDeactivate()
 
 void DrawableComponent::onUpdate(float32 dt)
 {
-  // Update logic can go here if needed
-  // For now, drawable components are mostly passive
+  // Check if transform has changed and invalidate bounds if needed
+  if (auto transform = getComponentShared<TransformComponent>())
+  {
+    if (transform->hasChanged())
+    {
+      markDirty(); // Invalidate world bounds cache
+    }
+  }
+  
   (void)dt; // Suppress unused parameter warning
 }
 

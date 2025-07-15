@@ -41,10 +41,13 @@ public:
   const Matrix4 &getWorldMatrix() const;
   void setWorldMatrix(const Matrix4 &matrix);
 
-  // Simple change tracking for direct queries
-  bool hasChanged() const { return _dirty; }
-  void markDirty() { _dirty = true; }
-  void clearDirty() { _dirty = false; }
+  // Modern change tracking system
+  bool hasChanged() const { return _changeId != _lastObservedChangeId; }
+  void markDirty() { ++_changeId; }
+  void clearDirty() { _lastObservedChangeId = _changeId; }
+  
+  // For debugging/profiling
+  uint32 getChangeId() const { return _changeId; }
 
   // Update for compatibility with GameObject update
   void update(float32 dt) { (void)dt; /* no-op */ }
@@ -69,8 +72,9 @@ private:
   Vector3 _scale = Vector3::Identity;
 
   mutable Matrix4 _worldMatrix = Matrix4::Identity;
-  mutable bool _worldMatrixDirty = true;
-  bool _dirty = true;
+  mutable uint32 _lastMatrixChangeId = 0;  // Last change when matrix was calculated
+  uint32 _changeId = 1;  // Incremented on each change (start at 1 so initial state is dirty)
+  mutable uint32 _lastObservedChangeId = 0;  // For hasChanged() tracking
 
   TransformComponent *_parent = nullptr;
 

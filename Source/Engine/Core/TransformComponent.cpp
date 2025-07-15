@@ -103,9 +103,10 @@ void TransformComponent::scale(const Vector3 &scale)
 
 const Matrix4 &TransformComponent::getWorldMatrix() const
 {
-  if (_worldMatrixDirty)
+  if (_changeId != _lastMatrixChangeId)
   {
     updateWorldMatrix();
+    _lastMatrixChangeId = _changeId;
   }
   return _worldMatrix;
 }
@@ -113,11 +114,11 @@ const Matrix4 &TransformComponent::getWorldMatrix() const
 void TransformComponent::setWorldMatrix(const Matrix4 &matrix)
 {
   _worldMatrix = matrix;
-  _worldMatrixDirty = false;
+  _lastMatrixChangeId = _changeId;  // Matrix is now up-to-date with current change
 
   // TODO: Extract position, rotation, scale from matrix
   // This would require matrix decomposition
-  markDirty();
+  markDirty();  // But we changed the matrix directly, so increment change ID
 }
 
 void TransformComponent::setParent(TransformComponent *parent)
@@ -144,5 +145,5 @@ void TransformComponent::updateWorldMatrix() const
     _worldMatrix = localMatrix;
   }
 
-  _worldMatrixDirty = false;
+  // Note: _lastMatrixChangeId is updated in getWorldMatrix() after calling this
 }
