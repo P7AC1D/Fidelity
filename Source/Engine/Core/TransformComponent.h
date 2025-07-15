@@ -41,7 +41,7 @@ public:
   const Matrix4 &getWorldMatrix() const;
   void setWorldMatrix(const Matrix4 &matrix);
 
-  // Change tracking
+  // Simple change tracking for direct queries
   bool hasChanged() const { return _dirty; }
   void markDirty() { _dirty = true; }
   void clearDirty() { _dirty = false; }
@@ -59,13 +59,6 @@ public:
   void setParent(TransformComponent *parent);
   TransformComponent *getParent() const { return _parent; }
 
-  // Observer pattern for change notifications
-  using ChangeCallback = std::function<void()>;
-  using CallbackId = size_t;
-
-  CallbackId addChangeObserver(ChangeCallback callback);
-  void removeChangeObserver(CallbackId callbackId);
-
 protected:
   // Override ComponentBase hook to add initialization logic
   void onInitialize() override;
@@ -81,9 +74,5 @@ private:
 
   TransformComponent *_parent = nullptr;
 
-  std::vector<std::pair<CallbackId, ChangeCallback>> _changeObservers;
-  CallbackId _nextCallbackId = 0;
-
   void updateWorldMatrix() const;
-  void notifyChanged();
 };

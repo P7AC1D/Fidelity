@@ -65,7 +65,6 @@ void TransformComponent::setPosition(const Vector3 &position)
   {
     _position = position;
     markDirty();
-    notifyChanged(); // Notify observers of change
   }
 }
 
@@ -75,7 +74,6 @@ void TransformComponent::setRotation(const Quaternion &rotation)
   {
     _rotation = rotation;
     markDirty();
-    notifyChanged(); // Notify observers of change
   }
 }
 
@@ -85,7 +83,6 @@ void TransformComponent::setScale(const Vector3 &scale)
   {
     _scale = scale;
     markDirty();
-    notifyChanged(); // Notify observers of change
   }
 }
 
@@ -148,27 +145,4 @@ void TransformComponent::updateWorldMatrix() const
   }
 
   _worldMatrixDirty = false;
-}
-
-TransformComponent::CallbackId TransformComponent::addChangeObserver(ChangeCallback callback)
-{
-  CallbackId id = _nextCallbackId++;
-  _changeObservers.emplace_back(id, std::move(callback));
-  return id;
-}
-
-void TransformComponent::removeChangeObserver(CallbackId callbackId)
-{
-  _changeObservers.erase(
-    std::remove_if(_changeObservers.begin(), _changeObservers.end(),
-      [callbackId](const auto& pair) { return pair.first == callbackId; }),
-    _changeObservers.end());
-}
-
-void TransformComponent::notifyChanged()
-{
-  for (const auto &[id, callback] : _changeObservers)
-  {
-    callback();
-  }
 }

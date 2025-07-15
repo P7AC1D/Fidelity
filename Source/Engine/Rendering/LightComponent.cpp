@@ -5,7 +5,7 @@
 #include "../UI/ImGui/imgui.h"
 
 LightComponent::LightComponent()
-    : _colour(Colour::White), _radius(10.0f), _lightType(LightComponentType::Point), _matrix(Matrix4::Identity), _direction(Vector3::Identity), _intensity(1000.0f), _castsShadows(false), _shadowResolution(1024), _shadowNearPlane(0.1f), _shadowFarPlane(100.0f), _modified(true), _transformObserverId(0)
+    : _colour(Colour::White), _radius(10.0f), _lightType(LightComponentType::Point), _matrix(Matrix4::Identity), _direction(Vector3::Identity), _intensity(1000.0f), _castsShadows(false), _shadowResolution(1024), _shadowNearPlane(0.1f), _shadowFarPlane(100.0f), _modified(true)
 {
 }
 
@@ -19,7 +19,7 @@ LightComponent::LightComponent(LightComponentType lightType, const Colour &colou
 
 LightComponent::~LightComponent()
 {
-  cleanupTransformObserver();
+  // No cleanup needed for direct query approach
 }
 
 void LightComponent::onInitialize()
@@ -30,9 +30,8 @@ void LightComponent::onInitialize()
 
 void LightComponent::onActivate()
 {
-  // Set up transform observer when component becomes active
-  setupTransformObserver();
-  updateFromTransform();
+  // Mark as modified to ensure initial calculation
+  _modified = true;
 }
 
 Vector3 LightComponent::getPosition() const
@@ -190,38 +189,22 @@ LightComponent &LightComponent::setShadowFarPlane(float32 farPlane)
   return *this;
 }
 
-void LightComponent::setupTransformObserver()
-{
-  // Clean up any existing observer first
-  cleanupTransformObserver();
-  
-  // Get transform component and set up observer
-  if (auto transform = getComponentShared<TransformComponent>())
-  {
-    _transformComponent = transform;
-    _transformObserverId = transform->addChangeObserver([this]()
-    {
-      _modified = true;
-    });
-  }
-}
-
-void LightComponent::cleanupTransformObserver()
-{
-  if (auto transform = _transformComponent.lock())
-  {
-    transform->removeChangeObserver(_transformObserverId);
-  }
-  _transformComponent.reset();
-  _transformObserverId = 0;
-}
-
 void LightComponent::onUpdate(float32 dt)
 {
-  // Update logic handled by observer pattern now
-  // Just recalculate matrix if we've been marked as modified
-  if (_modified)
+  // Check if transform has changed using direct query
+  if (auto transform = getComponentShared<TransformComponent>())
   {
+    if (transform->hasChanged() || _modified)
+    {
+      updateFromTransform(); // Update direction if needed
+      recalculateMatrix();
+      _modified = false;
+      // Note: We don't call transform->clearDirty() here since other components might need to check it too
+    }
+  }
+  else if (_modified)
+  {
+    // No transform component, but we have local changes
     recalculateMatrix();
     _modified = false;
   }

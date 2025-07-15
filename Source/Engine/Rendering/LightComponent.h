@@ -66,8 +66,6 @@ protected:
     void onUpdate(float32 dt) override;
 
 private:
-    void setupTransformObserver();
-    void cleanupTransformObserver();
     void updateFromTransform();
     void recalculateMatrix();
 
@@ -83,10 +81,8 @@ private:
     bool _castsShadows;
     uint32 _shadowResolution;
     float32 _shadowNearPlane;
-    float32 _shadowFarPlane;    // State tracking
-    bool _modified;
+    float32 _shadowFarPlane;
     
-    // Transform dependency
-    std::weak_ptr<TransformComponent> _transformComponent;
-    size_t _transformObserverId;
+    // State tracking
+    bool _modified;
 };
