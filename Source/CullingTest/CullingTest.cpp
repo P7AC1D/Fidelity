@@ -144,7 +144,7 @@ void CullingTest::updateCullingStats()
             
         // Simple distance-based culling simulation
         // In reality, this would use proper frustum-AABB intersection
-        if (const TransformComponent* transform = drawable->getCachedTransform())
+        if (const TransformComponent* transform = drawable->getTransform())
         {
             Vector3 objPos = transform->getPosition();
             Vector3 camPos = _cameraComponent->getWorldPosition();

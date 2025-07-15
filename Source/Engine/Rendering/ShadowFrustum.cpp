@@ -2,6 +2,7 @@
 #include "CameraComponent.h"
 #include "DrawableComponent.h"
 #include "Material.h"
+#include "../Core/ComponentBase.inl"
 #include "../Utility/Assert.hpp"
 
 ShadowFrustum::ShadowFrustum() : _cascadeCount(0)
@@ -74,7 +75,7 @@ std::vector<std::shared_ptr<DrawableComponent>> ShadowFrustum::cullForCascade(ui
     for (const auto& drawable : objects)
     {
         // Test object's AABB against cascade frustum
-        const TransformComponent* transform = drawable->getCachedTransform();
+        const TransformComponent* transform = drawable->getTransform();
         if (transform && cascadeFrustum.contains(drawable->getAabb(), *transform))
         {
             culledObjects.push_back(drawable);
@@ -92,7 +93,7 @@ std::vector<std::shared_ptr<DrawableComponent>> ShadowFrustum::broadPhaseCull(co
     for (const auto& drawable : objects)
     {
         // Test against extended camera frustum
-        const TransformComponent* transform = drawable->getCachedTransform();
+        const TransformComponent* transform = drawable->getTransform();
         if (transform && _extendedCameraFrustum.contains(drawable->getAabb(), *transform))
         {
             culledObjects.push_back(drawable);
@@ -239,7 +240,7 @@ bool ShadowFrustum::shouldCastShadows(const std::shared_ptr<DrawableComponent>& 
 bool ShadowFrustum::isLargeEnoughForShadows(const std::shared_ptr<DrawableComponent>& drawable, const CameraComponent& camera) const
 {
     // Calculate approximate screen-space size
-    const TransformComponent* transform = drawable->getCachedTransform();
+    const TransformComponent* transform = drawable->getTransform();
     if (!transform) {
         return false; // No transform, can't calculate size
     }

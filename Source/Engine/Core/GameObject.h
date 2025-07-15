@@ -9,18 +9,14 @@
 #include "IComponent.h"
 #include "ComponentManager.h"
 #include "ComponentTypeId.h"
-#include "TransformComponent.h"
 #include "Types.hpp"
-#include "ComponentDependency.h"
 
 /// Modern GameObject implementation with type-safe component management.
 /// This is the new version that will eventually replace the old GameObject.
-class ComponentDependencyResolver;
+class TransformComponent;
 
 class GameObject
 {
-  friend class ComponentDependencyResolver;
-
 public:
   GameObject(const std::string &name, uint64 index, ComponentManager *componentManager);
   ~GameObject();
@@ -53,8 +49,8 @@ public:
   GameObject &addChild(std::unique_ptr<GameObject> child);
 
   /// Get the transform component.
-  TransformComponent &transform() { return getComponent<TransformComponent>(); }
-  const TransformComponent &transform() const { return const_cast<GameObject *>(this)->getComponent<TransformComponent>(); }
+  TransformComponent &transform();
+  const TransformComponent &transform() const;
 
   /// Update this GameObject and all its children.
   void update(float32 dt);
@@ -119,9 +115,6 @@ T &GameObject::addComponent(Args &&...args)
   {
     componentPtr->activate();
   }
-
-  // Resolve dependencies only for this component (optimized)
-  ComponentDependencyResolver::resolveDependenciesForComponent(*this, componentPtr);
 
   return *componentPtr;
 }

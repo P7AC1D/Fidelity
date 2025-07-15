@@ -15,20 +15,10 @@ TransformComponent::TransformComponent(const Vector3 &position, const Quaternion
 {
 }
 
-void TransformComponent::initialize()
+void TransformComponent::onInitialize()
 {
-  // Nothing special needed for initialization
+  // Mark as dirty when component is initialized
   markDirty();
-}
-
-void TransformComponent::activate()
-{
-  // Component is now active - could trigger events here
-}
-
-void TransformComponent::deactivate()
-{
-  // Component is now inactive - could clean up here
 }
 
 ComponentTypeId TransformComponent::getTypeId() const

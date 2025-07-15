@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ComponentTypeId.h"
+#include "Types.hpp"
 
 // Forward declaration to avoid circular dependency
 class GameObject;
@@ -20,6 +21,9 @@ public:
 
     /// Called when the component is deactivated or removed.
     virtual void deactivate() {}
+
+    /// Called every frame for component updates (replaces IUpdatableComponent).
+    virtual void update(float32 dt) { (void)dt; /* Default: no-op */ }
 
     /// Returns the unique ComponentTypeId for this concrete component.
     virtual ComponentTypeId getTypeId() const = 0;

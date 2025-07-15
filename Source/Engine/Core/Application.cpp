@@ -1,4 +1,5 @@
 #include "Application.h"
+#include "TransformComponent.h"
 
 #include <iostream>
 #include <utility>

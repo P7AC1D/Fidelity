@@ -2,24 +2,21 @@
 
 #include <functional>
 #include <vector>
-#include "IComponent.h"
+#include "ComponentBase.h"
 #include "ComponentTypeId.h"
 #include "../Core/Maths.h"
 #include "../Maths/Quaternion.hpp"
 #include "Types.hpp"
 
-/// Modern Transform component that implements IComponent interface.
+/// Modern Transform component that implements ComponentBase.
 /// This will eventually replace the old Transform class for new GameObjects.
-class TransformComponent : public IComponent
+class TransformComponent : public ComponentBase
 {
 public:
   TransformComponent();
   TransformComponent(const Vector3 &position, const Quaternion &rotation = Quaternion::Identity, const Vector3 &scale = Vector3::Identity);
 
   // IComponent interface
-  void initialize() override;
-  void activate() override;
-  void deactivate() override;
   ComponentTypeId getTypeId() const override;
   void drawInspector() override;
 
@@ -68,6 +65,10 @@ public:
 
   CallbackId addChangeObserver(ChangeCallback callback);
   void removeChangeObserver(CallbackId callbackId);
+
+protected:
+  // Override ComponentBase hook to add initialization logic
+  void onInitialize() override;
 
 private:
   Vector3 _position = Vector3::Zero;

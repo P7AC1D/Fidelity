@@ -1,5 +1,5 @@
 #include "GameObject.h"
-#include "IUpdatableComponent.h"
+#include "TransformComponent.h"
 #include "../UI/ImGui/imgui.h"
 
 GameObject::GameObject(const std::string &name, uint64 index, ComponentManager *componentManager)
@@ -35,11 +35,8 @@ void GameObject::update(float32 dt)
   // Update all components
   for (auto &[typeId, component] : _components)
   {
-    // Check if component has an update method (we'll add this interface)
-    if (auto* updatableComponent = dynamic_cast<IUpdatableComponent*>(component.get()))
-    {
-      updatableComponent->update(dt);
-    }
+    // All components now have update method (no dynamic_cast needed)
+    component->update(dt);
   }
   
   // Clear transform dirty flag after all components have been updated
@@ -53,6 +50,16 @@ void GameObject::update(float32 dt)
   {
     child->update(dt);
   }
+}
+
+TransformComponent &GameObject::transform()
+{
+  return getComponent<TransformComponent>();
+}
+
+const TransformComponent &GameObject::transform() const
+{
+  return const_cast<GameObject *>(this)->getComponent<TransformComponent>();
 }
 
 void GameObject::drawInspector()

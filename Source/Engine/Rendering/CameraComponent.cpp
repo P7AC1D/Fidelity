@@ -1,6 +1,7 @@
 #include "CameraComponent.h"
 #include "../Core/TransformComponent.h"
 #include "../Core/GameObject.h"
+#include "../Core/ComponentBase.inl"
 #include "../UI/ImGui/imgui.h"
 
 CameraComponent::CameraComponent()
@@ -10,48 +11,33 @@ CameraComponent::CameraComponent()
 
 CameraComponent::~CameraComponent()
 {
-  // Clean up transform observer
-  if (auto transform = _transformComponent.lock())
-  {
-    transform->removeChangeObserver(_transformObserverId);
-  }
 }
 
-void CameraComponent::initialize()
+void CameraComponent::onInitialize()
 {
   // Initialize camera projection
   updateProjection();
 }
 
-void CameraComponent::activate()
+void CameraComponent::onActivate()
 {
   // Component is now active - could register with rendering system here
 }
 
-void CameraComponent::deactivate()
+void CameraComponent::onDeactivate()
 {
   // Component is now inactive - could unregister from rendering system here
+}
+
+void CameraComponent::onUpdate(float32 dt)
+{
+  // Camera update logic - mostly handled by transform changes
+  (void)dt; // Suppress unused parameter warning
 }
 
 ComponentTypeId CameraComponent::getTypeId() const
 {
   return GetTypeId();
-}
-
-std::vector<ComponentTypeId> CameraComponent::getDependencies() const
-{
-  return {getComponentTypeId<TransformComponent>()};
-}
-
-void CameraComponent::onDependenciesResolved(GameObject &gameObject)
-{
-  // Get the TransformComponent from the GameObject using shared_ptr
-  if (auto transformShared = gameObject.getComponentShared<TransformComponent>())
-  {
-    // Convert to weak_ptr for the camera
-    std::weak_ptr<TransformComponent> weakPtr = transformShared;
-    setTransformComponent(weakPtr);
-  }
 }
 
 void CameraComponent::drawInspector()
@@ -98,7 +84,7 @@ void CameraComponent::drawInspector()
     ImGui::Text("Aspect Ratio: %.3f", getAspectRatio());
 
     // World space information
-    if (const TransformComponent *transform = getTransformComponent())
+    if (auto transform = getComponentShared<TransformComponent>())
     {
       Vector3 worldPos = getWorldPosition();
       Vector3 worldForward = getWorldForward();
@@ -208,31 +194,9 @@ float32 CameraComponent::distanceFrom(const Vector3 &position) const
   return (position - cameraPos).Length();
 }
 
-void CameraComponent::setTransformComponent(std::weak_ptr<TransformComponent> transform)
-{
-  // Remove previous observer if any
-  if (auto oldTransform = _transformComponent.lock())
-  {
-    oldTransform->removeChangeObserver(_transformObserverId);
-  }
-
-  _transformComponent = transform;
-  _viewDirty = true;
-  _frustumDirty = true;
-
-  // Register for transform change notifications
-  if (auto transformShared = transform.lock())
-  {
-    _transformObserverId = transformShared->addChangeObserver([this]()
-                                       {
-      _viewDirty = true;
-      _frustumDirty = true; });
-  }
-}
-
 Vector3 CameraComponent::getWorldPosition() const
 {
-  if (const TransformComponent *transform = getTransformComponent())
+  if (auto transform = getComponentShared<TransformComponent>())
   {
     return transform->getPosition();
   }
@@ -241,7 +205,7 @@ Vector3 CameraComponent::getWorldPosition() const
 
 Vector3 CameraComponent::getWorldForward() const
 {
-  const TransformComponent *transform = getTransformComponent();
+  auto transform = getComponentShared<TransformComponent>();
   if (!transform)
   {
     return Vector3(0.0f, 0.0f, -1.0f); // Default forward
@@ -257,7 +221,7 @@ Vector3 CameraComponent::getWorldForward() const
 
 Vector3 CameraComponent::getWorldUp() const
 {
-  const TransformComponent *transform = getTransformComponent();
+  auto transform = getComponentShared<TransformComponent>();
   if (!transform)
   {
     return Vector3(0.0f, 1.0f, 0.0f); // Default up
@@ -273,7 +237,7 @@ Vector3 CameraComponent::getWorldUp() const
 
 Vector3 CameraComponent::getWorldRight() const
 {
-  const TransformComponent *transform = getTransformComponent();
+  auto transform = getComponentShared<TransformComponent>();
   if (!transform)
   {
     return Vector3(1.0f, 0.0f, 0.0f); // Default right
@@ -289,7 +253,7 @@ Vector3 CameraComponent::getWorldRight() const
 
 void CameraComponent::updateView() const
 {
-  const TransformComponent *transform = getTransformComponent();
+  auto transform = getComponentShared<TransformComponent>();
   if (!transform)
   {
     _view = Matrix4::Identity;
@@ -321,33 +285,4 @@ void CameraComponent::updateFrustum() const
     _frustum = Frustrum(*this);
     _frustumDirty = false;
   }
-}
-
-void CameraComponent::update(float32 dt)
-{
-  // Only update view matrix if transform has changed
-  if (auto transform = _transformComponent.lock())
-  {
-    if (transform->hasChanged())
-    {
-      _viewDirty = true;
-      _frustumDirty = true;
-    }
-  }
-
-  // Update matrices if needed (lazy evaluation)
-  // Note: We don't update frustum here since getFrustum() will handle it lazily
-  if (_viewDirty)
-  {
-    updateView();
-  }
-}
-
-const TransformComponent *CameraComponent::getTransformComponent() const
-{
-  if (auto transform = _transformComponent.lock())
-  {
-    return transform.get();
-  }
-  return nullptr;
 }

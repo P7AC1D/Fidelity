@@ -1,7 +1,9 @@
 #include "DrawableComponent.h"
 
+#include "../Core/ComponentBase.inl"
 #include "../Core/TransformComponent.h"
 #include "../Core/GameObject.h"
+#include "../Core/ComponentBase.inl"
 #include "../UI/ImGui/imgui.h"
 #include "../UI/UiManager.hpp"
 #include "StaticMesh.h"
@@ -20,7 +22,11 @@ DrawableComponent::DrawableComponent(std::shared_ptr<StaticMesh> mesh, std::shar
   }
 }
 
-void DrawableComponent::initialize()
+DrawableComponent::~DrawableComponent()
+{
+}
+
+void DrawableComponent::onInitialize()
 {
   // Initialize bounds if we have a mesh
   if (_mesh)
@@ -29,36 +35,21 @@ void DrawableComponent::initialize()
   }
 }
 
-void DrawableComponent::activate()
+void DrawableComponent::onActivate()
 {
   // Component is now active - could register with rendering system here
 }
 
-void DrawableComponent::deactivate()
+void DrawableComponent::onDeactivate()
 {
   // Component is now inactive - could unregister from rendering system here
 }
 
-std::vector<ComponentTypeId> DrawableComponent::getDependencies() const
+void DrawableComponent::onUpdate(float32 dt)
 {
-  return {getComponentTypeId<TransformComponent>()};
-}
-
-void DrawableComponent::onDependenciesResolved(GameObject &gameObject)
-{
-  // Get the TransformComponent from the GameObject using shared_ptr
-  if (auto transformShared = gameObject.getComponentShared<TransformComponent>())
-  {
-    // Convert to weak_ptr for the drawable
-    std::weak_ptr<TransformComponent> weakPtr = transformShared;
-    setTransformComponent(weakPtr);
-  }
-}
-
-void DrawableComponent::setTransformComponent(std::weak_ptr<TransformComponent> transform)
-{
-  _transformComponent = transform;
-  markDirty();
+  // Update logic can go here if needed
+  // For now, drawable components are mostly passive
+  (void)dt; // Suppress unused parameter warning
 }
 
 ComponentTypeId DrawableComponent::getTypeId() const
@@ -135,18 +126,9 @@ const Aabb &DrawableComponent::getWorldBounds() const
   return _worldBounds;
 }
 
-const TransformComponent *DrawableComponent::getCachedTransform() const
-{
-  if (auto transform = _transformComponent.lock())
-  {
-    return transform.get();
-  }
-  return nullptr;
-}
-
 const Matrix4 &DrawableComponent::getWorldMatrix() const
 {
-  if (const TransformComponent *transform = getCachedTransform())
+  if (auto transform = getComponentShared<TransformComponent>())
   {
     return transform->getWorldMatrix();
   }
@@ -154,9 +136,15 @@ const Matrix4 &DrawableComponent::getWorldMatrix() const
   return identity;
 }
 
+const TransformComponent* DrawableComponent::getTransform() const
+{
+  auto transform = getComponentShared<TransformComponent>();
+  return transform.get();
+}
+
 Vector3 DrawableComponent::getWorldPosition() const
 {
-  if (const TransformComponent *transform = getCachedTransform())
+  if (auto transform = getComponentShared<TransformComponent>())
   {
     return transform->getPosition();
   }
@@ -172,8 +160,7 @@ void DrawableComponent::updateWorldBounds() const
     return;
   }
 
-  const TransformComponent *transform = getCachedTransform();
-  if (transform)
+  if (auto transform = getComponentShared<TransformComponent>())
   {
     // Transform local bounds to world space
     const Matrix4 &worldMatrix = transform->getWorldMatrix();

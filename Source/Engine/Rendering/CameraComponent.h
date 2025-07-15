@@ -1,27 +1,26 @@
 #pragma once
 
 #include <memory>
-#include "../Core/IComponent.h"
-#include "../Core/IUpdatableComponent.h"
+#include "../Core/ComponentBase.h"
 #include "../Core/ComponentTypeId.h"
-#include "../Core/ComponentDependency.h"
 #include "../Core/Maths.h"
 #include "../Core/TransformComponent.h"
 #include "../Core/Types.hpp"
 
-/// Camera component that implements IComponent interface.
+/// Camera component using ComponentBase.
 /// Handles camera projection, view matrix calculation, and frustum culling.
-/// Depends on TransformComponent for spatial information.
-class CameraComponent : public IComponent, public IComponentDependency, public IUpdatableComponent
+/// Uses direct transform queries for efficiency.
+class CameraComponent : public ComponentBase
 {
 public:
     CameraComponent();
     ~CameraComponent();
 
-    // IComponent interface
-    void initialize() override;
-    void activate() override;
-    void deactivate() override;
+    // ComponentBase interface
+    void onInitialize() override;
+    void onActivate() override;
+    void onDeactivate() override;
+    void onUpdate(float32 dt) override;
     ComponentTypeId getTypeId() const override;
     void drawInspector() override;
 
@@ -51,15 +50,7 @@ public:
     bool contains(const Aabb& aabb, const Matrix4& transform) const;
     float32 distanceFrom(const Vector3& position) const;
 
-    // IComponentDependency interface
-    std::vector<ComponentTypeId> getDependencies() const override;
-    void onDependenciesResolved(GameObject& gameObject) override;
-
-    // Transform integration
-    void setTransformComponent(std::weak_ptr<TransformComponent> transform);
-    std::weak_ptr<TransformComponent> getTransformComponentWeak() const { return _transformComponent; }
-
-    // World space properties
+    // World space properties (using direct queries)
     Vector3 getWorldPosition() const;
     Vector3 getWorldForward() const;
     Vector3 getWorldUp() const;
@@ -68,9 +59,6 @@ public:
     // Change tracking
     bool hasChanged() const { return _viewDirty || _projDirty; }
     void markDirty() { _viewDirty = _projDirty = _frustumDirty = true; }
-
-    // IUpdatableComponent interface
-    void update(float32 dt) override;
 
 private:
     // Camera parameters
@@ -90,14 +78,8 @@ private:
     bool _projDirty = true;
     mutable bool _frustumDirty = true;
 
-    // Transform dependency
-    std::weak_ptr<TransformComponent> _transformComponent;
-    TransformComponent::CallbackId _transformObserverId = 0;
-
     // Helper methods
     void updateView() const;
     void updateProjection();
     void updateFrustum() const;
-    
-    const TransformComponent* getTransformComponent() const;
 };

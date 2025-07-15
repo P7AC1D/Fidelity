@@ -7,7 +7,6 @@
 
 #include "IComponent.h"
 #include "ComponentTypeId.h"
-#include "ComponentDependency.h"
 
 class GameObject;
 

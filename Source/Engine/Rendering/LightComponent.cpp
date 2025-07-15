@@ -1,10 +1,11 @@
 #include "LightComponent.h"
+#include "../Core/ComponentBase.inl"  // For template implementations
 #include "../Core/TransformComponent.h"
 #include "../Core/GameObject.h"
 #include "../UI/ImGui/imgui.h"
 
 LightComponent::LightComponent()
-    : _colour(Colour::White), _radius(10.0f), _lightType(LightComponentType::Point), _matrix(Matrix4::Identity), _direction(Vector3::Identity), _intensity(1000.0f), _castsShadows(false), _shadowResolution(1024), _shadowNearPlane(0.1f), _shadowFarPlane(100.0f), _modified(true)
+    : _colour(Colour::White), _radius(10.0f), _lightType(LightComponentType::Point), _matrix(Matrix4::Identity), _direction(Vector3::Identity), _intensity(1000.0f), _castsShadows(false), _shadowResolution(1024), _shadowNearPlane(0.1f), _shadowFarPlane(100.0f), _modified(true), _transformObserverId(0)
 {
 }
 
@@ -16,42 +17,27 @@ LightComponent::LightComponent(LightComponentType lightType, const Colour &colou
   _intensity = intensity;
 }
 
-void LightComponent::initialize()
+LightComponent::~LightComponent()
+{
+  cleanupTransformObserver();
+}
+
+void LightComponent::onInitialize()
 {
   // Component is ready for use
   _modified = true;
 }
 
-void LightComponent::activate()
+void LightComponent::onActivate()
 {
-  // Called when component becomes active
+  // Set up transform observer when component becomes active
+  setupTransformObserver();
   updateFromTransform();
-}
-
-void LightComponent::deactivate()
-{
-  // Called when component becomes inactive
-}
-
-std::vector<ComponentTypeId> LightComponent::getDependencies() const
-{
-  return {getComponentTypeId<TransformComponent>()};
-}
-
-void LightComponent::onDependenciesResolved(GameObject &gameObject)
-{
-  // Get the TransformComponent from the GameObject using shared_ptr
-  if (auto transformShared = gameObject.getComponentShared<TransformComponent>())
-  {
-    // Convert to weak_ptr for the light
-    std::weak_ptr<TransformComponent> weakPtr = transformShared;
-    setTransformComponent(weakPtr);
-  }
 }
 
 Vector3 LightComponent::getPosition() const
 {
-  if (auto transform = _transformComponent.lock())
+  if (auto transform = getComponentShared<TransformComponent>())
   {
     return transform->getPosition();
   }
@@ -204,23 +190,36 @@ LightComponent &LightComponent::setShadowFarPlane(float32 farPlane)
   return *this;
 }
 
-void LightComponent::setTransformComponent(std::weak_ptr<TransformComponent> transform)
+void LightComponent::setupTransformObserver()
 {
-  _transformComponent = transform;
-  updateFromTransform();
+  // Clean up any existing observer first
+  cleanupTransformObserver();
+  
+  // Get transform component and set up observer
+  if (auto transform = getComponentShared<TransformComponent>())
+  {
+    _transformComponent = transform;
+    _transformObserverId = transform->addChangeObserver([this]()
+    {
+      _modified = true;
+    });
+  }
 }
 
-void LightComponent::update(float32 dt)
+void LightComponent::cleanupTransformObserver()
 {
-  // Only update if transform has changed
   if (auto transform = _transformComponent.lock())
   {
-    if (transform->hasChanged())
-    {
-      updateFromTransform();
-    }
+    transform->removeChangeObserver(_transformObserverId);
   }
+  _transformComponent.reset();
+  _transformObserverId = 0;
+}
 
+void LightComponent::onUpdate(float32 dt)
+{
+  // Update logic handled by observer pattern now
+  // Just recalculate matrix if we've been marked as modified
   if (_modified)
   {
     recalculateMatrix();
@@ -230,7 +229,7 @@ void LightComponent::update(float32 dt)
 
 void LightComponent::updateFromTransform()
 {
-  if (auto transform = _transformComponent.lock())
+  if (auto transform = getComponentShared<TransformComponent>())
   {
     Quaternion rotation = transform->getRotation();
     Vector3 newDirection = rotation.Rotate(Vector3(0, -1, 0));
@@ -247,7 +246,7 @@ void LightComponent::updateFromTransform()
 
 void LightComponent::recalculateMatrix()
 {
-  if (auto transform = _transformComponent.lock())
+  if (auto transform = getComponentShared<TransformComponent>())
   {
     Vector3 position = transform->getPosition();
     Quaternion rotation = transform->getRotation();

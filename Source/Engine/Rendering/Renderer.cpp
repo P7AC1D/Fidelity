@@ -1,5 +1,6 @@
 // Core headers
 #include "Renderer.h"
+#include "../Core/ComponentBase.inl"
 #include <random>  // for mt19937 and uniform distributions
 #include <chrono>
 #include <iostream>
@@ -2025,7 +2026,7 @@ void Renderer::performFrustumCulling(const std::vector<std::shared_ptr<DrawableC
   for (const auto& drawable : allDrawables)
   {
     // PERFORMANCE OPTIMIZATION: Use cached transform instead of creating new Transform every frame
-    const TransformComponent* transform = drawable->getCachedTransform();
+    const TransformComponent* transform = drawable->getTransform();
     if (transform && camera->contains(drawable->getAabb(), transform->getWorldMatrix()))
     {
       // If the drawable is not visible, skip it
@@ -2057,8 +2058,8 @@ void Renderer::performFrustumCulling(const std::vector<std::shared_ptr<DrawableC
   std::sort(_cachedOpaqueDrawables.begin(), _cachedOpaqueDrawables.end(), 
            [&cameraPos](const auto& a, const auto& b) {
                // Calculate distance once and cache
-               const auto* transformA = a->getCachedTransform();
-               const auto* transformB = b->getCachedTransform();
+               const auto* transformA = a->getTransform();
+               const auto* transformB = b->getTransform();
                if (!transformA || !transformB) return false;
                
                Vector3 posA = transformA->getPosition();
@@ -2071,8 +2072,8 @@ void Renderer::performFrustumCulling(const std::vector<std::shared_ptr<DrawableC
   // Sort transparent objects back-to-front for proper alpha blending
   std::sort(_cachedTransparentDrawables.begin(), _cachedTransparentDrawables.end(), 
            [&cameraPos](const auto& a, const auto& b) {
-               const auto* transformA = a->getCachedTransform();
-               const auto* transformB = b->getCachedTransform();
+               const auto* transformA = a->getTransform();
+               const auto* transformB = b->getTransform();
                if (!transformA || !transformB) return false;
                
                Vector3 posA = transformA->getPosition();

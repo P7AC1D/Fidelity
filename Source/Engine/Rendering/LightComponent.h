@@ -1,8 +1,6 @@
 #pragma once
-#include "../Core/IComponent.h"
-#include "../Core/IUpdatableComponent.h"
+#include "../Core/ComponentBase.h"
 #include "../Core/ComponentTypeId.h"
-#include "../Core/ComponentDependency.h"
 #include "../Core/Maths.h"
 #include <memory>
 
@@ -17,19 +15,17 @@ enum class LightComponentType
     Area
 };
 
-/// Modern Light component that implements IComponent interface.
+/// Modern Light component that uses ComponentBase.
 /// Handles all light types with shadow support and proper transform integration.
-/// Depends on TransformComponent for spatial information.
-class LightComponent : public IComponent, public IComponentDependency, public IUpdatableComponent
+/// Queries TransformComponent directly from parent GameObject.
+class LightComponent : public ComponentBase
 {
 public:
     LightComponent();
     LightComponent(LightComponentType lightType, const Colour& colour = Colour::White, float32 intensity = 1000.0f);
+    ~LightComponent();
 
-    // IComponent interface
-    void initialize() override;
-    void activate() override;
-    void deactivate() override;
+    // ComponentBase interface
     ComponentTypeId getTypeId() const override { return getComponentTypeId<LightComponent>(); }
     void drawInspector() override;
 
@@ -63,18 +59,15 @@ public:
     float32 getShadowNearPlane() const { return _shadowNearPlane; }
     float32 getShadowFarPlane() const { return _shadowFarPlane; }
 
-    // IComponentDependency interface
-    std::vector<ComponentTypeId> getDependencies() const override;
-    void onDependenciesResolved(GameObject& gameObject) override;
-
-    // Transform integration
-    void setTransformComponent(std::weak_ptr<TransformComponent> transform);
-    std::weak_ptr<TransformComponent> getTransformComponent() const { return _transformComponent; }
-
-    // Update method for recalculating matrices and positions
-    void update(float32 dt) override;
+protected:
+    // ComponentBase hooks
+    void onInitialize() override;
+    void onActivate() override;
+    void onUpdate(float32 dt) override;
 
 private:
+    void setupTransformObserver();
+    void cleanupTransformObserver();
     void updateFromTransform();
     void recalculateMatrix();
 
@@ -90,11 +83,10 @@ private:
     bool _castsShadows;
     uint32 _shadowResolution;
     float32 _shadowNearPlane;
-    float32 _shadowFarPlane;
-
-    // State tracking
+    float32 _shadowFarPlane;    // State tracking
     bool _modified;
-
+    
     // Transform dependency
     std::weak_ptr<TransformComponent> _transformComponent;
+    size_t _transformObserverId;
 };

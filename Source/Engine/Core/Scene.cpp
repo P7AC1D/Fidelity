@@ -1,6 +1,7 @@
 #include <algorithm>
 #include <chrono>
 
+#include "ComponentBase.inl"
 #include "../Rendering/CameraComponent.h"
 #include "../Rendering/DrawableComponent.h"
 #include "../Rendering/LightComponent.h"
@@ -375,7 +376,7 @@ std::vector<Scene::DrawableDistance> Scene::sortDrawablesByDistance(const Camera
   {
     try
     {
-        const TransformComponent* transform = drawable->getCachedTransform();
+        const TransformComponent* transform = drawable->getTransform();
         if (!transform) continue; // Skip if no transform
       Vector3 objectPos = transform->getPosition();
       float32 distance = (objectPos - cameraPos).Length();

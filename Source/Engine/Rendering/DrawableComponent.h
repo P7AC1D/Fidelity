@@ -3,9 +3,8 @@
 #include <memory>
 #include <string>
 
-#include "../Core/IComponent.h"
+#include "../Core/ComponentBase.h"
 #include "../Core/ComponentTypeId.h"
-#include "../Core/ComponentDependency.h"
 #include "../Core/Maths.h"
 #include "../Core/Types.hpp"
 
@@ -13,19 +12,21 @@ class StaticMesh;
 class Material;
 class TransformComponent;
 
-/// Modern Drawable component that implements IComponent interface.
+/// Modern Drawable component using ComponentBase.
 /// Handles rendering of meshes with materials and proper transform integration.
-/// Depends on TransformComponent for spatial information.
-class DrawableComponent : public IComponent, public IComponentDependency
+/// Uses direct transform queries for efficiency.
+class DrawableComponent : public ComponentBase
 {
 public:
   DrawableComponent();
   DrawableComponent(std::shared_ptr<StaticMesh> mesh, std::shared_ptr<Material> material);
+  ~DrawableComponent();
 
-  // IComponent interface
-  void initialize() override;
-  void activate() override;
-  void deactivate() override;
+  // ComponentBase interface
+  void onInitialize() override;
+  void onActivate() override;
+  void onDeactivate() override;
+  void onUpdate(float32 dt) override;
   ComponentTypeId getTypeId() const override;
   void drawInspector() override;
 
@@ -57,25 +58,19 @@ public:
   void enableDrawAabb(bool enable) { _drawAabb = enable; }
   bool shouldDrawAabb() const { return _drawAabb; }
 
-  // IComponentDependency interface
-  std::vector<ComponentTypeId> getDependencies() const override;
-  void onDependenciesResolved(GameObject& gameObject) override;
-
-  // Transform integration
-  void setTransformComponent(std::weak_ptr<TransformComponent> transform);
-  std::weak_ptr<TransformComponent> getTransformComponent() const { return _transformComponent; }
-
-  // Rendering data access
+  // Transform integration (using direct queries)
   const Matrix4 &getWorldMatrix() const;
-  Vector3 getWorldPosition() const;
 
   // Frustum culling helpers
   const Aabb &getAabb() const { return getWorldBounds(); }
-  const TransformComponent* getCachedTransform() const;
 
   // Change tracking for rendering optimization
   bool hasChanged() const { return _boundsValid == false; }
   void markDirty() { _boundsValid = false; }
+
+  // Public access to transform data for external systems (rendering, culling, etc.)
+  const TransformComponent* getTransform() const;
+  Vector3 getWorldPosition() const;
 
 private:
   // Core rendering data
@@ -92,9 +87,6 @@ private:
   Aabb _localBounds;
   mutable Aabb _worldBounds;
   mutable bool _boundsValid = false;
-
-  // Transform dependency
-  std::weak_ptr<TransformComponent> _transformComponent;
 
   // Helper methods
   void updateWorldBounds() const;
