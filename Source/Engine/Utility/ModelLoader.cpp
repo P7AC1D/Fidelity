@@ -243,8 +243,10 @@ GameObject &buildModel(Scene &scene, const std::string &fileFolder, const aiScen
     // Create a new GameObject for this mesh and add drawable component
     GameObject &currentObject = scene.createGameObject(aiMesh->mName.C_Str());
     auto &drawableComp = currentObject.addComponent<DrawableComponent>();
-    // Parent under root
-    // Note: scene.addChild takes ownership, but created object is owned by scene; skip parenting or implement as needed
+    
+    // Set up parent-child relationship in the transform hierarchy
+    // This ensures that scaling the root will affect all mesh children
+    currentObject.transform().setParent(&root.transform());
 
     Vector3 offset;
     drawableComp.setMaterial(materials[aiMesh->mMaterialIndex]);

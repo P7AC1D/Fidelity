@@ -29,10 +29,10 @@ void SponzaModern::createCamera()
   auto &transform = cameraObj.getComponent<TransformComponent>();
   auto &camera = cameraObj.addComponent<CameraComponent>();
 
-  // Configure camera
-  camera.setPerspective(Degree(67.67f), getWidth(), getHeight(), 0.1f, 500.0f);
+  // Configure camera with appropriate far plane for the scaled scene
+  camera.setPerspective(Degree(67.67f), getWidth(), getHeight(), 0.1f, 1000.0f);
 
-  // Set position and rotation
+  // Set position and rotation - original values should work now with proper scaling
   transform.setPosition(Vector3(-105.0f, 70.0f, 9.0f));
   transform.setRotation(Quaternion(Degree(59.552f), Degree(53.438f), Degree(53.802f)));
 
@@ -64,10 +64,10 @@ void SponzaModern::createLights()
 
     light.setLightType(LightComponentType::Point)
         .setColour(Colour(150, 25, 25))
-        .setRadius(70.0f)
+        .setRadius(70.0f)  // Original radius should work with proper scaling
         .setCastsShadows(true);
 
-    transform.setPosition(Vector3(95.0f, 8.0f, 0.0f));
+    transform.setPosition(Vector3(95.0f, 8.0f, 0.0f));  // Original position
   }
 
   // Point Light 2 - Green
@@ -78,9 +78,9 @@ void SponzaModern::createLights()
 
     light.setLightType(LightComponentType::Point)
         .setColour(Colour(25, 150, 25))
-        .setRadius(70.0f);
+        .setRadius(70.0f);  // Original radius should work with proper scaling
 
-    transform.setPosition(Vector3(-51.0f, 8.0f, 0.0f));
+    transform.setPosition(Vector3(-51.0f, 8.0f, 0.0f));  // Original position
   }
 
   // Point Light 3 - Blue
@@ -91,9 +91,9 @@ void SponzaModern::createLights()
 
     light.setLightType(LightComponentType::Point)
         .setColour(Colour(25, 25, 100))
-        .setRadius(70.0f);
+        .setRadius(70.0f);  // Original radius should work with proper scaling
 
-    transform.setPosition(Vector3(12.0f, 8.0f, 0.0f));
+    transform.setPosition(Vector3(12.0f, 8.0f, 0.0f));  // Original position
   }
 }
 
@@ -101,7 +101,12 @@ void SponzaModern::loadSponzaModel()
 {
   // Load the Sponza model and integrate via ModelLoader
   GameObject &modelRoot = ModelLoader::fromFile(_scene, "./Models/sponza_pbr/sponza.obj", true);
-  // Apply uniform scale to match previous setup
+  
+  // IMPORTANT: Apply uniform scale to reduce model size
+  // This scale factor affects the entire scene coordinate system:
+  // - Camera positions must be scaled accordingly
+  // - Light positions and radii must be scaled accordingly  
+  // - Movement factors must be adjusted for the new scale
   modelRoot.transform().setScale(Vector3(0.1f, 0.1f, 0.1f));
 }
 
