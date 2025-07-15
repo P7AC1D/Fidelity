@@ -65,54 +65,17 @@ bool Frustrum::contains(const Aabb &box, const TransformComponent &transform) co
 
 bool Frustrum::contains(const Aabb &box, const Matrix4 &transform) const
 {
-    // For Matrix4, we can't easily determine if it's axis-aligned without decomposing it
-    // So we'll use the oriented bounding box approach directly
-    
-    // Get AABB min/max and compute the 8 corners
-    Vector3 min = box.getMin();
-    Vector3 max = box.getMax();
-    
-    Vector3 corners[8] = {
-        Vector3(min.X, min.Y, min.Z), // 0: min corner
-        Vector3(max.X, min.Y, min.Z), // 1: max X
-        Vector3(min.X, max.Y, min.Z), // 2: max Y  
-        Vector3(max.X, max.Y, min.Z), // 3: max X,Y
-        Vector3(min.X, min.Y, max.Z), // 4: max Z
-        Vector3(max.X, min.Y, max.Z), // 5: max X,Z
-        Vector3(min.X, max.Y, max.Z), // 6: max Y,Z
-        Vector3(max.X, max.Y, max.Z)  // 7: max corner
-    };
-    
-    // Transform all corners
-    for (int i = 0; i < 8; ++i)
+    // Check if the Matrix4 represents an axis-aligned transform (translation + uniform scale only)
+    if (isMatrix4AxisAligned(transform))
     {
-        Vector4 corner4D(corners[i].X, corners[i].Y, corners[i].Z, 1.0f);
-        Vector4 transformedCorner = transform * corner4D;
-        corners[i] = Vector3(transformedCorner.X, transformedCorner.Y, transformedCorner.Z);
+        // Use the optimized axis-aligned path
+        return containsAxisAlignedMatrix4(box, transform);
     }
-    
-    // Test the transformed AABB against each frustum plane
-    for (int i = 0; i < 8; ++i)
+    else
     {
-        const Vector3& corner = corners[i];
-        
-        // If any corner is inside all planes, the AABB intersects the frustum
-        bool insideAll = true;
-        
-        if (_left.getSignedDistance(corner) < 0) insideAll = false;
-        if (_right.getSignedDistance(corner) < 0) insideAll = false;
-        if (_top.getSignedDistance(corner) < 0) insideAll = false;
-        if (_bottom.getSignedDistance(corner) < 0) insideAll = false;
-        if (_near.getSignedDistance(corner) < 0) insideAll = false;
-        if (_far.getSignedDistance(corner) < 0) insideAll = false;
-        
-        if (insideAll)
-        {
-            return true; // At least one corner is inside
-        }
+        // For arbitrary transforms, use the oriented bounding box approach
+        return containsOrientedMatrix4(box, transform);
     }
-    
-    return false; // No corners are inside the frustum
 }
 
 bool Frustrum::isTransformAxisAligned(const TransformComponent &transform) const
@@ -278,4 +241,107 @@ Plane Frustrum::createPlaneFromVector4(const Vector4& planeVector) const
     Vector3 pointOnPlane = normal * (-distance);
     
     return Plane(normal, pointOnPlane);
+}
+
+bool Frustrum::isMatrix4AxisAligned(const Matrix4 &transform) const
+{
+    // A Matrix4 is axis-aligned if:
+    // 1. The rotation part (upper-left 3x3) is identity or close to it
+    // 2. No skew or shear components exist
+    
+    const float32 EPSILON = 0.0001f;
+    
+    // Check if the 3x3 rotation matrix is axis-aligned (diagonal with possible scale)
+    // For axis-aligned, off-diagonal elements should be near zero
+    if (abs(transform[0][1]) > EPSILON || abs(transform[0][2]) > EPSILON ||
+        abs(transform[1][0]) > EPSILON || abs(transform[1][2]) > EPSILON ||
+        abs(transform[2][0]) > EPSILON || abs(transform[2][1]) > EPSILON)
+    {
+        return false;
+    }
+    
+    // Check that w-row is correct for affine transform [0, 0, 0, 1]
+    if (abs(transform[3][0]) > EPSILON || abs(transform[3][1]) > EPSILON || 
+        abs(transform[3][2]) > EPSILON || abs(transform[3][3] - 1.0f) > EPSILON)
+    {
+        return false;
+    }
+    
+    return true;
+}
+
+bool Frustrum::containsAxisAlignedMatrix4(const Aabb &aabb, const Matrix4 &transform) const
+{
+    // Extract translation and scale from the axis-aligned Matrix4
+    Vector3 translation(transform[0][3], transform[1][3], transform[2][3]);
+    Vector3 scale(transform[0][0], transform[1][1], transform[2][2]);
+    
+    // Transform AABB using the extracted translation and scale
+    Vector3 min = aabb.getMin() * scale + translation;
+    Vector3 max = aabb.getMax() * scale + translation;
+    
+    // Ensure min/max are correct after scaling (handle negative scale)
+    if (scale.X < 0.0f) { float32 temp = min.X; min.X = max.X; max.X = temp; }
+    if (scale.Y < 0.0f) { float32 temp = min.Y; min.Y = max.Y; max.Y = temp; }
+    if (scale.Z < 0.0f) { float32 temp = min.Z; min.Z = max.Z; max.Z = temp; }
+    
+    // Test against each frustum plane using the optimized AABB-plane test
+    return testAABBAgainstPlane(min, max, _left) &&
+           testAABBAgainstPlane(min, max, _right) &&
+           testAABBAgainstPlane(min, max, _top) &&
+           testAABBAgainstPlane(min, max, _bottom) &&
+           testAABBAgainstPlane(min, max, _near) &&
+           testAABBAgainstPlane(min, max, _far);
+}
+
+bool Frustrum::containsOrientedMatrix4(const Aabb &box, const Matrix4 &transform) const
+{
+    // For arbitrary transforms, use the oriented bounding box approach
+    // This is the original implementation moved to a separate function
+    
+    // Get AABB min/max and compute the 8 corners
+    Vector3 min = box.getMin();
+    Vector3 max = box.getMax();
+    
+    Vector3 corners[8] = {
+        Vector3(min.X, min.Y, min.Z), // 0: min corner
+        Vector3(max.X, min.Y, min.Z), // 1: max X
+        Vector3(min.X, max.Y, min.Z), // 2: max Y  
+        Vector3(max.X, max.Y, min.Z), // 3: max X,Y
+        Vector3(min.X, min.Y, max.Z), // 4: max Z
+        Vector3(max.X, min.Y, max.Z), // 5: max X,Z
+        Vector3(min.X, max.Y, max.Z), // 6: max Y,Z
+        Vector3(max.X, max.Y, max.Z)  // 7: max corner
+    };
+    
+    // Transform all corners
+    for (int i = 0; i < 8; ++i)
+    {
+        Vector4 corner4D(corners[i].X, corners[i].Y, corners[i].Z, 1.0f);
+        Vector4 transformedCorner = transform * corner4D;
+        corners[i] = Vector3(transformedCorner.X, transformedCorner.Y, transformedCorner.Z);
+    }
+    
+    // Test the transformed AABB against each frustum plane
+    for (int i = 0; i < 8; ++i)
+    {
+        const Vector3& corner = corners[i];
+        
+        // If any corner is inside all planes, the AABB intersects the frustum
+        bool insideAll = true;
+        
+        if (_left.getSignedDistance(corner) < 0) insideAll = false;
+        if (_right.getSignedDistance(corner) < 0) insideAll = false;
+        if (_top.getSignedDistance(corner) < 0) insideAll = false;
+        if (_bottom.getSignedDistance(corner) < 0) insideAll = false;
+        if (_near.getSignedDistance(corner) < 0) insideAll = false;
+        if (_far.getSignedDistance(corner) < 0) insideAll = false;
+        
+        if (insideAll)
+        {
+            return true; // At least one corner is inside
+        }
+    }
+    
+    return false; // No corners are inside the frustum
 }

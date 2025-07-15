@@ -214,6 +214,67 @@ TEST_CASE("TRANSFORM OPTIMIZATION PATHS")
         
         delete cameraGO;
     }
+    
+    SECTION("MATRIX4 OPTIMIZATION PATHS")
+    {
+        // Create a simple frustum for testing Matrix4 optimizations
+        Plane left(Vector3(1, 0, 0), Vector3(-5, 0, 0));    
+        Plane right(Vector3(-1, 0, 0), Vector3(5, 0, 0));   
+        Plane top(Vector3(0, -1, 0), Vector3(0, 5, 0));     
+        Plane bottom(Vector3(0, 1, 0), Vector3(0, -5, 0));  
+        Plane near(Vector3(0, 0, 1), Vector3(0, 0, -1));    
+        Plane far(Vector3(0, 0, -1), Vector3(0, 0, 10));    
+        
+        Frustrum frustum(left, right, top, bottom, near, far);
+        
+        // Test AABB that should be inside the frustum
+        Aabb insideBox(Vector3(-1, -1, 0), Vector3(1, 1, 2));
+        Aabb outsideBox(Vector3(10, 10, 10), Vector3(12, 12, 12));
+        
+        // Test identity transform
+        Matrix4 identity = Matrix4::Identity;
+        REQUIRE(frustum.contains(insideBox, identity) == true);
+        REQUIRE(frustum.contains(outsideBox, identity) == false);
+        
+        // Test translation transform (should use axis-aligned optimization)
+        Matrix4 translation = Matrix4::Translation(Vector3(1.0f, 0.0f, 0.0f));
+        REQUIRE(frustum.contains(insideBox, translation) == true);
+        REQUIRE(frustum.contains(outsideBox, translation) == false);
+        
+        // Test scaling transform (should use axis-aligned optimization)  
+        Matrix4 scaling = Matrix4::Scaling(Vector3(0.5f, 0.5f, 0.5f));
+        REQUIRE(frustum.contains(insideBox, scaling) == true);
+        REQUIRE_NOTHROW(frustum.contains(outsideBox, scaling));
+        
+        // Test combined translation and scaling (should use axis-aligned optimization)
+        Matrix4 translation2 = Matrix4::Translation(Vector3(0.5f, 0.0f, 0.0f));
+        Matrix4 scaling2 = Matrix4::Scaling(Vector3(0.8f, 0.8f, 0.8f));
+        Matrix4 combined = translation2 * scaling2;
+        REQUIRE_NOTHROW(frustum.contains(insideBox, combined));
+        REQUIRE_NOTHROW(frustum.contains(outsideBox, combined));
+    }
+    
+    SECTION("MATRIX4 AXIS-ALIGNED DETECTION")
+    {
+        ComponentManager componentManager;
+        auto [cameraGO, camera] = FrustumTestHelper::createCameraWithGameObject(&componentManager);
+        
+        Aabb testBox(Vector3(-0.5f, -0.5f, -0.5f), Vector3(0.5f, 0.5f, 0.5f));
+        
+        // Test pure translation (should be detected as axis-aligned)
+        Matrix4 pureTranslation = Matrix4::Translation(Vector3(2.0f, 3.0f, -5.0f));
+        REQUIRE_NOTHROW(camera->contains(testBox, pureTranslation));
+        
+        // Test pure scaling (should be detected as axis-aligned)
+        Matrix4 pureScaling = Matrix4::Scaling(Vector3(2.0f, 1.5f, 0.8f));
+        REQUIRE_NOTHROW(camera->contains(testBox, pureScaling));
+        
+        // Test negative scaling (should be detected as axis-aligned and handled correctly)
+        Matrix4 negativeScaling = Matrix4::Scaling(Vector3(-1.0f, 1.0f, 1.0f));
+        REQUIRE_NOTHROW(camera->contains(testBox, negativeScaling));
+        
+        delete cameraGO;
+    }
 }
 
 TEST_CASE("PERFORMANCE AND STRESS TESTS")
