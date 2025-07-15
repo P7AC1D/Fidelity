@@ -31,8 +31,14 @@ void CameraComponent::onDeactivate()
 
 void CameraComponent::onUpdate(float32 dt)
 {
-  // Camera update logic - mostly handled by transform changes
-  (void)dt; // Suppress unused parameter warning
+  if (auto transform = getComponentShared<TransformComponent>())
+  {
+    if (transform->hasChanged())
+    {
+      _viewDirty = true;
+      _frustumDirty = true;
+    }
+  }
 }
 
 ComponentTypeId CameraComponent::getTypeId() const
