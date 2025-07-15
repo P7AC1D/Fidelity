@@ -402,30 +402,30 @@ bool Application::initialize()
   glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);
   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-  
+
   // Request forward compatibility for better GPU driver support
   glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GLFW_TRUE);
-  
-  // Request debug context for better GPU diagnostics
-  #ifdef _DEBUG
+
+// Request debug context for better GPU diagnostics
+#ifdef _DEBUG
   glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GLFW_TRUE);
-  #endif
-  
+#endif
+
   // Request robust buffer access for better GPU utilization
   glfwWindowHint(GLFW_CONTEXT_ROBUSTNESS, GLFW_LOSE_CONTEXT_ON_RESET);
-  
+
   // Request specific context creation API for better GPU selection
   glfwWindowHint(GLFW_CONTEXT_CREATION_API, GLFW_NATIVE_CONTEXT_API);
-  
+
   // Request double buffering and depth buffer
   glfwWindowHint(GLFW_DOUBLEBUFFER, GLFW_TRUE);
   glfwWindowHint(GLFW_DEPTH_BITS, 24);
   glfwWindowHint(GLFW_STENCIL_BITS, 8);
-  
+
   // glfwWindowHint(GLFW_COCOA_RETINA_FRAMEBUFFER, GLFW_FALSE);
 
   std::cout << "Creating OpenGL context with enhanced GPU preferences..." << std::endl;
-  
+
   _window = glfwCreateWindow(_desc.Width, _desc.Height, _desc.Name.c_str(), nullptr, nullptr);
   if (!_window)
   {
@@ -461,7 +461,7 @@ bool Application::initialize()
     renderDeviceDesc.RenderWidth = fbWidth;
     renderDeviceDesc.RenderHeight = fbHeight;
     _renderDevice.reset(new GLRenderDevice(renderDeviceDesc));
-    
+
     std::cout << "Render device initialized successfully." << std::endl;
   }
   catch (const std::exception &exception)
@@ -502,12 +502,12 @@ void Application::fpsCameraLook(int32 deltaX, int32 deltaY, uint32 dtMs)
 
   TransformComponent &cameraTransform = _camera->transform();
   float32 velocity(CAMERA_LOOK_SENSITIVITY * static_cast<float32>(dtMs));
-  
+
   // Get current pitch to check limits before applying new rotation
   float32 currentPitch = extractPitchFromQuaternion(cameraTransform.getRotation());
   float32 pitchDelta = -velocity * deltaY;
   float32 newPitch = currentPitch + pitchDelta * (180.0f / Math::Pi); // Convert to degrees
-  
+
   // Clamp pitch to prevent gimbal lock and over-rotation
   if (newPitch > CAMERA_MAX_PITCH_DEGREES)
   {
@@ -517,7 +517,7 @@ void Application::fpsCameraLook(int32 deltaX, int32 deltaY, uint32 dtMs)
   {
     pitchDelta = (-CAMERA_MAX_PITCH_DEGREES - currentPitch * (180.0f / Math::Pi)) * (Math::Pi / 180.0f);
   }
-  
+
   Quaternion qPitch(Vector3(1.0f, 0.0f, 0.0f), pitchDelta);
   Quaternion qYaw(Vector3(0.0f, 1.0f, 0.0f), -velocity * deltaX);
 
@@ -538,7 +538,7 @@ void Application::translateCamera(float32 forward, float32 right)
   cameraTransform.translate(-cameraForward * forward + cameraRight * right);
 }
 
-float32 Application::extractPitchFromQuaternion(const Quaternion& rotation) const
+float32 Application::extractPitchFromQuaternion(const Quaternion &rotation) const
 {
   // Extract pitch using the same formula as Quaternion::Pitch()
   // but return in radians for internal calculations

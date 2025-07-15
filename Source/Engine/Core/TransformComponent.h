@@ -45,7 +45,7 @@ public:
   bool hasChanged() const { return _changeId != _lastObservedChangeId; }
   void markDirty() { ++_changeId; }
   void clearDirty() { _lastObservedChangeId = _changeId; }
-  
+
   // For debugging/profiling
   uint32 getChangeId() const { return _changeId; }
 
@@ -71,10 +71,14 @@ private:
   Quaternion _rotation = Quaternion::Identity;
   Vector3 _scale = Vector3::Identity;
 
+  // UI editing state - keep separate from actual rotation to prevent coupling
+  mutable Vector3 _uiEulerAngles = Vector3::Zero; // Stored in degrees
+  mutable bool _uiEulerValid = false;             // Whether UI angles are in sync with quaternion
+
   mutable Matrix4 _worldMatrix = Matrix4::Identity;
-  mutable uint32 _lastMatrixChangeId = 0;  // Last change when matrix was calculated
-  uint32 _changeId = 1;  // Incremented on each change (start at 1 so initial state is dirty)
-  mutable uint32 _lastObservedChangeId = 0;  // For hasChanged() tracking
+  mutable uint32 _lastMatrixChangeId = 0;   // Last change when matrix was calculated
+  uint32 _changeId = 1;                     // Incremented on each change (start at 1 so initial state is dirty)
+  mutable uint32 _lastObservedChangeId = 0; // For hasChanged() tracking
 
   TransformComponent *_parent = nullptr;
 

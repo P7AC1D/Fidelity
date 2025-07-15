@@ -58,9 +58,9 @@ private:
 protected:
   void fpsCameraLook(int32 deltaX, int32 deltaY, uint32 dtMs);
   void translateCamera(float32 forward, float32 right);
-  
+
   // Helper function to extract pitch from quaternion for clamping
-  float32 extractPitchFromQuaternion(const Quaternion& rotation) const;
+  float32 extractPitchFromQuaternion(const Quaternion &rotation) const;
 
   Vector2I _lastMousePos, _currentMousePos;
   Vector3 _cameraTarget;
