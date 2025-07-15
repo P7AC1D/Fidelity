@@ -12,6 +12,12 @@ float32 Math::Lerp(float32 a, float32 b, float32 t)
 
 float32 Math::InverseSqrt(float32 value)
 {
+  // Handle edge cases for robustness
+  if (value <= 0.0f)
+  {
+    return 0.0f;
+  }
+  
   union
   {
     float32 f;
@@ -24,7 +30,13 @@ float32 Math::InverseSqrt(float32 value)
   x2 = value * 0.5F;
   conv.f = value;
   conv.i = 0x5f3759df - (conv.i >> 1);
+  
+  // First Newton-Raphson iteration (original)
   conv.f = conv.f * (threehalfs - (x2 * conv.f * conv.f));
+  
+  // Second iteration for much better precision (~0.001% error vs ~1% error)
+  conv.f = conv.f * (threehalfs - (x2 * conv.f * conv.f));
+  
   return conv.f;
 }
 

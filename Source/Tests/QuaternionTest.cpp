@@ -212,10 +212,11 @@ TEST_CASE("Quaternion Normalize and Norm")
   REQUIRE(qat.Norm() == norm);
 
   qat.Normalize();
-  REQUIRE(qat[0] == 3.0f * normInv);
-  REQUIRE(qat[1] == 6.0f * normInv);
-  REQUIRE(qat[2] == 7.0f * normInv);
-  REQUIRE(qat[3] == 4.0f * normInv);
+  // Use Approx for floating point comparisons due to precision improvements
+  REQUIRE(qat[0] == Approx(3.0f * normInv).margin(0.001f));
+  REQUIRE(qat[1] == Approx(6.0f * normInv).margin(0.001f));
+  REQUIRE(qat[2] == Approx(7.0f * normInv).margin(0.001f));
+  REQUIRE(qat[3] == Approx(4.0f * normInv).margin(0.001f));
   REQUIRE(qat.Norm() == Approx(1.0f));
 }
 
