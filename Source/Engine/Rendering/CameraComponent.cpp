@@ -89,23 +89,19 @@ void CameraComponent::drawInspector()
       setFar(far);
     }
 
-    // Calculated values
+    // Culling settings
     ImGui::Separator();
-    ImGui::Text("Calculated Values");
-    ImGui::Text("Aspect Ratio: %.3f", getAspectRatio());
-
-    // World space information
-    if (auto transform = getComponentShared<TransformComponent>())
+    ImGui::Text("Culling Settings");
+    bool cullingEnabled = _cullingEnabled;
+    if (ImGui::Checkbox("Enable Frustum Culling", &cullingEnabled))
     {
-      Vector3 worldPos = getWorldPosition();
-      Vector3 worldForward = getWorldForward();
-
-      ImGui::Text("World Position: (%.2f, %.2f, %.2f)", worldPos.X, worldPos.Y, worldPos.Z);
-      ImGui::Text("World Forward: (%.2f, %.2f, %.2f)", worldForward.X, worldForward.Y, worldForward.Z);
+      setCullingEnabled(cullingEnabled);
     }
-    else
+    ImGui::SameLine();
+    ImGui::TextDisabled("(?)");
+    if (ImGui::IsItemHovered())
     {
-      ImGui::Text("No Transform Component");
+      ImGui::SetTooltip("When disabled, all objects will be rendered regardless of visibility.\nUseful for debugging culling issues.");
     }
   }
 }
@@ -200,6 +196,12 @@ const Frustrum &CameraComponent::getFrustum() const
 
 bool CameraComponent::contains(const Aabb &aabb, const Matrix4 &transform) const
 {
+  // If culling is disabled, consider all objects visible
+  if (!_cullingEnabled)
+  {
+    return true;
+  }
+
   // Get the frustum for proper culling
   const Frustrum &frustum = getFrustum();
 

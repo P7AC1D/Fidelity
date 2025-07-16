@@ -56,6 +56,10 @@ public:
     Vector3 getWorldUp() const;
     Vector3 getWorldRight() const;
 
+    // Culling control
+    bool isCullingEnabled() const { return _cullingEnabled; }
+    void setCullingEnabled(bool enabled) { _cullingEnabled = enabled; }
+
     // Change tracking
     bool hasChanged() const { return _viewDirty || _projDirty; }
     void markDirty() { _viewDirty = _projDirty = _frustumDirty = true; }
@@ -67,6 +71,9 @@ private:
     Radian _fov = Degree(60.0f);
     float32 _near = 0.1f;
     float32 _far = 1000.0f;
+
+    // Culling control
+    bool _cullingEnabled = true;
 
     // Cached matrices
     mutable Matrix4 _view = Matrix4::Identity;
