@@ -205,6 +205,31 @@ bool CameraComponent::contains(const Aabb &aabb, const Matrix4 &transform) const
   // Get the frustum for proper culling
   const Frustrum &frustum = getFrustum();
 
+  // Extract position from transform matrix for distance validation
+  Vector3 objectPosition(transform[0][3], transform[1][3], transform[2][3]);
+  Vector3 cameraPosition = getWorldPosition();
+  float32 distanceToObject = (objectPosition - cameraPosition).Length();
+  
+  // For objects very close to the camera, use more conservative culling
+  float32 minSafeDistance = getNear() * 1.2f; // 20% buffer beyond near plane
+  if (distanceToObject < minSafeDistance)
+  {
+    // For very close objects, be more permissive to avoid incorrect culling
+    // Extract AABB size from transform to determine if object is significant
+    Vector3 scale(Vector3::Length(Vector3(transform[0][0], transform[0][1], transform[0][2])),
+                  Vector3::Length(Vector3(transform[1][0], transform[1][1], transform[1][2])),
+                  Vector3::Length(Vector3(transform[2][0], transform[2][1], transform[2][2])));
+    
+    Vector3 worldSize = (aabb.getMax() - aabb.getMin()) * scale;
+    float32 objectRadius = worldSize.Length() * 0.5f;
+    
+    // If object is reasonably sized and very close, likely should be visible
+    if (objectRadius > 0.1f && distanceToObject < minSafeDistance * 2.0f)
+    {
+      return true; // Conservative: assume close, reasonably-sized objects are visible
+    }
+  }
+
   // Use the new Matrix4 overload to avoid temporary TransformComponent creation
   return frustum.contains(aabb, transform);
 }

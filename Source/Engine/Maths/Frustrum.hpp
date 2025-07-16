@@ -1,5 +1,6 @@
 #pragma once
 #include <array>
+#include <string>
 #include "AABB.hpp"
 #include "Matrix4.hpp"
 #include "Plane.hpp"
@@ -40,6 +41,15 @@ public:
   /// @brief Calculate the approximate volume of the frustum
   /// @return The volume of the frustum (approximated)
   float32 getVolume() const;
+
+  /// @brief Validate frustum plane orientations for debugging
+  /// @return True if all planes have correct inward-pointing normals
+  bool validatePlaneOrientations() const;
+
+  /// @brief Get debug information about frustum plane distances from a point
+  /// @param point The point to test
+  /// @return String containing distance information for debugging
+  std::string getDebugDistances(const Vector3 &point) const;
 
 private:
   // Helper methods for optimized culling

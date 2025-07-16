@@ -3,6 +3,8 @@
 #include "../Rendering/CameraComponent.h"
 #include "Vector3.hpp"
 #include <cmath>
+#include <cstdio>
+#include <string>
 
 Frustrum::Frustrum()
 {
@@ -90,35 +92,58 @@ Frustrum::Frustrum(const CameraComponent &camera)
   Vector3 nearCenter = cameraPos + cameraForward * near;
   Vector3 farCenter = cameraPos + cameraForward * far;
 
-  // Calculate corner directions for side planes
-  Vector3 nearTopLeft = cameraForward + cameraUp * tanHalfFovY - cameraRight * tanHalfFovX;
-  Vector3 nearTopRight = cameraForward + cameraUp * tanHalfFovY + cameraRight * tanHalfFovX;
-  Vector3 nearBottomLeft = cameraForward - cameraUp * tanHalfFovY - cameraRight * tanHalfFovX;
-  Vector3 nearBottomRight = cameraForward - cameraUp * tanHalfFovY + cameraRight * tanHalfFovX;
+  // Calculate corner directions for side planes (normalized directions from camera)
+  Vector3 nearTopLeft = Vector3::Normalize(cameraForward + cameraUp * tanHalfFovY - cameraRight * tanHalfFovX);
+  Vector3 nearTopRight = Vector3::Normalize(cameraForward + cameraUp * tanHalfFovY + cameraRight * tanHalfFovX);
+  Vector3 nearBottomLeft = Vector3::Normalize(cameraForward - cameraUp * tanHalfFovY - cameraRight * tanHalfFovX);
+  Vector3 nearBottomRight = Vector3::Normalize(cameraForward - cameraUp * tanHalfFovY + cameraRight * tanHalfFovX);
 
-  // Create frustum planes with INWARD-pointing normals (toward frustum center)
-  // For proper containment testing, all normals must point INWARD
+  // Create frustum planes using the STANDARD geometric approach
+  // All normals must point toward the interior of the frustum for proper containment testing
+  
+  // For a perspective frustum, we create planes using two points on each edge
+  // and the camera position to define the plane triangles
 
-  // Left plane: normal points toward the RIGHT (inward toward frustum center)
-  Vector3 leftNormal = Vector3::Normalize(Vector3::Cross(nearBottomLeft, nearTopLeft));
+  // Calculate actual corner points on the near plane
+  Vector3 nearTopLeftPoint = nearCenter + cameraUp * (near * tanHalfFovY) - cameraRight * (near * tanHalfFovX);
+  Vector3 nearTopRightPoint = nearCenter + cameraUp * (near * tanHalfFovY) + cameraRight * (near * tanHalfFovX);
+  Vector3 nearBottomLeftPoint = nearCenter - cameraUp * (near * tanHalfFovY) - cameraRight * (near * tanHalfFovX);
+  Vector3 nearBottomRightPoint = nearCenter - cameraUp * (near * tanHalfFovY) + cameraRight * (near * tanHalfFovX);
+
+  // Left plane: formed by camera position, near top-left, and near bottom-left
+  // Normal points inward (to the right)
+  Vector3 leftEdge1 = nearTopLeftPoint - cameraPos;
+  Vector3 leftEdge2 = nearBottomLeftPoint - cameraPos;
+  Vector3 leftNormal = Vector3::Normalize(Vector3::Cross(leftEdge2, leftEdge1));
   _left = Plane(leftNormal, cameraPos);
 
-  // Right plane: normal points toward the LEFT (inward toward frustum center)
-  Vector3 rightNormal = Vector3::Normalize(Vector3::Cross(nearTopRight, nearBottomRight));
+  // Right plane: formed by camera position, near bottom-right, and near top-right  
+  // Normal points inward (to the left)
+  Vector3 rightEdge1 = nearBottomRightPoint - cameraPos;
+  Vector3 rightEdge2 = nearTopRightPoint - cameraPos;
+  Vector3 rightNormal = Vector3::Normalize(Vector3::Cross(rightEdge2, rightEdge1));
   _right = Plane(rightNormal, cameraPos);
 
-  // Top plane: normal points DOWNWARD (inward toward frustum center)
-  Vector3 topNormal = Vector3::Normalize(Vector3::Cross(nearTopLeft, nearTopRight));
+  // Top plane: formed by camera position, near top-right, and near top-left
+  // Normal points inward (downward)
+  Vector3 topEdge1 = nearTopRightPoint - cameraPos;
+  Vector3 topEdge2 = nearTopLeftPoint - cameraPos;
+  Vector3 topNormal = Vector3::Normalize(Vector3::Cross(topEdge2, topEdge1));
   _top = Plane(topNormal, cameraPos);
 
-  // Bottom plane: normal points UPWARD (inward toward frustum center)
-  Vector3 bottomNormal = Vector3::Normalize(Vector3::Cross(nearBottomRight, nearBottomLeft));
+  // Bottom plane: formed by camera position, near bottom-left, and near bottom-right
+  // Normal points inward (upward)
+  Vector3 bottomEdge1 = nearBottomLeftPoint - cameraPos;
+  Vector3 bottomEdge2 = nearBottomRightPoint - cameraPos;
+  Vector3 bottomNormal = Vector3::Normalize(Vector3::Cross(bottomEdge2, bottomEdge1));
   _bottom = Plane(bottomNormal, cameraPos);
 
-  // Near plane: normal points away from camera (toward objects in frustum)
+  // Near plane: normal points AWAY from camera (toward objects in frustum)
+  // Objects closer than near plane should be culled
   _near = Plane(cameraForward, nearCenter);
 
-  // Far plane: normal points toward camera (toward objects in frustum)
+  // Far plane: normal points TOWARD camera (toward objects in frustum)
+  // Objects farther than far plane should be culled
   _far = Plane(-cameraForward, farCenter);
 
   return;
@@ -205,6 +230,21 @@ bool Frustrum::containsAxisAligned(const Aabb &aabb, const TransformComponent &t
     max.Z = temp;
   }
 
+  // Check if this is a very small object that might suffer from precision issues
+  Vector3 size = max - min;
+  const float32 MIN_OBJECT_SIZE = 0.01f; // 1cm minimum size
+  bool isVerySmall = (size.X < MIN_OBJECT_SIZE || size.Y < MIN_OBJECT_SIZE || size.Z < MIN_OBJECT_SIZE);
+  
+  if (isVerySmall)
+  {
+    // For very small objects, also test the center point to avoid precision culling
+    Vector3 center = (min + max) * 0.5f;
+    if (contains(center))
+    {
+      return true; // If center is visible, consider the small object visible
+    }
+  }
+
   // Test against each frustum plane
   return testAABBAgainstPlane(min, max, _left) &&
          testAABBAgainstPlane(min, max, _right) &&
@@ -246,9 +286,13 @@ bool Frustrum::containsOriented(const Aabb &aabb, const TransformComponent &tran
   for (int p = 0; p < 6; p++)
   {
     bool allOutside = true;
+    
+    // Add epsilon tolerance for oriented AABB testing
+    const float32 ORIENTED_EPSILON = 0.0005f;
+    
     for (int c = 0; c < 8; c++)
     {
-      if (planes[p].getSignedDistance(transformedCorners[c]) >= 0.0f)
+      if (planes[p].getSignedDistance(transformedCorners[c]) >= -ORIENTED_EPSILON)
       {
         allOutside = false;
         break;
@@ -278,8 +322,12 @@ bool Frustrum::testAABBAgainstPlane(const Vector3 &min, const Vector3 &max, cons
   if (normal.Z >= 0.0f)
     positiveVertex.Z = max.Z;
 
-  // If the positive vertex is behind the plane, the AABB is completely outside
-  return plane.getSignedDistance(positiveVertex) >= 0.0f;
+  // Add epsilon tolerance for near-plane precision issues
+  // This prevents objects very close to planes from being incorrectly culled
+  const float32 PLANE_EPSILON = 0.001f;
+  
+  // If the positive vertex is behind the plane (with tolerance), the AABB is completely outside
+  return plane.getSignedDistance(positiveVertex) >= -PLANE_EPSILON;
 }
 
 void Frustrum::extractPlanesFromMatrix(const Matrix4 &viewProjMatrix)
@@ -443,11 +491,14 @@ bool Frustrum::containsOrientedMatrix4(const Aabb &box, const Matrix4 &transform
   for (int p = 0; p < 6; p++)
   {
     bool allCornersOutside = true;
+    
+    // Add epsilon tolerance for Matrix4 oriented AABB testing
+    const float32 MATRIX_EPSILON = 0.0005f;
 
     // Check if all corners are outside this plane
     for (int i = 0; i < 8; i++)
     {
-      if (planes[p].getSignedDistance(corners[i]) >= 0.0f)
+      if (planes[p].getSignedDistance(corners[i]) >= -MATRIX_EPSILON)
       {
         allCornersOutside = false;
         break; // At least one corner is inside this plane
@@ -506,13 +557,16 @@ bool Frustrum::isValid() const
 
 bool Frustrum::contains(const Vector3 &point) const
 {
-  // A point is inside the frustum if it's on the positive side of all planes
-  return (_left.getSignedDistance(point) >= 0.0f &&
-          _right.getSignedDistance(point) >= 0.0f &&
-          _top.getSignedDistance(point) >= 0.0f &&
-          _bottom.getSignedDistance(point) >= 0.0f &&
-          _near.getSignedDistance(point) >= 0.0f &&
-          _far.getSignedDistance(point) >= 0.0f);
+  // Add epsilon tolerance for point containment to handle precision issues
+  const float32 POINT_EPSILON = 0.0001f;
+  
+  // A point is inside the frustum if it's on the positive side of all planes (with tolerance)
+  return (_left.getSignedDistance(point) >= -POINT_EPSILON &&
+          _right.getSignedDistance(point) >= -POINT_EPSILON &&
+          _top.getSignedDistance(point) >= -POINT_EPSILON &&
+          _bottom.getSignedDistance(point) >= -POINT_EPSILON &&
+          _near.getSignedDistance(point) >= -POINT_EPSILON &&
+          _far.getSignedDistance(point) >= -POINT_EPSILON);
 }
 
 float32 Frustrum::getVolume() const
@@ -528,4 +582,37 @@ float32 Frustrum::getVolume() const
 
   // Rough approximation - for a proper calculation, we'd need more geometric analysis
   return depth * 1000.0f; // Placeholder calculation
+}
+
+bool Frustrum::validatePlaneOrientations() const
+{
+  // Test a point that should be at the center of the frustum
+  Vector3 testPoint(0.0f, 0.0f, -10.0f); // 10 units in front of camera
+  
+  // All planes should have positive distance to a central point
+  bool leftValid = _left.getSignedDistance(testPoint) > 0.0f;
+  bool rightValid = _right.getSignedDistance(testPoint) > 0.0f;
+  bool topValid = _top.getSignedDistance(testPoint) > 0.0f;
+  bool bottomValid = _bottom.getSignedDistance(testPoint) > 0.0f;
+  bool nearValid = _near.getSignedDistance(testPoint) > 0.0f;
+  bool farValid = _far.getSignedDistance(testPoint) > 0.0f;
+  
+  return leftValid && rightValid && topValid && bottomValid && nearValid && farValid;
+}
+
+std::string Frustrum::getDebugDistances(const Vector3 &point) const
+{
+  char buffer[512];
+  snprintf(buffer, sizeof(buffer),
+    "Point (%.2f, %.2f, %.2f) distances:\n"
+    "Left: %.3f, Right: %.3f, Top: %.3f, Bottom: %.3f, Near: %.3f, Far: %.3f",
+    point.X, point.Y, point.Z,
+    _left.getSignedDistance(point),
+    _right.getSignedDistance(point),
+    _top.getSignedDistance(point),
+    _bottom.getSignedDistance(point),
+    _near.getSignedDistance(point),
+    _far.getSignedDistance(point));
+  
+  return std::string(buffer);
 }
