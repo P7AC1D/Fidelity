@@ -15,6 +15,11 @@ CameraComponent::~CameraComponent()
 
 void CameraComponent::onInitialize()
 {
+  // CRITICAL FIX: Ensure we mark view as dirty to force recalculation with proper transform
+  // This ensures proper dependency resolution with TransformComponent
+  _viewDirty = true;
+  _frustumDirty = true;
+
   // Initialize camera projection
   updateProjection();
 }
@@ -173,6 +178,14 @@ Matrix4 CameraComponent::getView() const
   {
     updateView();
   }
+
+  // DEFENSIVE CHECK: If view matrix is still identity after update attempt,
+  // force a recalculation on next access to handle dependency timing issues
+  if (_view == Matrix4::Identity)
+  {
+    _viewDirty = true;
+  }
+
   return _view;
 }
 
@@ -206,6 +219,16 @@ Vector3 CameraComponent::getWorldPosition() const
   {
     return transform->getPosition();
   }
+
+  // CRITICAL FIX: Try direct access if shared pointer approach fails
+  if (_gameObject)
+  {
+    if (auto *directTransform = _gameObject->tryGetComponent<TransformComponent>())
+    {
+      return directTransform->getPosition();
+    }
+  }
+
   return Vector3::Zero;
 }
 
@@ -214,6 +237,19 @@ Vector3 CameraComponent::getWorldForward() const
   auto transform = getComponentShared<TransformComponent>();
   if (!transform)
   {
+    // CRITICAL FIX: If we can't get the TransformComponent, try direct access
+    // This handles timing issues in component dependency resolution
+    if (_gameObject)
+    {
+      if (auto *directTransform = _gameObject->tryGetComponent<TransformComponent>())
+      {
+        Vector3 forward(0.0f, 0.0f, -1.0f);
+        Matrix4 rotationMatrix = Matrix4::Rotation(directTransform->getRotation());
+        Vector3 result = rotationMatrix * forward;
+        result.Normalize();
+        return result;
+      }
+    }
     return Vector3(0.0f, 0.0f, -1.0f); // Default forward
   }
 
@@ -230,6 +266,18 @@ Vector3 CameraComponent::getWorldUp() const
   auto transform = getComponentShared<TransformComponent>();
   if (!transform)
   {
+    // CRITICAL FIX: If we can't get the TransformComponent, try direct access
+    if (_gameObject)
+    {
+      if (auto *directTransform = _gameObject->tryGetComponent<TransformComponent>())
+      {
+        Vector3 up(0.0f, 1.0f, 0.0f);
+        Matrix4 rotationMatrix = Matrix4::Rotation(directTransform->getRotation());
+        Vector3 result = rotationMatrix * up;
+        result.Normalize();
+        return result;
+      }
+    }
     return Vector3(0.0f, 1.0f, 0.0f); // Default up
   }
 
@@ -262,7 +310,25 @@ void CameraComponent::updateView() const
   auto transform = getComponentShared<TransformComponent>();
   if (!transform)
   {
-    _view = Matrix4::Identity;
+    // CRITICAL FIX: Try direct access if shared pointer approach fails
+    if (_gameObject)
+    {
+      if (auto *directTransform = _gameObject->tryGetComponent<TransformComponent>())
+      {
+        Vector3 eye = directTransform->getPosition();
+        Vector3 forward = getWorldForward();
+        Vector3 up = getWorldUp();
+        Vector3 center = eye + forward;
+
+        _view = Matrix4::LookAt(eye, center, up);
+        _viewDirty = false;
+        return;
+      }
+    }
+
+    // Final fallback: create a proper default view matrix for an uninitialized camera
+    // This prevents the overly permissive fallback frustum behavior
+    _view = Matrix4::LookAt(Vector3(0, 0, 5), Vector3(0, 0, 0), Vector3(0, 1, 0));
     _viewDirty = false;
     return;
   }
