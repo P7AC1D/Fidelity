@@ -51,6 +51,17 @@ public:
   /// @return String containing distance information for debugging
   std::string getDebugDistances(const Vector3 &point) const;
 
+  /// @brief Debug method to visualize frustum plane normals and distances
+  /// @return String containing detailed frustum information
+  std::string getDebugInfo() const;
+
+  /// @brief Test specific objects against frustum and get detailed debug output
+  /// @param aabb The bounding box to test
+  /// @param transform The object's transform
+  /// @param objectName Name for debugging output
+  /// @return String with detailed culling analysis
+  std::string debugCullingTest(const Aabb &aabb, const Matrix4 &transform, const std::string &objectName) const;
+
 private:
   // Helper methods for optimized culling
   bool containsAxisAligned(const Aabb &aabb, const TransformComponent &transform) const;

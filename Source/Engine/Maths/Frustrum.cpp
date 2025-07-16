@@ -39,112 +39,17 @@ Frustrum::Frustrum(const CameraComponent &camera)
 
   if (isViewMatrixIdentity || isViewMatrixDefault)
   {
-    // OLD FALLBACK CODE - DISABLED TO USE CORRECTED VERSION BELOW
-    /*
-    float32 near = camera.getNear();
-    float32 far = camera.getFar();
-
-    // Create proper frustum planes for a camera at origin looking down -Z
-    // Use standard perspective frustum math
-    float32 fov = camera.getFov().InRadians();
-    float32 aspect = camera.getAspectRatio();
-
-    float32 nearHeight = 2.0f * tan(fov * 0.5f) * near;
-    float32 nearWidth = nearHeight * aspect;
-    float32 farHeight = 2.0f * tan(fov * 0.5f) * far;
-    float32 farWidth = farHeight * aspect;
-
-    // Create normalized plane equations for proper culling
-    // Left plane: points inside frustum have positive distance
-    _left = Plane(Vector3(cos(atan(nearWidth / (2.0f * near))), 0.0f, sin(atan(nearWidth / (2.0f * near)))), Vector3::Zero);
-    _right = Plane(Vector3(-cos(atan(nearWidth / (2.0f * near))), 0.0f, sin(atan(nearWidth / (2.0f * near)))), Vector3::Zero);
-    _top = Plane(Vector3(0.0f, -cos(atan(nearHeight / (2.0f * near))), sin(atan(nearHeight / (2.0f * near)))), Vector3::Zero);
-    _bottom = Plane(Vector3(0.0f, cos(atan(nearHeight / (2.0f * near))), sin(atan(nearHeight / (2.0f * near)))), Vector3::Zero);
-
-    // CRITICAL: Near and far planes must properly exclude objects behind camera
-    _near = Plane(Vector3(0.0f, 0.0f, 1.0f), Vector3(0.0f, 0.0f, -near));  // Points toward camera
-    _far = Plane(Vector3(0.0f, 0.0f, -1.0f), Vector3(0.0f, 0.0f, -far));   // Points away from camera
-
+    // CRITICAL FIX: Use matrix-based extraction even for fallback cases
+    // This ensures consistency in all code paths
+    Matrix4 viewProjMatrix = projMatrix * viewMatrix;
+    extractPlanesFromMatrix(viewProjMatrix);
     return;
-    */
   }
 
-  // CORRECT FRUSTUM CONSTRUCTION - using proper geometric approach
-  // Camera transforms are verified correct, Plane class works correctly
-
-  float32 fov = camera.getFov().InRadians();
-  float32 aspect = camera.getAspectRatio();
-  float32 near = camera.getNear();
-  float32 far = camera.getFar();
-
-  // Get camera world transform (verified correct)
-  Vector3 cameraPos = camera.getWorldPosition();
-  Vector3 cameraForward = camera.getWorldForward();
-  Vector3 cameraUp = camera.getWorldUp();
-  Vector3 cameraRight = Vector3::Cross(cameraForward, cameraUp);
-
-  // Calculate frustum geometry
-  float32 halfFovY = fov * 0.5f;
-  float32 tanHalfFovY = tan(halfFovY);
-  float32 tanHalfFovX = tanHalfFovY * aspect;
-
-  // Calculate near and far plane centers
-  Vector3 nearCenter = cameraPos + cameraForward * near;
-  Vector3 farCenter = cameraPos + cameraForward * far;
-
-  // Calculate corner directions for side planes (normalized directions from camera)
-  Vector3 nearTopLeft = Vector3::Normalize(cameraForward + cameraUp * tanHalfFovY - cameraRight * tanHalfFovX);
-  Vector3 nearTopRight = Vector3::Normalize(cameraForward + cameraUp * tanHalfFovY + cameraRight * tanHalfFovX);
-  Vector3 nearBottomLeft = Vector3::Normalize(cameraForward - cameraUp * tanHalfFovY - cameraRight * tanHalfFovX);
-  Vector3 nearBottomRight = Vector3::Normalize(cameraForward - cameraUp * tanHalfFovY + cameraRight * tanHalfFovX);
-
-  // Create frustum planes using the STANDARD geometric approach
-  // All normals must point toward the interior of the frustum for proper containment testing
-  
-  // For a perspective frustum, we create planes using two points on each edge
-  // and the camera position to define the plane triangles
-
-  // Calculate actual corner points on the near plane
-  Vector3 nearTopLeftPoint = nearCenter + cameraUp * (near * tanHalfFovY) - cameraRight * (near * tanHalfFovX);
-  Vector3 nearTopRightPoint = nearCenter + cameraUp * (near * tanHalfFovY) + cameraRight * (near * tanHalfFovX);
-  Vector3 nearBottomLeftPoint = nearCenter - cameraUp * (near * tanHalfFovY) - cameraRight * (near * tanHalfFovX);
-  Vector3 nearBottomRightPoint = nearCenter - cameraUp * (near * tanHalfFovY) + cameraRight * (near * tanHalfFovX);
-
-  // Left plane: formed by camera position, near top-left, and near bottom-left
-  // Normal points inward (to the right)
-  Vector3 leftEdge1 = nearTopLeftPoint - cameraPos;
-  Vector3 leftEdge2 = nearBottomLeftPoint - cameraPos;
-  Vector3 leftNormal = Vector3::Normalize(Vector3::Cross(leftEdge2, leftEdge1));
-  _left = Plane(leftNormal, cameraPos);
-
-  // Right plane: formed by camera position, near bottom-right, and near top-right  
-  // Normal points inward (to the left)
-  Vector3 rightEdge1 = nearBottomRightPoint - cameraPos;
-  Vector3 rightEdge2 = nearTopRightPoint - cameraPos;
-  Vector3 rightNormal = Vector3::Normalize(Vector3::Cross(rightEdge2, rightEdge1));
-  _right = Plane(rightNormal, cameraPos);
-
-  // Top plane: formed by camera position, near top-right, and near top-left
-  // Normal points inward (downward)
-  Vector3 topEdge1 = nearTopRightPoint - cameraPos;
-  Vector3 topEdge2 = nearTopLeftPoint - cameraPos;
-  Vector3 topNormal = Vector3::Normalize(Vector3::Cross(topEdge2, topEdge1));
-  _top = Plane(topNormal, cameraPos);
-
-  // Bottom plane: formed by camera position, near bottom-left, and near bottom-right
-  // Normal points inward (upward)
-  Vector3 bottomEdge1 = nearBottomLeftPoint - cameraPos;
-  Vector3 bottomEdge2 = nearBottomRightPoint - cameraPos;
-  Vector3 bottomNormal = Vector3::Normalize(Vector3::Cross(bottomEdge2, bottomEdge1));
-  _bottom = Plane(bottomNormal, cameraPos);
-
-  // Near plane: normal points AWAY from camera (toward objects in frustum)
-  // Objects closer than near plane should be culled
-  _near = Plane(cameraForward, nearCenter);
-
-  // Far plane: normal points TOWARD camera (toward objects in frustum)
-  // Objects farther than far plane should be culled
-  _far = Plane(-cameraForward, farCenter);
+  // FIXED: Use matrix-based approach for consistency
+  // All code paths now use the same extraction method to avoid discrepancies
+  Matrix4 viewProjMatrix = projMatrix * viewMatrix;
+  extractPlanesFromMatrix(viewProjMatrix);
 
   return;
 }
@@ -332,35 +237,42 @@ bool Frustrum::testAABBAgainstPlane(const Vector3 &min, const Vector3 &max, cons
 
 void Frustrum::extractPlanesFromMatrix(const Matrix4 &viewProjMatrix)
 {
-  // Extract frustum planes from view-projection matrix using Gribb-Hartmann method
-  // Matrix4 uses Vector4[4] array accessible via operator[]
-  const Vector4 &row0 = viewProjMatrix[0];
-  const Vector4 &row1 = viewProjMatrix[1];
-  const Vector4 &row2 = viewProjMatrix[2];
-  const Vector4 &row3 = viewProjMatrix[3];
+  // Extract frustum planes from view-projection matrix using standard OpenGL method
+  // Since Matrix4 is column-major and compatible with GLM, we access as [col][row]
+  
+  // For column-major matrix access, we need to transpose indices
+  // viewProjMatrix[col][row] gives us element at (row, col) in mathematical notation
+  
+  // Extract the rows from the column-major matrix
+  Vector4 row0(viewProjMatrix[0][0], viewProjMatrix[1][0], viewProjMatrix[2][0], viewProjMatrix[3][0]);
+  Vector4 row1(viewProjMatrix[0][1], viewProjMatrix[1][1], viewProjMatrix[2][1], viewProjMatrix[3][1]);
+  Vector4 row2(viewProjMatrix[0][2], viewProjMatrix[1][2], viewProjMatrix[2][2], viewProjMatrix[3][2]);
+  Vector4 row3(viewProjMatrix[0][3], viewProjMatrix[1][3], viewProjMatrix[2][3], viewProjMatrix[3][3]);
 
-  // CRITICAL FIX: With transpose working for depth, try negating side planes for correct orientation
+  // Standard OpenGL frustum plane extraction (Gribb-Hartmann method)
+  // All normals point inward to the frustum for correct culling
 
-  // Left plane: -(row3 + row0) - flip to get correct inward normal
-  Vector4 leftPlane = Vector4(-(row3.X + row0.X), -(row3.Y + row0.Y), -(row3.Z + row0.Z), -(row3.W + row0.W));
+  // Left plane: row3 + row0
+  Vector4 leftPlane = Vector4(row3.X + row0.X, row3.Y + row0.Y, row3.Z + row0.Z, row3.W + row0.W);
   _left = createPlaneFromVector4(leftPlane);
 
-  // Right plane: -(row3 - row0) - flip to get correct inward normal
-  Vector4 rightPlane = Vector4(-(row3.X - row0.X), -(row3.Y - row0.Y), -(row3.Z - row0.Z), -(row3.W - row0.W));
+  // Right plane: row3 - row0  
+  Vector4 rightPlane = Vector4(row3.X - row0.X, row3.Y - row0.Y, row3.Z - row0.Z, row3.W - row0.W);
   _right = createPlaneFromVector4(rightPlane);
 
-  // Bottom plane: -(row3 + row1) - flip to get correct inward normal
-  Vector4 bottomPlane = Vector4(-(row3.X + row1.X), -(row3.Y + row1.Y), -(row3.Z + row1.Z), -(row3.W + row1.W));
+  // Bottom plane: row3 + row1
+  Vector4 bottomPlane = Vector4(row3.X + row1.X, row3.Y + row1.Y, row3.Z + row1.Z, row3.W + row1.W);
   _bottom = createPlaneFromVector4(bottomPlane);
 
-  // Top plane: -(row3 - row1) - flip to get correct inward normal
-  Vector4 topPlane = Vector4(-(row3.X - row1.X), -(row3.Y - row1.Y), -(row3.Z - row1.Z), -(row3.W - row1.W));
+  // Top plane: row3 - row1
+  Vector4 topPlane = Vector4(row3.X - row1.X, row3.Y - row1.Y, row3.Z - row1.Z, row3.W - row1.W);
   _top = createPlaneFromVector4(topPlane);
 
-  // Near/Far planes are working with transpose, keep them as-is
+  // Near plane: row3 + row2
   Vector4 nearPlane = Vector4(row3.X + row2.X, row3.Y + row2.Y, row3.Z + row2.Z, row3.W + row2.W);
   _near = createPlaneFromVector4(nearPlane);
 
+  // Far plane: row3 - row2
   Vector4 farPlane = Vector4(row3.X - row2.X, row3.Y - row2.Y, row3.Z - row2.Z, row3.W - row2.W);
   _far = createPlaneFromVector4(farPlane);
 }
