@@ -16,6 +16,10 @@ float32 Vector4::Dot(const Vector4 &lhs, const Vector4 &rhs)
 Vector4 Vector4::Normalize(const Vector4 &vec)
 {
   float32 length = vec.Length();
+  if (length == 0.0f)
+  {
+    return vec; // Cannot normalize zero vector
+  }
   float32 lengthInv = 1.0f / length;
   return Vector4(vec[0] * lengthInv, vec[1] * lengthInv, vec[2] * lengthInv, vec[3] * lengthInv);
 }
@@ -138,6 +142,10 @@ Vector4 Vector4::operator*(float32 rhs) const
 
 Vector4 Vector4::operator/(float32 rhs) const
 {
+  if (rhs == 0.0f)
+  {
+    return Vector4(0.0f, 0.0f, 0.0f, 0.0f); // Return zero vector for division by zero
+  }
   float32 x = X / rhs;
   float32 y = Y / rhs;
   float32 z = Z / rhs;
@@ -192,12 +200,12 @@ Vector4 &Vector4::operator*=(float32 rhs)
 
 bool Vector4::operator==(const Vector4 &rhs) const
 {
-  return X == rhs.X && Y == rhs.Y && Z && rhs.Z && W == rhs.W;
+  return X == rhs.X && Y == rhs.Y && Z == rhs.Z && W == rhs.W;
 }
 
 bool Vector4::operator!=(const Vector4 &rhs) const
 {
-  return X != rhs.X && Y != rhs.Y && Z != rhs.Z && W != rhs.W;
+  return !(*this == rhs);
 }
 
 float32 &Vector4::operator[](uint32 i)
@@ -220,6 +228,10 @@ float32 Vector4::Length() const
 void Vector4::Normalize()
 {
   float32 length = Length();
+  if (length == 0.0f)
+  {
+    return; // Cannot normalize zero vector
+  }
   float32 lengthInv = 1.0f / length;
   X *= lengthInv;
   Y *= lengthInv;
