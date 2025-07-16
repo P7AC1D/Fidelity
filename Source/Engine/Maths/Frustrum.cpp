@@ -32,8 +32,14 @@ Frustrum::Frustrum(const CameraComponent &camera)
         _right = Plane(Vector3(-1.0f, 0.0f, 0.0f), Vector3(1000.0f, 0.0f, 0.0f));
         _top = Plane(Vector3(0.0f, -1.0f, 0.0f), Vector3(0.0f, 1000.0f, 0.0f));
         _bottom = Plane(Vector3(0.0f, 1.0f, 0.0f), Vector3(0.0f, -1000.0f, 0.0f));
-        _near = Plane(Vector3(0.0f, 0.0f, 1.0f), Vector3(0.0f, 0.0f, -camera.getNear()));
-        _far = Plane(Vector3(0.0f, 0.0f, -1.0f), Vector3(0.0f, 0.0f, camera.getFar()));
+        
+        // FIXED: Near plane should have normal pointing away from camera (negative Z direction)
+        // Objects in front of camera are at negative Z, so normal should point toward positive Z
+        // to include them. But the original was backwards.
+        _near = Plane(Vector3(0.0f, 0.0f, -1.0f), Vector3(0.0f, 0.0f, -camera.getNear()));
+        
+        // FIXED: Far plane point should be at negative Z (consistent with camera looking down -Z)
+        _far = Plane(Vector3(0.0f, 0.0f, 1.0f), Vector3(0.0f, 0.0f, -camera.getFar()));
         return;
     }
     
@@ -322,26 +328,91 @@ bool Frustrum::containsOrientedMatrix4(const Aabb &box, const Matrix4 &transform
         corners[i] = Vector3(transformedCorner.X, transformedCorner.Y, transformedCorner.Z);
     }
     
-    // Test the transformed AABB against each frustum plane
-    for (int i = 0; i < 8; ++i)
+    // Test the transformed AABB against each frustum plane using correct algorithm
+    // FIXED: Use separating axis theorem - if ALL corners are outside ANY plane, 
+    // then the AABB is completely outside the frustum
+    
+    Plane planes[6] = {_left, _right, _top, _bottom, _near, _far};
+    
+    for (int p = 0; p < 6; p++)
     {
-        const Vector3& corner = corners[i];
+        bool allCornersOutside = true;
         
-        // If any corner is inside all planes, the AABB intersects the frustum
-        bool insideAll = true;
-        
-        if (_left.getSignedDistance(corner) < 0) insideAll = false;
-        if (_right.getSignedDistance(corner) < 0) insideAll = false;
-        if (_top.getSignedDistance(corner) < 0) insideAll = false;
-        if (_bottom.getSignedDistance(corner) < 0) insideAll = false;
-        if (_near.getSignedDistance(corner) < 0) insideAll = false;
-        if (_far.getSignedDistance(corner) < 0) insideAll = false;
-        
-        if (insideAll)
+        // Check if all corners are outside this plane
+        for (int i = 0; i < 8; i++)
         {
-            return true; // At least one corner is inside
+            if (planes[p].getSignedDistance(corners[i]) >= 0.0f)
+            {
+                allCornersOutside = false;
+                break; // At least one corner is inside this plane
+            }
+        }
+        
+        // If all corners are outside any plane, the AABB is outside the frustum
+        if (allCornersOutside)
+        {
+            return false;
         }
     }
     
-    return false; // No corners are inside the frustum
+    // If we reach here, the AABB intersects or is inside the frustum
+    return true;
+}
+
+const Plane& Frustrum::getPlane(int index) const
+{
+    switch (index)
+    {
+        case 0: return _left;
+        case 1: return _right;
+        case 2: return _top;
+        case 3: return _bottom;
+        case 4: return _near;
+        case 5: return _far;
+        default: return _left; // Fallback to avoid undefined behavior
+    }
+}
+
+std::array<Plane, 6> Frustrum::getPlanes() const
+{
+    return {_left, _right, _top, _bottom, _near, _far};
+}
+
+bool Frustrum::isValid() const
+{
+    // Check if all planes have valid (non-zero) normals
+    const float32 MIN_NORMAL_LENGTH = 0.0001f;
+    
+    return (Vector3::Length(_left.getNormal()) > MIN_NORMAL_LENGTH &&
+            Vector3::Length(_right.getNormal()) > MIN_NORMAL_LENGTH &&
+            Vector3::Length(_top.getNormal()) > MIN_NORMAL_LENGTH &&
+            Vector3::Length(_bottom.getNormal()) > MIN_NORMAL_LENGTH &&
+            Vector3::Length(_near.getNormal()) > MIN_NORMAL_LENGTH &&
+            Vector3::Length(_far.getNormal()) > MIN_NORMAL_LENGTH);
+}
+
+bool Frustrum::contains(const Vector3& point) const
+{
+    // A point is inside the frustum if it's on the positive side of all planes
+    return (_left.getSignedDistance(point) >= 0.0f &&
+            _right.getSignedDistance(point) >= 0.0f &&
+            _top.getSignedDistance(point) >= 0.0f &&
+            _bottom.getSignedDistance(point) >= 0.0f &&
+            _near.getSignedDistance(point) >= 0.0f &&
+            _far.getSignedDistance(point) >= 0.0f);
+}
+
+float32 Frustrum::getVolume() const
+{
+    // This is a simplified volume calculation for the frustum
+    // For a perspective frustum, this would need more complex geometry
+    // For now, we'll estimate using the distance between near and far planes
+    
+    Vector3 nearPoint = _near.getNormal() * (-_near.getDistance(_near.getNormal() * 0.0f));
+    Vector3 farPoint = _far.getNormal() * (-_far.getDistance(_far.getNormal() * 0.0f));
+    
+    float32 depth = Vector3::Length(farPoint - nearPoint);
+    
+    // Rough approximation - for a proper calculation, we'd need more geometric analysis
+    return depth * 1000.0f; // Placeholder calculation
 }

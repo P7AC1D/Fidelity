@@ -20,6 +20,28 @@ public:
 	bool contains(const Aabb &box, const TransformComponent &transform) const;
 	bool contains(const Aabb &box, const Matrix4 &transform) const;
 
+	/// @brief Get a specific frustum plane by index (0=left, 1=right, 2=top, 3=bottom, 4=near, 5=far)
+	/// @param index The plane index (0-5)
+	/// @return Reference to the specified plane
+	const Plane& getPlane(int index) const;
+
+	/// @brief Get all six frustum planes as an array
+	/// @return Array of all six frustum planes
+	std::array<Plane, 6> getPlanes() const;
+
+	/// @brief Check if the frustum is valid (all planes have valid normals)
+	/// @return True if the frustum has valid plane definitions
+	bool isValid() const;
+
+	/// @brief Test if a point is inside the frustum
+	/// @param point The point to test
+	/// @return True if the point is inside the frustum
+	bool contains(const Vector3& point) const;
+
+	/// @brief Calculate the approximate volume of the frustum
+	/// @return The volume of the frustum (approximated)
+	float32 getVolume() const;
+
 private:
 	// Helper methods for optimized culling
 	bool containsAxisAligned(const Aabb &aabb, const TransformComponent &transform) const;
