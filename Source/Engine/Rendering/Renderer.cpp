@@ -2027,7 +2027,7 @@ void Renderer::performFrustumCulling(const std::vector<std::shared_ptr<DrawableC
   {
     // PERFORMANCE OPTIMIZATION: Use cached transform instead of creating new Transform every frame
     const TransformComponent* transform = drawable->getTransform();
-    if (transform && camera->contains(drawable->getAabb(), transform->getWorldMatrix()))
+    if (transform && camera->contains(drawable->getAabb(), Matrix4::Identity))
     {
       // If the drawable is not visible, skip it
       if (!drawable->isVisible())
