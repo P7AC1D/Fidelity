@@ -4,6 +4,7 @@
 #include "Material.h"
 #include "../Core/ComponentBase.inl"
 #include "../Utility/Assert.hpp"
+#include <algorithm>  // For std::max
 
 ShadowFrustum::ShadowFrustum() : _cascadeCount(0)
 {
@@ -26,21 +27,23 @@ void ShadowFrustum::buildExtendedCameraFrustum(const CameraComponent& camera, fl
 {
     Matrix4 view = camera.getView();
     
+    // For directional light shadows, we need a MUCH more permissive frustum
+    // Objects outside the camera view can still cast shadows into the visible area
+    // Create a very large frustum that extends significantly beyond the camera's view
+    
+    float32 extendedFar = camera.getFar() * shadowDistance * 3.0f; // Much further
+    float32 extendedNear = camera.getNear() * 0.1f; // Much closer
+    
+    // Create a frustum that's much wider than the camera's view to include shadow casters
+    // Use a very wide field of view to be permissive about side shadow casters
+    float32 shadowFov = std::max(camera.getFov().InDegrees() * 2.5f, 120.0f); // At least 120 degrees
+    
     // Check if view matrix is identity (camera not properly initialized)
     if (view == Matrix4::Identity) {
-        // Fallback: When camera transforms aren't properly set up, create a simple
-        // frustum that includes everything in front of the camera
-        // This prevents objects from being incorrectly culled due to bad transforms
+        // Fallback: Create a very large bounding box that includes most of the scene
+        float32 size = extendedFar * 2.0f; // Very large size to be permissive
         
-        float32 extendedFar = camera.getFar() * shadowDistance;
-        float32 extendedNear = camera.getNear() * 0.5f;
-        
-        // Create a very permissive frustum that doesn't cull much
-        // Use a simple orthographic-style frustum that covers a large area
-        Vector3 center(0.0f, 0.0f, -(extendedFar + extendedNear) * 0.5f);
-        float32 size = extendedFar * 2.0f; // Large size to be permissive
-        
-        // Create planes for a large bounding box
+        // Create planes for a massive bounding box
         Plane left(Vector3(1.0f, 0.0f, 0.0f), Vector3(-size, 0.0f, 0.0f));
         Plane right(Vector3(-1.0f, 0.0f, 0.0f), Vector3(size, 0.0f, 0.0f));
         Plane top(Vector3(0.0f, -1.0f, 0.0f), Vector3(0.0f, size, 0.0f));
@@ -52,11 +55,9 @@ void ShadowFrustum::buildExtendedCameraFrustum(const CameraComponent& camera, fl
         return;
     }
     
-    // Original matrix-based approach for properly initialized cameras
-    float32 extendedFar = camera.getFar() * shadowDistance;
-    float32 extendedNear = camera.getNear() * 0.5f;
-    
-    Matrix4 extendedProj = Matrix4::Perspective(camera.getFov(), camera.getAspectRatio(), extendedNear, extendedFar);
+    // Create a much more permissive frustum for shadow casting
+    // This allows objects outside the main camera view to cast shadows into the visible area
+    Matrix4 extendedProj = Matrix4::Perspective(Degree(shadowFov), camera.getAspectRatio(), extendedNear, extendedFar);
     Matrix4 extendedViewProj = extendedProj * view;
     
     _extendedCameraFrustum = extractFrustumFromMatrix(extendedViewProj);
