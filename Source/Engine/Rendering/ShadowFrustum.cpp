@@ -75,8 +75,8 @@ std::vector<std::shared_ptr<DrawableComponent>> ShadowFrustum::cullForCascade(ui
     for (const auto& drawable : objects)
     {
         // Test object's AABB against cascade frustum
-        const TransformComponent* transform = drawable->getTransform();
-        if (transform && cascadeFrustum.contains(drawable->getAabb(), *transform))
+        // Note: getAabb() returns world bounds, so use identity matrix to avoid double-transformation
+        if (cascadeFrustum.contains(drawable->getAabb(), Matrix4::Identity))
         {
             culledObjects.push_back(drawable);
         }
@@ -93,8 +93,8 @@ std::vector<std::shared_ptr<DrawableComponent>> ShadowFrustum::broadPhaseCull(co
     for (const auto& drawable : objects)
     {
         // Test against extended camera frustum
-        const TransformComponent* transform = drawable->getTransform();
-        if (transform && _extendedCameraFrustum.contains(drawable->getAabb(), *transform))
+        // Note: getAabb() returns world bounds, so use identity matrix to avoid double-transformation
+        if (_extendedCameraFrustum.contains(drawable->getAabb(), Matrix4::Identity))
         {
             culledObjects.push_back(drawable);
         }
