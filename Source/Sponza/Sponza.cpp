@@ -34,7 +34,7 @@ void SponzaModern::createCamera()
 
   // Set position and rotation - original values should work now with proper scaling
   transform.setPosition(Vector3(-105.0f, 70.0f, 9.0f));
-  transform.setRotation(Quaternion(Degree(59.552f), Degree(53.438f), Degree(53.802f)));
+  transform.setRotation(Quaternion(Degree(-30.0f), Degree(-60.0f), Degree(0.0f)));
 
   // Store reference for component and for Application base camera
   _cameraComponent = &camera;
@@ -64,10 +64,10 @@ void SponzaModern::createLights()
 
     light.setLightType(LightComponentType::Point)
         .setColour(Colour(150, 25, 25))
-        .setRadius(70.0f)  // Original radius should work with proper scaling
+        .setRadius(70.0f) // Original radius should work with proper scaling
         .setCastsShadows(true);
 
-    transform.setPosition(Vector3(95.0f, 8.0f, 0.0f));  // Original position
+    transform.setPosition(Vector3(95.0f, 8.0f, 0.0f)); // Original position
   }
 
   // Point Light 2 - Green
@@ -78,9 +78,9 @@ void SponzaModern::createLights()
 
     light.setLightType(LightComponentType::Point)
         .setColour(Colour(25, 150, 25))
-        .setRadius(70.0f);  // Original radius should work with proper scaling
+        .setRadius(70.0f); // Original radius should work with proper scaling
 
-    transform.setPosition(Vector3(-51.0f, 8.0f, 0.0f));  // Original position
+    transform.setPosition(Vector3(-51.0f, 8.0f, 0.0f)); // Original position
   }
 
   // Point Light 3 - Blue
@@ -91,9 +91,9 @@ void SponzaModern::createLights()
 
     light.setLightType(LightComponentType::Point)
         .setColour(Colour(25, 25, 100))
-        .setRadius(70.0f);  // Original radius should work with proper scaling
+        .setRadius(70.0f); // Original radius should work with proper scaling
 
-    transform.setPosition(Vector3(12.0f, 8.0f, 0.0f));  // Original position
+    transform.setPosition(Vector3(12.0f, 8.0f, 0.0f)); // Original position
   }
 }
 
@@ -101,11 +101,11 @@ void SponzaModern::loadSponzaModel()
 {
   // Load the Sponza model and integrate via ModelLoader
   GameObject &modelRoot = ModelLoader::fromFile(_scene, "./Models/sponza_pbr/sponza.obj", true);
-  
+
   // IMPORTANT: Apply uniform scale to reduce model size
   // This scale factor affects the entire scene coordinate system:
   // - Camera positions must be scaled accordingly
-  // - Light positions and radii must be scaled accordingly  
+  // - Light positions and radii must be scaled accordingly
   // - Movement factors must be adjusted for the new scale
   modelRoot.transform().setScale(Vector3(0.1f, 0.1f, 0.1f));
 }
@@ -115,7 +115,8 @@ void SponzaModern::onUpdate(uint32 dtMs)
   if (!_cameraComponent)
     return;
 
-  Vector2I mousePosDelta = _lastMousePos - _currentMousePos;
+  // FIX: Correct mouse delta calculation (current - last for proper direction)
+  Vector2I mousePosDelta = _currentMousePos - _lastMousePos;
 
   // Camera movement with modern component system
   if (_inputHandler->isButtonPressed(Button::Key_W))
@@ -179,9 +180,10 @@ void SponzaModern::fpsCameraLook(float32 deltaX, float32 deltaY, uint32 dtMs)
   // Simple FPS-style camera look for modern system
   auto &transform = _camera->getComponent<TransformComponent>();
 
+  // FIX: Invert deltaX for correct yaw direction (mouse left should turn left)
   // Calculate yaw around world up and pitch around camera right
-  Radian yawRadian(deltaX * CAMERA_LOOK_SENSITIVITY);
-  Radian pitchRadian(deltaY * CAMERA_LOOK_SENSITIVITY);
+  Radian yawRadian(-deltaX * CAMERA_LOOK_SENSITIVITY);   // Negative for correct direction
+  Radian pitchRadian(-deltaY * CAMERA_LOOK_SENSITIVITY); // Negative for correct direction
 
   // Get current pitch to check limits before applying new rotation
   float32 currentPitch = extractPitchFromQuaternion(transform.getRotation());
@@ -201,7 +203,10 @@ void SponzaModern::fpsCameraLook(float32 deltaX, float32 deltaY, uint32 dtMs)
   Quaternion yawQuat(Vector3::Up, yawRadian);
   Vector3 camRight = _cameraComponent->getWorldRight();
   Quaternion pitchQuat(camRight, pitchRadian);
-  Quaternion newRot = yawQuat * pitchQuat * transform.getRotation();
+
+  // FIX: Apply rotations in proper order for FPS camera
+  // First apply pitch to current rotation, then apply yaw
+  Quaternion newRot = yawQuat * (pitchQuat * transform.getRotation());
   transform.setRotation(newRot);
 }
 
@@ -217,21 +222,21 @@ void SponzaModern::handleArrowKeyLook(uint32 dtMs)
   // Horizontal rotation (yaw) - Left/Right arrows
   if (_inputHandler->isButtonPressed(Button::Key_Left))
   {
-    deltaX = -CAMERA_ARROW_LOOK_SENSITIVITY * static_cast<float32>(dtMs) / 1000.0f;
+    deltaX = CAMERA_ARROW_LOOK_SENSITIVITY * static_cast<float32>(dtMs) / 1000.0f; // Positive for left turn
   }
   else if (_inputHandler->isButtonPressed(Button::Key_Right))
   {
-    deltaX = CAMERA_ARROW_LOOK_SENSITIVITY * static_cast<float32>(dtMs) / 1000.0f;
+    deltaX = -CAMERA_ARROW_LOOK_SENSITIVITY * static_cast<float32>(dtMs) / 1000.0f; // Negative for right turn
   }
 
   // Vertical rotation (pitch) - Up/Down arrows
   if (_inputHandler->isButtonPressed(Button::Key_Up))
   {
-    deltaY = -CAMERA_ARROW_LOOK_SENSITIVITY * static_cast<float32>(dtMs) / 1000.0f;
+    deltaY = CAMERA_ARROW_LOOK_SENSITIVITY * static_cast<float32>(dtMs) / 1000.0f; // Positive for up look
   }
   else if (_inputHandler->isButtonPressed(Button::Key_Down))
   {
-    deltaY = CAMERA_ARROW_LOOK_SENSITIVITY * static_cast<float32>(dtMs) / 1000.0f;
+    deltaY = -CAMERA_ARROW_LOOK_SENSITIVITY * static_cast<float32>(dtMs) / 1000.0f; // Negative for down look
   }
 
   // Apply camera rotation if any arrow keys are pressed
