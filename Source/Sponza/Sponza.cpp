@@ -222,21 +222,21 @@ void SponzaModern::handleArrowKeyLook(uint32 dtMs)
   // Horizontal rotation (yaw) - Left/Right arrows
   if (_inputHandler->isButtonPressed(Button::Key_Left))
   {
-    deltaX = CAMERA_ARROW_LOOK_SENSITIVITY * static_cast<float32>(dtMs) / 1000.0f; // Positive for left turn
+    deltaX = -CAMERA_ARROW_LOOK_SENSITIVITY * static_cast<float32>(dtMs) / 1000.0f; // Negative for left turn
   }
   else if (_inputHandler->isButtonPressed(Button::Key_Right))
   {
-    deltaX = -CAMERA_ARROW_LOOK_SENSITIVITY * static_cast<float32>(dtMs) / 1000.0f; // Negative for right turn
+    deltaX = CAMERA_ARROW_LOOK_SENSITIVITY * static_cast<float32>(dtMs) / 1000.0f; // Positive for right turn
   }
 
   // Vertical rotation (pitch) - Up/Down arrows
   if (_inputHandler->isButtonPressed(Button::Key_Up))
   {
-    deltaY = CAMERA_ARROW_LOOK_SENSITIVITY * static_cast<float32>(dtMs) / 1000.0f; // Positive for up look
+    deltaY = -CAMERA_ARROW_LOOK_SENSITIVITY * static_cast<float32>(dtMs) / 1000.0f; // Negative for up look
   }
   else if (_inputHandler->isButtonPressed(Button::Key_Down))
   {
-    deltaY = -CAMERA_ARROW_LOOK_SENSITIVITY * static_cast<float32>(dtMs) / 1000.0f; // Negative for down look
+    deltaY = CAMERA_ARROW_LOOK_SENSITIVITY * static_cast<float32>(dtMs) / 1000.0f; // Positive for down look
   }
 
   // Apply camera rotation if any arrow keys are pressed
