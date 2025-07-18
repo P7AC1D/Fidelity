@@ -271,6 +271,18 @@ Renderer::Renderer(const Vector2I &windowDims) : _windowDims(windowDims),
   // Initialize shadow culling system
   _shadowFrustum = std::make_unique<ShadowFrustum>();
   _shadowQueue = std::make_unique<RenderQueue>(QueueType::Shadow);
+  
+  // Initialize point light culling system
+  _pointLightCuller = std::make_unique<PointLightCuller>();
+  
+  // Configure default point light culling settings
+  _pointLightCullingSettings.enableSphereCulling = true;
+  _pointLightCullingSettings.enableFaceCulling = true;
+  _pointLightCullingSettings.enableDistanceLOD = true;
+  _pointLightCullingSettings.maxShadowDistance = 200.0f;
+  _pointLightCullingSettings.minObjectSize = 0.1f;
+  _pointLightCullingSettings.faceCullingExpansion = 1.05f; // 5% expansion to avoid edge artifacts
+  _pointLightCuller->setCullingSettings(_pointLightCullingSettings);
 }
 
 bool Renderer::init(const std::shared_ptr<RenderDevice> &renderDevice)
@@ -2146,4 +2158,89 @@ void Renderer::pointLightDepthPass(const std::shared_ptr<RenderDevice>& renderDe
         drawDrawable(renderDevice, drawable, material, camera);
       }
     }
+}
+
+void Renderer::pointLightDepthPassOptimized(const std::shared_ptr<RenderDevice>& renderDevice,
+                                           const std::vector<std::shared_ptr<DrawableComponent>>& drawables,
+                                           const std::vector<std::shared_ptr<LightComponent>>& lights,
+                                           const std::shared_ptr<CameraComponent>& camera)
+{
+    std::chrono::time_point start = std::chrono::high_resolution_clock::now();
+
+    ViewportDesc viewportDesc;
+    viewportDesc.Height = _pointLightShadowMapResolution;
+    viewportDesc.Width = _pointLightShadowMapResolution;
+    renderDevice->setViewport(viewportDesc);
+    renderDevice->setPipelineState(_pointLightDepthPso);
+    renderDevice->setRenderTarget(_pointLightDepthRto);
+    renderDevice->clearBuffers(RTT_Depth);
+    renderDevice->setConstantBuffer(0, _perObjectBuffer);
+    renderDevice->setConstantBuffer(1, _perFrameBuffer);
+    renderDevice->setConstantBuffer(2, _pointLightBuffer);
+
+    int lightCount = 0;
+    
+    // TODO: Choose closest lights first (distance from camera)
+    for (const auto& light : lights) {
+        if (lightCount >= MAX_POINT_LIGHT_SHADOW_CASTERS) {
+            break;
+        }
+
+        if (light->getLightType() != LightComponentType::Point || !light->getCastsShadows()) {
+            continue;
+        }
+
+        // Perform point light culling
+        PointLightCuller::CullingResult cullingResult = _pointLightCuller->cullObjectsForPointLight(light, drawables);
+        
+        // Debug output for culling efficiency (can be removed in release)
+        #ifdef DEBUG_POINT_LIGHT_CULLING
+        std::cout << "Point Light " << lightCount << " Culling Stats:\n";
+        std::cout << "  Original objects: " << cullingResult.originalCount << "\n";
+        std::cout << "  After sphere cull: " << cullingResult.sphereCulledCount 
+                  << " (" << (cullingResult.sphereCullingRatio() * 100.0f) << "%)\n";
+        std::cout << "  Average face cull: " << (cullingResult.averageFaceCullingRatio() * 100.0f) << "%\n";
+        #endif
+
+        // Setup light matrices (same as original implementation)
+        Vector3 pos = light->getPosition();
+        float nearPlane = 0.1f;
+        float farPlane = light->getRadius();
+        
+        const std::array<Vector3,6> dirs = {{
+            Vector3( 1, 0, 0), Vector3(-1, 0, 0),
+            Vector3( 0, 1, 0), Vector3( 0,-1, 0),
+            Vector3( 0, 0, 1), Vector3( 0, 0,-1)
+        }};
+        const std::array<Vector3,6> ups = {{
+            Vector3(0,-1, 0), Vector3(0,-1, 0),
+            Vector3(0, 0, 1), Vector3(0, 0,-1),
+            Vector3(0,-1, 0), Vector3(0,-1, 0)
+        }};
+        
+        std::array<Matrix4,6> shadowMatrices;
+        Matrix4 proj = Matrix4::Perspective(Degree(90.0f), 1.0f, nearPlane, farPlane);
+        for (int i = 0; i < 6; ++i) {
+            Matrix4 view = Matrix4::LookAt(pos, pos + dirs[i], ups[i]);
+            shadowMatrices[i] = proj * view;
+        }
+        
+        writePointLightConstantData(lightCount++, pos, farPlane, shadowMatrices);
+
+        // Render each cubemap face with face-specific culled objects
+        for (uint32 faceIndex = 0; faceIndex < 6; ++faceIndex) {
+            const auto& faceObjects = cullingResult.faceCulled[faceIndex];
+            
+            // Only render if we have objects for this face
+            if (!faceObjects.empty()) {
+                for (const auto& drawable : faceObjects) {
+                    std::shared_ptr<Material> material(drawable->getMaterial());
+                    drawDrawable(renderDevice, drawable, material, camera);
+                }
+            }
+        }
+    }
+    
+    std::chrono::time_point end = std::chrono::high_resolution_clock::now();
+    _renderPassTimings[0].Duration = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
 }

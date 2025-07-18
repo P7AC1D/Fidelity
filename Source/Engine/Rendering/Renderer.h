@@ -23,6 +23,7 @@ class VertexBuffer;
 // Forward declarations that need full definitions for unique_ptr
 #include "ShadowFrustum.h"
 #include "RenderQueue.h"
+#include "PointLightCuller.h"
 
 struct RenderPassTimings
 {
@@ -82,6 +83,12 @@ private:
                            const std::vector<std::shared_ptr<DrawableComponent>>& drawables,
                            const std::vector<std::shared_ptr<LightComponent>>& lights,
                            const std::shared_ptr<CameraComponent>& camera);
+  
+  // Enhanced point light depth pass with culling
+  void pointLightDepthPassOptimized(const std::shared_ptr<RenderDevice>& renderDevice,
+                                   const std::vector<std::shared_ptr<DrawableComponent>>& drawables,
+                                   const std::vector<std::shared_ptr<LightComponent>>& lights,
+                                   const std::shared_ptr<CameraComponent>& camera);
   void gbufferPass(std::shared_ptr<RenderDevice> renderDevice,
                    const std::vector<std::shared_ptr<DrawableComponent>> &drawables,
                    const std::shared_ptr<CameraComponent> &camera);
@@ -218,6 +225,10 @@ private:
   // Shadow culling system
   std::unique_ptr<ShadowFrustum> _shadowFrustum;
   std::unique_ptr<RenderQueue> _shadowQueue;
+  
+  // Point light culling system
+  std::unique_ptr<PointLightCuller> _pointLightCuller;
+  PointLightCuller::CullingSettings _pointLightCullingSettings;
   
   // Optimized frustum culling vectors - cached to avoid repeated allocations
   std::vector<std::shared_ptr<DrawableComponent>> _cachedOpaqueDrawables;
