@@ -18,11 +18,11 @@ bool Ray::Intersects(const Aabb &aabb) const
   float32 tmin = 0.0f, tmax = std::numeric_limits<float32>::max();
   Vector3 min = aabb.getMin(), max = aabb.getMax();
 
-  // Case when ray origin is inside AABB.
+  // Case when ray origin is inside AABB - should still be selectable for object picking
   if (min.X < _position.X && min.Y < _position.Y && min.Z < _position.Z &&
       max.X > _position.X && max.Y > _position.Y && max.Z > _position.Z)
   {
-    return false;
+    return true; // Allow selection of objects we're inside
   }
 
   // Fast slab method from here: https://tavianator.com/2022/ray_box_boundary.html

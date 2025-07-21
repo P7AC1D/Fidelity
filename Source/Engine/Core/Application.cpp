@@ -40,7 +40,11 @@ void keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods
 
 void mouseButtonCallback(GLFWwindow *window, int button, int action, int mods)
 {
-  if (DEBUG_UI->hasMouseCapture())
+  // Always process left mouse button for object picking, even if ImGui has mouse capture
+  // This allows object selection to work when debug panels are open
+  bool isLeftMouseButton = (button == GLFW_MOUSE_BUTTON_LEFT);
+
+  if (DEBUG_UI->hasMouseCapture() && !isLeftMouseButton)
   {
     return;
   }
@@ -336,6 +340,9 @@ int32 Application::run()
       onUpdate(dtMs);
 
       _lastMousePos = _currentMousePos;
+
+      // Update input handler previous states for next frame
+      _inputHandler->updatePreviousStates();
 
       glfwSwapBuffers(_window);
       glfwPollEvents();

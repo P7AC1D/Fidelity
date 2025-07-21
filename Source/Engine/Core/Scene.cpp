@@ -66,7 +66,7 @@ GameObject &Scene::createGameObject(const std::string &name)
   GameObject &ref = *gameObject;
   _gameObjects.push_back(std::move(gameObject));
   _objectAddedToScene = true;
-  
+
   // Invalidate component caches since scene structure changed
   invalidateComponentCaches();
 
@@ -80,15 +80,15 @@ void Scene::addChild(GameObject &parent, std::unique_ptr<GameObject> child)
   invalidateComponentCaches();
 }
 
-GameObject& Scene::createChildGameObject(GameObject& parent, const std::string& name)
+GameObject &Scene::createChildGameObject(GameObject &parent, const std::string &name)
 {
   auto child = std::make_unique<GameObject>(name, _nextGameObjectId++, _componentManager.get());
-  GameObject& ref = *child;
+  GameObject &ref = *child;
   parent.addChild(std::move(child));
-  
+
   // Invalidate component caches since scene structure changed
   invalidateComponentCaches();
-  
+
   return ref;
 }
 
@@ -122,22 +122,22 @@ void Scene::drawFrame()
   performObjectPicker(*mainCamera);
 
   // Get component lists (now cached)
-  const auto& rawLights = getLights();
-  const auto& rawDrawables = getDrawables();
+  const auto &rawLights = getLights();
+  const auto &rawDrawables = getDrawables();
 
   // Use static caches to avoid per-frame allocations and shared_ptr construction
   static std::vector<std::shared_ptr<DrawableComponent>> sharedDrawables;
   static std::vector<std::shared_ptr<LightComponent>> sharedLights;
-  
+
   // Create a static no-op deleter to avoid lambda allocation on every reset
-  static auto noOpDeleter = [](auto*) {}; // This lambda is created once and reused
-  
+  static auto noOpDeleter = [](auto *) {}; // This lambda is created once and reused
+
   // Resize vectors if needed (this only allocates when size changes)
   if (sharedDrawables.size() != rawDrawables.size())
   {
     sharedDrawables.resize(rawDrawables.size());
   }
-  
+
   if (sharedLights.size() != rawLights.size())
   {
     sharedLights.resize(rawLights.size());
@@ -251,8 +251,8 @@ void Scene::performObjectPicker(const CameraComponent &camera)
     }
   }
 
-  // Only process selection if left mouse button is pressed
-  if (!rayCastedObjects.empty() && _inputHandler->isButtonPressed(Button::Button_LMouse))
+  // Only process selection if left mouse button was just clicked (not held)
+  if (!rayCastedObjects.empty() && _inputHandler->wasButtonJustPressed(Button::Button_LMouse))
   {
     // Sort by distance (closest first)
     std::sort(rayCastedObjects.begin(), rayCastedObjects.end(),
@@ -261,11 +261,34 @@ void Scene::performObjectPicker(const CameraComponent &camera)
                 return a.first < b.first;
               });
 
+    // Check if we're clicking at the same mouse position as last time
+    bool samePosition = (_lastPickMousePos.X == _mouseCoordinates.X && _lastPickMousePos.Y == _mouseCoordinates.Y);
+
+    // Extract just the GameObject pointers for comparison
+    std::vector<GameObject *> currentObjects;
+    for (const auto &pair : rayCastedObjects)
+    {
+      currentObjects.push_back(pair.second);
+    }
+
+    // If same position and same objects, cycle to next object
+    if (samePosition && currentObjects == _lastPickedObjects && !_lastPickedObjects.empty())
+    {
+      _currentPickIndex = (_currentPickIndex + 1) % static_cast<int32>(_lastPickedObjects.size());
+    }
+    else
+    {
+      // New position or different objects, start from the beginning
+      _lastPickedObjects = currentObjects;
+      _lastPickMousePos = _mouseCoordinates;
+      _currentPickIndex = 0;
+    }
+
     // Clear previous selection
     setAabbDrawOnGameObject(_selectedGameObject, false);
 
-    // Select the closest object
-    _selectedGameObject = rayCastedObjects.front().second;
+    // Select the object at current index
+    _selectedGameObject = _lastPickedObjects[_currentPickIndex];
 
     // Enable AABB drawing for selected object
     setAabbDrawOnGameObject(_selectedGameObject, true);
@@ -396,13 +419,14 @@ std::vector<Scene::DrawableDistance> Scene::sortDrawablesByDistance(const Camera
   {
     try
     {
-        const TransformComponent* transform = drawable->getTransform();
-        if (!transform) continue; // Skip if no transform
+      const TransformComponent *transform = drawable->getTransform();
+      if (!transform)
+        continue; // Skip if no transform
       Vector3 objectPos = transform->getPosition();
       float32 distance = (objectPos - cameraPos).Length();
       drawables.emplace_back(distance, drawable);
     }
-    catch (const std::runtime_error&)
+    catch (const std::runtime_error &)
     {
       // Skip drawables without valid transform components
     }
@@ -435,12 +459,12 @@ void Scene::rebuildComponentCaches() const
 
   // Rebuild caches by traversing scene once from root objects only
   // (collectComponentsRecursive will handle children)
-  for (const auto& gameObject : _gameObjects)
+  for (const auto &gameObject : _gameObjects)
   {
     if (gameObject->getParent() == nullptr)
     {
       collectComponentsRecursive<CameraComponent>(*gameObject, _cachedCameras);
-      collectComponentsRecursive<LightComponent>(*gameObject, _cachedLights);  
+      collectComponentsRecursive<LightComponent>(*gameObject, _cachedLights);
       collectComponentsRecursive<DrawableComponent>(*gameObject, _cachedDrawables);
     }
   }
