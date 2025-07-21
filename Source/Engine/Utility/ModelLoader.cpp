@@ -245,12 +245,12 @@ GameObject &buildModel(Scene &scene, const std::string &fileFolder, const aiScen
   {
     auto aiMesh = aiScene->mMeshes[i];
 
-    // Create a new GameObject for this mesh and add drawable component
-    GameObject &currentObject = scene.createGameObject(aiMesh->mName.C_Str());
+    // Create a new child GameObject for this mesh under the root object
+    GameObject &currentObject = scene.createChildGameObject(root, aiMesh->mName.C_Str());
     auto &drawableComp = currentObject.addComponent<DrawableComponent>();
     
-    // Set up parent-child relationship in the transform hierarchy
-    // This ensures that scaling the root will affect all mesh children
+    // Also set up transform hierarchy to ensure proper transform inheritance
+    // (GameObject hierarchy and transform hierarchy work independently)
     currentObject.transform().setParent(&root.transform());
 
     Vector3 offset;

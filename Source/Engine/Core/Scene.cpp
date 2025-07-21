@@ -80,6 +80,18 @@ void Scene::addChild(GameObject &parent, std::unique_ptr<GameObject> child)
   invalidateComponentCaches();
 }
 
+GameObject& Scene::createChildGameObject(GameObject& parent, const std::string& name)
+{
+  auto child = std::make_unique<GameObject>(name, _nextGameObjectId++, _componentManager.get());
+  GameObject& ref = *child;
+  parent.addChild(std::move(child));
+  
+  // Invalidate component caches since scene structure changed
+  invalidateComponentCaches();
+  
+  return ref;
+}
+
 void Scene::update(float32 dt)
 {
   auto startTime = std::chrono::high_resolution_clock::now();
@@ -155,10 +167,15 @@ void Scene::drawDebugUi()
 {
   ImGui::BeginChild("SceneGraph", ImVec2(ImGui::GetContentRegionAvail().x, 300), false, ImGuiWindowFlags_HorizontalScrollbar);
 
-  // Draw all game objects
+  // Draw only root game objects (those without parents)
+  // Child objects will be drawn recursively by drawSceneGraphUi
   for (const auto &gameObject : _gameObjects)
   {
-    drawSceneGraphUi(*gameObject);
+    // Only draw if this GameObject has no parent (i.e., it's a root object)
+    if (gameObject->getParent() == nullptr)
+    {
+      drawSceneGraphUi(*gameObject);
+    }
   }
 
   ImGui::EndChild();
@@ -225,10 +242,13 @@ void Scene::performObjectPicker(const CameraComponent &camera)
   std::vector<std::pair<float32, GameObject *>> rayCastedObjects;
   Vector3 cameraPos = camera.getWorldPosition();
 
-  // Check all GameObjects
+  // Check only root GameObjects (children will be checked recursively)
   for (auto &gameObject : _gameObjects)
   {
-    checkGameObjectForPicking(*gameObject, ray, cameraPos, rayCastedObjects);
+    if (gameObject->getParent() == nullptr)
+    {
+      checkGameObjectForPicking(*gameObject, ray, cameraPos, rayCastedObjects);
+    }
   }
 
   // Only process selection if left mouse button is pressed
@@ -413,12 +433,16 @@ void Scene::rebuildComponentCaches() const
   _cachedLights.clear();
   _cachedDrawables.clear();
 
-  // Rebuild caches by traversing scene once
+  // Rebuild caches by traversing scene once from root objects only
+  // (collectComponentsRecursive will handle children)
   for (const auto& gameObject : _gameObjects)
   {
-    collectComponentsRecursive<CameraComponent>(*gameObject, _cachedCameras);
-    collectComponentsRecursive<LightComponent>(*gameObject, _cachedLights);  
-    collectComponentsRecursive<DrawableComponent>(*gameObject, _cachedDrawables);
+    if (gameObject->getParent() == nullptr)
+    {
+      collectComponentsRecursive<CameraComponent>(*gameObject, _cachedCameras);
+      collectComponentsRecursive<LightComponent>(*gameObject, _cachedLights);  
+      collectComponentsRecursive<DrawableComponent>(*gameObject, _cachedDrawables);
+    }
   }
 
   _componentCachesDirty = false;

@@ -31,6 +31,9 @@ public:
 
     /// Add a child GameObject to a parent
     void addChild(GameObject& parent, std::unique_ptr<GameObject> child);
+    
+    /// Create a child GameObject directly under a parent (convenience method)
+    GameObject& createChildGameObject(GameObject& parent, const std::string& name);
 
     /// Update all GameObjects and their components
     void update(float32 dt);
