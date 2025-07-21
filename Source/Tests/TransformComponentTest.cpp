@@ -511,3 +511,86 @@ TEST_CASE("TRANSFORM_COMPONENT_MATHEMATICAL_PROPERTIES")
         REQUIRE(transform.getPosition().Z == Approx(expectedPos.Z));
     }
 }
+
+TEST_CASE("TRANSFORM_COMPONENT_PARENT_CHILD_HIERARCHY")
+{
+    SECTION("PARENT_CHILD_WORLD_MATRIX_CALCULATION")
+    {
+        ComponentManager componentManager;
+        
+        // Create parent transform
+        auto parentTransform = componentManager.createComponent<TransformComponent>();
+        parentTransform->setPosition(Vector3(10.0f, 5.0f, 0.0f));
+        
+        // Create child transform
+        auto childTransform = componentManager.createComponent<TransformComponent>();
+        childTransform->setPosition(Vector3(2.0f, 1.0f, 0.0f)); // Relative to parent
+        childTransform->setParent(parentTransform.get());
+        
+        // Get world matrices
+        Matrix4 parentWorld = parentTransform->getWorldMatrix();
+        Matrix4 childWorld = childTransform->getWorldMatrix();
+        
+        // Parent world position should match local position (no parent)
+        REQUIRE(parentWorld[3][0] == Approx(10.0f));
+        REQUIRE(parentWorld[3][1] == Approx(5.0f));
+        REQUIRE(parentWorld[3][2] == Approx(0.0f));
+        
+        // Child world position should be parent + child local position
+        REQUIRE(childWorld[3][0] == Approx(12.0f)); // 10 + 2
+        REQUIRE(childWorld[3][1] == Approx(6.0f));  // 5 + 1
+        REQUIRE(childWorld[3][2] == Approx(0.0f));  // 0 + 0
+    }
+    
+    SECTION("PARENT_TRANSFORM_CHANGES_AFFECT_CHILD")
+    {
+        ComponentManager componentManager;
+        
+        // Create parent transform
+        auto parentTransform = componentManager.createComponent<TransformComponent>();
+        parentTransform->setPosition(Vector3(10.0f, 5.0f, 0.0f));
+        
+        // Create child transform
+        auto childTransform = componentManager.createComponent<TransformComponent>();
+        childTransform->setPosition(Vector3(2.0f, 1.0f, 0.0f)); // Relative to parent
+        childTransform->setParent(parentTransform.get());
+        
+        // Get initial child world position
+        Matrix4 childWorldBefore = childTransform->getWorldMatrix();
+        REQUIRE(childWorldBefore[3][0] == Approx(12.0f)); // 10 + 2
+        REQUIRE(childWorldBefore[3][1] == Approx(6.0f));  // 5 + 1
+        
+        // Move parent
+        parentTransform->setPosition(Vector3(20.0f, 10.0f, 5.0f));
+        
+        // Child world position should update automatically
+        Matrix4 childWorldAfter = childTransform->getWorldMatrix();
+        REQUIRE(childWorldAfter[3][0] == Approx(22.0f)); // 20 + 2
+        REQUIRE(childWorldAfter[3][1] == Approx(11.0f)); // 10 + 1
+        REQUIRE(childWorldAfter[3][2] == Approx(5.0f));  // 5 + 0
+        
+        // Child local position should remain unchanged
+        REQUIRE(childTransform->getPosition() == Vector3(2.0f, 1.0f, 0.0f));
+    }
+    
+    SECTION("PARENT_SCALE_AFFECTS_CHILD")
+    {
+        ComponentManager componentManager;
+        
+        // Create parent transform with scale
+        auto parentTransform = componentManager.createComponent<TransformComponent>();
+        parentTransform->setPosition(Vector3(0.0f, 0.0f, 0.0f));
+        parentTransform->setScale(Vector3(2.0f, 2.0f, 2.0f)); // Scale by 2
+        
+        // Create child transform
+        auto childTransform = componentManager.createComponent<TransformComponent>();
+        childTransform->setPosition(Vector3(5.0f, 3.0f, 0.0f)); // Will be scaled
+        childTransform->setParent(parentTransform.get());
+        
+        // Child world position should be scaled by parent's scale
+        Matrix4 childWorld = childTransform->getWorldMatrix();
+        REQUIRE(childWorld[3][0] == Approx(10.0f)); // 5 * 2
+        REQUIRE(childWorld[3][1] == Approx(6.0f));  // 3 * 2
+        REQUIRE(childWorld[3][2] == Approx(0.0f));  // 0 * 2
+    }
+}

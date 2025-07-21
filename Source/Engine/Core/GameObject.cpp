@@ -21,6 +21,11 @@ GameObject &GameObject::addChild(std::unique_ptr<GameObject> child)
 {
   child->_parent = this;
   GameObject &childRef = *child;
+  
+  // Automatically sync transform hierarchy with GameObject hierarchy
+  // Set child's transform parent to this object's transform
+  childRef.transform().setParent(&this->transform());
+  
   _children.push_back(std::move(child));
   return childRef;
 }

@@ -79,6 +79,7 @@ private:
   mutable uint32 _lastMatrixChangeId = 0;   // Last change when matrix was calculated
   uint32 _changeId = 1;                     // Incremented on each change (start at 1 so initial state is dirty)
   mutable uint32 _lastObservedChangeId = 0; // For hasChanged() tracking
+  mutable uint32 _lastObservedParentChangeId = 0; // For parent change tracking
 
   TransformComponent *_parent = nullptr;
 

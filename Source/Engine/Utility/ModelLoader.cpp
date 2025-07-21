@@ -246,12 +246,9 @@ GameObject &buildModel(Scene &scene, const std::string &fileFolder, const aiScen
     auto aiMesh = aiScene->mMeshes[i];
 
     // Create a new child GameObject for this mesh under the root object
+    // Transform hierarchy is automatically set up by GameObject::addChild
     GameObject &currentObject = scene.createChildGameObject(root, aiMesh->mName.C_Str());
     auto &drawableComp = currentObject.addComponent<DrawableComponent>();
-    
-    // Also set up transform hierarchy to ensure proper transform inheritance
-    // (GameObject hierarchy and transform hierarchy work independently)
-    currentObject.transform().setParent(&root.transform());
 
     Vector3 offset;
     drawableComp.setMaterial(materials[aiMesh->mMaterialIndex]);

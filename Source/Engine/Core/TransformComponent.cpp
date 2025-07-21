@@ -122,10 +122,27 @@ void TransformComponent::scale(const Vector3 &scale)
 
 const Matrix4 &TransformComponent::getWorldMatrix() const
 {
-  if (_changeId != _lastMatrixChangeId)
+  // Check if our own transform changed OR if any parent transform changed
+  bool needsUpdate = (_changeId != _lastMatrixChangeId);
+  
+  if (!needsUpdate && _parent)
+  {
+    // Also check if parent's world matrix has changed since we last calculated
+    // This handles the case where parent transforms but we haven't been marked dirty
+    static_cast<void>(_parent->getWorldMatrix()); // Force parent to update its matrix
+    needsUpdate = (_parent->getChangeId() != _lastObservedParentChangeId);
+  }
+  
+  if (needsUpdate)
   {
     updateWorldMatrix();
     _lastMatrixChangeId = _changeId;
+    
+    // Remember the current parent change ID to detect future parent changes
+    if (_parent)
+    {
+      _lastObservedParentChangeId = _parent->getChangeId();
+    }
   }
   return _worldMatrix;
 }
