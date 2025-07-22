@@ -1720,7 +1720,8 @@ void Renderer::drawAabb(const std::shared_ptr<RenderDevice> &renderDevice,
     auto &aabb = drawable->getAabb();
 
     PerObjectBufferData objectBufferData;
-    objectBufferData.Model = Matrix4::Translation(drawable->getWorldPosition()) * Matrix4::Scaling(aabb.getExtents());
+    // Use the world AABB center and extents directly since getAabb() returns world bounds
+    objectBufferData.Model = Matrix4::Translation(aabb.getCenter()) * Matrix4::Scaling(aabb.getExtents());
     objectBufferData.ModelView = camera->getView() * objectBufferData.Model;
     objectBufferData.ModelViewProjection = camera->getProj() * objectBufferData.ModelView;
     _perObjectBuffer->writeData(0, sizeof(PerObjectBufferData), &objectBufferData, AccessType::WriteOnlyDiscard);

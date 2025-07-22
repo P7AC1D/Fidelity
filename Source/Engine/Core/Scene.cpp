@@ -67,6 +67,12 @@ GameObject &Scene::createGameObject(const std::string &name)
   _gameObjects.push_back(std::move(gameObject));
   _objectAddedToScene = true;
 
+  // Apply current AABB drawing state to new object if enabled
+  if (_drawAllAABBs)
+  {
+    setAabbDrawOnGameObject(&ref, true);
+  }
+
   // Invalidate component caches since scene structure changed
   invalidateComponentCaches();
 
@@ -75,6 +81,12 @@ GameObject &Scene::createGameObject(const std::string &name)
 
 void Scene::addChild(GameObject &parent, std::unique_ptr<GameObject> child)
 {
+  // Apply current AABB drawing state to child object if enabled
+  if (_drawAllAABBs)
+  {
+    setAabbDrawOnGameObjectRecursive(child.get(), true);
+  }
+  
   parent.addChild(std::move(child));
   // Invalidate component caches since scene structure changed
   invalidateComponentCaches();
@@ -84,6 +96,13 @@ GameObject &Scene::createChildGameObject(GameObject &parent, const std::string &
 {
   auto child = std::make_unique<GameObject>(name, _nextGameObjectId++, _componentManager.get());
   GameObject &ref = *child;
+  
+  // Apply current AABB drawing state to child object if enabled
+  if (_drawAllAABBs)
+  {
+    setAabbDrawOnGameObject(&ref, true);
+  }
+  
   parent.addChild(std::move(child));
 
   // Invalidate component caches since scene structure changed
@@ -188,6 +207,24 @@ void Scene::drawDebugUi()
     _renderer->drawDebugUi();
   }
 
+  ImGui::Separator();
+  
+  // Scene-wide controls
+  if (ImGui::CollapsingHeader("Scene Debug Controls"))
+  {
+    bool currentState = getDrawAllAABBs();
+    if (ImGui::Checkbox("Draw All AABBs", &currentState))
+    {
+      setDrawAllAABBs(currentState);
+    }
+    ImGui::SameLine();
+    ImGui::TextDisabled("(?)");
+    if (ImGui::IsItemHovered())
+    {
+      ImGui::SetTooltip("Temporarily enable AABB drawing for all objects in the scene");
+    }
+  }
+  
   ImGui::Separator();
   {
     if (ImGui::CollapsingHeader("Frame Profiler"))
@@ -330,6 +367,39 @@ void Scene::setAabbDrawOnGameObject(GameObject *gameObject, bool enableAabbDraw)
   if (auto *drawable = gameObject->tryGetComponent<DrawableComponent>())
   {
     drawable->enableDrawAabb(enableAabbDraw);
+  }
+}
+
+void Scene::setAabbDrawOnAllObjects(bool enableAabbDraw)
+{
+  // Apply to all root GameObjects and their children recursively
+  for (auto &gameObject : _gameObjects)
+  {
+    setAabbDrawOnGameObjectRecursive(gameObject.get(), enableAabbDraw);
+  }
+}
+
+void Scene::setAabbDrawOnGameObjectRecursive(GameObject *gameObject, bool enableAabbDraw)
+{
+  if (!gameObject)
+    return;
+
+  // Enable/disable AABB drawing on this GameObject
+  setAabbDrawOnGameObject(gameObject, enableAabbDraw);
+
+  // Recursively apply to all children
+  for (const auto &child : gameObject->getChildren())
+  {
+    setAabbDrawOnGameObjectRecursive(child.get(), enableAabbDraw);
+  }
+}
+
+void Scene::setDrawAllAABBs(bool enable)
+{
+  if (_drawAllAABBs != enable)
+  {
+    _drawAllAABBs = enable;
+    setAabbDrawOnAllObjects(enable);
   }
 }
 

@@ -67,6 +67,10 @@ public:
   std::vector<std::shared_ptr<DrawableComponent>> getSharedDrawables();
   std::shared_ptr<CameraComponent> getSharedMainCamera();
 
+  /// Temporary method to enable/disable AABB drawing for all objects
+  void setDrawAllAABBs(bool enable);
+  bool getDrawAllAABBs() const { return _drawAllAABBs; }
+
 private:
   /// Collect all components of a specific type from all GameObjects
   template <typename T>
@@ -93,6 +97,12 @@ private:
 
   /// Enable/disable AABB drawing for a GameObject
   void setAabbDrawOnGameObject(GameObject *gameObject, bool enableAabbDraw);
+
+  /// Apply AABB drawing setting to all objects in the scene
+  void setAabbDrawOnAllObjects(bool enableAabbDraw);
+
+  /// Recursively apply AABB drawing setting to GameObject and its children
+  void setAabbDrawOnGameObjectRecursive(GameObject *gameObject, bool enableAabbDraw);
 
   /// Check a GameObject (and its children) for ray intersection for object picking
   void checkGameObjectForPicking(GameObject &gameObject, const Ray &ray, const Vector3 &cameraPos, std::vector<std::pair<float32, GameObject *>> &results);
@@ -137,6 +147,9 @@ private:
   std::vector<GameObject *> _lastPickedObjects;
   Vector2I _lastPickMousePos = Vector2I(-1, -1);
   int32 _currentPickIndex = 0;
+
+  // Temporary AABB drawing for all objects
+  bool _drawAllAABBs = false;
 };
 
 // Template implementations
