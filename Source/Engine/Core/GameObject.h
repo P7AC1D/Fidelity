@@ -1,70 +1,221 @@
 #pragma once
-#include <functional>
-#include <string>
-#include <list>
-#include <stdexcept>
-#include <vector>
 
-#include "Component.h"
-#include "Transform.h"
+#include <unordered_map>
+#include <memory>
+#include <string>
+#include <vector>
+#include <stdexcept>
+
+#include "IComponent.h"
+#include "ComponentManager.h"
+#include "ComponentTypeId.h"
 #include "Types.hpp"
+
+/// Modern GameObject implementation with type-safe component management.
+/// This is the new version that will eventually replace the old GameObject.
+class TransformComponent;
 
 class GameObject
 {
 public:
-  GameObject();
-  GameObject(const std::string &name, uint64 index);
+  GameObject(const std::string &name, uint64 index, ComponentManager *componentManager);
+  ~GameObject();
 
-  void update(float32 dt);
-  void drawInspector();
+  /// Add a component of type T with given constructor arguments.
+  template <typename T, typename... Args>
+  T &addComponent(Args &&...args);
 
-  GameObject &addComponent(Component &component);
-  GameObject &addChildNode(GameObject &gameObject);
+  /// Get a component of type T. Throws if not found.
   template <typename T>
   T &getComponent();
+
+  /// Get a component of type T. Returns nullptr if not found.
   template <typename T>
-  bool hasComponent();
+  T *tryGetComponent();
 
-  Transform &transform() { return _localTransform; }
-  const Transform &getLocalTransform() const { return _localTransform; }
-  const Transform &getGlobalTransform() const { return _globalTransform; }
+  /// Check if this GameObject has a component of type T.
+  template <typename T>
+  bool hasComponent() const;
 
-  std::string getName() const { return _name; }
+  /// Remove a component of type T.
+  template <typename T>
+  bool removeComponent();
 
+  /// Get a shared_ptr to a component for dependency management
+  template <typename T>
+  std::shared_ptr<T> getComponentShared();
+
+  /// Add a child GameObject.
+  GameObject &addChild(std::unique_ptr<GameObject> child);
+
+  /// Get the transform component.
+  TransformComponent &transform();
+  const TransformComponent &transform() const;
+
+  /// Update this GameObject and all its children.
+  void update(float32 dt);
+
+  /// Draw inspector UI for this GameObject.
+  void drawInspector();
+
+  /// Getters
+  const std::string &getName() const { return _name; }
   uint64 getIndex() const { return _index; }
+  GameObject *getParent() const { return _parent; }
+  const std::vector<std::unique_ptr<GameObject>> &getChildren() const { return _children; }
 
-protected:
-  Transform _localTransform, _globalTransform;
-  GameObject *_parent;
-  std::string _name;
-  uint64 _index;
+  /// Activate/deactivate this GameObject.
+  void setActive(bool active);
+  bool isActive() const { return _active; }
 
 private:
-  void updateChildNodeTransforms(float32 dt);
-  void notifyComponents() const;
+  std::string _name;
+  uint64 _index;
+  bool _active = true;
 
-  std::list<Component *> _components;
-  std::list<GameObject *> _childNodes;
+  GameObject *_parent = nullptr;
+  std::vector<std::unique_ptr<GameObject>> _children;
+
+  ComponentManager *_componentManager;
+  std::unordered_map<ComponentTypeId, std::unique_ptr<IComponent>> _components;
+
+  /// Shared pointers for dependency management
+  std::unordered_map<ComponentTypeId, std::shared_ptr<IComponent>> _componentSharedPtrs;
+
+  void onActivated();
+  void onDeactivated();
 };
+
+// Template implementations
+template <typename T, typename... Args>
+T &GameObject::addComponent(Args &&...args)
+{
+  static_assert(std::is_base_of_v<IComponent, T>, "T must derive from IComponent");
+
+  ComponentTypeId typeId = getComponentTypeId<T>();
+
+  // Check if component already exists
+  if (_components.find(typeId) != _components.end())
+  {
+    throw std::runtime_error("Component of this type already exists on GameObject");
+  }
+
+  // Create the component
+  auto component = _componentManager->createComponent<T>(std::forward<Args>(args)...);
+  T *componentPtr = component.get();
+
+  // Set the GameObject reference
+  componentPtr->setGameObject(this);
+
+  // Store it
+  _components[typeId] = std::move(component);
+
+  // Activate if GameObject is active
+  if (_active)
+  {
+    componentPtr->activate();
+  }
+
+  return *componentPtr;
+}
 
 template <typename T>
 T &GameObject::getComponent()
 {
-  auto iter = std::find_if(_components.begin(), _components.end(), [](Component *c)
-                           { return dynamic_cast<T *>(c) != nullptr; });
+  static_assert(std::is_base_of_v<IComponent, T>, "T must derive from IComponent");
 
-  if (iter == _components.end())
+  ComponentTypeId typeId = getComponentTypeId<T>();
+  auto it = _components.find(typeId);
+
+  if (it == _components.end())
   {
-    throw std::runtime_error("Component type does not exist.");
+    throw std::runtime_error("Component of this type does not exist on GameObject");
   }
 
-  return *dynamic_cast<T *>(*iter);
+  return static_cast<T &>(*it->second);
 }
 
 template <typename T>
-bool GameObject::hasComponent()
+T *GameObject::tryGetComponent()
 {
-  auto iter = std::find_if(_components.begin(), _components.end(), [](Component *c)
-                           { return dynamic_cast<T *>(c) != nullptr; });
-  return iter != _components.end();
+  static_assert(std::is_base_of_v<IComponent, T>, "T must derive from IComponent");
+
+  ComponentTypeId typeId = getComponentTypeId<T>();
+  auto it = _components.find(typeId);
+
+  if (it == _components.end())
+  {
+    return nullptr;
+  }
+
+  return static_cast<T *>(it->second.get());
+}
+
+template <typename T>
+bool GameObject::hasComponent() const
+{
+  static_assert(std::is_base_of_v<IComponent, T>, "T must derive from IComponent");
+
+  ComponentTypeId typeId = getComponentTypeId<T>();
+  return _components.find(typeId) != _components.end();
+}
+
+template <typename T>
+bool GameObject::removeComponent()
+{
+  static_assert(std::is_base_of_v<IComponent, T>, "T must derive from IComponent");
+
+  ComponentTypeId typeId = getComponentTypeId<T>();
+  auto it = _components.find(typeId);
+
+  if (it == _components.end())
+  {
+    return false;
+  }
+
+  // Deactivate before removal
+  it->second->deactivate();
+
+  // Remove from storage
+  _components.erase(it);
+
+  // Also remove from shared_ptr registry
+  auto sharedIt = _componentSharedPtrs.find(typeId);
+  if (sharedIt != _componentSharedPtrs.end())
+  {
+    _componentSharedPtrs.erase(sharedIt);
+  }
+
+  return true;
+}
+
+template <typename T>
+std::shared_ptr<T> GameObject::getComponentShared()
+{
+  static_assert(std::is_base_of_v<IComponent, T>, "T must derive from IComponent");
+
+  ComponentTypeId typeId = getComponentTypeId<T>();
+
+  // Check if we already have a shared_ptr for this component
+  auto sharedIt = _componentSharedPtrs.find(typeId);
+  if (sharedIt != _componentSharedPtrs.end())
+  {
+    return std::static_pointer_cast<T>(sharedIt->second);
+  }
+
+  // Check if the component exists
+  auto it = _components.find(typeId);
+  if (it == _components.end())
+  {
+    return nullptr;
+  }
+
+  // Create a shared_ptr with custom deleter that doesn't actually delete
+  // (since GameObject owns the component)
+  T *rawPtr = static_cast<T *>(it->second.get());
+  auto sharedPtr = std::shared_ptr<T>(rawPtr, [](T *) {});
+
+  // Store in our registry and return
+  _componentSharedPtrs[typeId] = sharedPtr;
+  return sharedPtr;
 }

@@ -140,6 +140,10 @@ Vector3 Vector3::operator*(float32 rhs) const
 
 Vector3 Vector3::operator/(float32 rhs) const
 {
+  if (rhs == 0.0f)
+  {
+    return Vector3(0.0f, 0.0f, 0.0f); // Return zero vector for division by zero
+  }
   float32 x = X / rhs;
   float32 y = Y / rhs;
   float32 z = Z / rhs;
@@ -157,8 +161,8 @@ Vector3 Vector3::operator*(const Vector3 &rhs) const
 Vector3 Vector3::operator/(const Vector3 &rhs) const
 {
   float32 x = X / rhs[0];
-  float32 y = Y / rhs[0];
-  float32 z = Z / rhs[0];
+  float32 y = Y / rhs[1];
+  float32 z = Z / rhs[2];
   return Vector3(x, y, z);
 }
 
@@ -204,6 +208,11 @@ Vector3 &Vector3::operator*=(float32 rhs)
 
 Vector3 &Vector3::operator/=(float32 rhs)
 {
+  if (rhs == 0.0f)
+  {
+    X = Y = Z = 0.0f; // Set to zero for division by zero
+    return *this;
+  }
   X /= rhs;
   Y /= rhs;
   Z /= rhs;
@@ -248,6 +257,10 @@ float32 Vector3::Length() const
 void Vector3::Normalize()
 {
   float32 length = this->Length();
+  if (length == 0.0f)
+  {
+    return; // Cannot normalize zero vector
+  }
   float32 lengthInv = 1.0f / length;
   X *= lengthInv;
   Y *= lengthInv;

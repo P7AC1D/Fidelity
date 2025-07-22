@@ -7,16 +7,23 @@
 #include <assimp/postprocess.h>
 
 #include "../Maths/Math.hpp"
-#include "../Core/Component.h"
-#include "../Core/Transform.h"
+#include "../Core/TransformComponent.h"
 #include "../Core/GameObject.h"
 #include "../RenderApi/RenderDevice.hpp"
-#include "../Rendering/Drawable.h"
+#include "../Rendering/DrawableComponent.h"
 #include "../Rendering/Material.h"
 #include "../Rendering/StaticMesh.h"
 #include "Assert.hpp"
 #include "String.hpp"
 #include "TextureLoader.hpp"
+
+// Forward declarations of internal functions
+Vector3 buildVertexData(const aiVector3D *vertices, uint32 vertexCount, std::vector<Vector3> &verticesOut);
+Vector3 calculateCentroid(const aiMesh *mesh);
+void offsetVertices(std::vector<Vector3> &vertices, const Vector3 &midPoint);
+void buildIndexData(const aiFace *faces, uint32 indexCount, std::vector<uint32> &indicesOut);
+void buildTexCoordData(const aiVector3D *texCoords, uint32 texCoordCount, std::vector<Vector2> &texCoordsOut);
+void buildNormalData(const aiVector3D *normals, uint32 normalCount, std::vector<Vector3> &normalsOut);
 
 Vector3 toVector3(aiVector3D input)
 {
@@ -56,23 +63,20 @@ void buildTexCoordData(const aiVector3D *texCoords, uint32 texCoordCount, std::v
   }
 }
 
-Vector3 buildVertexData(const aiVector3D *vertices, uint32 verexCount, std::vector<Vector3> &verticesOut)
+Vector3 buildVertexData(const aiVector3D *vertices, uint32 vertexCount, std::vector<Vector3> &verticesOut)
 {
-  Vector3 avg(0);
+  Vector3 sum(0);
 
-  verticesOut.reserve(verexCount);
-  for (uint32 i = 0; i < verexCount; i++)
+  verticesOut.reserve(vertexCount);
+  for (uint32 i = 0; i < vertexCount; i++)
   {
     Vector3 vertex(vertices[i].x, vertices[i].y, vertices[i].z);
-
-    avg.X = (avg.X + vertices[i].x) / 2.0f;
-    avg.Y = (avg.Y + vertices[i].y) / 2.0f;
-    avg.Z = (avg.Z + vertices[i].z) / 2.0f;
-
+    sum += vertex;
     verticesOut.push_back(vertex);
   }
 
-  return avg;
+  // Return proper arithmetic average
+  return sum / static_cast<float32>(vertexCount);
 }
 
 void buildNormalData(const aiVector3D *normals, uint32 normalCount, std::vector<Vector3> &normalsOut)
@@ -241,15 +245,14 @@ GameObject &buildModel(Scene &scene, const std::string &fileFolder, const aiScen
   {
     auto aiMesh = aiScene->mMeshes[i];
 
-    GameObject &currentObject = scene.createGameObject(aiMesh->mName.C_Str());
-    Drawable &drawable = scene.createComponent<Drawable>();
-
-    currentObject.addComponent(drawable);
-    scene.addChildToNode(root, currentObject);
+    // Create a new child GameObject for this mesh under the root object
+    // Transform hierarchy is automatically set up by GameObject::addChild
+    GameObject &currentObject = scene.createChildGameObject(root, aiMesh->mName.C_Str());
+    auto &drawableComp = currentObject.addComponent<DrawableComponent>();
 
     Vector3 offset;
-    drawable.setMaterial(materials[aiMesh->mMaterialIndex]);
-    drawable.setMesh(buildMesh(fileFolder, aiMesh, reconstructWorldTransforms, offset));
+    drawableComp.setMaterial(materials[aiMesh->mMaterialIndex]);
+    drawableComp.setMesh(buildMesh(fileFolder, aiMesh, reconstructWorldTransforms, offset));
     currentObject.transform().setPosition(offset);
   }
 
@@ -260,7 +263,7 @@ GameObject &ModelLoader::fromFile(Scene &scene, const std::string &filePath, boo
 {
   Assimp::Importer importer;
   auto aiScene = importer.ReadFile(filePath, aiProcess_Triangulate | aiProcess_GenNormals | aiProcess_GenUVCoords);
-  ASSERT_TRUE(aiScene, "failed to load mode from " + filePath);
+  ASSERT_TRUE(aiScene, "failed to load model from " + filePath);
 
   auto splitPath = String::split(filePath, '/');
   splitPath.pop_back();

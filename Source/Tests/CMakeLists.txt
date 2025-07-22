@@ -54,12 +54,14 @@ set_target_properties(Tests PROPERTIES
 target_link_libraries(Tests PRIVATE
     engine
     glm
+    assimp
 )
 
 # Include directories
 target_include_directories(Tests PRIVATE
     "${CMAKE_SOURCE_DIR}/Source/Engine"
     "${CMAKE_SOURCE_DIR}/Externals/glm"
+    "${CMAKE_SOURCE_DIR}/Externals/assimp/include"
 )
 
 # ============================================================================

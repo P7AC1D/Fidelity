@@ -109,7 +109,7 @@ enum class Button
   Button_Mouse3,
   Button_Mouse4,
   Button_Mouse5,
-    Unknown
+  Unknown
 };
 
 enum class ButtonState
@@ -135,9 +135,14 @@ public:
 
   bool isButtonPressed(Button button) const;
   bool isButtonReleased(Button button) const;
+  bool wasButtonJustPressed(Button button) const; // New: detect click events
   Vector2I getAxisState(Axis axis) const;
+
+  // Call this each frame to update previous state tracking
+  void updatePreviousStates();
 
 private:
   std::unordered_map<Button, ButtonState> _buttonStates;
+  std::unordered_map<Button, ButtonState> _previousButtonStates; // New: track previous frame
   std::unordered_map<Axis, Vector2I> _axesStates;
 };

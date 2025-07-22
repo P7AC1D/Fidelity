@@ -25,6 +25,26 @@ bool InputHandler::isButtonReleased(Button button) const
   return !isButtonPressed(button);
 }
 
+bool InputHandler::wasButtonJustPressed(Button button) const
+{
+  // Check if button is currently pressed but was not pressed in the previous frame
+  bool currentlyPressed = isButtonPressed(button);
+  bool previouslyPressed = false;
+
+  auto prevIter = _previousButtonStates.find(button);
+  if (prevIter != _previousButtonStates.end())
+  {
+    previouslyPressed = (prevIter->second == ButtonState::Pressed);
+  }
+
+  return currentlyPressed && !previouslyPressed;
+}
+
+void InputHandler::updatePreviousStates()
+{
+  _previousButtonStates = _buttonStates;
+}
+
 Vector2I InputHandler::getAxisState(Axis axis) const
 {
   auto findIter = _axesStates.find(axis);

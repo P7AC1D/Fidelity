@@ -1,106 +1,187 @@
 #pragma once
-#include <functional>
-#include <map>
+
 #include <memory>
-#include <type_traits>
-#include <unordered_map>
 #include <vector>
+#include <unordered_map>
+#include <functional>
 
-#include "Component.h"
-#include "Maths.h"
+#include "GameObject.h"
+#include "ComponentManager.h"
 #include "Types.hpp"
+#include "Maths.h"
 
-class Camera;
-class Drawable;
-class GameObject;
+class DrawableComponent;
 class InputHandler;
 class Renderer;
 class RenderDevice;
-class RenderQueue;
-class SceneGraph;
+class LightComponent;
 
+/// Scene implementation that works with GameObject and modern components.
 class Scene
 {
 public:
   Scene(const std::shared_ptr<InputHandler> &inputHandler);
   virtual ~Scene();
+
+  /// Initialize the scene with window dimensions and render device
   bool init(const Vector2I &windowDims, std::shared_ptr<RenderDevice> renderDevice);
 
-  template <typename T>
-  T &createComponent();
-  template <typename T, typename... Args>
-  T &createComponent(Args... args);
-
+  /// Create a new GameObject with modern component system
   GameObject &createGameObject(const std::string &name);
 
-  void addChildToNode(GameObject &parent, GameObject &child);
+  /// Add a child GameObject to a parent
+  void addChild(GameObject &parent, std::unique_ptr<GameObject> child);
 
-  void setMouseCoordinates(const Vector2I &coords) { _mouseCoordinates = coords; }
+  /// Create a child GameObject directly under a parent (convenience method)
+  GameObject &createChildGameObject(GameObject &parent, const std::string &name);
 
+  /// Update all GameObjects and their components
   void update(float32 dt);
+
+  /// Perform object picking with the current mouse coordinates
+  void updateObjectPicking();
+
+  /// Render the scene
   void drawFrame();
+
+  /// Draw debug UI
   void drawDebugUi();
 
-  GameObject &getRoot() { return *_gameObjects[0].get(); }
+  /// Set mouse coordinates for object picking
+  void setMouseCoordinates(const Vector2I &coords) { _mouseCoordinates = coords; }
 
-  // TODO Remove this and better abstract dependenciexc
+  /// Get render device (for compatibility)
   std::shared_ptr<RenderDevice> getRenderDevice() { return _renderDevice; }
 
+  /// Get all cameras in the scene
+  std::vector<CameraComponent *> getCameras();
+
+  /// Get all lights in the scene
+  std::vector<LightComponent *> getLights();
+
+  /// Get all drawable objects in the scene
+  std::vector<DrawableComponent *> getDrawables();
+
+  /// Get the main camera (first camera found)
+  CameraComponent *getMainCamera();
+
+  /// Get shared_ptr versions for renderer compatibility
+  std::vector<std::shared_ptr<LightComponent>> getSharedLights();
+  std::vector<std::shared_ptr<DrawableComponent>> getSharedDrawables();
+  std::shared_ptr<CameraComponent> getSharedMainCamera();
+
+  /// Temporary method to enable/disable AABB drawing for all objects
+  void setDrawAllAABBs(bool enable);
+  bool getDrawAllAABBs() const { return _drawAllAABBs; }
+
 private:
-  void performObjectPicker(const Camera &camera);
-  void drawSceneGraphUi(int64 nodeIndex);
-  void drawGameObjectInspector(int64 selectedGameObjectIndex);
-  void setAabbDrawOnGameObject(int64 gameObjectIndex, bool enableAabbDraw);
+  /// Collect all components of a specific type from all GameObjects
+  template <typename T>
+  std::vector<T *> collectComponents();
 
-  struct DrawableSortMap
+  /// Recursively collect components from a GameObject and its children
+  template <typename T>
+  void collectComponentsRecursive(GameObject &gameObject, std::vector<T *> &components) const;
+
+  /// Invalidate component caches (call when scene structure changes)
+  void invalidateComponentCaches();
+
+  /// Rebuild component caches if they're dirty
+  void rebuildComponentCaches() const;
+
+  /// Perform object picking with the camera
+  void performObjectPicker(const CameraComponent &camera);
+
+  /// Draw scene graph UI
+  void drawSceneGraphUi(GameObject &gameObject, int depth = 0);
+
+  /// Draw GameObject inspector
+  void drawGameObjectInspector(GameObject *selectedGameObject);
+
+  /// Enable/disable AABB drawing for a GameObject
+  void setAabbDrawOnGameObject(GameObject *gameObject, bool enableAabbDraw);
+
+  /// Apply AABB drawing setting to all objects in the scene
+  void setAabbDrawOnAllObjects(bool enableAabbDraw);
+
+  /// Recursively apply AABB drawing setting to GameObject and its children
+  void setAabbDrawOnGameObjectRecursive(GameObject *gameObject, bool enableAabbDraw);
+
+  /// Check a GameObject (and its children) for ray intersection for object picking
+  void checkGameObjectForPicking(GameObject &gameObject, const Ray &ray, const Vector3 &cameraPos, std::vector<std::pair<float32, GameObject *>> &results);
+
+  /// Sort drawables by distance to camera for transparency
+  struct DrawableDistance
   {
-    float32 DistanceToCamera;
-    std::shared_ptr<Drawable> ComponentPtr;
+    float32 distance;
+    DrawableComponent *drawable;
 
-    DrawableSortMap(float32 distance, std::shared_ptr<Drawable> component) : DistanceToCamera(distance),
-                                                                             ComponentPtr(component)
-    {
-    }
+    DrawableDistance(float32 dist, DrawableComponent *comp)
+        : distance(dist), drawable(comp) {}
   };
 
-  bool _objectAddedToScene;
-  uint64 _scenePrepDuration;
-  Vector2I _mouseCoordinates;
-  Vector2I _windowDims;
+  std::vector<DrawableDistance> sortDrawablesByDistance(const CameraComponent &camera);
 
-  std::unique_ptr<SceneGraph> _sceneGraph;
-  std::unordered_map<ComponentType, std::vector<std::shared_ptr<Component>>> _components;
-  std::map<uint64, std::shared_ptr<GameObject>> _gameObjects;
-
+private:
+  // Core systems
+  std::unique_ptr<ComponentManager> _componentManager;
   std::shared_ptr<Renderer> _renderer;
   std::shared_ptr<RenderDevice> _renderDevice;
   std::shared_ptr<InputHandler> _inputHandler;
-  
-  // Render queues for optimized sorting
-  std::unique_ptr<RenderQueue> _opaqueQueue;
-  std::unique_ptr<RenderQueue> _transparentQueue;
+
+  // Scene data
+  std::vector<std::unique_ptr<GameObject>> _gameObjects;
+  uint64 _nextGameObjectId = 0;
+
+  // Cached component lists (for performance)
+  mutable std::vector<CameraComponent *> _cachedCameras;
+  mutable std::vector<LightComponent *> _cachedLights;
+  mutable std::vector<DrawableComponent *> _cachedDrawables;
+  mutable bool _componentCachesDirty = true;
+
+  // UI state
+  Vector2I _mouseCoordinates;
+  Vector2I _windowDims;
+  GameObject *_selectedGameObject = nullptr;
+  bool _objectAddedToScene = false;
+  uint64 _scenePrepDuration = 0;
+
+  // Object picker cycling state
+  std::vector<GameObject *> _lastPickedObjects;
+  Vector2I _lastPickMousePos = Vector2I(-1, -1);
+  int32 _currentPickIndex = 0;
+
+  // Temporary AABB drawing for all objects
+  bool _drawAllAABBs = false;
 };
 
+// Template implementations
 template <typename T>
-T &Scene::createComponent()
+std::vector<T *> Scene::collectComponents()
 {
-  static_assert(std::is_base_of<Component, T>::value, "Type is not derived from Component.");
+  std::vector<T *> components;
 
-  auto component = std::shared_ptr<T>(new T());
-  _components[component->getType()].push_back(component);
+  // Collect from all game objects
+  for (const auto &gameObject : _gameObjects)
+  {
+    collectComponentsRecursive<T>(*gameObject, components);
+  }
 
-  auto componentOfT = std::static_pointer_cast<T>(_components[component->getType()].back());
-  return *(componentOfT.get());
+  return components;
 }
 
-template <typename T, typename... Args>
-T &Scene::createComponent(Args... args)
+template <typename T>
+void Scene::collectComponentsRecursive(GameObject &gameObject, std::vector<T *> &components) const
 {
-  static_assert(std::is_base_of<Component, T>::value, "Type is not derived from Component.");
+  // Check if this GameObject has the component
+  if (auto *component = gameObject.tryGetComponent<T>())
+  {
+    components.push_back(component);
+  }
 
-  auto component = std::shared_ptr<T>(new T(args...));
-  _components[component->getType()].push_back(component);
-
-  auto componentOfT = std::static_pointer_cast<T>(_components[component->getType()].back());
-  return *(componentOfT.get());
+  // Recursively check children
+  for (const auto &child : gameObject.getChildren())
+  {
+    collectComponentsRecursive<T>(*child, components);
+  }
 }

@@ -20,6 +20,7 @@ class InputHandler;
 static const float32 CAMERA_LOOK_SENSITIVITY = 0.001f;
 static const float32 CAMERA_MOVE_FACTOR = 0.10f;
 static const float32 CAMERA_MOVE_SPRINT_FACTOR = 1.0f;
+static const float32 CAMERA_MAX_PITCH_DEGREES = 89.0f; // Prevent full gimbal lock
 
 struct ApplicationDesc
 {
@@ -57,6 +58,9 @@ private:
 protected:
   void fpsCameraLook(int32 deltaX, int32 deltaY, uint32 dtMs);
   void translateCamera(float32 forward, float32 right);
+
+  // Helper function to extract pitch from quaternion for clamping
+  float32 extractPitchFromQuaternion(const Quaternion &rotation) const;
 
   Vector2I _lastMousePos, _currentMousePos;
   Vector3 _cameraTarget;

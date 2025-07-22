@@ -1,114 +1,530 @@
 #include "Frustrum.hpp"
-
-#include "../Core/Transform.h"
-#include "../Rendering/Camera.h"
-#include "Math.hpp"
+#include "../Core/TransformComponent.h"
+#include "../Rendering/CameraComponent.h"
+#include "Vector3.hpp"
+#include <cmath>
+#include <cstdio>
+#include <string>
 
 Frustrum::Frustrum()
 {
+  // Create a default frustum that contains everything
+  // This ensures backward compatibility for uninitialized frustums
+  // The Plane constructor expects (normal, point_on_plane)
+  _left = Plane(Vector3(1.0f, 0.0f, 0.0f), Vector3(-1000.0f, 0.0f, 0.0f));
+  _right = Plane(Vector3(-1.0f, 0.0f, 0.0f), Vector3(1000.0f, 0.0f, 0.0f));
+  _top = Plane(Vector3(0.0f, -1.0f, 0.0f), Vector3(0.0f, 1000.0f, 0.0f));
+  _bottom = Plane(Vector3(0.0f, 1.0f, 0.0f), Vector3(0.0f, -1000.0f, 0.0f));
+  _near = Plane(Vector3(0.0f, 0.0f, 1.0f), Vector3(0.0f, 0.0f, -0.01f));
+  _far = Plane(Vector3(0.0f, 0.0f, -1.0f), Vector3(0.0f, 0.0f, 1000.0f));
 }
 
-Frustrum::Frustrum(const Camera &camera)
+Frustrum::Frustrum(const CameraComponent &camera)
 {
-	// Taken from https://www.lighthouse3d.com/tutorials/view-frustum-culling/geometric-approach-extracting-the-planes/
+  // Extract frustum planes from camera's view-projection matrix
+  Matrix4 viewMatrix = camera.getView();
+  Matrix4 projMatrix = camera.getProj();
 
-	const Transform &cameraTransform(camera.getParentTransform());
-	Vector3 position = cameraTransform.getPosition();
-	Vector3 forward = cameraTransform.getForward();
-	Vector3 up = cameraTransform.getUp();
-	Vector3 right = cameraTransform.getRight();
-	float32 zFar = camera.getFar();
-	float32 zNear = camera.getNear();
-	float32 tanHalfFov = (float32)tan(camera.getFov().InRadians() / 2.0f);
-	float32 farHeight = zFar * tanHalfFov;
-	float32 farWidth = farHeight * camera.getAspectRatio();
+  // CRITICAL FIX: Check if we're in a fallback situation more thoroughly
+  // If the view matrix appears to be a default/fallback matrix, use conservative culling
+  bool isViewMatrixIdentity = (viewMatrix == Matrix4::Identity);
+  bool isViewMatrixDefault = false;
 
-	// Calculate the center of the far plane by taking the position and scaling the forward vector by the distance to the far plane.
-	// NOTE: Using subtraction (-) because the camera's forward vector points in the negative Z direction in OpenGL convention
-	Vector3 zFarCenter = position - forward * zFar;
-	// Similarly, we calculate the center of the near plane.
-	Vector3 zNearCenter = position - forward * zNear;
+  // Check if this is our new default look-at matrix (0,0,5) -> (0,0,0)
+  Vector3 expectedEye(0, 0, 5);
+  Vector3 expectedTarget(0, 0, 0);
+  Vector3 expectedUp(0, 1, 0);
+  Matrix4 expectedDefault = Matrix4::LookAt(expectedEye, expectedTarget, expectedUp);
+  isViewMatrixDefault = (viewMatrix == expectedDefault);
 
-	// Build planes with inwards facing normals and the position of the camera as it is present in all top, bottom, left and right planes.
-	_near = Plane(-forward, zNearCenter);
-	_far = Plane(forward, zFarCenter);
+  if (isViewMatrixIdentity || isViewMatrixDefault)
+  {
+    // CRITICAL FIX: Use matrix-based extraction even for fallback cases
+    // This ensures consistency in all code paths
+    Matrix4 viewProjMatrix = projMatrix * viewMatrix;
+    extractPlanesFromMatrix(viewProjMatrix);
+    return;
+  }
 
-	Vector3 point = zFarCenter + (up * farHeight);
-	Vector3 normal = Vector3::Normalize(point - position);
-	normal = Vector3::Cross(normal, right);
-	_top = Plane(normal, position);
+  // FIXED: Use matrix-based approach for consistency
+  // All code paths now use the same extraction method to avoid discrepancies
+  Matrix4 viewProjMatrix = projMatrix * viewMatrix;
+  extractPlanesFromMatrix(viewProjMatrix);
 
-	point = zFarCenter - (up * farHeight);
-	normal = Vector3::Normalize(point - position);
-	normal = Vector3::Cross(right, normal);
-	_bottom = Plane(normal, position);
-
-	point = zFarCenter - (right * farWidth);
-	normal = Vector3::Normalize(point - position);
-	normal = Vector3::Cross(normal, up);
-	_left = Plane(normal, position);
-
-	point = zFarCenter + (right * farWidth);
-	normal = Vector3::Normalize(point - position);
-	normal = Vector3::Cross(up, normal);
-	_right = Plane(normal, position);
+  return;
 }
 
-bool Frustrum::contains(const Aabb &aabb, const Transform &transform) const
+Frustrum::Frustrum(const Plane &left, const Plane &right, const Plane &top,
+                   const Plane &bottom, const Plane &nearPlane, const Plane &farPlane)
+    : _left(left), _right(right), _top(top), _bottom(bottom), _near(nearPlane), _far(farPlane)
 {
-	// Check if transform is axis-aligned (identity rotation) for optimization
-	if (isTransformAxisAligned(transform))
-	{
-		return containsAxisAligned(aabb, transform);
-	}
-	
-	// Handle oriented bounding boxes with full transform
-	return containsOriented(aabb, transform);
 }
 
-bool Frustrum::isTransformAxisAligned(const Transform &transform) const
+bool Frustrum::contains(const Aabb &box, const TransformComponent &transform) const
 {
-	return transform.isAxisAligned();
+  // Get transform matrix from component
+  Matrix4 transformMatrix = transform.getWorldMatrix();
+
+  // Check if transform is axis-aligned for optimization
+  if (isTransformAxisAligned(transform))
+  {
+    return containsAxisAligned(box, transform);
+  }
+  else
+  {
+    return containsOriented(box, transform);
+  }
 }
 
-bool Frustrum::containsAxisAligned(const Aabb &aabb, const Transform &transform) const
+bool Frustrum::contains(const Aabb &box, const Matrix4 &transform) const
 {
-	// Simple case: just translate the AABB center and test directly
-	Vector3 globalCenter = transform.getPosition() + aabb.getCenter();
-	Aabb globalAabb(globalCenter, aabb.getExtents().X, aabb.getExtents().Y, aabb.getExtents().Z);
-	
-	return globalAabb.isOnOrForwardPlane(_near) &&
-				 globalAabb.isOnOrForwardPlane(_far) &&
-				 globalAabb.isOnOrForwardPlane(_right) &&
-				 globalAabb.isOnOrForwardPlane(_left) &&
-				 globalAabb.isOnOrForwardPlane(_top) &&
-				 globalAabb.isOnOrForwardPlane(_bottom);
+  // Check if the Matrix4 represents an axis-aligned transform (translation + uniform scale only)
+  if (isMatrix4AxisAligned(transform))
+  {
+    // Use the optimized axis-aligned path
+    return containsAxisAlignedMatrix4(box, transform);
+  }
+  else
+  {
+    // For arbitrary transforms, use the oriented bounding box approach
+    return containsOrientedMatrix4(box, transform);
+  }
 }
 
-bool Frustrum::containsOriented(const Aabb &aabb, const Transform &transform) const
+bool Frustrum::isTransformAxisAligned(const TransformComponent &transform) const
 {
-	Vector3 extents(aabb.getExtents());
-	Vector3 globalCenter(transform.getPosition() + aabb.getCenter());
+  // A transform is axis-aligned if it only has translation and uniform scale
+  Vector3 scale = transform.getScale();
+  Quaternion rotation = transform.getRotation();
 
-	// Transform the AABB axes by the object's rotation
-	Vector3 right(transform.getRight() * extents.X);
-	Vector3 up(transform.getUp() * extents.Y);
-	Vector3 forward(transform.getForward() * extents.Z);
+  // Check if rotation is identity (or very close to it)
+  Quaternion identity = Quaternion::Identity;
+  float32 dotProduct = abs(rotation.W * identity.W + rotation.X * identity.X +
+                           rotation.Y * identity.Y + rotation.Z * identity.Z);
 
-	// Calculate the global extents by projecting the transformed axes onto world axes
-	// This gives us the axis-aligned bounding box that contains the oriented box
-	Vector3 globalExtents(
-		std::abs(right.X) + std::abs(up.X) + std::abs(forward.X),
-		std::abs(right.Y) + std::abs(up.Y) + std::abs(forward.Y),
-		std::abs(right.Z) + std::abs(up.Z) + std::abs(forward.Z)
-	);
+  return dotProduct > 0.999f; // Very close to identity
+}
 
-	Aabb globalAabb(globalCenter, globalExtents.X, globalExtents.Y, globalExtents.Z);
+bool Frustrum::containsAxisAligned(const Aabb &aabb, const TransformComponent &transform) const
+{
+  // For axis-aligned transforms, we can transform the AABB directly
+  Vector3 position = transform.getPosition();
+  Vector3 scale = transform.getScale();
 
-	return globalAabb.isOnOrForwardPlane(_near) &&
-				 globalAabb.isOnOrForwardPlane(_far) &&
-				 globalAabb.isOnOrForwardPlane(_right) &&
-				 globalAabb.isOnOrForwardPlane(_left) &&
-				 globalAabb.isOnOrForwardPlane(_top) &&
-				 globalAabb.isOnOrForwardPlane(_bottom);
+  // Transform AABB
+  Vector3 min = aabb.getMin() * scale + position;
+  Vector3 max = aabb.getMax() * scale + position;
+
+  // Ensure min/max are correct after scaling
+  if (scale.X < 0.0f)
+  {
+    float32 temp = min.X;
+    min.X = max.X;
+    max.X = temp;
+  }
+  if (scale.Y < 0.0f)
+  {
+    float32 temp = min.Y;
+    min.Y = max.Y;
+    max.Y = temp;
+  }
+  if (scale.Z < 0.0f)
+  {
+    float32 temp = min.Z;
+    min.Z = max.Z;
+    max.Z = temp;
+  }
+
+  // Check if this is a very small object that might suffer from precision issues
+  Vector3 size = max - min;
+  const float32 MIN_OBJECT_SIZE = 0.01f; // 1cm minimum size
+  bool isVerySmall = (size.X < MIN_OBJECT_SIZE || size.Y < MIN_OBJECT_SIZE || size.Z < MIN_OBJECT_SIZE);
+  
+  if (isVerySmall)
+  {
+    // For very small objects, also test the center point to avoid precision culling
+    Vector3 center = (min + max) * 0.5f;
+    if (contains(center))
+    {
+      return true; // If center is visible, consider the small object visible
+    }
+  }
+
+  // Test against each frustum plane
+  return testAABBAgainstPlane(min, max, _left) &&
+         testAABBAgainstPlane(min, max, _right) &&
+         testAABBAgainstPlane(min, max, _top) &&
+         testAABBAgainstPlane(min, max, _bottom) &&
+         testAABBAgainstPlane(min, max, _near) &&
+         testAABBAgainstPlane(min, max, _far);
+}
+
+bool Frustrum::containsOriented(const Aabb &aabb, const TransformComponent &transform) const
+{
+  // For oriented transforms, we need to test all 8 corners of the AABB
+  Matrix4 transformMatrix = transform.getWorldMatrix();
+
+  Vector3 min = aabb.getMin();
+  Vector3 max = aabb.getMax();
+
+  // Generate all 8 corners of the AABB
+  Vector3 corners[8] = {
+      {min.X, min.Y, min.Z},
+      {max.X, min.Y, min.Z},
+      {min.X, max.Y, min.Z},
+      {max.X, max.Y, min.Z},
+      {min.X, min.Y, max.Z},
+      {max.X, min.Y, max.Z},
+      {min.X, max.Y, max.Z},
+      {max.X, max.Y, max.Z}};
+
+  // Transform all corners
+  Vector3 transformedCorners[8];
+  for (int i = 0; i < 8; i++)
+  {
+    transformedCorners[i] = transformMatrix * corners[i];
+  }
+
+  // Test against each frustum plane
+  Plane planes[6] = {_left, _right, _top, _bottom, _near, _far};
+
+  for (int p = 0; p < 6; p++)
+  {
+    bool allOutside = true;
+    
+    // Add epsilon tolerance for oriented AABB testing
+    const float32 ORIENTED_EPSILON = 0.0005f;
+    
+    for (int c = 0; c < 8; c++)
+    {
+      if (planes[p].getSignedDistance(transformedCorners[c]) >= -ORIENTED_EPSILON)
+      {
+        allOutside = false;
+        break;
+      }
+    }
+
+    // If all corners are outside this plane, the AABB is outside the frustum
+    if (allOutside)
+    {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+bool Frustrum::testAABBAgainstPlane(const Vector3 &min, const Vector3 &max, const Plane &plane) const
+{
+  // Find the positive vertex (vertex most in the direction of the plane normal)
+  Vector3 normal = plane.getNormal();
+  Vector3 positiveVertex = min;
+
+  if (normal.X >= 0.0f)
+    positiveVertex.X = max.X;
+  if (normal.Y >= 0.0f)
+    positiveVertex.Y = max.Y;
+  if (normal.Z >= 0.0f)
+    positiveVertex.Z = max.Z;
+
+  // Add epsilon tolerance for near-plane precision issues
+  // This prevents objects very close to planes from being incorrectly culled
+  const float32 PLANE_EPSILON = 0.001f;
+  
+  // If the positive vertex is behind the plane (with tolerance), the AABB is completely outside
+  return plane.getSignedDistance(positiveVertex) >= -PLANE_EPSILON;
+}
+
+void Frustrum::extractPlanesFromMatrix(const Matrix4 &viewProjMatrix)
+{
+  // Extract frustum planes from view-projection matrix using standard OpenGL method
+  // Since Matrix4 is column-major and compatible with GLM, we access as [col][row]
+  
+  // For column-major matrix access, we need to transpose indices
+  // viewProjMatrix[col][row] gives us element at (row, col) in mathematical notation
+  
+  // Extract the rows from the column-major matrix
+  Vector4 row0(viewProjMatrix[0][0], viewProjMatrix[1][0], viewProjMatrix[2][0], viewProjMatrix[3][0]);
+  Vector4 row1(viewProjMatrix[0][1], viewProjMatrix[1][1], viewProjMatrix[2][1], viewProjMatrix[3][1]);
+  Vector4 row2(viewProjMatrix[0][2], viewProjMatrix[1][2], viewProjMatrix[2][2], viewProjMatrix[3][2]);
+  Vector4 row3(viewProjMatrix[0][3], viewProjMatrix[1][3], viewProjMatrix[2][3], viewProjMatrix[3][3]);
+
+  // Standard OpenGL frustum plane extraction (Gribb-Hartmann method)
+  // All normals point inward to the frustum for correct culling
+
+  // Left plane: row3 + row0
+  Vector4 leftPlane = Vector4(row3.X + row0.X, row3.Y + row0.Y, row3.Z + row0.Z, row3.W + row0.W);
+  _left = createPlaneFromVector4(leftPlane);
+
+  // Right plane: row3 - row0  
+  Vector4 rightPlane = Vector4(row3.X - row0.X, row3.Y - row0.Y, row3.Z - row0.Z, row3.W - row0.W);
+  _right = createPlaneFromVector4(rightPlane);
+
+  // Bottom plane: row3 + row1
+  Vector4 bottomPlane = Vector4(row3.X + row1.X, row3.Y + row1.Y, row3.Z + row1.Z, row3.W + row1.W);
+  _bottom = createPlaneFromVector4(bottomPlane);
+
+  // Top plane: row3 - row1
+  Vector4 topPlane = Vector4(row3.X - row1.X, row3.Y - row1.Y, row3.Z - row1.Z, row3.W - row1.W);
+  _top = createPlaneFromVector4(topPlane);
+
+  // Near plane: row3 + row2
+  Vector4 nearPlane = Vector4(row3.X + row2.X, row3.Y + row2.Y, row3.Z + row2.Z, row3.W + row2.W);
+  _near = createPlaneFromVector4(nearPlane);
+
+  // Far plane: row3 - row2
+  Vector4 farPlane = Vector4(row3.X - row2.X, row3.Y - row2.Y, row3.Z - row2.Z, row3.W - row2.W);
+  _far = createPlaneFromVector4(farPlane);
+}
+
+Plane Frustrum::createPlaneFromVector4(const Vector4 &planeVector) const
+{
+  // The Vector4 represents the plane equation: ax + by + cz + d = 0
+  // We need to normalize it first
+  Vector3 normal(planeVector.X, planeVector.Y, planeVector.Z);
+  float32 distance = planeVector.W;
+
+  // Normalize the plane
+  float32 length = Vector3::Length(normal);
+  if (length > 0.0001f) // Avoid division by zero
+  {
+    normal /= length;
+    distance /= length;
+  }
+
+  // Create a plane directly using the normal and distance
+  // The Plane constructor expects normal and a point on the plane
+  // For plane equation ax + by + cz + d = 0, a point on the plane is normal * (-d)
+  Vector3 pointOnPlane = normal * (-distance);
+
+  return Plane(normal, pointOnPlane);
+}
+
+bool Frustrum::isMatrix4AxisAligned(const Matrix4 &transform) const
+{
+  // A Matrix4 is axis-aligned if:
+  // 1. The rotation part (upper-left 3x3) is identity or close to it
+  // 2. No skew or shear components exist
+
+  const float32 EPSILON = 0.0001f;
+
+  // Check if the 3x3 rotation matrix is axis-aligned (diagonal with possible scale)
+  // For axis-aligned, off-diagonal elements should be near zero
+  if (abs(transform[0][1]) > EPSILON || abs(transform[0][2]) > EPSILON ||
+      abs(transform[1][0]) > EPSILON || abs(transform[1][2]) > EPSILON ||
+      abs(transform[2][0]) > EPSILON || abs(transform[2][1]) > EPSILON)
+  {
+    return false;
+  }
+
+  // Check that w-row is correct for affine transform [0, 0, 0, 1]
+  if (abs(transform[3][0]) > EPSILON || abs(transform[3][1]) > EPSILON ||
+      abs(transform[3][2]) > EPSILON || abs(transform[3][3] - 1.0f) > EPSILON)
+  {
+    return false;
+  }
+
+  return true;
+}
+
+bool Frustrum::containsAxisAlignedMatrix4(const Aabb &aabb, const Matrix4 &transform) const
+{
+  // Extract translation and scale from the axis-aligned Matrix4
+  Vector3 translation(transform[0][3], transform[1][3], transform[2][3]);
+  Vector3 scale(transform[0][0], transform[1][1], transform[2][2]);
+
+  // Transform AABB using the extracted translation and scale
+  Vector3 min = aabb.getMin() * scale + translation;
+  Vector3 max = aabb.getMax() * scale + translation;
+
+  // Ensure min/max are correct after scaling (handle negative scale)
+  if (scale.X < 0.0f)
+  {
+    float32 temp = min.X;
+    min.X = max.X;
+    max.X = temp;
+  }
+  if (scale.Y < 0.0f)
+  {
+    float32 temp = min.Y;
+    min.Y = max.Y;
+    max.Y = temp;
+  }
+  if (scale.Z < 0.0f)
+  {
+    float32 temp = min.Z;
+    min.Z = max.Z;
+    max.Z = temp;
+  }
+
+  // Test against each frustum plane using the optimized AABB-plane test
+  return testAABBAgainstPlane(min, max, _left) &&
+         testAABBAgainstPlane(min, max, _right) &&
+         testAABBAgainstPlane(min, max, _top) &&
+         testAABBAgainstPlane(min, max, _bottom) &&
+         testAABBAgainstPlane(min, max, _near) &&
+         testAABBAgainstPlane(min, max, _far);
+}
+
+bool Frustrum::containsOrientedMatrix4(const Aabb &box, const Matrix4 &transform) const
+{
+  // For arbitrary transforms, use the oriented bounding box approach
+  // This is the original implementation moved to a separate function
+
+  // Get AABB min/max and compute the 8 corners
+  Vector3 min = box.getMin();
+  Vector3 max = box.getMax();
+
+  Vector3 corners[8] = {
+      Vector3(min.X, min.Y, min.Z), // 0: min corner
+      Vector3(max.X, min.Y, min.Z), // 1: max X
+      Vector3(min.X, max.Y, min.Z), // 2: max Y
+      Vector3(max.X, max.Y, min.Z), // 3: max X,Y
+      Vector3(min.X, min.Y, max.Z), // 4: max Z
+      Vector3(max.X, min.Y, max.Z), // 5: max X,Z
+      Vector3(min.X, max.Y, max.Z), // 6: max Y,Z
+      Vector3(max.X, max.Y, max.Z)  // 7: max corner
+  };
+
+  // Transform all corners
+  for (int i = 0; i < 8; ++i)
+  {
+    Vector4 corner4D(corners[i].X, corners[i].Y, corners[i].Z, 1.0f);
+    Vector4 transformedCorner = transform * corner4D;
+    corners[i] = Vector3(transformedCorner.X, transformedCorner.Y, transformedCorner.Z);
+  }
+
+  // Test the transformed AABB against each frustum plane using correct algorithm
+  // FIXED: Use separating axis theorem - if ALL corners are outside ANY plane,
+  // then the AABB is completely outside the frustum
+
+  Plane planes[6] = {_left, _right, _top, _bottom, _near, _far};
+
+  for (int p = 0; p < 6; p++)
+  {
+    bool allCornersOutside = true;
+    
+    // Add epsilon tolerance for Matrix4 oriented AABB testing
+    const float32 MATRIX_EPSILON = 0.0005f;
+
+    // Check if all corners are outside this plane
+    for (int i = 0; i < 8; i++)
+    {
+      if (planes[p].getSignedDistance(corners[i]) >= -MATRIX_EPSILON)
+      {
+        allCornersOutside = false;
+        break; // At least one corner is inside this plane
+      }
+    }
+
+    // If all corners are outside any plane, the AABB is outside the frustum
+    if (allCornersOutside)
+    {
+      return false;
+    }
+  }
+
+  // If we reach here, the AABB intersects or is inside the frustum
+  return true;
+}
+
+const Plane &Frustrum::getPlane(int index) const
+{
+  switch (index)
+  {
+  case 0:
+    return _left;
+  case 1:
+    return _right;
+  case 2:
+    return _top;
+  case 3:
+    return _bottom;
+  case 4:
+    return _near;
+  case 5:
+    return _far;
+  default:
+    return _left; // Fallback to avoid undefined behavior
+  }
+}
+
+std::array<Plane, 6> Frustrum::getPlanes() const
+{
+  return {_left, _right, _top, _bottom, _near, _far};
+}
+
+bool Frustrum::isValid() const
+{
+  // Check if all planes have valid (non-zero) normals
+  const float32 MIN_NORMAL_LENGTH = 0.0001f;
+
+  return (Vector3::Length(_left.getNormal()) > MIN_NORMAL_LENGTH &&
+          Vector3::Length(_right.getNormal()) > MIN_NORMAL_LENGTH &&
+          Vector3::Length(_top.getNormal()) > MIN_NORMAL_LENGTH &&
+          Vector3::Length(_bottom.getNormal()) > MIN_NORMAL_LENGTH &&
+          Vector3::Length(_near.getNormal()) > MIN_NORMAL_LENGTH &&
+          Vector3::Length(_far.getNormal()) > MIN_NORMAL_LENGTH);
+}
+
+bool Frustrum::contains(const Vector3 &point) const
+{
+  // Add epsilon tolerance for point containment to handle precision issues
+  const float32 POINT_EPSILON = 0.0001f;
+  
+  // A point is inside the frustum if it's on the positive side of all planes (with tolerance)
+  return (_left.getSignedDistance(point) >= -POINT_EPSILON &&
+          _right.getSignedDistance(point) >= -POINT_EPSILON &&
+          _top.getSignedDistance(point) >= -POINT_EPSILON &&
+          _bottom.getSignedDistance(point) >= -POINT_EPSILON &&
+          _near.getSignedDistance(point) >= -POINT_EPSILON &&
+          _far.getSignedDistance(point) >= -POINT_EPSILON);
+}
+
+float32 Frustrum::getVolume() const
+{
+  // This is a simplified volume calculation for the frustum
+  // For a perspective frustum, this would need more complex geometry
+  // For now, we'll estimate using the distance between near and far planes
+
+  Vector3 nearPoint = _near.getNormal() * (-_near.getDistance(_near.getNormal() * 0.0f));
+  Vector3 farPoint = _far.getNormal() * (-_far.getDistance(_far.getNormal() * 0.0f));
+
+  float32 depth = Vector3::Length(farPoint - nearPoint);
+
+  // Rough approximation - for a proper calculation, we'd need more geometric analysis
+  return depth * 1000.0f; // Placeholder calculation
+}
+
+bool Frustrum::validatePlaneOrientations() const
+{
+  // Test a point that should be at the center of the frustum
+  Vector3 testPoint(0.0f, 0.0f, -10.0f); // 10 units in front of camera
+  
+  // All planes should have positive distance to a central point
+  bool leftValid = _left.getSignedDistance(testPoint) > 0.0f;
+  bool rightValid = _right.getSignedDistance(testPoint) > 0.0f;
+  bool topValid = _top.getSignedDistance(testPoint) > 0.0f;
+  bool bottomValid = _bottom.getSignedDistance(testPoint) > 0.0f;
+  bool nearValid = _near.getSignedDistance(testPoint) > 0.0f;
+  bool farValid = _far.getSignedDistance(testPoint) > 0.0f;
+  
+  return leftValid && rightValid && topValid && bottomValid && nearValid && farValid;
+}
+
+std::string Frustrum::getDebugDistances(const Vector3 &point) const
+{
+  char buffer[512];
+  snprintf(buffer, sizeof(buffer),
+    "Point (%.2f, %.2f, %.2f) distances:\n"
+    "Left: %.3f, Right: %.3f, Top: %.3f, Bottom: %.3f, Near: %.3f, Far: %.3f",
+    point.X, point.Y, point.Z,
+    _left.getSignedDistance(point),
+    _right.getSignedDistance(point),
+    _top.getSignedDistance(point),
+    _bottom.getSignedDistance(point),
+    _near.getSignedDistance(point),
+    _far.getSignedDistance(point));
+  
+  return std::string(buffer);
 }

@@ -3,19 +3,27 @@
 #include <string>
 #include <vector>
 
+#include "DrawableComponent.h"
+#include "LightComponent.h"
+#include "CameraComponent.h"
+
 #include "../Core/Maths.h"
 #include "../Core/Types.hpp"
 
-class Drawable;
 class GpuBuffer;
-class Light;
 class Material;
 class PipelineState;
 class RenderDevice;
+class RenderQueue;
 class RenderTarget;
 class SamplerState;
 class Texture;
 class VertexBuffer;
+
+// Forward declarations that need full definitions for unique_ptr
+#include "ShadowFrustum.h"
+#include "RenderQueue.h"
+#include "PointLightCuller.h"
 
 struct RenderPassTimings
 {
@@ -45,12 +53,9 @@ public:
   void drawDebugUi();
 
   void drawFrame(const std::shared_ptr<RenderDevice> &renderDevice,
-                 const std::vector<std::shared_ptr<Drawable>> &aabbDrawables,
-                 const std::vector<std::shared_ptr<Drawable>> &opaqueDrawables,
-                 const std::vector<std::shared_ptr<Drawable>> &transparentDrawables,
-                 const std::vector<std::shared_ptr<Drawable>> &allDrawables,
-                 const std::vector<std::shared_ptr<Light>> &lights,
-                 const std::shared_ptr<Camera> &camera);
+                 const std::vector<std::shared_ptr<DrawableComponent>> &allDrawables,
+                 const std::vector<std::shared_ptr<LightComponent>> &lights,
+                 const std::shared_ptr<CameraComponent> &camera);
 
   const std::vector<RenderPassTimings> &getRenderPassTimings() const { return _renderPassTimings; }
 
@@ -71,59 +76,72 @@ private:
   void initDebugPass(const std::shared_ptr<RenderDevice> &renderDevice);
 
   void directionalLightDepthPass(const std::shared_ptr<RenderDevice> &renderDevice,
-                                 const std::vector<std::shared_ptr<Drawable>> &drawables,
-                                 const std::shared_ptr<Light> &directionalLight,
-                                 const std::shared_ptr<Camera> &camera);
+                                 const std::vector<std::shared_ptr<DrawableComponent>> &drawables,
+                                 const std::shared_ptr<LightComponent> &directionalLight,
+                                 const std::shared_ptr<CameraComponent> &camera);
   void pointLightDepthPass(const std::shared_ptr<RenderDevice>& renderDevice,
-                           const std::vector<std::shared_ptr<Drawable>>& drawables,
-                           const std::vector<std::shared_ptr<Light>>& lights,
-                           const std::shared_ptr<Camera>& camera);
+                           const std::vector<std::shared_ptr<DrawableComponent>>& drawables,
+                           const std::vector<std::shared_ptr<LightComponent>>& lights,
+                           const std::shared_ptr<CameraComponent>& camera);
+  
+  // Enhanced point light depth pass with culling
+  void pointLightDepthPassOptimized(const std::shared_ptr<RenderDevice>& renderDevice,
+                                   const std::vector<std::shared_ptr<DrawableComponent>>& drawables,
+                                   const std::vector<std::shared_ptr<LightComponent>>& lights,
+                                   const std::shared_ptr<CameraComponent>& camera);
   void gbufferPass(std::shared_ptr<RenderDevice> renderDevice,
-                   const std::vector<std::shared_ptr<Drawable>> &drawables,
-                   const std::shared_ptr<Camera> &camera);
+                   const std::vector<std::shared_ptr<DrawableComponent>> &drawables,
+                   const std::shared_ptr<CameraComponent> &camera);
   void transparencyPass(const std::shared_ptr<RenderDevice> &renderDevice,
-                        const std::vector<std::shared_ptr<Drawable>> &transparentDrawables,
-                        const std::shared_ptr<Camera> &camera);
+                        const std::vector<std::shared_ptr<DrawableComponent>> &transparentDrawables,
+                        const std::shared_ptr<CameraComponent> &camera);
   void ssaoPass(const std::shared_ptr<RenderDevice> &renderDevice,
-                const std::shared_ptr<Camera> &camera);
+                const std::shared_ptr<CameraComponent> &camera);
   void lightingPass(const std::shared_ptr<RenderDevice> &renderDevice,
-                    const std::vector<std::shared_ptr<Light>> &lights,
-                    const std::shared_ptr<Camera> &camera);
+                    const std::vector<std::shared_ptr<LightComponent>> &lights,
+                    const std::shared_ptr<CameraComponent> &camera);
   void bloomPass(const std::shared_ptr<RenderDevice> &rendereDevice);
   void toneMappingPass(const std::shared_ptr<RenderDevice> &renderDevice);
   void debugPass(const std::shared_ptr<RenderDevice> &renderDevice,
-                 const std::vector<std::shared_ptr<Drawable>> &aabbDrawables,
-                 const std::shared_ptr<Camera> &camera);
+                 const std::vector<std::shared_ptr<DrawableComponent>> &aabbDrawables,
+                 const std::shared_ptr<CameraComponent> &camera);
 
   void drawDrawable(const std::shared_ptr<RenderDevice> &renderDevice,
-                    const std::shared_ptr<Drawable> &drawable,
+                    const std::shared_ptr<DrawableComponent> &drawable,
                     const std::shared_ptr<Material> &material,
-                    const std::shared_ptr<Camera> &camera);
+                    const std::shared_ptr<CameraComponent> &camera);
 
   void drawAabb(const std::shared_ptr<RenderDevice> &renderDevice,
-                const std::vector<std::shared_ptr<Drawable>> &aabbDrawables,
-                const std::shared_ptr<Camera> &camera);
+                const std::vector<std::shared_ptr<DrawableComponent>> &aabbDrawables,
+                const std::shared_ptr<CameraComponent> &camera);
 
   void drawDebugRenderTarget(std::shared_ptr<RenderDevice> renderDevice,
                              std::shared_ptr<Texture> renderTarget,
-                             const std::shared_ptr<Camera> &camera,
+                             const std::shared_ptr<CameraComponent> &camera,
                              bool singleChannel = false,
                              bool orthographicDepth = false);
 
-  std::vector<Matrix4> calculateCameraCascadeProjections(const std::shared_ptr<Camera> &camera) const;
+  std::vector<Matrix4> calculateCameraCascadeProjections(const std::shared_ptr<CameraComponent> &camera) const;
   std::vector<float32> calculateCascadeLevels(float32 nearClip, float32 farClip) const;
-  std::vector<Matrix4> calculateCascadeLightTransforms(const std::shared_ptr<Camera> &camera, const std::shared_ptr<Light> &directionalLight) const;
+  std::vector<Matrix4> calculateCascadeLightTransforms(const std::shared_ptr<CameraComponent> &camera, const std::shared_ptr<LightComponent> &directionalLight) const;
 
   void createDirectionalLightShadowDepthMap(const std::shared_ptr<RenderDevice> &renderDevice);
 
-  void writePerObjectConstantData(const std::shared_ptr<Drawable> &drawable,
+  void writePerObjectConstantData(const std::shared_ptr<DrawableComponent> &drawable,
                                   const std::shared_ptr<Material> &material,
-                                  const std::shared_ptr<Camera> &camera) const;
-  void writePerFrameConstantData(const std::shared_ptr<Camera> &camera,
-                                 const std::shared_ptr<Light> &directionalLight,
-                                 const std::vector<std::shared_ptr<Light>> &lights) const;
-  void writeSsaoConstantData(const std::shared_ptr<RenderDevice> &renderDevice, const std::shared_ptr<Camera> &camera) const;
+                                  const std::shared_ptr<CameraComponent> &camera) const;
+  void writePerFrameConstantData(const std::shared_ptr<CameraComponent> &camera,
+                                 const std::shared_ptr<LightComponent> &directionalLight,
+                                 const std::vector<std::shared_ptr<LightComponent>> &lights) const;
+  void writeSsaoConstantData(const std::shared_ptr<RenderDevice> &renderDevice, const std::shared_ptr<CameraComponent> &camera) const;
   void writePointLightConstantData(uint32 lightIndex, const Vector3& position, float32 farPlane, const std::array<Matrix4, 6>& shadowMatrices) const;
+
+  // Frustum culling and object categorization
+  void performFrustumCulling(const std::vector<std::shared_ptr<DrawableComponent>>& allDrawables,
+                             const std::shared_ptr<CameraComponent>& camera,
+                             std::vector<std::shared_ptr<DrawableComponent>>& opaqueDrawables,
+                             std::vector<std::shared_ptr<DrawableComponent>>& transparentDrawables,
+                             std::vector<std::shared_ptr<DrawableComponent>>& aabbDrawables);
 
   Vector2I _windowDims;
   Colour _ambientColour;
@@ -199,4 +217,21 @@ private:
       _aabbVertexBuffer;
   std::shared_ptr<Texture> _randomRotationsMap,
       _ssaoNoiseTexture;
+  
+  // Render queues for culling and sorting
+  std::unique_ptr<RenderQueue> _opaqueQueue;
+  std::unique_ptr<RenderQueue> _transparentQueue;
+  
+  // Shadow culling system
+  std::unique_ptr<ShadowFrustum> _shadowFrustum;
+  std::unique_ptr<RenderQueue> _shadowQueue;
+  
+  // Point light culling system
+  std::unique_ptr<PointLightCuller> _pointLightCuller;
+  PointLightCuller::CullingSettings _pointLightCullingSettings;
+  
+  // Optimized frustum culling vectors - cached to avoid repeated allocations
+  std::vector<std::shared_ptr<DrawableComponent>> _cachedOpaqueDrawables;
+  std::vector<std::shared_ptr<DrawableComponent>> _cachedTransparentDrawables;
+  std::vector<std::shared_ptr<DrawableComponent>> _cachedAabbDrawables;
 };

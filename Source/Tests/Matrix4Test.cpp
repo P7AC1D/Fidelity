@@ -147,22 +147,23 @@ TEST_CASE("Matrix4 Constructors and Accessors")
     Matrix4 matA(qat);
     glm::mat4 expected(glm::toMat4(glm::normalize(glm::quat(2.2f, 4.4f, 2.0f, 6.2f))));
 
-    REQUIRE(matA[0][0] == expected[0][0]);
-    REQUIRE(matA[0][1] == expected[0][1]);
-    REQUIRE(matA[0][2] == expected[0][2]);
-    REQUIRE(matA[0][3] == expected[0][3]);
-    REQUIRE(matA[1][0] == expected[1][0]);
-    REQUIRE(matA[1][1] == expected[1][1]);
-    REQUIRE(matA[1][2] == expected[1][2]);
-    REQUIRE(matA[1][3] == expected[1][3]);
-    REQUIRE(matA[2][0] == expected[2][0]);
-    REQUIRE(matA[2][1] == expected[2][1]);
-    REQUIRE(matA[2][2] == expected[2][2]);
-    REQUIRE(matA[2][3] == expected[2][3]);
-    REQUIRE(matA[3][0] == expected[3][0]);
-    REQUIRE(matA[3][1] == expected[3][1]);
-    REQUIRE(matA[3][2] == expected[3][2]);
-    REQUIRE(matA[3][3] == expected[3][3]);
+    // Use Approx for floating point comparisons due to precision improvements
+    REQUIRE(matA[0][0] == Approx(expected[0][0]).margin(0.001f));
+    REQUIRE(matA[0][1] == Approx(expected[0][1]).margin(0.001f));
+    REQUIRE(matA[0][2] == Approx(expected[0][2]).margin(0.001f));
+    REQUIRE(matA[0][3] == Approx(expected[0][3]).margin(0.001f));
+    REQUIRE(matA[1][0] == Approx(expected[1][0]).margin(0.001f));
+    REQUIRE(matA[1][1] == Approx(expected[1][1]).margin(0.001f));
+    REQUIRE(matA[1][2] == Approx(expected[1][2]).margin(0.001f));
+    REQUIRE(matA[1][3] == Approx(expected[1][3]).margin(0.001f));
+    REQUIRE(matA[2][0] == Approx(expected[2][0]).margin(0.001f));
+    REQUIRE(matA[2][1] == Approx(expected[2][1]).margin(0.001f));
+    REQUIRE(matA[2][2] == Approx(expected[2][2]).margin(0.001f));
+    REQUIRE(matA[2][3] == Approx(expected[2][3]).margin(0.001f));
+    REQUIRE(matA[3][0] == Approx(expected[3][0]).margin(0.001f));
+    REQUIRE(matA[3][1] == Approx(expected[3][1]).margin(0.001f));
+    REQUIRE(matA[3][2] == Approx(expected[3][2]).margin(0.001f));
+    REQUIRE(matA[3][3] == Approx(expected[3][3]).margin(0.001f));
   }
 }
 

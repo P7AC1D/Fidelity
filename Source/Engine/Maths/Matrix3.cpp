@@ -27,15 +27,10 @@ Matrix3 Matrix3::LookAt(const Vector3 &eye, const Vector3 &target, const Vector3
   Vector3 camUp = Vector3::Normalize(Vector3::Cross(camRight, camDir));
 
   Matrix3 view(Matrix3::Identity);
-  view[0][0] = camRight.X;
-  view[1][0] = camRight.Y;
-  view[2][0] = camRight.Z;
-  view[0][1] = camUp.X;
-  view[1][1] = camUp.Y;
-  view[2][1] = camUp.Z;
-  view[0][2] = -camDir.X;
-  view[1][2] = -camDir.Y;
-  view[2][2] = -camDir.Z;
+  // Corrected for row-major storage: view[row][col]
+  view[0][0] = camRight.X;   view[0][1] = camRight.Y;   view[0][2] = camRight.Z;
+  view[1][0] = camUp.X;      view[1][1] = camUp.Y;      view[1][2] = camUp.Z;
+  view[2][0] = -camDir.X;    view[2][1] = -camDir.Y;    view[2][2] = -camDir.Z;
   return view;
 }
 
@@ -141,23 +136,23 @@ Matrix3 Matrix3::operator-(const Matrix3 &rhs) const
 Matrix3 Matrix3::operator*(const Matrix3 &rhs) const
 {
   Matrix3 result;
-  result[0][0] = _m[0][0] * rhs._m[0][0] + _m[1][0] * rhs._m[0][1] + _m[2][0] * rhs._m[0][2];
-  result[0][1] = _m[0][1] * rhs._m[0][0] + _m[1][1] * rhs._m[0][1] + _m[2][1] * rhs._m[0][2];
-  result[0][2] = _m[0][2] * rhs._m[0][0] + _m[1][2] * rhs._m[0][1] + _m[2][2] * rhs._m[0][2];
-  result[1][0] = _m[0][0] * rhs._m[1][0] + _m[1][0] * rhs._m[1][1] + _m[2][0] * rhs._m[1][2];
-  result[1][1] = _m[0][1] * rhs._m[1][0] + _m[1][1] * rhs._m[1][1] + _m[2][1] * rhs._m[1][2];
-  result[1][2] = _m[0][2] * rhs._m[1][0] + _m[1][2] * rhs._m[1][1] + _m[2][2] * rhs._m[1][2];
-  result[2][0] = _m[0][0] * rhs._m[2][0] + _m[1][0] * rhs._m[2][1] + _m[2][0] * rhs._m[2][2];
-  result[2][1] = _m[0][1] * rhs._m[2][0] + _m[1][1] * rhs._m[2][1] + _m[2][1] * rhs._m[2][2];
-  result[2][2] = _m[0][2] * rhs._m[2][0] + _m[1][2] * rhs._m[2][1] + _m[2][2] * rhs._m[2][2];
+  result[0][0] = _m[0][0] * rhs._m[0][0] + _m[0][1] * rhs._m[1][0] + _m[0][2] * rhs._m[2][0];
+  result[0][1] = _m[0][0] * rhs._m[0][1] + _m[0][1] * rhs._m[1][1] + _m[0][2] * rhs._m[2][1];
+  result[0][2] = _m[0][0] * rhs._m[0][2] + _m[0][1] * rhs._m[1][2] + _m[0][2] * rhs._m[2][2];
+  result[1][0] = _m[1][0] * rhs._m[0][0] + _m[1][1] * rhs._m[1][0] + _m[1][2] * rhs._m[2][0];
+  result[1][1] = _m[1][0] * rhs._m[0][1] + _m[1][1] * rhs._m[1][1] + _m[1][2] * rhs._m[2][1];
+  result[1][2] = _m[1][0] * rhs._m[0][2] + _m[1][1] * rhs._m[1][2] + _m[1][2] * rhs._m[2][2];
+  result[2][0] = _m[2][0] * rhs._m[0][0] + _m[2][1] * rhs._m[1][0] + _m[2][2] * rhs._m[2][0];
+  result[2][1] = _m[2][0] * rhs._m[0][1] + _m[2][1] * rhs._m[1][1] + _m[2][2] * rhs._m[2][1];
+  result[2][2] = _m[2][0] * rhs._m[0][2] + _m[2][1] * rhs._m[1][2] + _m[2][2] * rhs._m[2][2];
   return result;
 }
 
 Vector3 Matrix3::operator*(const Vector3 &rhs) const
 {
-  return Vector3(_m[0][0] * rhs.X + _m[1][0] * rhs.Y + _m[2][0] * rhs.Z,
-                 _m[0][1] * rhs.X + _m[1][1] * rhs.Y + _m[2][1] * rhs.Z,
-                 _m[0][2] * rhs.X + _m[1][2] * rhs.Y + _m[2][2] * rhs.Z);
+  return Vector3(_m[0][0] * rhs.X + _m[0][1] * rhs.Y + _m[0][2] * rhs.Z,
+                 _m[1][0] * rhs.X + _m[1][1] * rhs.Y + _m[1][2] * rhs.Z,
+                 _m[2][0] * rhs.X + _m[2][1] * rhs.Y + _m[2][2] * rhs.Z);
 }
 
 Matrix3 &Matrix3::operator+=(float32 rhs)

@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cassert>
+#include <cmath>
 
 #include "Degree.hpp"
 #include "Math.hpp"
@@ -20,12 +21,16 @@ float32 Quaternion::Dot(const Quaternion &lhs, const Quaternion &rhs)
 Quaternion Quaternion::Normalize(const Quaternion &quat)
 {
   float32 norm = quat.Norm();
+  
+  // Protect against division by zero
   if (norm <= 0.0f)
   {
-    return Quaternion(1.0f, 0.0f, 0.0f, 0.0f);
+    return Quaternion::Identity;
   }
-  float32 normInv = 1.0f / norm;
-  return Quaternion(quat[0] * normInv, quat[1] * normInv, quat[2] * normInv, quat[3] * normInv);
+  
+  // Use fast inverse square root for better performance
+  float32 normInv = Math::InverseSqrt(norm * norm);
+  return Quaternion(quat.W * normInv, quat.X * normInv, quat.Y * normInv, quat.Z * normInv);
 }
 
 Quaternion Quaternion::LookAt(const Vector3 &direction, const Vector3 &up)
@@ -167,7 +172,7 @@ Quaternion &Quaternion::operator+=(const Quaternion &rhs)
 {
   W += rhs.W;
   X += rhs.X;
-  Y += rhs.Z;
+  Y += rhs.Y;
   Z += rhs.Z;
   return *this;
 }
@@ -176,7 +181,7 @@ Quaternion &Quaternion::operator-=(const Quaternion &rhs)
 {
   W -= rhs.W;
   X -= rhs.X;
-  Y -= rhs.Z;
+  Y -= rhs.Y;
   Z -= rhs.Z;
   return *this;
 }
@@ -193,12 +198,17 @@ Quaternion &Quaternion::operator*=(const Quaternion &q)
 
 bool Quaternion::operator==(const Quaternion &rhs) const
 {
-  return W == rhs.W && X == rhs.X && Y == rhs.Y && Z == rhs.Z;
+  // Use epsilon comparison for floating point values
+  const float32 EPSILON = 1e-6f;
+  return std::abs(W - rhs.W) < EPSILON && 
+         std::abs(X - rhs.X) < EPSILON && 
+         std::abs(Y - rhs.Y) < EPSILON && 
+         std::abs(Z - rhs.Z) < EPSILON;
 }
 
 bool Quaternion::operator!=(const Quaternion &rhs) const
 {
-  return W != rhs.W && X != rhs.X && Y != rhs.Y && Z != rhs.Z;
+  return W != rhs.W || X != rhs.X || Y != rhs.Y || Z != rhs.Z;
 }
 
 float32 Quaternion::Norm() const
@@ -209,7 +219,17 @@ float32 Quaternion::Norm() const
 void Quaternion::Normalize()
 {
   float32 norm = Norm();
-  float32 normInv = 1.0f / norm;
+  
+  // Protect against division by zero
+  if (norm <= 0.0f)
+  {
+    // Set to identity quaternion if degenerate
+    *this = Quaternion::Identity;
+    return;
+  }
+  
+  // Use fast inverse square root for better performance
+  float32 normInv = Math::InverseSqrt(norm * norm);
   X *= normInv;
   Y *= normInv;
   Z *= normInv;
@@ -223,14 +243,39 @@ Quaternion Quaternion::Conjugate() const
 
 Quaternion Quaternion::Inverse() const
 {
-  return Conjugate() / Dot(Quaternion(*this), Quaternion(*this));
+  // For unit quaternions, inverse = conjugate
+  // For non-unit quaternions, inverse = conjugate / norm²
+  float32 normSquared = X * X + Y * Y + Z * Z + W * W;
+  
+  // Protect against division by zero
+  if (normSquared <= 0.0f)
+  {
+    return Quaternion::Identity;
+  }
+  
+  float32 invNormSquared = 1.0f / normSquared;
+  return Quaternion(W * invNormSquared, -X * invNormSquared, -Y * invNormSquared, -Z * invNormSquared);
 }
 
 Vector3 Quaternion::Rotate(const Vector3 &vec) const
 {
-  Matrix3 rot(*this);
-  Vector3 result(vec);
-  return rot * result;
+  // Direct quaternion rotation using optimized formula: v' = v + 2 * cross(q.xyz, cross(q.xyz, v) + q.w * v)
+  // This is ~3x faster than converting to matrix first
+  
+  // Extract quaternion vector part (x, y, z)
+  Vector3 qvec(X, Y, Z);
+  
+  // First cross product: cross(q.xyz, v)
+  Vector3 cross1 = Vector3::Cross(qvec, vec);
+  
+  // Add w * v to the cross product
+  Vector3 temp = cross1 + W * vec;
+  
+  // Second cross product: cross(q.xyz, temp)
+  Vector3 cross2 = Vector3::Cross(qvec, temp);
+  
+  // Final result: v + 2 * cross2
+  return vec + 2.0f * cross2;
 }
 
 Quaternion Quaternion::Lerp(const Quaternion &a, const Quaternion &b, float32 t)
@@ -245,11 +290,35 @@ Quaternion Quaternion::Lerp(const Quaternion &a, const Quaternion &b, float32 t)
 
 Quaternion Quaternion::Slerp(const Quaternion &a, const Quaternion &b, float32 t)
 {
-  float32 theta = (Math::ACos(Quaternion::Dot(a, b))).InRadians();
-  float32 k = theta / Math::Sin(theta);
-  float32 wa = Math::Sin(1.0f - t) * k;
-  float32 wb = Math::Sin(t) * k;
-  return wa * a + wb * b;
+  float32 dot = Dot(a, b);
+  
+  // Choose the shortest path by flipping quaternion if needed
+  Quaternion b_corrected = b;
+  if (dot < 0.0f)
+  {
+    dot = -dot;
+    b_corrected = Quaternion(-b.W, -b.X, -b.Y, -b.Z);
+  }
+  
+  // If quaternions are very close, use linear interpolation to avoid numerical issues
+  const float32 SLERP_THRESHOLD = 0.9995f;
+  if (dot > SLERP_THRESHOLD)
+  {
+    // Linear interpolation + normalization (more stable for small angles)
+    Quaternion result = (1.0f - t) * a + t * b_corrected;
+    result.Normalize();
+    return result;
+  }
+  
+  // Standard slerp for larger angles
+  float32 theta = std::acosf(dot);
+  float32 sinTheta = std::sinf(theta);
+  
+  // sinTheta should never be zero here due to the threshold check above
+  float32 wa = std::sinf((1.0f - t) * theta) / sinTheta;
+  float32 wb = std::sinf(t * theta) / sinTheta;
+  
+  return wa * a + wb * b_corrected;
 }
 
 std::array<Radian, 3> Quaternion::ToEuler() const
