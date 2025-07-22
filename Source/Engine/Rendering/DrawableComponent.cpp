@@ -55,7 +55,7 @@ void DrawableComponent::onUpdate(float32 dt)
       markDirty(); // Invalidate world bounds cache
     }
   }
-  
+
   (void)dt; // Suppress unused parameter warning
 }
 
@@ -66,7 +66,9 @@ ComponentTypeId DrawableComponent::getTypeId() const
 
 void DrawableComponent::drawInspector()
 {
-  if (ImGui::CollapsingHeader("Drawable"))
+  // Use ImGuiTreeNodeFlags to control the behavior and make it stay open by default
+  ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_CollapsingHeader;
+  if (ImGui::CollapsingHeader("Drawable", flags))
   {
     // Visibility controls
     drawRenderingFlagsInspector();
@@ -88,9 +90,9 @@ void DrawableComponent::drawInspector()
     // Mesh info
     if (_mesh)
     {
-      ImGui::Text("Mesh: %s", "StaticMesh"); // TODO: Get mesh name
-      ImGui::Text("Vertices: %d", 0);        // TODO: Get vertex count from mesh
-      ImGui::Text("Triangles: %d", 0);       // TODO: Get triangle count from mesh
+      ImGui::Text("Mesh: %s", "StaticMesh"); // Could be enhanced with mesh name if available
+      ImGui::Text("Vertices: %d", _mesh->getVertexCount());
+      ImGui::Text("Triangles: %d", _mesh->getIndexCount() / 3); // Each triangle has 3 indices
     }
     else
     {
@@ -143,7 +145,7 @@ const Matrix4 &DrawableComponent::getWorldMatrix() const
   return identity;
 }
 
-const TransformComponent* DrawableComponent::getTransform() const
+const TransformComponent *DrawableComponent::getTransform() const
 {
   auto transform = getComponentShared<TransformComponent>();
   return transform.get();
