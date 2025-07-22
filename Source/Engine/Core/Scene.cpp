@@ -125,6 +125,17 @@ void Scene::update(float32 dt)
   _scenePrepDuration = std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime).count();
 }
 
+void Scene::updateObjectPicking()
+{
+  // Get main camera
+  auto *mainCamera = getMainCamera();
+  if (!mainCamera)
+    return;
+
+  // Perform object picking if mouse coordinates are set
+  performObjectPicker(*mainCamera);
+}
+
 void Scene::drawFrame()
 {
   auto startTime = std::chrono::high_resolution_clock::now();
@@ -136,9 +147,6 @@ void Scene::drawFrame()
   auto *mainCamera = getMainCamera();
   if (!mainCamera)
     return;
-
-  // Perform object picking if mouse coordinates are set
-  performObjectPicker(*mainCamera);
 
   // Get component lists (now cached)
   const auto &rawLights = getLights();

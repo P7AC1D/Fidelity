@@ -38,6 +38,9 @@ public:
   /// Update all GameObjects and their components
   void update(float32 dt);
 
+  /// Perform object picking with the current mouse coordinates
+  void updateObjectPicking();
+
   /// Render the scene
   void drawFrame();
 

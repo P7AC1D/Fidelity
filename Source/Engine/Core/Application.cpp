@@ -334,6 +334,13 @@ int32 Application::run()
                                           _windowToFramebufferRatio * static_cast<float32>(_currentMousePos.Y)));
 
       _scene.update(dtMs);
+      
+      // Only perform object picking if UI doesn't have mouse capture
+      if (!_debugUi->hasMouseCapture())
+      {
+        _scene.updateObjectPicking();
+      }
+      
       _scene.drawFrame();
       _debugUi->update(_scene);
 
