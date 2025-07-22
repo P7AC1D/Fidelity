@@ -57,16 +57,18 @@ void SponzaModern::createLights()
     transform.setRotation(Quaternion(Degree(36.139f), Degree(-72.174f), Degree(-30.861f)));
   }
 
-  // Moving Point Lights - Create more lights for a better effect
+  // Moving Point Lights - Create more lights with varied Y positions for better floor coverage
   std::vector<std::pair<Vector3, Colour>> lightConfigs = {
-      {Vector3(95.0f, 15.0f, 0.0f), Colour(255, 80, 80)},     // Red
+      {Vector3(95.0f, 20.0f, 0.0f), Colour(255, 80, 80)},     // Red - higher start
       {Vector3(-51.0f, 15.0f, 0.0f), Colour(80, 255, 80)},    // Green
-      {Vector3(12.0f, 15.0f, 0.0f), Colour(80, 80, 255)},     // Blue
+      {Vector3(12.0f, 35.0f, 0.0f), Colour(80, 80, 255)},     // Blue - much higher start
       {Vector3(40.0f, 25.0f, -30.0f), Colour(255, 255, 80)},  // Yellow
-      {Vector3(-20.0f, 20.0f, 25.0f), Colour(255, 80, 255)},  // Magenta
+      {Vector3(-20.0f, 40.0f, 25.0f), Colour(255, 80, 255)},  // Magenta - higher start
       {Vector3(70.0f, 18.0f, 15.0f), Colour(80, 255, 255)},   // Cyan
-      {Vector3(-80.0f, 22.0f, -10.0f), Colour(255, 150, 80)}, // Orange
-      {Vector3(0.0f, 30.0f, 0.0f), Colour(150, 255, 150)}     // Light Green
+      {Vector3(-80.0f, 45.0f, -10.0f), Colour(255, 150, 80)}, // Orange - highest start
+      {Vector3(0.0f, 30.0f, 0.0f), Colour(150, 255, 150)},    // Light Green
+      {Vector3(25.0f, 12.0f, 20.0f), Colour(200, 200, 255)},  // Light Blue - lower start
+      {Vector3(-30.0f, 50.0f, -15.0f), Colour(255, 200, 150)} // Warm White - very high start
   };
 
   for (size_t i = 0; i < lightConfigs.size(); ++i)
@@ -78,8 +80,8 @@ void SponzaModern::createLights()
 
     light.setLightType(LightComponentType::Point)
         .setColour(lightConfigs[i].second)
-        .setRadius(80.0f)  // Increased from 50.0f for better gradual falloff
-        .setIntensity(1200.0f)  // Slightly increased to compensate for wider falloff
+        .setRadius(80.0f)       // Increased from 50.0f for better gradual falloff
+        .setIntensity(1000.0f)  // Reduced slightly from 1200.0f due to better shadow combination and more lights
         .setCastsShadows(true); // All lights now cast shadows
 
     Vector3 basePos = lightConfigs[i].first;
@@ -300,8 +302,8 @@ void SponzaModern::updateMovingLights(uint32 dtMs)
     offset.X = std::sin(time * 0.4f) * movingLight.range * 0.6f + std::sin(time * 0.8f) * movingLight.range * 0.3f;
     offset.Z = std::cos(time * 0.3f) * movingLight.range * 0.8f + std::cos(time * 1.0f) * movingLight.range * 0.2f;
 
-    // Vertical bobbing motion (more controlled and slower)
-    offset.Y = std::sin(time * 0.7f) * 8.0f + std::cos(time * 1.2f) * 4.0f;
+    // Enhanced vertical movement to reach second floor (larger range and amplitude)
+    offset.Y = std::sin(time * 0.7f) * 25.0f + std::cos(time * 1.2f) * 15.0f + std::sin(time * 0.4f) * 10.0f;
 
     // Add some figure-8 patterns for more complex movement (slower)
     float32 figure8Factor = std::sin(time * 0.2f);
@@ -311,8 +313,8 @@ void SponzaModern::updateMovingLights(uint32 dtMs)
     // Apply the movement
     Vector3 newPosition = movingLight.basePosition + offset;
 
-    // Keep lights within reasonable bounds (don't go too low or too high)
-    newPosition.Y = Math::Clamp(newPosition.Y, 5.0f, 50.0f);
+    // Keep lights within reasonable bounds, allowing them to reach second floor
+    newPosition.Y = Math::Clamp(newPosition.Y, 5.0f, 80.0f);
 
     transform.setPosition(newPosition);
 
@@ -320,7 +322,7 @@ void SponzaModern::updateMovingLights(uint32 dtMs)
     if (auto *lightComponent = movingLight.gameObject->tryGetComponent<LightComponent>())
     {
       float32 intensityVariation = 1.0f + std::sin(time * 1.8f) * 0.15f; // Reduced from 3.0f to 1.8f
-      lightComponent->setIntensity(1200.0f * intensityVariation); // Updated base intensity
+      lightComponent->setIntensity(1000.0f * intensityVariation);        // Updated to match new base intensity
     }
   }
 }
