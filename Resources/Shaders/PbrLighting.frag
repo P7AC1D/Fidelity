@@ -323,7 +323,7 @@ float samplePointShadowPcfOptimized(vec3 fragToLight, float currentDepth, int li
     return shadow;
 }
 
-// Enhanced point light shadow with contact hardening, random rotation, and early termination
+// Enhanced point light shadow with contact hardening, considering multiple light influence
 float getPointShadowPcfContactHardening(Light light, int lightIndex, vec3 fragPos, float bias, ivec2 screenPos) {
     vec3 fragToLight = fragPos - light.Position;
     float currentDepth = length(fragToLight);
@@ -333,9 +333,16 @@ float getPointShadowPcfContactHardening(Light light, int lightIndex, vec3 fragPo
     
     // Calculate adaptive penumbra size based on blocker distance
     float penumbraSize = max((currentDepth - blockerDistance) / blockerDistance, 0.01);
-    float adaptiveDiskRadius = 0.05f * (1.0 + penumbraSize * 2.0); // Base radius with adaptive scaling
     
-    // Random rotation for temporal stability (similar to directional shadows)
+    // Modify penumbra size based on light intensity and distance for multi-light scenarios
+    float lightDistance = length(fragPos - light.Position);
+    float normalizedDistance = lightDistance / light.Radius;
+    
+    // Soften shadows when multiple lights are likely contributing (closer to light edge)
+    float multiLightFactor = smoothstep(0.3, 0.8, normalizedDistance); // More softening near light edge
+    float adaptiveDiskRadius = 0.05f * (1.0 + penumbraSize * 2.0) * (1.0 + multiLightFactor * 0.5);
+    
+    // Random rotation for temporal stability
     ivec2 randomRotationsSize = textureSize(RandomRotationsMap, 0);
     vec2 randomSamplePos = screenPos % randomRotationsSize;
     float theta = texture(RandomRotationsMap, randomSamplePos).r * Pi2;
@@ -343,7 +350,13 @@ float getPointShadowPcfContactHardening(Light light, int lightIndex, vec3 fragPo
                                 vec2(sin(theta), cos(theta)));
     
     // Use optimized PCF with early termination
-    return samplePointShadowPcfOptimized(fragToLight, currentDepth, lightIndex, bias, adaptiveDiskRadius, randomRotations);
+    float shadowValue = samplePointShadowPcfOptimized(fragToLight, currentDepth, lightIndex, bias, adaptiveDiskRadius, randomRotations);
+    
+    // Reduce shadow intensity for contributing lights that are at medium distances
+    // This creates more realistic multi-light scenarios
+    shadowValue *= (0.7 + 0.3 * (1.0 - multiLightFactor));
+    
+    return shadowValue;
 }
 
 // Fallback basic PCF for compatibility
@@ -418,7 +431,12 @@ void main()
                                  shadowFactor, 
                                  F0);
 
-  // Point light contributions.
+  // Point light contributions with improved shadow combination.
+  // We'll accumulate shadows and lighting separately for more realistic results
+  vec3 totalUnshadowedRadiance = vec3(0.0);
+  float totalShadowFactor = 0.0;
+  float totalLightContribution = 0.0;
+  
   for (int i = 0; i < Constants.LightCount; i++)
   {
     Light currentLight = Constants.Lights[i];
@@ -426,24 +444,55 @@ void main()
     vec3 lightDir = normalize(-toLight); // Direction from fragment to light
     float nl = max(dot(normal, lightDir), 0.0);
     
-    // Advanced bias calculation for point lights (similar to directional lights)
-    float bias = calculatePointLightBias(normal, toLight, currentLight.Radius);
+    // Calculate this light's unshadowed contribution
+    vec3 lightRadiance = calcPointLight(Constants.Lights[i], 
+                                        normal, 
+                                        position, 
+                                        viewDir, 
+                                        albedo, 
+                                        roughness, 
+                                        metalness, 
+                                        F0);
     
-    float pointShadowFactor = 1.0f;
-    if (i < Constants.MaxPointLightShadowCasters) {
+    // Weight this light's contribution by its intensity for shadow combination
+    float lightWeight = length(lightRadiance);
+    totalUnshadowedRadiance += lightRadiance;
+    totalLightContribution += lightWeight;
+    
+    // Calculate shadow factor for this light
+    float pointShadowFactor = 0.0f;
+    if (i < Constants.MaxPointLightShadowCasters && lightWeight > 0.001) {
+      float bias = calculatePointLightBias(normal, toLight, currentLight.Radius);
       pointShadowFactor = getPointShadowPcfContactHardening(currentLight, i, position, bias, ivec2(gl_FragCoord.xy));
+      
+      // Accumulate weighted shadow contribution
+      totalShadowFactor += pointShadowFactor * lightWeight;
     }
-
-    // accumulate PBR with point-light shadow
-    totalRadiance += calcPointLight(Constants.Lights[i], 
-                                     normal, 
-                                     position, 
-                                     viewDir, 
-                                     albedo, 
-                                     roughness, 
-                                     metalness, 
-                                     F0) * (1.0 - pointShadowFactor);
   }
+  
+  // Calculate final combined shadow factor
+  float combinedShadowFactor = totalLightContribution > 0.001 ? 
+    totalShadowFactor / totalLightContribution : 0.0;
+  
+  // Apply shadow softening based on number of contributing lights
+  // More lights = softer shadows due to multiple light sources
+  float lightCount = float(Constants.LightCount);
+  float shadowSoftening = 1.0 - (lightCount - 1.0) * 0.15; // Reduce shadow intensity with more lights
+  shadowSoftening = clamp(shadowSoftening, 0.3, 1.0); // Don't soften too much
+  combinedShadowFactor *= shadowSoftening;
+  
+  // Prevent over-brightening in areas with many overlapping lights
+  // Apply a subtle tone-mapping to the unshadowed radiance
+  float totalLuminance = dot(totalUnshadowedRadiance, vec3(0.299, 0.587, 0.114));
+  float toneMappingFactor = 1.0;
+  if (totalLuminance > 2.0) {
+    // Gradually reduce brightness as more lights contribute
+    toneMappingFactor = 2.0 / totalLuminance;
+    toneMappingFactor = mix(toneMappingFactor, 1.0, 0.3); // Don't over-dampen
+  }
+  
+  // Apply combined shadows and brightness control to the total lighting
+  totalRadiance += totalUnshadowedRadiance * toneMappingFactor * (1.0 - combinedShadowFactor);
   // Ambient light contribution.
   totalRadiance += albedo.rgb * Constants.AmbientColour * Constants.AmbientIntensity * occlusionFactor;
 
@@ -723,10 +772,34 @@ vec3 calcPointLight(Light light,
   float nDotL = max(dot(normal, lightDir), 0.0f);
 
   float distance = length(lightPosition - fragPos);
-  // Use inverse-square falloff with smooth attenuation cutoff
-  float falloffMargin = light.Radius * 0.1; // 10% margin for smooth falloff
-  float smoothFactor = smoothstep(light.Radius, light.Radius + falloffMargin, distance);
-  float attenuation = (1.0 - smoothFactor) * (1.0 / max(distance * distance, 0.0001));
+  
+  // Physically-based attenuation with gradual falloff
+  // Use a more realistic attenuation model that doesn't have a hard cutoff
+  // but still allows the radius to control the effective range
+  
+  // Option 1: Inverse square law with windowing function
+  float baseAttenuation = 1.0 / max(distance * distance, 0.0001);
+  
+  // Create a smooth windowing function that gradually reduces intensity
+  // as we approach and exceed the radius, but doesn't cut off completely
+  float normalizedDistance = distance / radius;
+  
+  // Use a smooth falloff function that:
+  // - Maintains full intensity near the light
+  // - Gradually reduces as we approach the radius
+  // - Continues to provide some light beyond the radius but much diminished
+  float windowFunction;
+  if (normalizedDistance < 1.0) {
+    // Within radius: full to reduced intensity
+    windowFunction = 1.0 - pow(normalizedDistance, 2.0);
+  } else {
+    // Beyond radius: gradual falloff to very small but non-zero
+    float beyondRadius = normalizedDistance - 1.0;
+    windowFunction = 1.0 / (1.0 + beyondRadius * beyondRadius * 4.0) * 0.2;
+  }
+  
+  float attenuation = baseAttenuation * windowFunction;
+  
   // Fold intensity and color into radianceIn
   vec3 radianceIn = colour * intensity * attenuation;
 

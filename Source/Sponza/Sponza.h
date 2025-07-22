@@ -8,6 +8,16 @@
 class CameraComponent;
 class LightComponent;
 
+struct MovingLight
+{
+  GameObject *gameObject = nullptr;
+  Vector3 basePosition;
+  Vector3 velocity;
+  float32 timeOffset;
+  float32 speed;
+  float32 range;
+};
+
 class SponzaModern : public Application
 {
 public:
@@ -20,10 +30,18 @@ private:
   // Camera references for easy access
   CameraComponent *_cameraComponent = nullptr;
 
+  // Moving lights system
+  std::vector<MovingLight> _movingLights;
+  float32 _totalTime = 0.0f;
+
   // Helper methods
   void createCamera();
   void createLights();
   void loadSponzaModel();
+
+  // Moving lights system
+  void updateMovingLights(uint32 dtMs);
+  void setupMovingLight(GameObject &lightObj, const Vector3 &basePos, float32 speed = 1.0f, float32 range = 30.0f);
 
   // Camera movement (modernized)
   void translateCamera(float32 deltaX, float32 deltaY);
