@@ -78,8 +78,8 @@ void SponzaModern::createLights()
 
     light.setLightType(LightComponentType::Point)
         .setColour(lightConfigs[i].second)
-        .setRadius(50.0f)
-        .setIntensity(800.0f)
+        .setRadius(80.0f)  // Increased from 50.0f for better gradual falloff
+        .setIntensity(1200.0f)  // Slightly increased to compensate for wider falloff
         .setCastsShadows(true); // All lights now cast shadows
 
     Vector3 basePos = lightConfigs[i].first;
@@ -87,7 +87,7 @@ void SponzaModern::createLights()
 
     // Setup for movement with varying speeds and ranges (slowed down)
     float32 speed = 0.3f + (i * 0.1f);  // Reduced from 0.8f + (i * 0.3f)
-    float32 range = 25.0f + (i * 5.0f); // Varying movement ranges
+    float32 range = 30.0f + (i * 6.0f); // Slightly increased range for better effect with larger radius
     setupMovingLight(pointLight, basePos, speed, range);
   }
 }
@@ -320,7 +320,7 @@ void SponzaModern::updateMovingLights(uint32 dtMs)
     if (auto *lightComponent = movingLight.gameObject->tryGetComponent<LightComponent>())
     {
       float32 intensityVariation = 1.0f + std::sin(time * 1.8f) * 0.15f; // Reduced from 3.0f to 1.8f
-      lightComponent->setIntensity(800.0f * intensityVariation);
+      lightComponent->setIntensity(1200.0f * intensityVariation); // Updated base intensity
     }
   }
 }

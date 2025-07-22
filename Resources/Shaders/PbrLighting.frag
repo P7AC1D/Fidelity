@@ -723,10 +723,34 @@ vec3 calcPointLight(Light light,
   float nDotL = max(dot(normal, lightDir), 0.0f);
 
   float distance = length(lightPosition - fragPos);
-  // Use inverse-square falloff with smooth attenuation cutoff
-  float falloffMargin = light.Radius * 0.1; // 10% margin for smooth falloff
-  float smoothFactor = smoothstep(light.Radius, light.Radius + falloffMargin, distance);
-  float attenuation = (1.0 - smoothFactor) * (1.0 / max(distance * distance, 0.0001));
+  
+  // Physically-based attenuation with gradual falloff
+  // Use a more realistic attenuation model that doesn't have a hard cutoff
+  // but still allows the radius to control the effective range
+  
+  // Option 1: Inverse square law with windowing function
+  float baseAttenuation = 1.0 / max(distance * distance, 0.0001);
+  
+  // Create a smooth windowing function that gradually reduces intensity
+  // as we approach and exceed the radius, but doesn't cut off completely
+  float normalizedDistance = distance / radius;
+  
+  // Use a smooth falloff function that:
+  // - Maintains full intensity near the light
+  // - Gradually reduces as we approach the radius
+  // - Continues to provide some light beyond the radius but much diminished
+  float windowFunction;
+  if (normalizedDistance < 1.0) {
+    // Within radius: full to reduced intensity
+    windowFunction = 1.0 - pow(normalizedDistance, 2.0);
+  } else {
+    // Beyond radius: gradual falloff to very small but non-zero
+    float beyondRadius = normalizedDistance - 1.0;
+    windowFunction = 1.0 / (1.0 + beyondRadius * beyondRadius * 4.0) * 0.2;
+  }
+  
+  float attenuation = baseAttenuation * windowFunction;
+  
   // Fold intensity and color into radianceIn
   vec3 radianceIn = colour * intensity * attenuation;
 
