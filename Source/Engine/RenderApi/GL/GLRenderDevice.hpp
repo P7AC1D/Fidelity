@@ -1,6 +1,7 @@
 #pragma once
 #include <array>
 #include "../RenderDevice.hpp"
+#include "GLResourceSet.hpp"
 
 class GLGpuBuffer;
 class GLIndexBuffer;
@@ -15,7 +16,7 @@ class ShaderParams;
 static const uint32 MAX_CONSTANT_BUFFERS = 32;
 static const uint32 MAX_TEXTURE_SLOTS = 16;
 
-class GLRenderDevice : public RenderDevice
+class GLRenderDevice : public RenderDevice, public std::enable_shared_from_this<GLRenderDevice>
 {
 public:
   GLRenderDevice(const RenderDeviceDesc &desc);
@@ -27,6 +28,8 @@ public:
   std::shared_ptr<GpuBuffer> createGpuBuffer(const GpuBufferDesc &desc) override;
   std::shared_ptr<Texture> createTexture(const TextureDesc &desc, bool gammaCorrected = false) override;
   std::shared_ptr<SamplerState> createSamplerState(const SamplerStateDesc &desc) override;
+  std::unique_ptr<IResourceSetLayout> createResourceSetLayout() override;
+  std::unique_ptr<IResourceSet> createResourceSet(const std::unique_ptr<IResourceSetLayout> &layout) override;
 
   void setPrimitiveTopology(PrimitiveTopology primitiveTopology) override;
   void setViewport(const ViewportDesc &viewport) override;
@@ -34,9 +37,6 @@ public:
   void setRenderTarget(const std::shared_ptr<RenderTarget> &renderTarget) override;
   void setVertexBuffer(const std::shared_ptr<VertexBuffer> vertexBuffer) override;
   void setIndexBuffer(const std::shared_ptr<IndexBuffer> &indexBuffer) override;
-  void setConstantBuffer(uint32 slot, const std::shared_ptr<GpuBuffer> &constantBuffer) override;
-  void setTexture(uint32 slot, const std::shared_ptr<Texture> &texture) override;
-  void setSamplerState(uint32 slot, const std::shared_ptr<SamplerState> &samplerState) override;
   void setScissorDimensions(const ScissorDesc &desc) override;
 
   const ViewportDesc &getViewport() const override;
@@ -65,6 +65,8 @@ private:
   void setBlendFactors(BlendFactor srcFactor, BlendFactor dstFactor, BlendFactor srcAlphaFactor, BlendFactor dstAlphaFactor);
   void setBlendOperation(BlendOperation op, BlendOperation alphaOp);
   void setBlendWriteMask(byte writeMask);
+
+  void bindResourceSet(const std::unique_ptr<IResourceSet> &resourceSet, uint32 setIndex = 0) override;
 
   void enableScissorTest(bool enableScissorTest);
   void enableMultisampling(bool enableMultisampling);
@@ -102,4 +104,6 @@ private:
   std::array<std::shared_ptr<GLSamplerState>, MAX_TEXTURE_SLOTS> _boundSamplers;
 
   std::shared_ptr<GLShaderPipelineCollection> _shaderPipelineCollection;
+
+  std::unique_ptr<GLResourceSetFactory> _resourceSetFactory;
 };

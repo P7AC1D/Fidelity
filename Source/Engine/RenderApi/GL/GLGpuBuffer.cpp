@@ -40,6 +40,26 @@ GLGpuBuffer::~GLGpuBuffer()
   }
 }
 
+void *GLGpuBuffer::getNativeHandle() const
+{
+  if (!isValid())
+  {
+    throw std::runtime_error("GPU buffer is not valid");
+  }
+
+  return reinterpret_cast<void *>(static_cast<uintptr_t>(_id));
+}
+
+bool GLGpuBuffer::isValid() const
+{
+  return _id != 0 && _initialized;
+}
+
+uint32 GLGpuBuffer::GetId() const
+{
+  return _id;
+}
+
 void GLGpuBuffer::writeData(uint64 byteOffset, uint64 byteCount, const void *src, AccessType accessType)
 {
   void *dst = MapRange(byteOffset, byteCount, accessType);

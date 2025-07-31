@@ -80,8 +80,8 @@ void SponzaModern::createLights()
 
     light.setLightType(LightComponentType::Point)
         .setColour(lightConfigs[i].second)
-        .setRadius(80.0f)       // Increased from 50.0f for better gradual falloff
-        .setIntensity(1000.0f)  // Reduced slightly from 1200.0f due to better shadow combination and more lights
+        .setRadius(60.0f)       // Reduced radius for more focused lighting
+        .setIntensity(200.0f)   // Significantly reduced intensity to prevent excessive specular highlights
         .setCastsShadows(true); // All lights now cast shadows
 
     Vector3 basePos = lightConfigs[i].first;

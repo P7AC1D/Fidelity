@@ -1,5 +1,6 @@
 #pragma once
 #include "../Core/Types.hpp"
+#include "ResourceHandle.hpp"
 
 enum CpuAccess
 {
@@ -51,7 +52,7 @@ struct GpuBufferDesc
   uint32 ResourceMiscFlags = 0;
 };
 
-class GpuBuffer
+class GpuBuffer : public ResourceHandle
 {
 public:
   const GpuBufferDesc &getDesc() const { return _desc; }

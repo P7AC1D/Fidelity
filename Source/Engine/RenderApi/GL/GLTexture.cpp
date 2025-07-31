@@ -141,6 +141,11 @@ GLTexture::~GLTexture()
   }
 }
 
+uint32 GLTexture::getId() const
+{
+  return _id;
+}
+
 void GLTexture::writeData(uint32 mipLevel, uint32 face, const std::shared_ptr<ImageData> &data)
 {
   ASSERT_TRUE(_desc.Width == data->getWidth(), "Image width must be consistent with Texture");
@@ -233,8 +238,8 @@ void GLTexture::writeData(uint32 mipLevel, uint32 face, uint32 xStart, uint32 xC
     // zStart parameter represents the cube index
     glCall(glTexSubImage3D(target, mipLevel,
                            xStart, yStart,
-                           face + 6 * zStart,  // z offset calculation
-                           xCount, yCount, 1,  // always 1 layer deep for single face
+                           face + 6 * zStart, // z offset calculation
+                           xCount, yCount, 1, // always 1 layer deep for single face
                            format, type, data));
     break;
   default:
@@ -315,8 +320,10 @@ void GLTexture::Allocate()
     break;
   case TextureType::TextureCube:
     // allocate all six cube-map faces at each mip level
-    for (uint32 face = 0; face < 6; ++face) {
-      for (uint32 level = 0; level < _desc.MipLevels; ++level) {
+    for (uint32 face = 0; face < 6; ++face)
+    {
+      for (uint32 level = 0; level < _desc.MipLevels; ++level)
+      {
         glCall(glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + face,
                             level,
                             internalFormat,
@@ -342,20 +349,35 @@ void GLTexture::Allocate()
     {
       uint32 mipWidth = std::max(1u, _desc.Width >> i);
       uint32 mipHeight = std::max(1u, _desc.Height >> i);
-      
-      glCall(glTexImage3D(GL_TEXTURE_CUBE_MAP_ARRAY, 
-                          i,                           // mip level
-                          internalFormat,              // internal format
-                          mipWidth,                    // width
-                          mipHeight,                   // height  
-                          6 * _desc.Count,            // depth = 6 faces * cube count
-                          0,                          // border (must be 0)
-                          format,                     // format
-                          type,                       // type
-                          nullptr));                  // data (null for allocation)
+
+      glCall(glTexImage3D(GL_TEXTURE_CUBE_MAP_ARRAY,
+                          i,               // mip level
+                          internalFormat,  // internal format
+                          mipWidth,        // width
+                          mipHeight,       // height
+                          6 * _desc.Count, // depth = 6 faces * cube count
+                          0,               // border (must be 0)
+                          format,          // format
+                          type,            // type
+                          nullptr));       // data (null for allocation)
     }
     break;
   default:
     throw std::runtime_error("Unsupported TextureType");
   }
+}
+
+void *GLTexture::getNativeHandle() const
+{
+  if (!isValid())
+  {
+    throw std::runtime_error("Texture is not valid");
+  }
+
+  return reinterpret_cast<void *>(static_cast<uintptr_t>(_id));
+}
+
+bool GLTexture::isValid() const
+{
+  return _id != 0 && _isInitialized;
 }

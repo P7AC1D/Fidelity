@@ -11,14 +11,16 @@ class GLVertexBuffer : public VertexBuffer
   friend class GLVertexArrayObjectCollection;
 
 public:
+  GLVertexBuffer(const VertexBufferDesc &desc);
+
   uint32 GetId() const;
+
+  void *getNativeHandle() const override;
+  bool isValid() const override;
 
   void writeData(uint64 byteOffset, uint64 byteCount, const void *src, AccessType accessType = AccessType::WriteOnly) override;
   void readData(uint64 byteOffset, uint64 byteCount, void *dst) override;
   void copyData(GpuBuffer *dst, uint64 srcByteOffset, uint64 dstByteOffset, uint64 byteCount) override;
-
-protected:
-  GLVertexBuffer(const VertexBufferDesc &desc);
 
 private:
   std::unique_ptr<GLGpuBuffer> _buffer;

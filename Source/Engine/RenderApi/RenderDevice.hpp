@@ -5,6 +5,7 @@
 #include "IndexBuffer.hpp"
 #include "PipelineState.hpp"
 #include "RasterizerState.hpp"
+#include "ResourceSet.hpp"
 #include "RenderTarget.hpp"
 #include "SamplerState.hpp"
 #include "Shader.hpp"
@@ -59,16 +60,18 @@ public:
   virtual std::shared_ptr<GpuBuffer> createGpuBuffer(const GpuBufferDesc &desc) = 0;
   virtual std::shared_ptr<SamplerState> createSamplerState(const SamplerStateDesc &desc) = 0;
 
+  virtual std::unique_ptr<IResourceSetLayout> createResourceSetLayout() = 0;
+  virtual std::unique_ptr<IResourceSet> createResourceSet(const std::unique_ptr<IResourceSetLayout> &layout) = 0;
+
   virtual void setPipelineState(const std::shared_ptr<PipelineState> &pipelineState) = 0;
   virtual void setPrimitiveTopology(PrimitiveTopology primitiveTopology) = 0;
-  virtual void setTexture(uint32 slot, const std::shared_ptr<Texture> &texture) = 0;
   virtual void setRenderTarget(const std::shared_ptr<RenderTarget> &renderTarget) = 0;
   virtual void setViewport(const ViewportDesc &viewport) = 0;
   virtual void setVertexBuffer(const std::shared_ptr<VertexBuffer> vertexBuffer) = 0;
   virtual void setIndexBuffer(const std::shared_ptr<IndexBuffer> &indexBuffer) = 0;
-  virtual void setConstantBuffer(uint32 slot, const std::shared_ptr<GpuBuffer> &constantBuffer) = 0;
-  virtual void setSamplerState(uint32 slot, const std::shared_ptr<SamplerState> &samplerState) = 0;
   virtual void setScissorDimensions(const ScissorDesc &desc) = 0;
+
+  virtual void bindResourceSet(const std::unique_ptr<IResourceSet> &resourceSet, uint32 setIndex = 0) = 0;
 
   virtual const ViewportDesc &getViewport() const = 0;
   virtual ScissorDesc getScissorDimensions() const = 0;

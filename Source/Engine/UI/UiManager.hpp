@@ -3,6 +3,7 @@
 #include <unordered_map>
 #include <vector>
 
+#include "../RenderApi/ResourceSet.hpp"
 #include "../Rendering/DrawableComponent.h"
 #include "../Core/Types.hpp"
 #include "../Core/Scene.h"
@@ -21,38 +22,42 @@ struct GLFWwindow;
 class UiManager
 {
 public:
-	static void addTexture(uint64 id, const std::shared_ptr<Texture> &texture);
+  static void addTexture(uint64 id, const std::shared_ptr<Texture> &texture);
 
-	UiManager(GLFWwindow *glfwWindow);
-	~UiManager();
+  UiManager(GLFWwindow *glfwWindow);
+  ~UiManager();
 
-	bool hasMouseCapture() const;
-	void update(Scene &scene);
+  bool hasMouseCapture() const;
+  void update(Scene &scene);
 
-	void initialize(std::shared_ptr<RenderDevice> renderDevice);
-
-private:
-	void draw(ImDrawData *drawData);
-	void setupRenderer();
-	void setupFontAtlas();
-
-	void drawDrawables(const std::vector<DrawableComponent> &drawables);
+  void initialize(std::shared_ptr<RenderDevice> renderDevice);
 
 private:
-	static std::unordered_map<uint64, std::shared_ptr<Texture>> TEXTURE_MAP;
+  void draw(ImDrawData *drawData);
+  void setupRenderer();
+  void setupFontAtlas();
 
-	ImGuiIO *_io;
-	bool _initialized;
+  void drawDrawables(const std::vector<DrawableComponent> &drawables);
 
-	uint64 _vertBuffSize;
-	uint64 _idxBuffSize;
+private:
+  static std::unordered_map<uint64, std::shared_ptr<Texture>> TEXTURE_MAP;
 
-	std::shared_ptr<RenderDevice> _renderDevice;
-	std::shared_ptr<PipelineState> _pipelineState;
-	std::shared_ptr<Texture> _textureAtlas;
-	std::shared_ptr<SamplerState> _samplerState;
-	std::shared_ptr<SamplerState> _noMipSamplerState;
-	std::shared_ptr<GpuBuffer> _constBuffer;
-	std::shared_ptr<VertexBuffer> _vertBuffer;
-	std::shared_ptr<IndexBuffer> _idxBuffer;
+  ImGuiIO *_io;
+  bool _initialized;
+
+  uint64 _vertBuffSize;
+  uint64 _idxBuffSize;
+
+  std::shared_ptr<RenderDevice> _renderDevice;
+  std::shared_ptr<PipelineState> _pipelineState;
+  std::shared_ptr<Texture> _textureAtlas;
+  std::shared_ptr<SamplerState> _samplerState;
+  std::shared_ptr<SamplerState> _noMipSamplerState;
+  std::shared_ptr<GpuBuffer> _constBuffer;
+  std::shared_ptr<VertexBuffer> _vertBuffer;
+  std::shared_ptr<IndexBuffer> _idxBuffer;
+
+  // Resource Set Layouts and Sets
+  std::unique_ptr<IResourceSetLayout> _uiResourceSetLayout;
+  std::unique_ptr<IResourceSet> _uiResourceSet;
 };

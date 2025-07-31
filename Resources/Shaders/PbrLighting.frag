@@ -112,7 +112,7 @@ layout(std140) uniform PerFrameBuffer
   uint ShadowSampleCount;
   float ShadowSampleSpread;
   Light Lights[MAX_LIGHTS];
-  float CascadePlaneDistances[MAX_CASCADE_LAYERS];
+  vec4 CascadePlaneDistances[MAX_CASCADE_LAYERS]; // std140 layout: 16-byte aligned elements
   uint LightCount;
   float Exposure;
   bool ToneMappingEnabled;
@@ -183,7 +183,7 @@ vec3 drawCascadeLayers(vec3 position)
   int maxLayers = int(Constants.CascadeLayerCount);
   for (int i = 0; i < maxLayers; ++i)
   {
-    if (depthValue < Constants.CascadePlaneDistances[i])
+    if (depthValue < Constants.CascadePlaneDistances[i].x)
     {
       return colors[i];
     }
@@ -207,8 +207,9 @@ float calculatePointLightBias(vec3 normalWorldSpace, vec3 fragToLight, float lig
     vec3 lightDir = normalize(-fragToLight); // Direction from fragment to light
     float nDotL = clamp(dot(normalize(normalWorldSpace), lightDir), 0.0f, 1.0f);
     
-    // Slope-based bias using more accurate slope calculation
-    float slopeBias = clamp(tan(acos(nDotL)), 0.0, 0.01);
+    // Slope-based bias using numerically stable slope calculation
+    // Replace tan(acos(nDotL)) with sqrt(1 - nDotL^2) / nDotL for better numerical stability
+    float slopeBias = clamp(sqrt(max(1.0 - nDotL * nDotL, 0.0)) / max(nDotL, 0.001), 0.0, 0.01);
     
     // Distance-based bias that scales with distance from light
     float lightDistance = length(fragToLight);
@@ -225,18 +226,18 @@ float findPointBlockerDistance(vec3 fragToLight, float currentDepth, int lightIn
     float blockerSum = 0.0;
     int blockerCount = 0;
     
+    // Pre-compute orthogonal basis for the light direction (optimization)
+    vec3 lightDir = normalize(fragToLight);
+    vec3 up = abs(lightDir.y) < 0.999 ? vec3(0, 1, 0) : vec3(1, 0, 0);
+    vec3 right = normalize(cross(up, lightDir));
+    up = cross(lightDir, right);
+    
     // Use first 16 Poisson samples for blocker search (adapted for 3D)
     for (int i = 0; i < 16; i++) {
         // Convert 2D Poisson sample to 3D by projecting onto sphere around light direction
         vec2 poissonSample = PoissonSamples[i] * searchRadius;
         
-        // Create orthogonal basis for the light direction
-        vec3 lightDir = normalize(fragToLight);
-        vec3 up = abs(lightDir.y) < 0.999 ? vec3(0, 1, 0) : vec3(1, 0, 0);
-        vec3 right = normalize(cross(up, lightDir));
-        up = cross(lightDir, right);
-        
-        // Project 2D sample to 3D offset
+        // Project 2D sample to 3D offset using pre-computed basis
         vec3 sampleOffset = right * poissonSample.x + up * poissonSample.y;
         vec3 sampleDirection = fragToLight + sampleOffset;
         
@@ -261,18 +262,18 @@ float samplePointShadowPcfOptimized(vec3 fragToLight, float currentDepth, int li
     // Early termination PCF - similar to directional lights but adapted for point lights
     int maxEarlySamples = min(int(Constants.ShadowSampleCount), 16); // Limit early termination samples
     
-    for (int i = 0; i < maxEarlySamples && litCount < 8 && shadowedCount < 8; i++) {
+    // Pre-compute orthogonal basis for the light direction (optimization)
+    vec3 lightDir = normalize(fragToLight);
+    vec3 up = abs(lightDir.y) < 0.999 ? vec3(0, 1, 0) : vec3(1, 0, 0);
+    vec3 right = normalize(cross(up, lightDir));
+    up = cross(lightDir, right);
+    
+    for (int i = 0; i < maxEarlySamples && (litCount < 8 && shadowedCount < 8); i++) {
         // Apply random rotation to Poisson disc pattern
         vec2 rotatedPoissonSample = randomRotations * PoissonSamples[i % 64];
         vec2 poissonSample = rotatedPoissonSample * adaptiveDiskRadius;
         
-        // Create orthogonal basis for the light direction
-        vec3 lightDir = normalize(fragToLight);
-        vec3 up = abs(lightDir.y) < 0.999 ? vec3(0, 1, 0) : vec3(1, 0, 0);
-        vec3 right = normalize(cross(up, lightDir));
-        up = cross(lightDir, right);
-        
-        // Project 2D Poisson sample to 3D offset
+        // Project 2D Poisson sample to 3D offset using pre-computed basis
         vec3 sampleOffset = right * poissonSample.x + up * poissonSample.y;
         vec3 sampleDirection = fragToLight + sampleOffset;
         
@@ -299,15 +300,10 @@ float samplePointShadowPcfOptimized(vec3 fragToLight, float currentDepth, int li
         return shadow + (remainingSamples * (1.0 / float(Constants.ShadowSampleCount)));
     }
     
-    // Continue with remaining samples if no early termination
+    // Continue with remaining samples if no early termination (basis already computed)
     for (int i = maxEarlySamples; i < Constants.ShadowSampleCount; i++) {
         vec2 rotatedPoissonSample = randomRotations * PoissonSamples[i % 64];
         vec2 poissonSample = rotatedPoissonSample * adaptiveDiskRadius;
-        
-        vec3 lightDir = normalize(fragToLight);
-        vec3 up = abs(lightDir.y) < 0.999 ? vec3(0, 1, 0) : vec3(1, 0, 0);
-        vec3 right = normalize(cross(up, lightDir));
-        up = cross(lightDir, right);
         
         vec3 sampleOffset = right * poissonSample.x + up * poissonSample.y;
         vec3 sampleDirection = fragToLight + sampleOffset;
@@ -475,20 +471,41 @@ void main()
     totalShadowFactor / totalLightContribution : 0.0;
   
   // Apply shadow softening based on number of contributing lights
-  // More lights = softer shadows due to multiple light sources
+  // More lights = softer shadows due to multiple light sources (physically motivated)
   float lightCount = float(Constants.LightCount);
-  float shadowSoftening = 1.0 - (lightCount - 1.0) * 0.15; // Reduce shadow intensity with more lights
-  shadowSoftening = clamp(shadowSoftening, 0.3, 1.0); // Don't soften too much
-  combinedShadowFactor *= shadowSoftening;
+  
+  // Calculate area light approximation: more lights act like larger area lights
+  // Base softening on inverse square root to simulate area light behavior
+  float areaLightApproximation = 1.0 / sqrt(max(lightCount, 1.0));
+  
+  // Physical shadow softening: shadows become softer when multiple lights contribute
+  // because each additional light fills in shadow areas cast by other lights
+  float physicalSoftening = 1.0 - (1.0 - areaLightApproximation) * 0.3; // 30% max reduction
+  
+  // Distance-based softening: closer overlapping lights create softer combined shadows
+  float avgLightDistance = totalLightContribution > 0.001 ? 
+    length(totalUnshadowedRadiance) / totalLightContribution : 1.0;
+  float distanceSoftening = smoothstep(0.5, 2.0, avgLightDistance); // Closer lights = softer shadows
+  
+  float combinedSoftening = physicalSoftening * (0.7 + 0.3 * distanceSoftening);
+  combinedShadowFactor *= clamp(combinedSoftening, 0.4, 1.0); // Prevent over-softening
   
   // Prevent over-brightening in areas with many overlapping lights
-  // Apply a subtle tone-mapping to the unshadowed radiance
+  // Apply a more sophisticated tone-mapping curve (Reinhard-inspired with shoulder)
   float totalLuminance = dot(totalUnshadowedRadiance, vec3(0.299, 0.587, 0.114));
   float toneMappingFactor = 1.0;
-  if (totalLuminance > 2.0) {
-    // Gradually reduce brightness as more lights contribute
-    toneMappingFactor = 2.0 / totalLuminance;
-    toneMappingFactor = mix(toneMappingFactor, 1.0, 0.3); // Don't over-dampen
+  
+  if (totalLuminance > 1.0) {
+    // Use a smooth curve that compresses highlights while preserving mid-tones
+    // Formula: L_out = L_in / (1 + L_in / L_white)
+    float whitePoint = 4.0; // Luminance value that maps to white
+    float compressedLuminance = totalLuminance / (1.0 + totalLuminance / whitePoint);
+    
+    // Smooth transition to avoid harsh cutoffs
+    toneMappingFactor = compressedLuminance / totalLuminance;
+    
+    // Preserve some of the original brightness to maintain light interaction feel
+    toneMappingFactor = mix(toneMappingFactor, 1.0, 0.2); // 20% original brightness preserved
   }
   
   // Apply combined shadows and brightness control to the total lighting
@@ -521,7 +538,7 @@ float sampleShadowMapPcf(vec2 shadowCoords, float shadowDepth, float texelSize, 
   int litCount = 0;
   int shadowedCount = 0;
   
-  for (int i = 0; i < 9 && litCount < 5 && shadowedCount < 5; i++)
+  for (int i = 0; i < 9 && (litCount < 5 && shadowedCount < 5); i++)
   {
     float pcfDepth = texture(ShadowMap, vec3(shadowCoords + sampleOffsetDirections[i].xy * texelSize, cascadeLayer)).r;
     bool inShadow = (shadowDepth - bias) >= pcfDepth;
@@ -602,7 +619,7 @@ int calculateCascadeLayer(vec3 fragPosWorldSpace, float depthValue)
     if (clamp(shadowCoord.x, 0.0f, 1.0f) == shadowCoord.x && 
         clamp(shadowCoord.y, 0.0f, 1.0f) == shadowCoord.y && 
         clamp(shadowCoord.z, 0.0f, 1.0f) == shadowCoord.z && 
-        depthValue < Constants.CascadePlaneDistances[i])
+        depthValue < Constants.CascadePlaneDistances[i].x)
     {
       layerToUse = i;
       break;
@@ -628,21 +645,22 @@ float calculateOptimizedBias(vec3 normalWorldSpace, float depthValue, int cascad
 {
   float nDotL = clamp(dot(normalize(normalWorldSpace), Constants.LightDirection), 0.0f, 1.0f);
   
-  // Slope-based bias using more accurate slope calculation
-  float slopeBias = clamp(tan(acos(nDotL)), 0.0, 0.01);
+  // Slope-based bias using numerically stable slope calculation
+  // Replace tan(acos(nDotL)) with sqrt(1 - nDotL^2) / nDotL for better numerical stability
+  float slopeBias = clamp(sqrt(max(1.0 - nDotL * nDotL, 0.0)) / max(nDotL, 0.001), 0.0, 0.01);
   
   // Distance-based bias that scales with depth
   float distanceBias = 0.001 * (1.0 + depthValue * 0.1);
   
   // Cascade-based bias scaling for different resolution levels
-  float cascadeScale = 1.0 / (Constants.CascadePlaneDistances[cascadeLayer] * 0.3);
+  float cascadeScale = 1.0 / (Constants.CascadePlaneDistances[cascadeLayer].x * 0.3);
   
   return (slopeBias + distanceBias) * cascadeScale;
 }
 
 float calculateShadowFactor(vec3 fragPosWorldSpace, vec3 normalWorldSpace, ivec2 screenPos)
 {
-    // Transform position to view space and sample depth.
+    // Transform position to view space and sample depth with improved precision
     vec4 fragPosViewSpace = Constants.View * vec4(fragPosWorldSpace, 1.0);
     float depthValue = abs(fragPosViewSpace.z);
 
@@ -787,15 +805,15 @@ vec3 calcPointLight(Light light,
   // Use a smooth falloff function that:
   // - Maintains full intensity near the light
   // - Gradually reduces as we approach the radius
-  // - Continues to provide some light beyond the radius but much diminished
+  // - Provides much less contribution beyond the radius for more realistic lighting
   float windowFunction;
   if (normalizedDistance < 1.0) {
     // Within radius: full to reduced intensity
     windowFunction = 1.0 - pow(normalizedDistance, 2.0);
   } else {
-    // Beyond radius: gradual falloff to very small but non-zero
+    // Beyond radius: much more aggressive falloff to prevent distant specular highlights
     float beyondRadius = normalizedDistance - 1.0;
-    windowFunction = 1.0 / (1.0 + beyondRadius * beyondRadius * 4.0) * 0.2;
+    windowFunction = 1.0 / (1.0 + beyondRadius * beyondRadius * 16.0) * 0.05; // Only 5% contribution beyond radius
   }
   
   float attenuation = baseAttenuation * windowFunction;
@@ -815,6 +833,11 @@ vec3 calcPointLight(Light light,
   vec3 numerator = NDF * G * F;
   float denominator = 4.0f * nDotV * nDotL;
   vec3 specular = numerator / max(denominator, 0.0001f);
+
+  // Apply additional specular energy conservation for point lights
+  // Reduce specular intensity at grazing angles to prevent excessive highlights
+  float specularEnergyConservation = 1.0 - pow(1.0 - nDotL, 3.0); // Reduces specular at grazing angles
+  specular *= specularEnergyConservation;
 
   vec3 radiance = (kD * (albedo / M_PI) + specular ) * radianceIn * nDotL;
 

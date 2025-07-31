@@ -2,9 +2,11 @@
 
 #include "../../Utility/Assert.hpp"
 #include "GL.hpp"
+#include "GLCommon.hpp"
 #include "GLGpuBuffer.hpp"
 #include "GLIndexBuffer.hpp"
 #include "GLRenderTarget.hpp"
+#include "GLResourceSet.hpp"
 #include "GLSamplerState.hpp"
 #include "GLShader.hpp"
 #include "GLShaderPipeline.hpp"
@@ -13,153 +15,14 @@
 #include "GLVertexBuffer.hpp"
 #include "GLVertexArrayCollection.hpp"
 
-GLenum getTextureTargetFromType(TextureType textureType)
-{
-  switch (textureType)
-  {
-  case TextureType::Texture1D:
-    return GL_TEXTURE_1D;
-  case TextureType::Texture1DArray:
-    return GL_TEXTURE_1D_ARRAY;
-  case TextureType::Texture2D:
-    return GL_TEXTURE_2D;
-  case TextureType::Texture2DArray:
-    return GL_TEXTURE_2D_ARRAY;
-  case TextureType::Texture3D:
-    return GL_TEXTURE_3D;
-  case TextureType::TextureCube:
-    return GL_TEXTURE_CUBE_MAP;
-  case TextureType::TextureCubeArray:
-    return GL_TEXTURE_CUBE_MAP_ARRAY;
-  default:
-    return GL_TEXTURE_2D;
-  }
-}
-
-GLenum getPrimitiveTopology(PrimitiveTopology topology)
-{
-  switch (topology)
-  {
-  case PrimitiveTopology::PointList:
-    return GL_POINTS;
-  case PrimitiveTopology::LineList:
-    return GL_LINES;
-  case PrimitiveTopology::TriangleList:
-    return GL_TRIANGLES;
-  case PrimitiveTopology::TriangleStrip:
-    return GL_TRIANGLE_STRIP;
-  case PrimitiveTopology::PatchList:
-    return GL_PATCHES;
-  default:
-    GL_TRIANGLES;
-  }
-}
-
-GLenum getStencilOp(StencilOperation stencilOperation, bool invert = false)
-{
-  switch (stencilOperation)
-  {
-  case StencilOperation::Keep:
-    return GL_KEEP;
-  case StencilOperation::Zero:
-    return GL_ZERO;
-  case StencilOperation::Replace:
-    return GL_REPLACE;
-  case StencilOperation::Incr:
-    return invert ? GL_DECR : GL_INCR;
-  case StencilOperation::Decr:
-    return invert ? GL_INCR : GL_DECR;
-  case StencilOperation::IncrSat:
-    return invert ? GL_DECR_WRAP : GL_INCR_WRAP;
-  case StencilOperation::DescSat:
-    return invert ? GL_INCR_WRAP : GL_DECR_WRAP;
-  case StencilOperation::Invert:
-    return GL_INVERT;
-  default:
-    return GL_KEEP;
-  }
-}
-
-GLenum getCompareFunc(ComparisonFunction func)
-{
-  switch (func)
-  {
-  case ComparisonFunction::Never:
-    return GL_NEVER;
-  case ComparisonFunction::Less:
-    return GL_LESS;
-  case ComparisonFunction::Equal:
-    return GL_EQUAL;
-  case ComparisonFunction::LessEqual:
-    return GL_LEQUAL;
-  case ComparisonFunction::Greater:
-    return GL_GREATER;
-  case ComparisonFunction::NotEqual:
-    return GL_NOTEQUAL;
-  case ComparisonFunction::GreaterEqual:
-    return GL_GEQUAL;
-  case ComparisonFunction::Always:
-    return GL_ALWAYS;
-  default:
-    return GL_ALWAYS;
-  }
-}
-
-GLenum getBlendFactor(BlendFactor factor)
-{
-  switch (factor)
-  {
-  case BlendFactor::Zero:
-    return GL_ZERO;
-  case BlendFactor::One:
-    return GL_ONE;
-  case BlendFactor::SrcColour:
-    return GL_SRC_COLOR;
-  case BlendFactor::InvSrcColour:
-    return GL_ONE_MINUS_SRC_COLOR;
-  case BlendFactor::SrcAlpha:
-    return GL_SRC_ALPHA;
-  case BlendFactor::InvSrcAlpha:
-    return GL_ONE_MINUS_SRC_ALPHA;
-  case BlendFactor::DestAlpha:
-    return GL_DST_ALPHA;
-  case BlendFactor::InvDestAlpha:
-    return GL_ONE_MINUS_DST_ALPHA;
-  case BlendFactor::DestColour:
-    return GL_DST_COLOR;
-  case BlendFactor::InvDestColour:
-    return GL_ONE_MINUS_DST_COLOR;
-  default:
-    return GL_ONE;
-  }
-}
-
-GLenum getBlendOp(BlendOperation op)
-{
-  switch (op)
-  {
-  case BlendOperation::Add:
-    return GL_FUNC_ADD;
-  case BlendOperation::Subtract:
-    return GL_FUNC_SUBTRACT;
-  case BlendOperation::RevSubtract:
-    return GL_FUNC_REVERSE_SUBTRACT;
-  case BlendOperation::Min:
-    return GL_MIN;
-  case BlendOperation::Max:
-    return GL_MAX;
-  default:
-    return GL_FUNC_ADD;
-  }
-}
-
 GLRenderDevice::GLRenderDevice(const RenderDeviceDesc &desc) : RenderDevice(desc),
                                                                _shaderStateChanged(true),
                                                                _primitiveTopology(PrimitiveTopology::TriangleList),
                                                                _stencilReadMask(0),
                                                                _stencilRefValue(0),
                                                                _stencilWriteMask(0),
-                                                               _shaderPipelineCollection(new GLShaderPipelineCollection)
+                                                               _shaderPipelineCollection(new GLShaderPipelineCollection),
+                                                               _resourceSetFactory(std::make_unique<GLResourceSetFactory>())
 {
   setViewport(ViewportDesc{0.0f, 0.0f, static_cast<float32>(desc.RenderWidth), static_cast<float32>(desc.RenderHeight), 0.0f, 0.0f});
   setScissorDimensions(ScissorDesc{0, 0, desc.RenderWidth, desc.RenderHeight});
@@ -174,7 +37,7 @@ std::shared_ptr<Shader> GLRenderDevice::createShader(const ShaderDesc &desc)
 
 std::shared_ptr<VertexBuffer> GLRenderDevice::createVertexBuffer(const VertexBufferDesc &desc)
 {
-  return std::shared_ptr<GLVertexBuffer>(new GLVertexBuffer(desc));
+  return std::make_shared<GLVertexBuffer>(desc);
 }
 
 std::shared_ptr<RenderTarget> GLRenderDevice::createRenderTarget(const RenderTargetDesc &desc)
@@ -184,7 +47,7 @@ std::shared_ptr<RenderTarget> GLRenderDevice::createRenderTarget(const RenderTar
 
 std::shared_ptr<IndexBuffer> GLRenderDevice::createIndexBuffer(const IndexBufferDesc &desc)
 {
-  return std::shared_ptr<GLIndexBuffer>(new GLIndexBuffer(desc));
+  return std::make_shared<GLIndexBuffer>(desc);
 }
 
 std::shared_ptr<GpuBuffer> GLRenderDevice::createGpuBuffer(const GpuBufferDesc &desc)
@@ -200,6 +63,16 @@ std::shared_ptr<Texture> GLRenderDevice::createTexture(const TextureDesc &desc, 
 std::shared_ptr<SamplerState> GLRenderDevice::createSamplerState(const SamplerStateDesc &desc)
 {
   return std::shared_ptr<GLSamplerState>(new GLSamplerState(desc));
+}
+
+std::unique_ptr<IResourceSetLayout> GLRenderDevice::createResourceSetLayout()
+{
+  return _resourceSetFactory->createLayout();
+}
+
+std::unique_ptr<IResourceSet> GLRenderDevice::createResourceSet(const std::unique_ptr<IResourceSetLayout> &layout)
+{
+  return _resourceSetFactory->createResourceSet(layout);
 }
 
 void GLRenderDevice::setPrimitiveTopology(PrimitiveTopology primitiveTopology)
@@ -307,53 +180,6 @@ void GLRenderDevice::setIndexBuffer(const std::shared_ptr<IndexBuffer> &indexBuf
 {
   auto glIndexBuffer = std::static_pointer_cast<GLIndexBuffer>(indexBuffer);
   _boundIndexBuffer = glIndexBuffer;
-}
-
-void GLRenderDevice::setConstantBuffer(uint32 slot, const std::shared_ptr<GpuBuffer> &constantBuffer)
-{
-  ASSERT_TRUE(constantBuffer->getType() == BufferType::Constant, "GPU buffer is not a constant buffer");
-  ASSERT_FALSE(slot > MAX_CONSTANT_BUFFERS, "Constant buffer binding slot exceeds maximum supported");
-
-  auto glConstantBuffer = std::static_pointer_cast<GLGpuBuffer>(constantBuffer);
-  glCall(glBindBufferBase(GL_UNIFORM_BUFFER, slot, glConstantBuffer->GetId()));
-  _boundConstantBuffers[slot] = glConstantBuffer;
-}
-
-void GLRenderDevice::setTexture(uint32 slot, const std::shared_ptr<Texture> &texture)
-{
-  ASSERT_FALSE(slot >= MAX_TEXTURE_SLOTS, "Texture slot exceeds maximum supported");
-  auto glTexture = std::static_pointer_cast<GLTexture>(texture);
-  if (!_boundTextures[slot] || _boundTextures[slot]->getId() != glTexture->getId())
-  {
-    glCall(glActiveTexture(GL_TEXTURE0 + slot));
-    glCall(glBindTexture(getTextureTargetFromType(glTexture->getTextureType()), glTexture->getId()));
-    _boundTextures[slot] = glTexture;
-    
-    // Bind texture uniform if pipeline state and shader params are available
-    if (_pipelineState && _shaderParams)
-    {
-      std::string textureName = _shaderParams->getParamName(ShaderParamType::Texture, slot);
-      if (!textureName.empty())
-      {
-        auto glPs = std::static_pointer_cast<GLShader>(_pipelineState->getFS());
-        if (glPs && glPs->hasUniform(textureName))
-        {
-          glPs->bindTextureUnit(textureName, slot);
-        }
-      }
-    }
-  }
-}
-
-void GLRenderDevice::setSamplerState(uint32 slot, const std::shared_ptr<SamplerState> &samplerState)
-{
-  ASSERT_FALSE(slot >= MAX_TEXTURE_SLOTS, "Sampler slot exceeds maximum supported");
-  auto glSamplerState = std::static_pointer_cast<GLSamplerState>(samplerState);
-  if (!_boundSamplers[slot] || _boundSamplers[slot]->getId() != glSamplerState->getId())
-  {
-    glCall(glBindSampler(slot, glSamplerState->getId()));
-    _boundSamplers[slot] = glSamplerState;
-  }
 }
 
 void GLRenderDevice::setScissorDimensions(const ScissorDesc &desc)
@@ -778,6 +604,105 @@ void GLRenderDevice::setBlendWriteMask(byte writeMask)
     alpha = GL_TRUE;
   }
   glCall(glColorMask(red, green, blue, alpha));
+}
+
+void GLRenderDevice::bindResourceSet(const std::unique_ptr<IResourceSet> &resourceSet, uint32 setIndex)
+{
+  if (resourceSet && resourceSet->isBuilt())
+  {
+    resourceSet->bind(shared_from_this(), setIndex);
+
+    // For OpenGL, we also need to setup uniform block bindings and texture unit bindings for the current pipeline state
+    // This is necessary because resource sets bind buffers/textures to OpenGL binding points,
+    // but we also need to bind uniform blocks and sampler uniforms in shaders to those same binding points
+    if (_pipelineState && _shaderParams)
+    {
+      auto glResourceSet = static_cast<const GLResourceSet *>(resourceSet.get());
+
+      // Iterate through the resource set's bindings
+      for (const auto &binding : glResourceSet->getBindings())
+      {
+        if (binding.type == ResourceType::UNIFORM_BUFFER)
+        {
+          // Get the uniform buffer name from shader params
+          auto uniformBufferName = _shaderParams->getParamName(ShaderParamType::ConstBuffer, binding.binding);
+
+          if (!uniformBufferName.empty())
+          {
+            // Bind uniform blocks in all shader stages
+            auto glVs = std::static_pointer_cast<GLShader>(_pipelineState->getVS());
+            if (glVs && glVs->hasUniform(uniformBufferName))
+            {
+              glVs->bindUniformBlock(uniformBufferName, binding.binding);
+            }
+
+            auto glPs = std::static_pointer_cast<GLShader>(_pipelineState->getFS());
+            if (glPs && glPs->hasUniform(uniformBufferName))
+            {
+              glPs->bindUniformBlock(uniformBufferName, binding.binding);
+            }
+
+            auto glGs = std::static_pointer_cast<GLShader>(_pipelineState->getGS());
+            if (glGs && glGs->hasUniform(uniformBufferName))
+            {
+              glGs->bindUniformBlock(uniformBufferName, binding.binding);
+            }
+
+            auto glHs = std::static_pointer_cast<GLShader>(_pipelineState->getHS());
+            if (glHs && glHs->hasUniform(uniformBufferName))
+            {
+              glHs->bindUniformBlock(uniformBufferName, binding.binding);
+            }
+
+            auto glDs = std::static_pointer_cast<GLShader>(_pipelineState->getDS());
+            if (glDs && glDs->hasUniform(uniformBufferName))
+            {
+              glDs->bindUniformBlock(uniformBufferName, binding.binding);
+            }
+          }
+        }
+        else if (binding.type == ResourceType::TEXTURE_2D || binding.type == ResourceType::TEXTURE_CUBE)
+        {
+          // Get the texture name from shader params
+          auto textureName = _shaderParams->getParamName(ShaderParamType::Texture, binding.binding);
+
+          if (!textureName.empty())
+          {
+            // Bind texture units in all shader stages
+            auto glVs = std::static_pointer_cast<GLShader>(_pipelineState->getVS());
+            if (glVs && glVs->hasUniform(textureName))
+            {
+              glVs->bindTextureUnit(textureName, binding.binding);
+            }
+
+            auto glPs = std::static_pointer_cast<GLShader>(_pipelineState->getFS());
+            if (glPs && glPs->hasUniform(textureName))
+            {
+              glPs->bindTextureUnit(textureName, binding.binding);
+            }
+
+            auto glGs = std::static_pointer_cast<GLShader>(_pipelineState->getGS());
+            if (glGs && glGs->hasUniform(textureName))
+            {
+              glGs->bindTextureUnit(textureName, binding.binding);
+            }
+
+            auto glHs = std::static_pointer_cast<GLShader>(_pipelineState->getHS());
+            if (glHs && glHs->hasUniform(textureName))
+            {
+              glHs->bindTextureUnit(textureName, binding.binding);
+            }
+
+            auto glDs = std::static_pointer_cast<GLShader>(_pipelineState->getDS());
+            if (glDs && glDs->hasUniform(textureName))
+            {
+              glDs->bindTextureUnit(textureName, binding.binding);
+            }
+          }
+        }
+      }
+    }
+  }
 }
 
 void GLRenderDevice::enableScissorTest(bool enableScissorTest)

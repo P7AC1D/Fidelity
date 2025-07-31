@@ -1,8 +1,10 @@
 #include "LightComponent.h"
-#include "../Core/ComponentBase.inl"  // For template implementations
+#include "../Core/ComponentBase.inl" // For template implementations
 #include "../Core/TransformComponent.h"
 #include "../Core/GameObject.h"
 #include "../UI/ImGui/imgui.h"
+#include "PointLightCuller.h"
+#include <algorithm> // For std::sort and std::unique
 
 LightComponent::LightComponent()
     : _colour(Colour::White), _radius(10.0f), _lightType(LightComponentType::Point), _matrix(Matrix4::Identity), _direction(Vector3::Identity), _intensity(1000.0f), _castsShadows(false), _shadowResolution(1024), _shadowNearPlane(0.1f), _shadowFarPlane(100.0f), _modified(true)
@@ -124,12 +126,40 @@ void LightComponent::drawInspector()
       }
     }
 
-    // Display current position and direction (read-only)
-    ImGui::Separator();
-    ImGui::Text("Transform Info (Read-Only)");
-    Vector3 position = getPosition();
-    ImGui::Text("Position: %.2f, %.2f, %.2f", position.X, position.Y, position.Z);
-    ImGui::Text("Direction: %.2f, %.2f, %.2f", _direction.X, _direction.Y, _direction.Z);
+    // Display culling statistics for point lights
+    if (_lightType == LightComponentType::Point && _cullingStats.hasValidStats)
+    {
+      ImGui::Separator();
+      ImGui::Text("Shadow Culling Statistics (Last Frame)");
+
+      ImGui::Text("Total Objects: %u", _cullingStats.totalObjects);
+      ImGui::Text("Failed Sphere Culling: %u (%.1f%%)",
+                  _cullingStats.objectsFailedSphere,
+                  _cullingStats.sphereCullingRatio * 100.0f);
+      ImGui::Text("Failed Face Culling: %u (%.1f%%)",
+                  _cullingStats.objectsFailedFace,
+                  _cullingStats.faceCullingRatio * 100.0f);
+      ImGui::Text("Final Rendered: %u", _cullingStats.finalRenderedObjects);
+
+      // Color-coded efficiency indicator
+      if (_cullingStats.totalObjects > 0)
+      {
+        float overallEfficiency = (1.0f - (static_cast<float>(_cullingStats.finalRenderedObjects) / _cullingStats.totalObjects)) * 100.0f;
+
+        if (overallEfficiency > 70.0f)
+        {
+          ImGui::TextColored(ImVec4(0.0f, 1.0f, 0.0f, 1.0f), "Culling Efficiency: Excellent (%.1f%%)", overallEfficiency);
+        }
+        else if (overallEfficiency > 40.0f)
+        {
+          ImGui::TextColored(ImVec4(1.0f, 1.0f, 0.0f, 1.0f), "Culling Efficiency: Good (%.1f%%)", overallEfficiency);
+        }
+        else
+        {
+          ImGui::TextColored(ImVec4(1.0f, 0.5f, 0.0f, 1.0f), "Culling Efficiency: Poor (%.1f%%)", overallEfficiency);
+        }
+      }
+    }
   }
 }
 
@@ -217,7 +247,7 @@ void LightComponent::updateFromTransform()
     Quaternion rotation = transform->getRotation();
     Vector3 newDirection = rotation.Rotate(Vector3(0, -1, 0));
     newDirection.Normalize();
-    
+
     // Only mark as modified if direction actually changed
     if (_direction != newDirection)
     {
@@ -239,4 +269,66 @@ void LightComponent::recalculateMatrix()
     Matrix4 rotationMatrix = Matrix4::Rotation(rotation);
     _matrix = translation * scale * rotationMatrix;
   }
+}
+
+void LightComponent::setCullingStats(const void *cullingResultPtr)
+{
+  if (_lightType != LightComponentType::Point)
+  {
+    _cullingStats.reset();
+    return;
+  }
+
+  // Cast the void pointer back to the correct type
+  const PointLightCuller::CullingResult &result = *static_cast<const PointLightCuller::CullingResult *>(cullingResultPtr);
+
+  _cullingStats.totalObjects = result.originalCount;
+  _cullingStats.objectsFailedSphere = result.originalCount - result.sphereCulledCount;
+
+  // For face culling, we need to calculate how many objects failed face culling
+  // by deduplicating the face-culled objects and comparing to sphere-culled count
+  if (result.sphereCulledCount > 0)
+  {
+    // Combine all face-culled objects and deduplicate
+    std::vector<std::shared_ptr<DrawableComponent>> allFaceCulledObjects;
+    for (int face = 0; face < 6; ++face)
+    {
+      const auto &faceObjects = result.faceCulled[face];
+      allFaceCulledObjects.insert(allFaceCulledObjects.end(), faceObjects.begin(), faceObjects.end());
+    }
+
+    // Remove duplicates since objects can appear in multiple faces
+    std::sort(allFaceCulledObjects.begin(), allFaceCulledObjects.end());
+    allFaceCulledObjects.erase(std::unique(allFaceCulledObjects.begin(), allFaceCulledObjects.end()), allFaceCulledObjects.end());
+
+    _cullingStats.finalRenderedObjects = static_cast<uint32>(allFaceCulledObjects.size());
+    _cullingStats.objectsFailedFace = result.sphereCulledCount - _cullingStats.finalRenderedObjects;
+  }
+  else
+  {
+    _cullingStats.finalRenderedObjects = 0;
+    _cullingStats.objectsFailedFace = 0;
+  }
+
+  // Calculate ratios
+  if (_cullingStats.totalObjects > 0)
+  {
+    _cullingStats.sphereCullingRatio = static_cast<float>(_cullingStats.objectsFailedSphere) / _cullingStats.totalObjects;
+
+    if (result.sphereCulledCount > 0)
+    {
+      _cullingStats.faceCullingRatio = static_cast<float>(_cullingStats.objectsFailedFace) / result.sphereCulledCount;
+    }
+    else
+    {
+      _cullingStats.faceCullingRatio = 0.0f;
+    }
+  }
+  else
+  {
+    _cullingStats.sphereCullingRatio = 0.0f;
+    _cullingStats.faceCullingRatio = 0.0f;
+  }
+
+  _cullingStats.hasValidStats = true;
 }

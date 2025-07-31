@@ -2,6 +2,16 @@
 
 #include "GLGpuBuffer.hpp"
 
+void *GLIndexBuffer::getNativeHandle() const
+{
+  return _buffer->getNativeHandle();
+}
+
+bool GLIndexBuffer::isValid() const
+{
+  return _buffer->isValid();
+}
+
 void GLIndexBuffer::writeData(uint64 byteOffset, uint64 byteCount, const void *src, AccessType accessType)
 {
   _buffer->writeData(byteOffset, byteCount, src, accessType);

@@ -8,6 +8,16 @@ uint32 GLVertexBuffer::GetId() const
   return _buffer->GetId();
 }
 
+void *GLVertexBuffer::getNativeHandle() const
+{
+  return _buffer->getNativeHandle();
+}
+
+bool GLVertexBuffer::isValid() const
+{
+  return _buffer->isValid();
+}
+
 // TODO: makes this more convienent for dealing with vertices
 void GLVertexBuffer::writeData(uint64 byteOffset, uint64 byteCount, const void *src, AccessType accessType)
 {

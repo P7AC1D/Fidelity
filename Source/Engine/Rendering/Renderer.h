@@ -9,6 +9,7 @@
 
 #include "../Core/Maths.h"
 #include "../Core/Types.hpp"
+#include "../RenderApi/ResourceSet.hpp"
 
 class GpuBuffer;
 class Material;
@@ -60,9 +61,14 @@ public:
   const std::vector<RenderPassTimings> &getRenderPassTimings() const { return _renderPassTimings; }
 
 private:
+  std::unique_ptr<IResourceSet> createMaterialResourceSet(const std::shared_ptr<RenderDevice> &renderDevice,
+                                                          const std::shared_ptr<Material> &material);
+
   void initConstantBuffers(const std::shared_ptr<RenderDevice> &renderDevice);
   void initSamplers(const std::shared_ptr<RenderDevice> &renderDevice);
   void initTextures(const std::shared_ptr<RenderDevice> &renderDevice);
+  void initResourceSets(const std::shared_ptr<RenderDevice> &renderDevice);
+  void updateResourceSets(const std::shared_ptr<RenderDevice> &renderDevice);
 
   void initDirectionalLightDepthPass(const std::shared_ptr<RenderDevice> &renderDevice);
   void initPointLightDepthPass(const std::shared_ptr<RenderDevice> &renderDevice);
@@ -79,16 +85,11 @@ private:
                                  const std::vector<std::shared_ptr<DrawableComponent>> &drawables,
                                  const std::shared_ptr<LightComponent> &directionalLight,
                                  const std::shared_ptr<CameraComponent> &camera);
-  void pointLightDepthPass(const std::shared_ptr<RenderDevice>& renderDevice,
-                           const std::vector<std::shared_ptr<DrawableComponent>>& drawables,
-                           const std::vector<std::shared_ptr<LightComponent>>& lights,
-                           const std::shared_ptr<CameraComponent>& camera);
-  
-  // Enhanced point light depth pass with culling
-  void pointLightDepthPassOptimized(const std::shared_ptr<RenderDevice>& renderDevice,
-                                   const std::vector<std::shared_ptr<DrawableComponent>>& drawables,
-                                   const std::vector<std::shared_ptr<LightComponent>>& lights,
-                                   const std::shared_ptr<CameraComponent>& camera);
+  void pointLightDepthPass(const std::shared_ptr<RenderDevice> &renderDevice,
+                           const std::vector<std::shared_ptr<DrawableComponent>> &drawables,
+                           const std::vector<std::shared_ptr<LightComponent>> &lights,
+                           const std::shared_ptr<CameraComponent> &camera);
+
   void gbufferPass(std::shared_ptr<RenderDevice> renderDevice,
                    const std::vector<std::shared_ptr<DrawableComponent>> &drawables,
                    const std::shared_ptr<CameraComponent> &camera);
@@ -134,14 +135,24 @@ private:
                                  const std::shared_ptr<LightComponent> &directionalLight,
                                  const std::vector<std::shared_ptr<LightComponent>> &lights) const;
   void writeSsaoConstantData(const std::shared_ptr<RenderDevice> &renderDevice, const std::shared_ptr<CameraComponent> &camera) const;
-  void writePointLightConstantData(uint32 lightIndex, const Vector3& position, float32 farPlane, const std::array<Matrix4, 6>& shadowMatrices) const;
+  void writePointLightConstantData(uint32 lightIndex, const Vector3 &position, float32 farPlane, const std::array<Matrix4, 6> &shadowMatrices) const;
+
+  // Light sorting for consistent shadow and lighting passes
+  void sortLightsForRendering(std::vector<std::shared_ptr<LightComponent>> &lights, const std::shared_ptr<CameraComponent> &camera) const;
 
   // Frustum culling and object categorization
-  void performFrustumCulling(const std::vector<std::shared_ptr<DrawableComponent>>& allDrawables,
-                             const std::shared_ptr<CameraComponent>& camera,
-                             std::vector<std::shared_ptr<DrawableComponent>>& opaqueDrawables,
-                             std::vector<std::shared_ptr<DrawableComponent>>& transparentDrawables,
-                             std::vector<std::shared_ptr<DrawableComponent>>& aabbDrawables);
+  void performFrustumCulling(const std::vector<std::shared_ptr<DrawableComponent>> &allDrawables,
+                             const std::shared_ptr<CameraComponent> &camera,
+                             std::vector<std::shared_ptr<DrawableComponent>> &opaqueDrawables,
+                             std::vector<std::shared_ptr<DrawableComponent>> &transparentDrawables,
+                             std::vector<std::shared_ptr<DrawableComponent>> &aabbDrawables);
+
+  std::shared_ptr<Texture> getDefaultWhiteTexture() const;
+  std::shared_ptr<Texture> getDefaultNormalTexture() const;
+
+  // Default textures
+  std::shared_ptr<Texture> _defaultWhiteTexture;
+  std::shared_ptr<Texture> _defaultNormalTexture;
 
   Vector2I _windowDims;
   Colour _ambientColour;
@@ -212,26 +223,55 @@ private:
       _shadowMapSamplerState,
       _ssaoNoiseSampler,
       _noMipWithBorderSamplerState,
-      _bloomSamplerState;
+      _bloomSamplerState,
+      _linearNoMipSamplerState;
   std::shared_ptr<VertexBuffer> _fsQuadVertexBuffer,
       _aabbVertexBuffer;
   std::shared_ptr<Texture> _randomRotationsMap,
       _ssaoNoiseTexture;
-  
+
   // Render queues for culling and sorting
   std::unique_ptr<RenderQueue> _opaqueQueue;
   std::unique_ptr<RenderQueue> _transparentQueue;
-  
+
   // Shadow culling system
   std::unique_ptr<ShadowFrustum> _shadowFrustum;
   std::unique_ptr<RenderQueue> _shadowQueue;
-  
+
   // Point light culling system
   std::unique_ptr<PointLightCuller> _pointLightCuller;
   PointLightCuller::CullingSettings _pointLightCullingSettings;
-  
+
   // Optimized frustum culling vectors - cached to avoid repeated allocations
   std::vector<std::shared_ptr<DrawableComponent>> _cachedOpaqueDrawables;
   std::vector<std::shared_ptr<DrawableComponent>> _cachedTransparentDrawables;
   std::vector<std::shared_ptr<DrawableComponent>> _cachedAabbDrawables;
+
+  // Resource Set Layouts
+  std::unique_ptr<IResourceSetLayout> _shadowPassLayout;
+  std::unique_ptr<IResourceSetLayout> _pointLightDepthPassLayout;
+  std::unique_ptr<IResourceSetLayout> _gbufferPassLayout;
+  std::unique_ptr<IResourceSetLayout> _ssaoPassLayout;
+  std::unique_ptr<IResourceSetLayout> _ssaoBlurPassLayout;
+  std::unique_ptr<IResourceSetLayout> _lightingPassLayout;
+  std::unique_ptr<IResourceSetLayout> _bloomDownSamplePassLayout;
+  std::unique_ptr<IResourceSetLayout> _bloomUpSamplePassLayout;
+  std::unique_ptr<IResourceSetLayout> _toneMappingPassLayout;
+  std::unique_ptr<IResourceSetLayout> _materialLayout;
+  std::unique_ptr<IResourceSetLayout> _debugPassLayout;
+  std::unique_ptr<IResourceSetLayout> _aabbPassLayout;
+
+  // Resource Sets
+  std::unique_ptr<IResourceSet> _shadowPassResourceSet;
+  std::unique_ptr<IResourceSet> _pointLightDepthPassResourceSet;
+  std::unique_ptr<IResourceSet> _gbufferPassResourceSet;
+  std::unique_ptr<IResourceSet> _ssaoPassResourceSet;
+  std::unique_ptr<IResourceSet> _ssaoBlurPassResourceSet;
+  std::unique_ptr<IResourceSet> _lightingPassResourceSet;
+  std::unique_ptr<IResourceSet> _bloomDownSamplePassResourceSet;
+  std::unique_ptr<IResourceSet> _bloomUpSamplePassResourceSet;
+  std::unique_ptr<IResourceSet> _toneMappingPassResourceSet;
+  std::unique_ptr<IResourceSet> _materialResourceSet;
+  std::unique_ptr<IResourceSet> _debugPassResourceSet;
+  std::unique_ptr<IResourceSet> _aabbPassResourceSet;
 };

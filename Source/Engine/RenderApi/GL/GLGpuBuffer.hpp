@@ -10,7 +10,10 @@ class GLGpuBuffer : public GpuBuffer
 public:
   virtual ~GLGpuBuffer();
 
-  uint32 GetId() const { return _id; }
+  void *getNativeHandle() const override;
+  bool isValid() const override;
+
+  uint32 GetId() const;
 
   void writeData(uint64 byteOffset, uint64 byteCount, const void *src, AccessType accessType = AccessType::WriteOnly) override;
   void readData(uint64 byteOffset, uint64 byteCount, void *dst) override;

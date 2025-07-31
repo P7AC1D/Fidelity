@@ -9,7 +9,8 @@ class GLSamplerState : public SamplerState
 public:
   ~GLSamplerState();
 
-  uint32 getId() const { return _id; }
+  void *getNativeHandle() const override;
+  bool isValid() const override;
 
 protected:
   GLSamplerState(const SamplerStateDesc &desc);
@@ -22,6 +23,7 @@ private:
   void setTextureMinMipFiltering(TextureFilteringMode minFilteringMode);
   void setTextureMagFiltering(TextureFilteringMode textureFilteringMode);
   void setBorderColour(Colour borderColour);
+  void setAnisotropicFiltering(float maxAnisotropy);
 
 private:
   uint32 _id;

@@ -1,7 +1,7 @@
 // Core headers
 #include "Renderer.h"
 #include "../Core/ComponentBase.inl"
-#include <random>  // for mt19937 and uniform distributions
+#include <random> // for mt19937 and uniform distributions
 #include <chrono>
 #include <iostream>
 #include <stdexcept>
@@ -98,7 +98,7 @@ struct PerFrameBufferData
   // --------- Alignment ----------
   LightData Lights[MAX_LIGHTS];
   // --------- Alignment ----------
-  Vector4 CascadePlaneDistances[MAX_CASCADE_LAYERS];  
+  Vector4 CascadePlaneDistances[MAX_CASCADE_LAYERS]; // std140 layout requires 16-byte alignment per element
   // --------- Alignment ----------
   uint32 LightCount;
   float32 Exposure;
@@ -107,12 +107,14 @@ struct PerFrameBufferData
   // --------- Alignment ----------
   float32 BloomThreshold;
   float32 MaxPointLightShadowCasters; // Maximum number of point lights that cast shadows
+  float32 _padding[2];                // Ensure 16-byte alignment at end
 };
 
 struct BloomBuffer
 {
   Vector2 SourceResolution;
   float32 FilterRadius;
+  float32 _padding; // Ensure 16-byte alignment for std140 layout
 };
 
 struct PointLightBufferData
@@ -120,7 +122,7 @@ struct PointLightBufferData
   Vector3 Position;
   float32 FarPlane;
   Matrix4 shadowMatrices[6];
-  int32 LightIndex; // Index of the light in the global light array
+  int32 LightIndex;     // Index of the light in the global light array
   float32 __Padding[3]; // Padding for alignment
 };
 
@@ -226,7 +228,7 @@ std::vector<Vector3> calculateFrustrumCorners(const Matrix4 &view, const Matrix4
 }
 
 Renderer::Renderer(const Vector2I &windowDims) : _windowDims(windowDims),
-                                                 _ambientColour(Colour(44, 62, 80)),  // Modern neutral blue-gray (sRGB: 0.173, 0.243, 0.314)
+                                                 _ambientColour(Colour(44, 62, 80)), // Modern neutral blue-gray (sRGB: 0.173, 0.243, 0.314)
                                                  _ambientIntensity(0.15f),
                                                  _ssaoSamples(64),
                                                  _ssaoBias(0.02f),
@@ -234,7 +236,7 @@ Renderer::Renderer(const Vector2I &windowDims) : _windowDims(windowDims),
                                                  _ssaoIntensity(2.0f),
                                                  _ssaoEnabled(true),
                                                  _drawCascadeLayers(false),
-                                                 _shadowResolutionChanged(true),                                                 
+                                                 _shadowResolutionChanged(true),
                                                  _shadowMapResolution(2048),
                                                  _pointLightShadowMapResolution(1024),
                                                  _cascadeCount(4),
@@ -242,7 +244,7 @@ Renderer::Renderer(const Vector2I &windowDims) : _windowDims(windowDims),
                                                  _shadowSampleSpread(800.0f),
                                                  _minCascadeDistance(0.0f),
                                                  _maxCascadeDistance(1.0f),
-                                                 _cascadeLambda(0.4f),                                                 
+                                                 _cascadeLambda(0.4f),
                                                  _toneMappingEnabled(true),
                                                  _bloomEnabled(true),
                                                  _exposure(1.0f),
@@ -263,18 +265,18 @@ Renderer::Renderer(const Vector2I &windowDims) : _windowDims(windowDims),
   _renderPassTimings.push_back({0, "Lighting"});
   _renderPassTimings.push_back({0, "Bloom Blur"});
   _renderPassTimings.push_back({0, "Tone Mapping"});
-  
+
   // Initialize render queues
   _opaqueQueue = std::make_unique<RenderQueue>(QueueType::Opaque);
   _transparentQueue = std::make_unique<RenderQueue>(QueueType::Transparent);
-  
+
   // Initialize shadow culling system
   _shadowFrustum = std::make_unique<ShadowFrustum>();
   _shadowQueue = std::make_unique<RenderQueue>(QueueType::Shadow);
-  
+
   // Initialize point light culling system
   _pointLightCuller = std::make_unique<PointLightCuller>();
-  
+
   // Configure default point light culling settings
   _pointLightCullingSettings.enableSphereCulling = true;
   _pointLightCullingSettings.enableFaceCulling = true;
@@ -289,6 +291,7 @@ bool Renderer::init(const std::shared_ptr<RenderDevice> &renderDevice)
 {
   try
   {
+    // Create fullscreen quad vertex buffer
     VertexBufferDesc vtxBuffDesc;
     vtxBuffDesc.BufferUsage = BufferUsage::Default;
     vtxBuffDesc.VertexCount = FullscreenQuadVertices.size();
@@ -296,6 +299,7 @@ bool Renderer::init(const std::shared_ptr<RenderDevice> &renderDevice)
     _fsQuadVertexBuffer = renderDevice->createVertexBuffer(vtxBuffDesc);
     _fsQuadVertexBuffer->writeData(0, sizeof(FullscreenQuadVertex) * FullscreenQuadVertices.size(), FullscreenQuadVertices.data(), AccessType::WriteOnlyDiscardRange);
 
+    // Create AABB vertex buffer
     VertexBufferDesc aabbVertexBuffDesc;
     aabbVertexBuffDesc.BufferUsage = BufferUsage::Default;
     aabbVertexBuffDesc.VertexCount = AabbCoords.size();
@@ -316,6 +320,9 @@ bool Renderer::init(const std::shared_ptr<RenderDevice> &renderDevice)
     initBloomUpSamplePass(renderDevice);
     initToneMappingPass(renderDevice);
     initDebugPass(renderDevice);
+
+    // Initialize resource sets after all resources are created
+    initResourceSets(renderDevice);
   }
   catch (const std::exception &e)
   {
@@ -379,15 +386,31 @@ void Renderer::drawDebugUi()
     {
       _ssaoEnabled = aoEnabled;
     }
-    
+
     // AO Quality Presets
     ImGui::Spacing();
-    ImGui::Text("AO Presets:"); ImGui::SameLine();
-    if (ImGui::Button("Low")) { _ssaoSamples = 16; _ssaoIntensity = 1.0f; _ssaoSettingsModified = true; }
+    ImGui::Text("AO Presets:");
     ImGui::SameLine();
-    if (ImGui::Button("Medium")) { _ssaoSamples = 64; _ssaoIntensity = 2.0f; _ssaoSettingsModified = true; }
+    if (ImGui::Button("Low"))
+    {
+      _ssaoSamples = 16;
+      _ssaoIntensity = 1.0f;
+      _ssaoSettingsModified = true;
+    }
     ImGui::SameLine();
-    if (ImGui::Button("High")) { _ssaoSamples = 128; _ssaoIntensity = 3.0f; _ssaoSettingsModified = true; }
+    if (ImGui::Button("Medium"))
+    {
+      _ssaoSamples = 64;
+      _ssaoIntensity = 2.0f;
+      _ssaoSettingsModified = true;
+    }
+    ImGui::SameLine();
+    if (ImGui::Button("High"))
+    {
+      _ssaoSamples = 128;
+      _ssaoIntensity = 3.0f;
+      _ssaoSettingsModified = true;
+    }
 
     ImGui::Separator();
     ImGui::Text("Shadow Quality");
@@ -413,10 +436,11 @@ void Renderer::drawDebugUi()
       _shadowSampleSpread = sampleSpread;
       _shadowResolutionChanged = true;
     }
-    
+
     // Shadow Quality Presets
     ImGui::Spacing();
-    ImGui::Text("Quality Presets:"); ImGui::SameLine();
+    ImGui::Text("Quality Presets:");
+    ImGui::SameLine();
     if (ImGui::Button("Low##ShadowPreset"))
     {
       _shadowMapResolution = 1024;
@@ -479,7 +503,8 @@ void Renderer::drawDebugUi()
     if (ImGui::SliderFloat("Exposure", &exposure, 0.1f, 10.0f))
     {
       _exposure = exposure;
-    }    float32 bloomStrength = _bloomStrength;
+    }
+    float32 bloomStrength = _bloomStrength;
     if (ImGui::SliderFloat("Bloom Strength", &bloomStrength, 0.0f, 1.0f))
     {
       _bloomStrength = bloomStrength;
@@ -524,6 +549,133 @@ void Renderer::drawDebugUi()
       }
     }
   }
+
+  // Point Light Culling Settings
+  if (ImGui::CollapsingHeader("Point Light Culling"))
+  {
+    auto cullingSettings = _pointLightCuller->getCullingSettings();
+    bool settingsChanged = false;
+
+    if (ImGui::Checkbox("Enable Sphere Culling", &cullingSettings.enableSphereCulling))
+    {
+      settingsChanged = true;
+    }
+    ImGui::SameLine();
+    ImGui::TextDisabled("(?)");
+    if (ImGui::IsItemHovered())
+    {
+      ImGui::SetTooltip("Cull objects outside the point light's radius");
+    }
+
+    if (ImGui::Checkbox("Enable Face Culling", &cullingSettings.enableFaceCulling))
+    {
+      settingsChanged = true;
+    }
+    ImGui::SameLine();
+    ImGui::TextDisabled("(?)");
+    if (ImGui::IsItemHovered())
+    {
+      ImGui::SetTooltip("Cull objects not visible from each cubemap face");
+    }
+
+    if (ImGui::Checkbox("Enable Distance LOD", &cullingSettings.enableDistanceLOD))
+    {
+      settingsChanged = true;
+    }
+    ImGui::SameLine();
+    ImGui::TextDisabled("(?)");
+    if (ImGui::IsItemHovered())
+    {
+      ImGui::SetTooltip("Skip very distant objects from shadow casting");
+    }
+
+    if (ImGui::SliderFloat("Max Shadow Distance", &cullingSettings.maxShadowDistance, 50.0f, 500.0f))
+    {
+      settingsChanged = true;
+    }
+
+    if (ImGui::SliderFloat("Min Object Size", &cullingSettings.minObjectSize, 0.01f, 5.0f))
+    {
+      settingsChanged = true;
+    }
+
+    if (ImGui::SliderFloat("Face Culling Expansion", &cullingSettings.faceCullingExpansion, 1.0f, 2.0f))
+    {
+      settingsChanged = true;
+    }
+    ImGui::SameLine();
+    ImGui::TextDisabled("(?)");
+    if (ImGui::IsItemHovered())
+    {
+      ImGui::SetTooltip("Expand frustums to reduce edge artifacts (1.0 = no expansion)");
+    }
+
+    if (settingsChanged)
+    {
+      _pointLightCuller->setCullingSettings(cullingSettings);
+    }
+
+    // Culling Performance Presets
+    ImGui::Spacing();
+    ImGui::Text("Performance Presets:");
+    ImGui::SameLine();
+    if (ImGui::Button("Conservative"))
+    {
+      cullingSettings.enableSphereCulling = true;
+      cullingSettings.enableFaceCulling = false;
+      cullingSettings.enableDistanceLOD = true;
+      cullingSettings.maxShadowDistance = 100.0f;
+      cullingSettings.minObjectSize = 0.5f;
+      _pointLightCuller->setCullingSettings(cullingSettings);
+    }
+    ImGui::SameLine();
+    if (ImGui::Button("Balanced"))
+    {
+      cullingSettings.enableSphereCulling = true;
+      cullingSettings.enableFaceCulling = true;
+      cullingSettings.enableDistanceLOD = true;
+      cullingSettings.maxShadowDistance = 200.0f;
+      cullingSettings.minObjectSize = 0.1f;
+      cullingSettings.faceCullingExpansion = 1.1f;
+      _pointLightCuller->setCullingSettings(cullingSettings);
+    }
+    ImGui::SameLine();
+    if (ImGui::Button("Aggressive"))
+    {
+      cullingSettings.enableSphereCulling = true;
+      cullingSettings.enableFaceCulling = true;
+      cullingSettings.enableDistanceLOD = true;
+      cullingSettings.maxShadowDistance = 150.0f;
+      cullingSettings.minObjectSize = 0.2f;
+      cullingSettings.faceCullingExpansion = 1.05f;
+      _pointLightCuller->setCullingSettings(cullingSettings);
+    }
+  }
+}
+
+std::unique_ptr<IResourceSet> Renderer::createMaterialResourceSet(const std::shared_ptr<RenderDevice> &renderDevice,
+                                                                  const std::shared_ptr<Material> &material)
+{
+  auto materialResourceSet = renderDevice->createResourceSet(_materialLayout);
+
+  // Add material textures (with fallback defaults)
+  materialResourceSet->addTexture(0, material->hasDiffuseTexture() ? material->getDiffuseTexture() : getDefaultWhiteTexture());
+  materialResourceSet->addTexture(1, material->hasNormalTexture() ? material->getNormalTexture() : getDefaultNormalTexture());
+  materialResourceSet->addTexture(2, material->hasMetallicTexture() ? material->getMetallicTexture() : getDefaultWhiteTexture());
+  materialResourceSet->addTexture(3, material->hasRoughnessTexture() ? material->getRoughnessTexture() : getDefaultWhiteTexture());
+  materialResourceSet->addTexture(4, material->hasOcclusionTexture() ? material->getOcclusionTexture() : getDefaultWhiteTexture());
+  materialResourceSet->addTexture(5, material->hasOpacityTexture() ? material->getOpacityTexture() : getDefaultWhiteTexture());
+
+  // Add samplers for each texture slot
+  materialResourceSet->addSampler(0, _basicSamplerState); // DiffuseMap sampler
+  materialResourceSet->addSampler(1, _basicSamplerState); // NormalMap sampler
+  materialResourceSet->addSampler(2, _basicSamplerState); // MetallicMap sampler
+  materialResourceSet->addSampler(3, _basicSamplerState); // RoughnessMap sampler
+  materialResourceSet->addSampler(4, _basicSamplerState); // OcclusionMap sampler
+  materialResourceSet->addSampler(5, _noMipSamplerState); // OpacityMap sampler
+
+  materialResourceSet->build(renderDevice);
+  return materialResourceSet;
 }
 
 void Renderer::initConstantBuffers(const std::shared_ptr<RenderDevice> &renderDevice)
@@ -565,6 +717,212 @@ void Renderer::initConstantBuffers(const std::shared_ptr<RenderDevice> &renderDe
   _pointLightBuffer = renderDevice->createGpuBuffer(pointLightBufferDesc);
 }
 
+void Renderer::initResourceSets(const std::shared_ptr<RenderDevice> &renderDevice)
+{
+  // Shadow Pass Resource Set Layout (Set 0)
+  _shadowPassLayout = renderDevice->createResourceSetLayout();
+  _shadowPassLayout->addBinding(0, ResourceType::UNIFORM_BUFFER); // PerObjectBuffer
+  _shadowPassLayout->addBinding(1, ResourceType::UNIFORM_BUFFER); // PerFrameBuffer
+  _shadowPassLayout->build(renderDevice);
+
+  // Point Light Depth Pass Resource Set Layout (Set 0)
+  _pointLightDepthPassLayout = renderDevice->createResourceSetLayout();
+  _pointLightDepthPassLayout->addBinding(0, ResourceType::UNIFORM_BUFFER); // PerObjectBuffer
+  _pointLightDepthPassLayout->addBinding(1, ResourceType::UNIFORM_BUFFER); // PerFrameBuffer
+  _pointLightDepthPassLayout->addBinding(2, ResourceType::UNIFORM_BUFFER); // PointLightBuffer
+  _pointLightDepthPassLayout->build(renderDevice);
+
+  // G-Buffer Pass Resource Set Layout (Set 0)
+  _gbufferPassLayout = renderDevice->createResourceSetLayout();
+  _gbufferPassLayout->addBinding(0, ResourceType::UNIFORM_BUFFER); // PerObjectBuffer
+  _gbufferPassLayout->build(renderDevice);
+
+  // Material Resource Set Layout (Set 1)
+  _materialLayout = renderDevice->createResourceSetLayout();
+  _materialLayout->addBinding(0, ResourceType::TEXTURE_2D); // DiffuseMap
+  _materialLayout->addBinding(1, ResourceType::TEXTURE_2D); // NormalMap
+  _materialLayout->addBinding(2, ResourceType::TEXTURE_2D); // MetallicMap
+  _materialLayout->addBinding(3, ResourceType::TEXTURE_2D); // RoughnessMap
+  _materialLayout->addBinding(4, ResourceType::TEXTURE_2D); // OcclusionMap
+  _materialLayout->addBinding(5, ResourceType::TEXTURE_2D); // OpacityMap
+  _materialLayout->addBinding(0, ResourceType::SAMPLER);    // DiffuseMap sampler
+  _materialLayout->addBinding(1, ResourceType::SAMPLER);    // NormalMap sampler
+  _materialLayout->addBinding(2, ResourceType::SAMPLER);    // MetallicMap sampler
+  _materialLayout->addBinding(3, ResourceType::SAMPLER);    // RoughnessMap sampler
+  _materialLayout->addBinding(4, ResourceType::SAMPLER);    // OcclusionMap sampler
+  _materialLayout->addBinding(5, ResourceType::SAMPLER);    // OpacityMap sampler
+  _materialLayout->build(renderDevice);
+
+  // SSAO Pass Resource Set Layout (Set 0)
+  _ssaoPassLayout = renderDevice->createResourceSetLayout();
+  _ssaoPassLayout->addBinding(0, ResourceType::UNIFORM_BUFFER); // SsaoConstantsBuffer
+  _ssaoPassLayout->addBinding(1, ResourceType::UNIFORM_BUFFER); // PerFrameBuffer
+  _ssaoPassLayout->addBinding(0, ResourceType::TEXTURE_2D);     // DepthMap (shader slot 0)
+  _ssaoPassLayout->addBinding(1, ResourceType::TEXTURE_2D);     // NormalMap (shader slot 1)
+  _ssaoPassLayout->addBinding(2, ResourceType::TEXTURE_2D);     // NoiseMap (shader slot 2)
+  _ssaoPassLayout->addBinding(0, ResourceType::SAMPLER);        // DepthMap sampler
+  _ssaoPassLayout->addBinding(1, ResourceType::SAMPLER);        // NormalMap sampler
+  _ssaoPassLayout->addBinding(2, ResourceType::SAMPLER);        // NoiseMap sampler
+  _ssaoPassLayout->build(renderDevice);
+
+  // SSAO Blur Pass Resource Set Layout (Set 0)
+  _ssaoBlurPassLayout = renderDevice->createResourceSetLayout();
+  _ssaoBlurPassLayout->addBinding(0, ResourceType::TEXTURE_2D); // SsaoMap (shader slot 0)
+  _ssaoBlurPassLayout->addBinding(0, ResourceType::SAMPLER);    // SsaoMap sampler
+  _ssaoBlurPassLayout->build(renderDevice);
+
+  // Lighting Pass Resource Set Layout (Set 0)
+  _lightingPassLayout = renderDevice->createResourceSetLayout();
+  _lightingPassLayout->addBinding(1, ResourceType::UNIFORM_BUFFER); // PerFrameBuffer (slot 1)
+  _lightingPassLayout->addBinding(2, ResourceType::UNIFORM_BUFFER); // CascadeShadowMapBuffer (slot 2)
+  _lightingPassLayout->addBinding(0, ResourceType::TEXTURE_2D);     // AlbedoMap (slot 0)
+  _lightingPassLayout->addBinding(1, ResourceType::TEXTURE_2D);     // DepthMap (slot 1)
+  _lightingPassLayout->addBinding(2, ResourceType::TEXTURE_2D);     // NormalMap (slot 2)
+  _lightingPassLayout->addBinding(3, ResourceType::TEXTURE_2D);     // MaterialMap (slot 3)
+  _lightingPassLayout->addBinding(4, ResourceType::TEXTURE_2D);     // ShadowMap (slot 4)
+  _lightingPassLayout->addBinding(5, ResourceType::TEXTURE_2D);     // OcclusionMap (slot 5)
+  _lightingPassLayout->addBinding(6, ResourceType::TEXTURE_2D);     // ShadowMask (slot 6)
+  _lightingPassLayout->addBinding(7, ResourceType::TEXTURE_2D);     // PointShadowMaps (slot 7)
+  _lightingPassLayout->addBinding(8, ResourceType::TEXTURE_2D);     // RandomRotationsMap (slot 8)
+  _lightingPassLayout->addBinding(0, ResourceType::SAMPLER);        // AlbedoMap sampler (slot 0)
+  _lightingPassLayout->addBinding(1, ResourceType::SAMPLER);        // DepthMap sampler (slot 1)
+  _lightingPassLayout->addBinding(2, ResourceType::SAMPLER);        // NormalMap sampler (slot 2)
+  _lightingPassLayout->addBinding(3, ResourceType::SAMPLER);        // MaterialMap sampler (slot 3)
+  _lightingPassLayout->addBinding(4, ResourceType::SAMPLER);        // ShadowMap sampler (slot 4)
+  _lightingPassLayout->addBinding(5, ResourceType::SAMPLER);        // OcclusionMap sampler (slot 5)
+  _lightingPassLayout->addBinding(6, ResourceType::SAMPLER);        // ShadowMask sampler (slot 6)
+  _lightingPassLayout->addBinding(7, ResourceType::SAMPLER);        // PointShadowMaps sampler (slot 7)
+  _lightingPassLayout->addBinding(8, ResourceType::SAMPLER);        // RandomRotationsMap sampler (slot 8)
+  _lightingPassLayout->build(renderDevice);
+
+  // Bloom Down Sample Pass Resource Set Layout (Set 0)
+  _bloomDownSamplePassLayout = renderDevice->createResourceSetLayout();
+  _bloomDownSamplePassLayout->addBinding(0, ResourceType::UNIFORM_BUFFER); // BloomBuffer
+  _bloomDownSamplePassLayout->addBinding(0, ResourceType::TEXTURE_2D);     // Source texture
+  _bloomDownSamplePassLayout->addBinding(0, ResourceType::SAMPLER);        // Sampler
+  _bloomDownSamplePassLayout->build(renderDevice);
+
+  // Bloom Up Sample Pass Resource Set Layout (Set 0)
+  _bloomUpSamplePassLayout = renderDevice->createResourceSetLayout();
+  _bloomUpSamplePassLayout->addBinding(0, ResourceType::UNIFORM_BUFFER); // BloomBuffer
+  _bloomUpSamplePassLayout->addBinding(0, ResourceType::TEXTURE_2D);     // Source texture
+  _bloomUpSamplePassLayout->addBinding(0, ResourceType::SAMPLER);        // Sampler
+  _bloomUpSamplePassLayout->build(renderDevice);
+
+  // Tone Mapping Pass Resource Set Layout (Set 0)
+  _toneMappingPassLayout = renderDevice->createResourceSetLayout();
+  _toneMappingPassLayout->addBinding(0, ResourceType::TEXTURE_2D);     // LightingMap (texture slot 0)
+  _toneMappingPassLayout->addBinding(1, ResourceType::TEXTURE_2D);     // BloomMap (texture slot 1)
+  _toneMappingPassLayout->addBinding(0, ResourceType::SAMPLER);        // Sampler for LightingMap (sampler slot 0)
+  _toneMappingPassLayout->addBinding(1, ResourceType::SAMPLER);        // Sampler for BloomMap (sampler slot 1)
+  _toneMappingPassLayout->addBinding(0, ResourceType::UNIFORM_BUFFER); // PerFrameBuffer
+  _toneMappingPassLayout->build(renderDevice);
+
+  // Debug Pass Resource Set Layout (Set 0)
+  _debugPassLayout = renderDevice->createResourceSetLayout();
+  _debugPassLayout->addBinding(0, ResourceType::UNIFORM_BUFFER); // TexturedQuadBuffer (slot 0)
+  _debugPassLayout->addBinding(0, ResourceType::TEXTURE_2D);     // Texture (slot 0)
+  _debugPassLayout->addBinding(1, ResourceType::TEXTURE_2D);     // TextureArray (slot 1)
+  _debugPassLayout->addBinding(2, ResourceType::TEXTURE_2D);     // TextureCubeArray (slot 2)
+  _debugPassLayout->addBinding(0, ResourceType::SAMPLER);        // Sampler for Texture (slot 0)
+  _debugPassLayout->addBinding(1, ResourceType::SAMPLER);        // Sampler for TextureArray (slot 1)
+  _debugPassLayout->addBinding(2, ResourceType::SAMPLER);        // Sampler for TextureCubeArray (slot 2)
+  _debugPassLayout->build(renderDevice);
+
+  // AABB Pass Resource Set Layout (Set 0)
+  _aabbPassLayout = renderDevice->createResourceSetLayout();
+  _aabbPassLayout->addBinding(0, ResourceType::UNIFORM_BUFFER); // ObjectBuffer (slot 0)
+  _aabbPassLayout->build(renderDevice);
+
+  // Create Resource Sets (will be updated per frame)
+  _shadowPassResourceSet = renderDevice->createResourceSet(_shadowPassLayout);
+  _pointLightDepthPassResourceSet = renderDevice->createResourceSet(_pointLightDepthPassLayout);
+  _gbufferPassResourceSet = renderDevice->createResourceSet(_gbufferPassLayout);
+  _ssaoPassResourceSet = renderDevice->createResourceSet(_ssaoPassLayout);
+  _ssaoBlurPassResourceSet = renderDevice->createResourceSet(_ssaoBlurPassLayout);
+  _lightingPassResourceSet = renderDevice->createResourceSet(_lightingPassLayout);
+  _bloomDownSamplePassResourceSet = renderDevice->createResourceSet(_bloomDownSamplePassLayout);
+  _bloomUpSamplePassResourceSet = renderDevice->createResourceSet(_bloomUpSamplePassLayout);
+  _toneMappingPassResourceSet = renderDevice->createResourceSet(_toneMappingPassLayout);
+  _debugPassResourceSet = renderDevice->createResourceSet(_debugPassLayout);
+  _aabbPassResourceSet = renderDevice->createResourceSet(_aabbPassLayout);
+
+  // Build initial resource sets (will be rebuilt when resources change)
+  updateResourceSets(renderDevice);
+}
+
+void Renderer::updateResourceSets(const std::shared_ptr<RenderDevice> &renderDevice)
+{
+  // Reset and rebuild shadow pass resource set
+  _shadowPassResourceSet->reset();
+  _shadowPassResourceSet->addUniformBuffer(0, _perObjectBuffer);
+  _shadowPassResourceSet->addUniformBuffer(1, _perFrameBuffer);
+  _shadowPassResourceSet->build(renderDevice);
+
+  // Reset and rebuild point light depth pass resource set
+  _pointLightDepthPassResourceSet->reset();
+  _pointLightDepthPassResourceSet->addUniformBuffer(0, _perObjectBuffer);
+  _pointLightDepthPassResourceSet->addUniformBuffer(1, _perFrameBuffer);
+  _pointLightDepthPassResourceSet->addUniformBuffer(2, _pointLightBuffer);
+  _pointLightDepthPassResourceSet->build(renderDevice);
+
+  // Reset and rebuild G-Buffer pass resource set
+  _gbufferPassResourceSet->reset();
+  _gbufferPassResourceSet->addUniformBuffer(0, _perObjectBuffer);
+  _gbufferPassResourceSet->build(renderDevice);
+
+  // Reset and rebuild SSAO pass resource set
+  _ssaoPassResourceSet->reset();
+  _ssaoPassResourceSet->addUniformBuffer(0, _ssaoConstantsBuffer);
+  _ssaoPassResourceSet->addUniformBuffer(1, _perFrameBuffer);
+  _ssaoPassResourceSet->addTexture(0, _gBufferRto->getDepthStencilTarget()); // DepthMap (shader slot 0)
+  _ssaoPassResourceSet->addTexture(1, _gBufferRto->getColourTarget(1));      // NormalMap (shader slot 1)
+  _ssaoPassResourceSet->addTexture(2, _ssaoNoiseTexture);                    // NoiseMap (shader slot 2)
+  _ssaoPassResourceSet->addSampler(0, _noMipSamplerState);                   // DepthMap sampler
+  _ssaoPassResourceSet->addSampler(1, _noMipSamplerState);                   // NormalMap sampler
+  _ssaoPassResourceSet->addSampler(2, _ssaoNoiseSampler);                    // NoiseMap sampler
+  _ssaoPassResourceSet->build(renderDevice);
+
+  // Reset and rebuild SSAO blur pass resource set
+  _ssaoBlurPassResourceSet->reset();
+  _ssaoBlurPassResourceSet->addTexture(0, _ssaoRto->getColourTarget(0)); // SsaoMap (shader slot 0)
+  _ssaoBlurPassResourceSet->addSampler(0, _noMipSamplerState);           // SsaoMap sampler
+  _ssaoBlurPassResourceSet->build(renderDevice);
+
+  // Reset and rebuild lighting pass resource set
+  _lightingPassResourceSet->reset();
+  _lightingPassResourceSet->addUniformBuffer(1, _perFrameBuffer);                        // PerFrameBuffer (slot 1)
+  _lightingPassResourceSet->addUniformBuffer(2, _perFrameBuffer);                        // CascadeShadowMapBuffer (slot 2, same data as PerFrameBuffer)
+  _lightingPassResourceSet->addTexture(0, _gBufferRto->getColourTarget(0));              // AlbedoMap (slot 0)
+  _lightingPassResourceSet->addTexture(1, _gBufferRto->getDepthStencilTarget());         // DepthMap (slot 1)
+  _lightingPassResourceSet->addTexture(2, _gBufferRto->getColourTarget(1));              // NormalMap (slot 2)
+  _lightingPassResourceSet->addTexture(3, _gBufferRto->getColourTarget(2));              // MaterialMap (slot 3)
+  _lightingPassResourceSet->addTexture(4, _shadowMapRto->getDepthStencilTarget());       // ShadowMap (slot 4)
+  _lightingPassResourceSet->addTexture(5, _ssaoBlurRto->getColourTarget(0));             // OcclusionMap (slot 5)
+  _lightingPassResourceSet->addTexture(6, _shadowMapRto->getDepthStencilTarget());       // ShadowMask (slot 6, same as ShadowMap)
+  _lightingPassResourceSet->addTexture(7, _pointLightDepthRto->getDepthStencilTarget()); // PointShadowMaps (slot 7)
+  _lightingPassResourceSet->addTexture(8, _randomRotationsMap);                          // RandomRotationsMap (slot 8)
+  _lightingPassResourceSet->addSampler(0, _linearNoMipSamplerState);                     // AlbedoMap sampler (slot 0)
+  _lightingPassResourceSet->addSampler(1, _noMipSamplerState);                           // DepthMap sampler (slot 1)
+  _lightingPassResourceSet->addSampler(2, _linearNoMipSamplerState);                     // NormalMap sampler (slot 2)
+  _lightingPassResourceSet->addSampler(3, _linearNoMipSamplerState);                     // MaterialMap sampler (slot 3)
+  _lightingPassResourceSet->addSampler(4, _shadowMapSamplerState);                       // ShadowMap sampler (slot 4)
+  _lightingPassResourceSet->addSampler(5, _linearNoMipSamplerState);                     // OcclusionMap sampler (slot 5)
+  _lightingPassResourceSet->addSampler(6, _shadowMapSamplerState);                       // ShadowMask sampler (slot 6)
+  _lightingPassResourceSet->addSampler(7, _shadowMapSamplerState);                       // PointShadowMaps sampler (slot 7)
+  _lightingPassResourceSet->addSampler(8, _linearNoMipSamplerState);                     // RandomRotationsMap sampler (slot 8)
+  _lightingPassResourceSet->build(renderDevice);
+
+  // Reset and rebuild tone mapping pass resource set
+  _toneMappingPassResourceSet->reset();
+  _toneMappingPassResourceSet->addTexture(0, _lightingPassRto->getColourTarget(0));
+  _toneMappingPassResourceSet->addTexture(1, _bloomDownSampleRtos[0]->getColourTarget(0));
+  _toneMappingPassResourceSet->addSampler(2, _noMipSamplerState);
+  _toneMappingPassResourceSet->addSampler(3, _noMipSamplerState);
+  _toneMappingPassResourceSet->addUniformBuffer(0, _perFrameBuffer);
+  _toneMappingPassResourceSet->build(renderDevice);
+}
+
 void Renderer::drawFrame(const std::shared_ptr<RenderDevice> &renderDevice,
                          const std::vector<std::shared_ptr<DrawableComponent>> &allDrawables,
                          const std::vector<std::shared_ptr<LightComponent>> &lights,
@@ -588,15 +946,20 @@ void Renderer::drawFrame(const std::shared_ptr<RenderDevice> &renderDevice,
   std::vector<std::shared_ptr<DrawableComponent>> opaqueDrawables, transparentDrawables, aabbDrawables;
   performFrustumCulling(allDrawables, camera, opaqueDrawables, transparentDrawables, aabbDrawables);
 
-  writePerFrameConstantData(camera, directionalLight, lights);
+  // Sort lights globally to ensure consistent ordering between shadow and lighting passes
+  std::vector<std::shared_ptr<LightComponent>> sortedLights = lights; // Make a copy
+  sortLightsForRendering(sortedLights, camera);
 
-  if (directionalLight) directionalLightDepthPass(renderDevice, allDrawables, directionalLight, camera);
-  pointLightDepthPass(renderDevice, allDrawables, lights, camera);
+  writePerFrameConstantData(camera, directionalLight, sortedLights);
+
+  if (directionalLight)
+    directionalLightDepthPass(renderDevice, allDrawables, directionalLight, camera);
+  pointLightDepthPass(renderDevice, allDrawables, sortedLights, camera);
   gbufferPass(renderDevice, opaqueDrawables, camera);
   transparencyPass(renderDevice, transparentDrawables, camera);
   // if (directionalLight) shadowPass(renderDevice);  // Commented out - using direct shadows now
   ssaoPass(renderDevice, camera);
-  lightingPass(renderDevice, lights, camera);
+  lightingPass(renderDevice, sortedLights, camera);
   bloomPass(renderDevice);
   toneMappingPass(renderDevice);
   debugPass(renderDevice, aabbDrawables, camera);
@@ -608,6 +971,7 @@ void Renderer::initSamplers(const std::shared_ptr<RenderDevice> &renderDevice)
   basicSamplerStateDesc.AddressingMode = AddressingMode{TextureAddressMode::Repeat, TextureAddressMode::Repeat, TextureAddressMode::Repeat};
   basicSamplerStateDesc.MinFiltering = TextureFilteringMode::LinearMipLinear;
   basicSamplerStateDesc.MagFiltering = TextureFilteringMode::Linear;
+  basicSamplerStateDesc.MaxAnisotropy = 16.0f; // High-quality anisotropic filtering
   _basicSamplerState = renderDevice->createSamplerState(basicSamplerStateDesc);
 
   SamplerStateDesc noMipSamplerState;
@@ -640,10 +1004,42 @@ void Renderer::initSamplers(const std::shared_ptr<RenderDevice> &renderDevice)
   bloomSamplerStateDesc.MinFiltering = TextureFilteringMode::Linear;
   bloomSamplerStateDesc.MagFiltering = TextureFilteringMode::Linear;
   _bloomSamplerState = renderDevice->createSamplerState(bloomSamplerStateDesc);
+
+  SamplerStateDesc linearNoMipSamplerStateDesc;
+  linearNoMipSamplerStateDesc.AddressingMode = AddressingMode{TextureAddressMode::Repeat, TextureAddressMode::Repeat, TextureAddressMode::Repeat};
+  linearNoMipSamplerStateDesc.MinFiltering = TextureFilteringMode::Linear;
+  linearNoMipSamplerStateDesc.MagFiltering = TextureFilteringMode::Linear;
+  _linearNoMipSamplerState = renderDevice->createSamplerState(linearNoMipSamplerStateDesc);
 }
 
 void Renderer::initTextures(const std::shared_ptr<RenderDevice> &renderDevice)
 {
+  // Create default white texture (1x1 white pixel) with mipmaps
+  TextureDesc whiteTextureDesc;
+  whiteTextureDesc.Width = 1;
+  whiteTextureDesc.Height = 1;
+  whiteTextureDesc.Format = TextureFormat::RGBA8;
+  whiteTextureDesc.Usage = TextureUsage::Default;
+  whiteTextureDesc.Type = TextureType::Texture2D;
+  whiteTextureDesc.MipLevels = 1; // 1x1 texture only needs 1 mip level
+  _defaultWhiteTexture = renderDevice->createTexture(whiteTextureDesc);
+
+  uint32 whitePixel = 0xFFFFFFFF;
+  _defaultWhiteTexture->writeData(0, 0, 0, 1, 0, 1, 0, 1, &whitePixel);
+
+  // Create default normal texture (1x1 normal pointing up: RGB(128, 128, 255)) with mipmaps
+  TextureDesc normalTextureDesc;
+  normalTextureDesc.Width = 1;
+  normalTextureDesc.Height = 1;
+  normalTextureDesc.Format = TextureFormat::RGBA8;
+  normalTextureDesc.Usage = TextureUsage::Default;
+  normalTextureDesc.Type = TextureType::Texture2D;
+  normalTextureDesc.MipLevels = 1; // 1x1 texture only needs 1 mip level
+  _defaultNormalTexture = renderDevice->createTexture(normalTextureDesc);
+
+  uint32 normalPixel = 0xFF8080FF; // ABGR format: A=255, B=128, G=128, R=255
+  _defaultNormalTexture->writeData(0, 0, 0, 1, 0, 1, 0, 1, &normalPixel);
+
   TextureDesc randomRotationsDesc;
   randomRotationsDesc.Width = RANDOM_ROTATION_TEXTURE_SIZE;
   randomRotationsDesc.Height = RANDOM_ROTATION_TEXTURE_SIZE;
@@ -852,6 +1248,10 @@ void Renderer::initGbufferPass(const std::shared_ptr<RenderDevice> &renderDevice
   colourTexDesc.Type = TextureType::Texture2D;
   colourTexDesc.Format = TextureFormat::RGBA8;
 
+  // Use higher precision format for albedo target to reduce banding
+  TextureDesc albedoTexDesc = colourTexDesc;
+  albedoTexDesc.Format = TextureFormat::RGBA16F;
+
   TextureDesc depthStencilDesc;
   depthStencilDesc.Width = _windowDims.X;
   depthStencilDesc.Height = _windowDims.Y;
@@ -860,9 +1260,9 @@ void Renderer::initGbufferPass(const std::shared_ptr<RenderDevice> &renderDevice
   depthStencilDesc.Format = TextureFormat::D24;
 
   RenderTargetDesc rtDesc;
-  rtDesc.ColourTargets[0] = renderDevice->createTexture(colourTexDesc);
-  rtDesc.ColourTargets[1] = renderDevice->createTexture(colourTexDesc);
-  rtDesc.ColourTargets[2] = renderDevice->createTexture(colourTexDesc);
+  rtDesc.ColourTargets[0] = renderDevice->createTexture(albedoTexDesc); // Albedo with higher precision
+  rtDesc.ColourTargets[1] = renderDevice->createTexture(colourTexDesc); // Normal
+  rtDesc.ColourTargets[2] = renderDevice->createTexture(colourTexDesc); // Material
   rtDesc.DepthStencilTarget = renderDevice->createTexture(depthStencilDesc);
   rtDesc.Height = _windowDims.Y;
   rtDesc.Width = _windowDims.X;
@@ -915,7 +1315,6 @@ void Renderer::initTransparencyPass(const std::shared_ptr<RenderDevice> &renderD
   _transparencyPso = renderDevice->createPipelineState(pipelineDesc);
 }
 
-
 void Renderer::initSsaoPass(const std::shared_ptr<RenderDevice> &renderDevice)
 {
   {
@@ -934,6 +1333,7 @@ void Renderer::initSsaoPass(const std::shared_ptr<RenderDevice> &renderDevice)
 
     std::shared_ptr<ShaderParams> shaderParams(new ShaderParams());
     shaderParams->addParam(ShaderParam("SsaoConstantsBuffer", ShaderParamType::ConstBuffer, 0));
+    shaderParams->addParam(ShaderParam("PerFrameBuffer", ShaderParamType::ConstBuffer, 1));
     shaderParams->addParam(ShaderParam("DepthMap", ShaderParamType::Texture, 0));
     shaderParams->addParam(ShaderParam("NormalMap", ShaderParamType::Texture, 1));
     shaderParams->addParam(ShaderParam("NoiseMap", ShaderParamType::Texture, 2));
@@ -1037,6 +1437,8 @@ void Renderer::initLightingPass(const std::shared_ptr<RenderDevice> &renderDevic
   shaderParams->addParam(ShaderParam("ShadowMask", ShaderParamType::Texture, 6));
   // Expose point-light shadow cubemap for point shadows
   shaderParams->addParam(ShaderParam("PointShadowMaps", ShaderParamType::Texture, 7));
+  // Expose random rotations map for Poisson sampling
+  shaderParams->addParam(ShaderParam("RandomRotationsMap", ShaderParamType::Texture, 8));
 
   RasterizerStateDesc rasterizerStateDesc{};
 
@@ -1322,14 +1724,15 @@ void Renderer::directionalLightDepthPass(const std::shared_ptr<RenderDevice> &re
   std::vector<Matrix4> lightTransforms = calculateCascadeLightTransforms(camera, directionalLight);
   _shadowFrustum->buildFromLightTransforms(lightTransforms, _cascadeCount);
   _shadowFrustum->buildExtendedCameraFrustum(*camera, _maxCascadeDistance);
-  
+
   // Perform shadow culling
   std::vector<std::shared_ptr<DrawableComponent>> broadPhaseCulled = _shadowFrustum->broadPhaseCull(drawables);
   std::vector<std::shared_ptr<DrawableComponent>> shadowCasters = _shadowFrustum->shadowRelevanceFilter(broadPhaseCulled);
-  
+
   // Setup shadow queue and sort for optimal rendering
   _shadowQueue->clear();
-  for (const auto& drawable : shadowCasters) {
+  for (const auto &drawable : shadowCasters)
+  {
     _shadowQueue->add(drawable);
   }
   _shadowQueue->sort(*camera);
@@ -1342,8 +1745,8 @@ void Renderer::directionalLightDepthPass(const std::shared_ptr<RenderDevice> &re
   renderDevice->setViewport(viewportDesc);
   renderDevice->setRenderTarget(_shadowMapRto);
   renderDevice->clearBuffers(RTT_Depth);
-  renderDevice->setConstantBuffer(0, _perObjectBuffer);
-  renderDevice->setConstantBuffer(1, _perFrameBuffer);
+
+  renderDevice->bindResourceSet(_shadowPassResourceSet, 0);
 
   // Render culled and sorted shadow casters
   for (const auto &drawable : _shadowQueue->getDrawables())
@@ -1370,36 +1773,17 @@ void Renderer::gbufferPass(std::shared_ptr<RenderDevice> renderDevice,
   renderDevice->setPipelineState(_gBufferPso);
   renderDevice->setRenderTarget(_gBufferRto);
   renderDevice->clearBuffers(RTT_Colour | RTT_Depth | RTT_Stencil);
-  renderDevice->setConstantBuffer(0, _perObjectBuffer);
+  renderDevice->bindResourceSet(_gbufferPassResourceSet, 0);
 
   for (const auto &drawable : drawables)
   {
-    std::shared_ptr<Material> material(drawable->getMaterial());
-    if (material->hasDiffuseTexture())
-    {
-      renderDevice->setTexture(0, material->getDiffuseTexture());
-      renderDevice->setSamplerState(0, _basicSamplerState);
-    }
-    if (material->hasNormalTexture())
-    {
-      renderDevice->setTexture(1, material->getNormalTexture());
-      renderDevice->setSamplerState(1, _basicSamplerState);
-    }
-    if (material->hasMetallicTexture())
-    {
-      renderDevice->setTexture(2, material->getMetallicTexture());
-      renderDevice->setSamplerState(2, _basicSamplerState);
-    }
-    if (material->hasRoughnessTexture())
-    {
-      renderDevice->setTexture(3, material->getRoughnessTexture());
-      renderDevice->setSamplerState(3, _basicSamplerState);
-    }
-    if (material->hasOcclusionTexture())
-    {
-      renderDevice->setTexture(4, material->getOcclusionTexture());
-      renderDevice->setSamplerState(4, _basicSamplerState);
-    }
+    auto material = drawable->getMaterial();
+    if (!material)
+      continue;
+
+    // Create and bind material resource set
+    auto materialResourceSet = createMaterialResourceSet(renderDevice, material);
+    renderDevice->bindResourceSet(materialResourceSet, 1);
 
     drawDrawable(renderDevice, drawable, material, camera);
   }
@@ -1416,41 +1800,16 @@ void Renderer::transparencyPass(const std::shared_ptr<RenderDevice> &renderDevic
 
   renderDevice->setPipelineState(_transparencyPso);
   renderDevice->setRenderTarget(_gBufferRto);
-  renderDevice->setConstantBuffer(0, _perObjectBuffer);
+  renderDevice->bindResourceSet(_gbufferPassResourceSet, 0);
 
   for (const auto &drawable : transparentDrawables)
   {
-    std::shared_ptr<Material> material(drawable->getMaterial());
-    if (material->hasDiffuseTexture())
-    {
-      renderDevice->setTexture(0, material->getDiffuseTexture());
-      renderDevice->setSamplerState(0, _basicSamplerState);
-    }
-    if (material->hasNormalTexture())
-    {
-      renderDevice->setTexture(1, material->getNormalTexture());
-      renderDevice->setSamplerState(1, _basicSamplerState);
-    }
-    if (material->hasMetallicTexture())
-    {
-      renderDevice->setTexture(2, material->getMetallicTexture());
-      renderDevice->setSamplerState(2, _basicSamplerState);
-    }
-    if (material->hasRoughnessTexture())
-    {
-      renderDevice->setTexture(3, material->getRoughnessTexture());
-      renderDevice->setSamplerState(3, _basicSamplerState);
-    }
-    if (material->hasOcclusionTexture())
-    {
-      renderDevice->setTexture(4, material->getOcclusionTexture());
-      renderDevice->setSamplerState(4, _basicSamplerState);
-    }
-    if (material->hasOpacityTexture())
-    {
-      renderDevice->setTexture(5, material->getOpacityTexture());
-      renderDevice->setSamplerState(5, _noMipSamplerState);
-    }
+    auto material = drawable->getMaterial();
+    if (!material)
+      continue;
+
+    auto materialResourceSet = createMaterialResourceSet(renderDevice, material);
+    renderDevice->bindResourceSet(materialResourceSet, 1);
 
     drawDrawable(renderDevice, drawable, material, camera);
   }
@@ -1458,7 +1817,6 @@ void Renderer::transparencyPass(const std::shared_ptr<RenderDevice> &renderDevic
   std::chrono::time_point end = std::chrono::high_resolution_clock::now();
   _renderPassTimings[2].Duration = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
 }
-
 
 void Renderer::ssaoPass(const std::shared_ptr<RenderDevice> &renderDevice,
                         const std::shared_ptr<CameraComponent> &camera)
@@ -1473,20 +1831,13 @@ void Renderer::ssaoPass(const std::shared_ptr<RenderDevice> &renderDevice,
 
   renderDevice->setPipelineState(_ssaoPso);
   renderDevice->setRenderTarget(_ssaoRto);
-  renderDevice->setTexture(0, _gBufferRto->getDepthStencilTarget());
-  renderDevice->setTexture(1, _gBufferRto->getColourTarget(1));
-  renderDevice->setTexture(2, _ssaoNoiseTexture);
-  renderDevice->setSamplerState(0, _noMipSamplerState);
-  renderDevice->setSamplerState(1, _noMipSamplerState);
-  renderDevice->setSamplerState(2, _ssaoNoiseSampler);
-  renderDevice->setConstantBuffer(0, _ssaoConstantsBuffer);
+  renderDevice->bindResourceSet(_ssaoPassResourceSet, 0);
   renderDevice->setVertexBuffer(_fsQuadVertexBuffer);
   renderDevice->draw(6, 0);
 
   renderDevice->setPipelineState(_ssaoBlurPso);
   renderDevice->setRenderTarget(_ssaoBlurRto);
-  renderDevice->setTexture(0, _ssaoRto->getColourTarget(0));
-  renderDevice->setSamplerState(0, _noMipSamplerState);
+  renderDevice->bindResourceSet(_ssaoBlurPassResourceSet, 0);
   renderDevice->setVertexBuffer(_fsQuadVertexBuffer);
   renderDevice->draw(6, 0);
 
@@ -1502,27 +1853,9 @@ void Renderer::lightingPass(const std::shared_ptr<RenderDevice> &renderDevice,
 
   renderDevice->setPipelineState(_lightingPso);
   renderDevice->setRenderTarget(_lightingPassRto);
-  renderDevice->setTexture(0, _gBufferRto->getColourTarget(0));
-  renderDevice->setTexture(1, _gBufferRto->getDepthStencilTarget());
-  renderDevice->setTexture(2, _gBufferRto->getColourTarget(1));
-  renderDevice->setTexture(3, _gBufferRto->getColourTarget(2));
-  renderDevice->setTexture(4, _shadowMapRto->getDepthStencilTarget());  // cascade shadow maps for direct calculation
-  renderDevice->setTexture(5, _ssaoBlurRto->getColourTarget(0));
-  renderDevice->setTexture(7, _pointLightDepthRto->getDepthStencilTarget());  // point-light depth cubemap
-  renderDevice->setTexture(8, _randomRotationsMap);  // random rotations for Poisson sampling
-  renderDevice->setSamplerState(0, _noMipSamplerState);
-  renderDevice->setSamplerState(1, _noMipSamplerState);
-  renderDevice->setSamplerState(2, _noMipSamplerState);
-  renderDevice->setSamplerState(3, _noMipSamplerState);
-  renderDevice->setSamplerState(4, _noMipSamplerState);
-  renderDevice->setSamplerState(5, _noMipSamplerState);
-  renderDevice->setSamplerState(6, _shadowMapSamplerState);
-  renderDevice->setSamplerState(7, _shadowMapSamplerState);
-  renderDevice->setConstantBuffer(1, _perFrameBuffer);
-  renderDevice->setConstantBuffer(2, _perFrameBuffer);  // CascadeShadowMapBuffer uses same data as PerFrameBuffer
-
+  renderDevice->bindResourceSet(_lightingPassResourceSet, 0);
   renderDevice->setVertexBuffer(_fsQuadVertexBuffer);
-   renderDevice->draw(6, 0);
+  renderDevice->draw(6, 0);
 
   std::chrono::time_point end = std::chrono::high_resolution_clock::now();
   _renderPassTimings[5].Duration = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
@@ -1532,13 +1865,13 @@ void Renderer::bloomPass(const std::shared_ptr<RenderDevice> &renderDevice)
 {
   std::chrono::time_point start = std::chrono::high_resolution_clock::now();
 
-  renderDevice->setTexture(0, _lightingPassRto->getColourTarget(1)); // Use bloom output
-  renderDevice->setSamplerState(0, _bloomSamplerState);
   renderDevice->setPipelineState(_bloomDownSamplePso);
 
   // Progressively downsample through the bloom mip chain.
-  for (const auto &bloomDownSampleRto : _bloomDownSampleRtos)
+  for (size_t i = 0; i < _bloomDownSampleRtos.size(); ++i)
   {
+    const auto &bloomDownSampleRto = _bloomDownSampleRtos[i];
+
     ViewportDesc viewportDesc;
     viewportDesc.Width = bloomDownSampleRto->getDesc().Width;
     viewportDesc.Height = bloomDownSampleRto->getDesc().Height;
@@ -1548,34 +1881,50 @@ void Renderer::bloomPass(const std::shared_ptr<RenderDevice> &renderDevice)
     bufferData.FilterRadius = _bloomFilter;
     bufferData.SourceResolution = Vector2(viewportDesc.Width, viewportDesc.Height);
     _bloomBuffer->writeData(0, sizeof(BloomBuffer), &bufferData, AccessType::WriteOnlyDiscard);
-    renderDevice->setConstantBuffer(0, _bloomBuffer);
+
+    // Update and bind resource set for this downsample iteration
+    _bloomDownSamplePassResourceSet->reset();
+    _bloomDownSamplePassResourceSet->addUniformBuffer(0, _bloomBuffer);
+    if (i == 0)
+    {
+      // First iteration uses bloom output from lighting pass
+      _bloomDownSamplePassResourceSet->addTexture(0, _lightingPassRto->getColourTarget(1));
+    }
+    else
+    {
+      // Subsequent iterations use the previous downsample result
+      _bloomDownSamplePassResourceSet->addTexture(0, _bloomDownSampleRtos[i - 1]->getColourTarget(0));
+    }
+    _bloomDownSamplePassResourceSet->addSampler(0, _bloomSamplerState);
+    _bloomDownSamplePassResourceSet->build(renderDevice);
 
     renderDevice->setRenderTarget(bloomDownSampleRto);
-
+    renderDevice->bindResourceSet(_bloomDownSamplePassResourceSet, 0);
     renderDevice->setVertexBuffer(_fsQuadVertexBuffer);
     renderDevice->draw(6, 0);
-
-    renderDevice->setTexture(0, bloomDownSampleRto->getColourTarget(0));
   }
 
   // Repeat the process but instead upsample from the back to front of the mip chain.
-  renderDevice->setSamplerState(0, _bloomSamplerState);
   renderDevice->setPipelineState(_bloomUpSamplePso);
-  renderDevice->setConstantBuffer(0, _bloomBuffer);
 
   for (uint32 i = _bloomDownSampleRtos.size() - 1; i > 0; i--)
   {
     const auto &currentRto = _bloomDownSampleRtos[i];
     const auto &nextRto = _bloomDownSampleRtos[i - 1];
 
-    renderDevice->setTexture(0, currentRto->getColourTarget(0));
+    // Update and bind resource set for this upsample iteration
+    _bloomUpSamplePassResourceSet->reset();
+    _bloomUpSamplePassResourceSet->addUniformBuffer(0, _bloomBuffer);
+    _bloomUpSamplePassResourceSet->addTexture(0, currentRto->getColourTarget(0));
+    _bloomUpSamplePassResourceSet->addSampler(0, _bloomSamplerState);
+    _bloomUpSamplePassResourceSet->build(renderDevice);
 
     ViewportDesc viewportDesc{};
     viewportDesc.Width = nextRto->getDesc().Width;
     viewportDesc.Height = nextRto->getDesc().Height;
     renderDevice->setViewport(viewportDesc);
     renderDevice->setRenderTarget(nextRto);
-
+    renderDevice->bindResourceSet(_bloomUpSamplePassResourceSet, 0);
     renderDevice->setVertexBuffer(_fsQuadVertexBuffer);
     renderDevice->draw(6, 0);
   }
@@ -1595,12 +1944,7 @@ void Renderer::toneMappingPass(const std::shared_ptr<RenderDevice> &renderDevice
 
   renderDevice->setPipelineState(_toneMappingPso);
   renderDevice->setRenderTarget(_toneMappingRto);
-  renderDevice->setTexture(0, _lightingPassRto->getColourTarget(0));
-  renderDevice->setTexture(1, _bloomDownSampleRtos[0]->getColourTarget(0));
-  renderDevice->setSamplerState(0, _noMipSamplerState);
-  renderDevice->setSamplerState(1, _noMipSamplerState);
-  renderDevice->setConstantBuffer(1, _perFrameBuffer);
-
+  renderDevice->bindResourceSet(_toneMappingPassResourceSet, 0);
   renderDevice->setVertexBuffer(_fsQuadVertexBuffer);
   renderDevice->draw(6, 0);
 
@@ -1630,14 +1974,14 @@ void Renderer::debugPass(const std::shared_ptr<RenderDevice> &renderDevice,
     drawDebugRenderTarget(renderDevice, _gBufferRto->getColourTarget(0), camera);
     break;
   }
-   case DebugDisplayType::Normal:
+  case DebugDisplayType::Normal:
   {
     drawDebugRenderTarget(renderDevice, _gBufferRto->getColourTarget(1), camera);
     break;
   }
   case DebugDisplayType::Specular:
   {
-           drawDebugRenderTarget(renderDevice, _gBufferRto->getColourTarget(2), camera);
+    drawDebugRenderTarget(renderDevice, _gBufferRto->getColourTarget(2), camera);
     break;
   }
   case DebugDisplayType::Depth:
@@ -1653,17 +1997,27 @@ void Renderer::debugPass(const std::shared_ptr<RenderDevice> &renderDevice,
     texturedQuadBufferData.FarClip = camera->getFar();
     texturedQuadBufferData.SingleChannel = true;
     texturedQuadBufferData.ArraySlice = _pointLightCubeMapToDraw;
-    texturedQuadBufferData.TextureArray = false;  // Not a regular array
+    texturedQuadBufferData.TextureArray = false; // Not a regular array
     texturedQuadBufferData.OrthographicDepth = false;
     texturedQuadBufferData.PerspectiveDepth = true;
-    texturedQuadBufferData.CubeArray = true;  // This is a cube array
+    texturedQuadBufferData.CubeArray = true; // This is a cube array
 
     renderDevice->setPipelineState(_editorDrawTexturedQuadPso);
-    renderDevice->setConstantBuffer(0, _fullscreenQuadBuffer);
-    renderDevice->setTexture(2, _pointLightDepthRto->getDepthStencilTarget());  // Bind to slot 2 for cube array
-    renderDevice->setSamplerState(2, _noMipSamplerState);
+
+    // Reset and configure debug pass resource set for cube array
+    _debugPassResourceSet->reset();
+    _debugPassResourceSet->addUniformBuffer(0, _fullscreenQuadBuffer);
+    _debugPassResourceSet->addTexture(0, getDefaultWhiteTexture());                     // Placeholder for Texture
+    _debugPassResourceSet->addTexture(1, getDefaultWhiteTexture());                     // Placeholder for TextureArray
+    _debugPassResourceSet->addTexture(2, _pointLightDepthRto->getDepthStencilTarget()); // TextureCubeArray (slot 2)
+    _debugPassResourceSet->addSampler(0, _noMipSamplerState);
+    _debugPassResourceSet->addSampler(1, _noMipSamplerState);
+    _debugPassResourceSet->addSampler(2, _noMipSamplerState);
 
     _fullscreenQuadBuffer->writeData(0, sizeof(TexturedQuadBuffer), &texturedQuadBufferData, AccessType::WriteOnlyDiscard);
+    _debugPassResourceSet->build(renderDevice);
+
+    renderDevice->bindResourceSet(_debugPassResourceSet, 0);
     renderDevice->setRenderTarget(nullptr);
     renderDevice->clearBuffers(RTT_Colour | RTT_Depth);
     renderDevice->setVertexBuffer(_fsQuadVertexBuffer);
@@ -1726,7 +2080,12 @@ void Renderer::drawAabb(const std::shared_ptr<RenderDevice> &renderDevice,
     objectBufferData.ModelViewProjection = camera->getProj() * objectBufferData.ModelView;
     _perObjectBuffer->writeData(0, sizeof(PerObjectBufferData), &objectBufferData, AccessType::WriteOnlyDiscard);
 
-    renderDevice->setConstantBuffer(0, _perObjectBuffer);
+    // Reset and configure AABB pass resource set
+    _aabbPassResourceSet->reset();
+    _aabbPassResourceSet->addUniformBuffer(0, _perObjectBuffer);
+    _aabbPassResourceSet->build(renderDevice);
+
+    renderDevice->bindResourceSet(_aabbPassResourceSet, 0);
     renderDevice->setVertexBuffer(_aabbVertexBuffer);
     renderDevice->draw(AabbCoords.size(), 0);
   }
@@ -1745,15 +2104,24 @@ void Renderer::drawDebugRenderTarget(std::shared_ptr<RenderDevice> renderDevice,
   texturedQuadBufferData.ArraySlice = _shadowMapLayerToDraw;
 
   renderDevice->setPipelineState(_editorDrawTexturedQuadPso);
-  renderDevice->setConstantBuffer(0, _fullscreenQuadBuffer);
+
+  // Reset and configure debug pass resource set
+  _debugPassResourceSet->reset();
+  _debugPassResourceSet->addUniformBuffer(0, _fullscreenQuadBuffer);
 
   if (renderTarget->getDesc().Usage == TextureUsage::RenderTarget)
   {
     texturedQuadBufferData.TextureArray = false;
     texturedQuadBufferData.OrthographicDepth = false;
     texturedQuadBufferData.PerspectiveDepth = false;
-    renderDevice->setTexture(0, renderTarget);
-    renderDevice->setSamplerState(0, _noMipSamplerState);
+    texturedQuadBufferData.CubeArray = false;
+
+    _debugPassResourceSet->addTexture(0, renderTarget);
+    _debugPassResourceSet->addTexture(1, getDefaultWhiteTexture()); // Placeholder for TextureArray
+    _debugPassResourceSet->addTexture(2, getDefaultWhiteTexture()); // Placeholder for TextureCubeArray
+    _debugPassResourceSet->addSampler(0, _noMipSamplerState);
+    _debugPassResourceSet->addSampler(1, _noMipSamplerState);
+    _debugPassResourceSet->addSampler(2, _noMipSamplerState);
   }
   else if (renderTarget->getDesc().Usage == TextureUsage::Depth)
   {
@@ -1762,16 +2130,28 @@ void Renderer::drawDebugRenderTarget(std::shared_ptr<RenderDevice> renderDevice,
       texturedQuadBufferData.TextureArray = true;
       texturedQuadBufferData.OrthographicDepth = orthographicDepth;
       texturedQuadBufferData.PerspectiveDepth = !orthographicDepth;
-      renderDevice->setTexture(1, renderTarget);
-      renderDevice->setSamplerState(1, _noMipSamplerState);
+      texturedQuadBufferData.CubeArray = false;
+
+      _debugPassResourceSet->addTexture(0, getDefaultWhiteTexture()); // Placeholder for Texture
+      _debugPassResourceSet->addTexture(1, renderTarget);
+      _debugPassResourceSet->addTexture(2, getDefaultWhiteTexture()); // Placeholder for TextureCubeArray
+      _debugPassResourceSet->addSampler(0, _noMipSamplerState);
+      _debugPassResourceSet->addSampler(1, _noMipSamplerState);
+      _debugPassResourceSet->addSampler(2, _noMipSamplerState);
     }
     else if (renderTarget->getTextureType() == TextureType::Texture2D)
     {
       texturedQuadBufferData.TextureArray = false;
       texturedQuadBufferData.OrthographicDepth = orthographicDepth;
       texturedQuadBufferData.PerspectiveDepth = !orthographicDepth;
-      renderDevice->setTexture(0, renderTarget);
-      renderDevice->setSamplerState(0, _noMipSamplerState);
+      texturedQuadBufferData.CubeArray = false;
+
+      _debugPassResourceSet->addTexture(0, renderTarget);
+      _debugPassResourceSet->addTexture(1, getDefaultWhiteTexture()); // Placeholder for TextureArray
+      _debugPassResourceSet->addTexture(2, getDefaultWhiteTexture()); // Placeholder for TextureCubeArray
+      _debugPassResourceSet->addSampler(0, _noMipSamplerState);
+      _debugPassResourceSet->addSampler(1, _noMipSamplerState);
+      _debugPassResourceSet->addSampler(2, _noMipSamplerState);
     }
     else
     {
@@ -1783,7 +2163,12 @@ void Renderer::drawDebugRenderTarget(std::shared_ptr<RenderDevice> renderDevice,
     return;
   }
 
+  // Write buffer data and build resource set
   _fullscreenQuadBuffer->writeData(0, sizeof(TexturedQuadBuffer), &texturedQuadBufferData, AccessType::WriteOnlyDiscard);
+  _debugPassResourceSet->build(renderDevice);
+
+  // Bind resource set and draw
+  renderDevice->bindResourceSet(_debugPassResourceSet, 0);
   renderDevice->setRenderTarget(nullptr);
   renderDevice->clearBuffers(RTT_Colour | RTT_Depth);
   renderDevice->setVertexBuffer(_fsQuadVertexBuffer);
@@ -1973,14 +2358,14 @@ void Renderer::writeSsaoConstantData(const std::shared_ptr<RenderDevice> &render
   std::uniform_real_distribution<float32> randomFloats(0.0f, 1.0f);
   // reuse global deterministic RNG for sample kernel
   auto &generator = g_ssaoGenerator;
-   std::vector<Vector3> ssaoKernel;
-   ssaoKernel.reserve(_ssaoSamples);
+  std::vector<Vector3> ssaoKernel;
+  ssaoKernel.reserve(_ssaoSamples);
 
-   for (uint32 i = 0; i < _ssaoSamples; ++i)
-   {
-     Vector3 sample(randomFloats(generator, randomFloats.param()) * 2.0f - 1.0f,
-                    randomFloats(generator, randomFloats.param()) * 2.0f - 1.0f,
-                    randomFloats(generator, randomFloats.param()));
+  for (uint32 i = 0; i < _ssaoSamples; ++i)
+  {
+    Vector3 sample(randomFloats(generator, randomFloats.param()) * 2.0f - 1.0f,
+                   randomFloats(generator, randomFloats.param()) * 2.0f - 1.0f,
+                   randomFloats(generator, randomFloats.param()));
 
     sample.Normalize();
     sample *= randomFloats(generator, randomFloats.param());
@@ -2005,13 +2390,13 @@ void Renderer::writeSsaoConstantData(const std::shared_ptr<RenderDevice> &render
   _ssaoConstantsBuffer->writeData(0, sizeof(SsaoConstantsData), &ssaoConstantsData, AccessType::WriteOnlyDiscard);
 }
 
-void Renderer::writePointLightConstantData(uint32 lightIndex, const Vector3& position, float32 farPlane, const std::array<Matrix4, 6>& shadowMatrices) const
+void Renderer::writePointLightConstantData(uint32 lightIndex, const Vector3 &position, float32 farPlane, const std::array<Matrix4, 6> &shadowMatrices) const
 {
   PointLightBufferData pointLightBufferData{};
   pointLightBufferData.Position = position;
   pointLightBufferData.FarPlane = farPlane;
   pointLightBufferData.LightIndex = lightIndex;
-  
+
   // Copy the 6 shadow matrices for the point light cubemap faces
   for (uint32 i = 0; i < 6; ++i)
   {
@@ -2020,32 +2405,78 @@ void Renderer::writePointLightConstantData(uint32 lightIndex, const Vector3& pos
   _pointLightBuffer->writeData(0, sizeof(PointLightBufferData), &pointLightBufferData, AccessType::WriteOnlyDiscard);
 }
 
-void Renderer::performFrustumCulling(const std::vector<std::shared_ptr<DrawableComponent>>& allDrawables,
-                                     const std::shared_ptr<CameraComponent>& camera,
-                                     std::vector<std::shared_ptr<DrawableComponent>>& opaqueDrawables,
-                                     std::vector<std::shared_ptr<DrawableComponent>>& transparentDrawables,
-                                     std::vector<std::shared_ptr<DrawableComponent>>& aabbDrawables)
+void Renderer::sortLightsForRendering(std::vector<std::shared_ptr<LightComponent>> &lights, const std::shared_ptr<CameraComponent> &camera) const
 {
-   // Clear cached vectors and reserve capacity to avoid reallocations
-   _cachedOpaqueDrawables.clear();
-   _cachedTransparentDrawables.clear();
-   _cachedAabbDrawables.clear();
-   
-   // Reserve capacity based on typical scene composition (avoid repeated reallocations)
-   _cachedOpaqueDrawables.reserve(allDrawables.size() * 3 / 4); // Estimate 75% opaque
-   _cachedTransparentDrawables.reserve(allDrawables.size() / 4); // Estimate 25% transparent
-   _cachedAabbDrawables.reserve(allDrawables.size() / 10); // Estimate 10% with debug AABB
+  const Vector3 cameraPosition = camera->getWorldPosition();
 
-  for (const auto& drawable : allDrawables)
+  // Sort lights with specific priority:
+  // 1. Directional lights first (maintain their position)
+  // 2. Point lights with shadows enabled, sorted by distance (closest first)
+  // 3. Point lights without shadows, sorted by distance
+  // 4. Other light types
+  std::stable_sort(lights.begin(), lights.end(),
+                   [&cameraPosition](const std::shared_ptr<LightComponent> &lightA, const std::shared_ptr<LightComponent> &lightB)
+                   {
+                     // Directional lights always come first
+                     if (lightA->getLightType() == LightComponentType::Directional && lightB->getLightType() != LightComponentType::Directional)
+                       return true;
+                     if (lightB->getLightType() == LightComponentType::Directional && lightA->getLightType() != LightComponentType::Directional)
+                       return false;
+
+                     // If both are directional, maintain relative order
+                     if (lightA->getLightType() == LightComponentType::Directional && lightB->getLightType() == LightComponentType::Directional)
+                       return false;
+
+                     // For point lights, prioritize shadow casters
+                     bool aIsPointWithShadows = (lightA->getLightType() == LightComponentType::Point && lightA->getCastsShadows());
+                     bool bIsPointWithShadows = (lightB->getLightType() == LightComponentType::Point && lightB->getCastsShadows());
+
+                     if (aIsPointWithShadows && !bIsPointWithShadows)
+                       return true;
+                     if (bIsPointWithShadows && !aIsPointWithShadows)
+                       return false;
+
+                     // If both are point lights (with or without shadows), sort by distance
+                     if (lightA->getLightType() == LightComponentType::Point && lightB->getLightType() == LightComponentType::Point)
+                     {
+                       Vector3 lightPosA = lightA->getPosition();
+                       Vector3 lightPosB = lightB->getPosition();
+                       float32 distanceA = (cameraPosition - lightPosA).Length();
+                       float32 distanceB = (cameraPosition - lightPosB).Length();
+                       return distanceA < distanceB;
+                     }
+
+                     // For other cases, maintain relative order
+                     return false;
+                   });
+}
+
+void Renderer::performFrustumCulling(const std::vector<std::shared_ptr<DrawableComponent>> &allDrawables,
+                                     const std::shared_ptr<CameraComponent> &camera,
+                                     std::vector<std::shared_ptr<DrawableComponent>> &opaqueDrawables,
+                                     std::vector<std::shared_ptr<DrawableComponent>> &transparentDrawables,
+                                     std::vector<std::shared_ptr<DrawableComponent>> &aabbDrawables)
+{
+  // Clear cached vectors and reserve capacity to avoid reallocations
+  _cachedOpaqueDrawables.clear();
+  _cachedTransparentDrawables.clear();
+  _cachedAabbDrawables.clear();
+
+  // Reserve capacity based on typical scene composition (avoid repeated reallocations)
+  _cachedOpaqueDrawables.reserve(allDrawables.size() * 3 / 4);  // Estimate 75% opaque
+  _cachedTransparentDrawables.reserve(allDrawables.size() / 4); // Estimate 25% transparent
+  _cachedAabbDrawables.reserve(allDrawables.size() / 10);       // Estimate 10% with debug AABB
+
+  for (const auto &drawable : allDrawables)
   {
     // PERFORMANCE OPTIMIZATION: Use cached transform instead of creating new Transform every frame
-    const TransformComponent* transform = drawable->getTransform();
+    const TransformComponent *transform = drawable->getTransform();
     if (transform && camera->contains(drawable->getAabb(), Matrix4::Identity))
     {
       // If the drawable is not visible, skip it
       if (!drawable->isVisible())
         continue;
-        
+
       // Direct classification without double processing through RenderQueue
       if (drawable->getMaterial()->hasOpacityTexture())
       {
@@ -2055,7 +2486,7 @@ void Renderer::performFrustumCulling(const std::vector<std::shared_ptr<DrawableC
       {
         _cachedOpaqueDrawables.push_back(drawable);
       }
-      
+
       if (drawable->shouldDrawAabb())
       {
         _cachedAabbDrawables.push_back(drawable);
@@ -2066,35 +2497,39 @@ void Renderer::performFrustumCulling(const std::vector<std::shared_ptr<DrawableC
 
   // Efficient sorting using cached distance calculation to avoid repeated computations
   const Vector3 cameraPos = camera->getWorldPosition();
-  
+
   // Sort opaque objects front-to-back for better z-culling
-  std::sort(_cachedOpaqueDrawables.begin(), _cachedOpaqueDrawables.end(), 
-           [&cameraPos](const auto& a, const auto& b) {
-               // Calculate distance once and cache
-               const auto* transformA = a->getTransform();
-               const auto* transformB = b->getTransform();
-               if (!transformA || !transformB) return false;
-               
-               Vector3 posA = transformA->getPosition();
-               Vector3 posB = transformB->getPosition();
-               float distA = (cameraPos - posA).Length();
-               float distB = (cameraPos - posB).Length();
-               return distA < distB;
-           });
-  
+  std::sort(_cachedOpaqueDrawables.begin(), _cachedOpaqueDrawables.end(),
+            [&cameraPos](const auto &a, const auto &b)
+            {
+              // Calculate distance once and cache
+              const auto *transformA = a->getTransform();
+              const auto *transformB = b->getTransform();
+              if (!transformA || !transformB)
+                return false;
+
+              Vector3 posA = transformA->getPosition();
+              Vector3 posB = transformB->getPosition();
+              float distA = (cameraPos - posA).Length();
+              float distB = (cameraPos - posB).Length();
+              return distA < distB;
+            });
+
   // Sort transparent objects back-to-front for proper alpha blending
-  std::sort(_cachedTransparentDrawables.begin(), _cachedTransparentDrawables.end(), 
-           [&cameraPos](const auto& a, const auto& b) {
-               const auto* transformA = a->getTransform();
-               const auto* transformB = b->getTransform();
-               if (!transformA || !transformB) return false;
-               
-               Vector3 posA = transformA->getPosition();
-               Vector3 posB = transformB->getPosition();
-               float distA = (cameraPos - posA).Length();
-               float distB = (cameraPos - posB).Length();
-               return distA > distB; // Note: reversed for back-to-front
-           });
+  std::sort(_cachedTransparentDrawables.begin(), _cachedTransparentDrawables.end(),
+            [&cameraPos](const auto &a, const auto &b)
+            {
+              const auto *transformA = a->getTransform();
+              const auto *transformB = b->getTransform();
+              if (!transformA || !transformB)
+                return false;
+
+              Vector3 posA = transformA->getPosition();
+              Vector3 posB = transformB->getPosition();
+              float distA = (cameraPos - posA).Length();
+              float distB = (cameraPos - posB).Length();
+              return distA > distB; // Note: reversed for back-to-front
+            });
 
   // Move results efficiently using move semantics
   opaqueDrawables = std::move(_cachedOpaqueDrawables);
@@ -2102,146 +2537,123 @@ void Renderer::performFrustumCulling(const std::vector<std::shared_ptr<DrawableC
   aabbDrawables = std::move(_cachedAabbDrawables);
 }
 
-void Renderer::pointLightDepthPass(const std::shared_ptr<RenderDevice>& renderDevice,
+std::shared_ptr<Texture> Renderer::getDefaultWhiteTexture() const
+{
+  return _defaultWhiteTexture;
+}
+
+std::shared_ptr<Texture> Renderer::getDefaultNormalTexture() const
+{
+  return _defaultNormalTexture;
+}
+
+void Renderer::pointLightDepthPass(const std::shared_ptr<RenderDevice> &renderDevice,
                                    const std::vector<std::shared_ptr<DrawableComponent>> &drawables,
                                    const std::vector<std::shared_ptr<LightComponent>> &lights,
                                    const std::shared_ptr<CameraComponent> &camera)
 {
-    ViewportDesc viewportDesc;
-    viewportDesc.Height = _pointLightShadowMapResolution;
-    viewportDesc.Width = _pointLightShadowMapResolution;
-    renderDevice->setViewport(viewportDesc);
-    renderDevice->setPipelineState(_pointLightDepthPso);
-    renderDevice->setRenderTarget(_pointLightDepthRto);
-    renderDevice->clearBuffers(RTT_Depth);
-    renderDevice->setConstantBuffer(0, _perObjectBuffer);
-    renderDevice->setConstantBuffer(1, _perFrameBuffer);
-    renderDevice->setConstantBuffer(2, _pointLightBuffer);
+  ViewportDesc viewportDesc;
+  viewportDesc.Height = _pointLightShadowMapResolution;
+  viewportDesc.Width = _pointLightShadowMapResolution;
+  renderDevice->setViewport(viewportDesc);
+  renderDevice->setPipelineState(_pointLightDepthPso);
+  renderDevice->setRenderTarget(_pointLightDepthRto);
+  renderDevice->clearBuffers(RTT_Depth);
+  renderDevice->bindResourceSet(_pointLightDepthPassResourceSet, 0);
 
-    int lightCount = 0;
+  // Lights are already sorted by sortLightsForRendering(), so process sequentially
+  // Track the index in the filtered non-directional lights array for shader consistency
+  uint32 filteredLightIndex = 0; // Index in Constants.Lights[] array
+  int shadowCasterCount = 0;
 
-    // TODO: Choose closest lights first
-    for (const auto& light : lights) {
-      if (lightCount >= MAX_POINT_LIGHT_SHADOW_CASTERS) {
-        break;
+  for (uint32 i = 0; i < lights.size(); ++i)
+  {
+    const auto &light = lights[i];
+
+    // Skip directional lights
+    if (light->getLightType() == LightComponentType::Directional)
+      continue;
+
+    // For point lights that cast shadows
+    if (light->getLightType() == LightComponentType::Point)
+    {
+      if (shadowCasterCount >= MAX_POINT_LIGHT_SHADOW_CASTERS)
+      {
+        filteredLightIndex++; // Still increment to maintain index consistency
+        continue;
       }
 
-      if (light->getLightType() != LightComponentType::Point)
-          continue;
+      // Skip lights that don't cast shadows
+      if (!light->getCastsShadows())
+      {
+        filteredLightIndex++; // Still increment to maintain index consistency
+        continue;
+      }
 
-        // Compute six 90° view-proj matrices for this point light
-        Vector3 pos = light->getPosition();
-        float nearPlane = 0.1f;
-        float farPlane = light->getRadius();
-        const std::array<Vector3,6> dirs = {{
-          Vector3( 1, 0, 0), Vector3(-1, 0, 0),
-          Vector3( 0, 1, 0), Vector3( 0,-1, 0),
-          Vector3( 0, 0, 1), Vector3( 0, 0,-1)
-      }};
-      const std::array<Vector3,6> ups = {{
-          Vector3(0,-1, 0), Vector3(0,-1, 0),
-          Vector3(0, 0, 1), Vector3(0, 0,-1),
-          Vector3(0,-1, 0), Vector3(0,-1, 0)
-      }};
-      std::array<Matrix4,6> shadowMatrices;
+      // Compute six 90° view-proj matrices for this point light
+      Vector3 pos = light->getPosition();
+      float nearPlane = 0.1f;
+      float farPlane = light->getRadius();
+      const std::array<Vector3, 6> dirs = {{Vector3(1, 0, 0), Vector3(-1, 0, 0),
+                                            Vector3(0, 1, 0), Vector3(0, -1, 0),
+                                            Vector3(0, 0, 1), Vector3(0, 0, -1)}};
+      const std::array<Vector3, 6> ups = {{Vector3(0, -1, 0), Vector3(0, -1, 0),
+                                           Vector3(0, 0, 1), Vector3(0, 0, -1),
+                                           Vector3(0, -1, 0), Vector3(0, -1, 0)}};
+      std::array<Matrix4, 6> shadowMatrices;
       Matrix4 proj = Matrix4::Perspective(Degree(90.0f), 1.0f, nearPlane, farPlane);
-      for (int i = 0; i < 6; ++i) {
+      for (int i = 0; i < 6; ++i)
+      {
         Matrix4 view = Matrix4::LookAt(pos, pos + dirs[i], ups[i]);
         shadowMatrices[i] = proj * view;
       }
-      
-      writePointLightConstantData(lightCount++, pos, farPlane, shadowMatrices);
 
-      // Draw all shadow-casting drawables
-      for (const auto &drawable : drawables)
+      // Use filteredLightIndex to match Constants.Lights[] array indexing
+      writePointLightConstantData(filteredLightIndex, pos, farPlane, shadowMatrices);
+      shadowCasterCount++;
+
+      // Check culling settings and only perform necessary culling work
+      const auto &cullingSettings = _pointLightCuller->getCullingSettings();
+
+      // Always use the PointLightCuller for consistent culling and statistics
+      auto cullingResult = _pointLightCuller->cullObjectsForPointLight(light, drawables);
+
+      // Store per-light culling statistics
+      light->setCullingStats(&cullingResult);
+
+      // Get final objects to render (deduplicated from all faces)
+      std::vector<std::shared_ptr<DrawableComponent>> finalObjects;
+      if (cullingSettings.enableFaceCulling)
+      {
+        // Combine all face-culled objects and deduplicate
+        for (int face = 0; face < 6; ++face)
+        {
+          const auto &faceObjects = cullingResult.faceCulled[face];
+          finalObjects.insert(finalObjects.end(), faceObjects.begin(), faceObjects.end());
+        }
+
+        // Remove duplicates since objects can appear in multiple faces
+        std::sort(finalObjects.begin(), finalObjects.end());
+        finalObjects.erase(std::unique(finalObjects.begin(), finalObjects.end()), finalObjects.end());
+      }
+      else
+      {
+        // No face culling - use sphere culled objects directly
+        finalObjects = cullingResult.sphereCulled;
+      }
+
+      // Render the final culled objects
+      for (const auto &drawable : finalObjects)
       {
         std::shared_ptr<Material> material(drawable->getMaterial());
         drawDrawable(renderDevice, drawable, material, camera);
       }
     }
-}
 
-void Renderer::pointLightDepthPassOptimized(const std::shared_ptr<RenderDevice>& renderDevice,
-                                           const std::vector<std::shared_ptr<DrawableComponent>>& drawables,
-                                           const std::vector<std::shared_ptr<LightComponent>>& lights,
-                                           const std::shared_ptr<CameraComponent>& camera)
-{
-    std::chrono::time_point start = std::chrono::high_resolution_clock::now();
+    // Increment the filtered light index for all non-directional lights
+    filteredLightIndex++;
 
-    ViewportDesc viewportDesc;
-    viewportDesc.Height = _pointLightShadowMapResolution;
-    viewportDesc.Width = _pointLightShadowMapResolution;
-    renderDevice->setViewport(viewportDesc);
-    renderDevice->setPipelineState(_pointLightDepthPso);
-    renderDevice->setRenderTarget(_pointLightDepthRto);
-    renderDevice->clearBuffers(RTT_Depth);
-    renderDevice->setConstantBuffer(0, _perObjectBuffer);
-    renderDevice->setConstantBuffer(1, _perFrameBuffer);
-    renderDevice->setConstantBuffer(2, _pointLightBuffer);
-
-    int lightCount = 0;
-    
-    // TODO: Choose closest lights first (distance from camera)
-    for (const auto& light : lights) {
-        if (lightCount >= MAX_POINT_LIGHT_SHADOW_CASTERS) {
-            break;
-        }
-
-        if (light->getLightType() != LightComponentType::Point || !light->getCastsShadows()) {
-            continue;
-        }
-
-        // Perform point light culling
-        PointLightCuller::CullingResult cullingResult = _pointLightCuller->cullObjectsForPointLight(light, drawables);
-        
-        // Debug output for culling efficiency (can be removed in release)
-        #ifdef DEBUG_POINT_LIGHT_CULLING
-        std::cout << "Point Light " << lightCount << " Culling Stats:\n";
-        std::cout << "  Original objects: " << cullingResult.originalCount << "\n";
-        std::cout << "  After sphere cull: " << cullingResult.sphereCulledCount 
-                  << " (" << (cullingResult.sphereCullingRatio() * 100.0f) << "%)\n";
-        std::cout << "  Average face cull: " << (cullingResult.averageFaceCullingRatio() * 100.0f) << "%\n";
-        #endif
-
-        // Setup light matrices (same as original implementation)
-        Vector3 pos = light->getPosition();
-        float nearPlane = 0.1f;
-        float farPlane = light->getRadius();
-        
-        const std::array<Vector3,6> dirs = {{
-            Vector3( 1, 0, 0), Vector3(-1, 0, 0),
-            Vector3( 0, 1, 0), Vector3( 0,-1, 0),
-            Vector3( 0, 0, 1), Vector3( 0, 0,-1)
-        }};
-        const std::array<Vector3,6> ups = {{
-            Vector3(0,-1, 0), Vector3(0,-1, 0),
-            Vector3(0, 0, 1), Vector3(0, 0,-1),
-            Vector3(0,-1, 0), Vector3(0,-1, 0)
-        }};
-        
-        std::array<Matrix4,6> shadowMatrices;
-        Matrix4 proj = Matrix4::Perspective(Degree(90.0f), 1.0f, nearPlane, farPlane);
-        for (int i = 0; i < 6; ++i) {
-            Matrix4 view = Matrix4::LookAt(pos, pos + dirs[i], ups[i]);
-            shadowMatrices[i] = proj * view;
-        }
-        
-        writePointLightConstantData(lightCount++, pos, farPlane, shadowMatrices);
-
-        // Render each cubemap face with face-specific culled objects
-        for (uint32 faceIndex = 0; faceIndex < 6; ++faceIndex) {
-            const auto& faceObjects = cullingResult.faceCulled[faceIndex];
-            
-            // Only render if we have objects for this face
-            if (!faceObjects.empty()) {
-                for (const auto& drawable : faceObjects) {
-                    std::shared_ptr<Material> material(drawable->getMaterial());
-                    drawDrawable(renderDevice, drawable, material, camera);
-                }
-            }
-        }
-    }
-    
-    std::chrono::time_point end = std::chrono::high_resolution_clock::now();
-    _renderPassTimings[0].Duration = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
+    // Handle other light types (spots, etc.) here if needed
+    // For now, just increment the counter to maintain consistency
+  }
 }

@@ -1,7 +1,17 @@
 #include "GLSamplerState.hpp"
 
+#include <algorithm>
+#include <cstring>
 #include "../../Utility/Assert.hpp"
 #include "GL.hpp"
+
+// GL_EXT_texture_filter_anisotropic extension constants
+#ifndef GL_TEXTURE_MAX_ANISOTROPY_EXT
+#define GL_TEXTURE_MAX_ANISOTROPY_EXT 0x84FE
+#endif
+#ifndef GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT
+#define GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT 0x84FF
+#endif
 
 GLenum getTextureAddressingMode(TextureAddressMode addressingMode)
 {
@@ -28,6 +38,21 @@ GLSamplerState::~GLSamplerState()
   }
 }
 
+void *GLSamplerState::getNativeHandle() const
+{
+  if (!isValid())
+  {
+    throw std::runtime_error("Sampler state is not valid");
+  }
+
+  return reinterpret_cast<void *>(static_cast<uintptr_t>(_id));
+}
+
+bool GLSamplerState::isValid() const
+{
+  return _id != 0 && _initalized;
+}
+
 GLSamplerState::GLSamplerState(const SamplerStateDesc &desc) : SamplerState(desc), _id(0), _initalized(false)
 {
   initialize();
@@ -47,6 +72,9 @@ void GLSamplerState::initialize()
   setTextureMinMipFiltering(getMinFilteringMode());
   setTextureMagFiltering(getMagFilteringMode());
   setBorderColour(getBorderColour());
+  setAnisotropicFiltering(getMaxAnisotropy());
+
+  _initalized = true;
 }
 
 void GLSamplerState::setTextureAddressingMode(AddressingMode addressingMode)
@@ -119,4 +147,38 @@ void GLSamplerState::setBorderColour(Colour borderColour)
 {
   const float32 colour[4] = {borderColour[0], borderColour[1], borderColour[2], borderColour[3]};
   glCall(glSamplerParameterfv(_id, GL_TEXTURE_BORDER_COLOR, colour));
+}
+
+void GLSamplerState::setAnisotropicFiltering(float maxAnisotropy)
+{
+  if (isInitialized())
+  {
+    return;
+  }
+
+  // Check if anisotropic filtering extension is available
+  if (maxAnisotropy > 1.0f)
+  {
+    // Check for EXT_texture_filter_anisotropic extension
+    static bool extensionChecked = false;
+    static bool hasAnisotropicExtension = false;
+
+    if (!extensionChecked)
+    {
+      const char *extensions = reinterpret_cast<const char *>(glGetString(GL_EXTENSIONS));
+      hasAnisotropicExtension = (extensions && strstr(extensions, "GL_EXT_texture_filter_anisotropic") != nullptr);
+      extensionChecked = true;
+    }
+
+    if (hasAnisotropicExtension)
+    {
+      // Get maximum supported anisotropy level
+      float maxSupportedAnisotropy = 1.0f;
+      glCall(glGetFloatv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &maxSupportedAnisotropy));
+
+      // Clamp to supported range
+      float clampedAnisotropy = std::min(maxAnisotropy, maxSupportedAnisotropy);
+      glCall(glSamplerParameterf(_id, GL_TEXTURE_MAX_ANISOTROPY_EXT, clampedAnisotropy));
+    }
+  }
 }

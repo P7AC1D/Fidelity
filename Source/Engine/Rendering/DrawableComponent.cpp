@@ -67,7 +67,7 @@ ComponentTypeId DrawableComponent::getTypeId() const
 void DrawableComponent::drawInspector()
 {
   // Use ImGuiTreeNodeFlags to control the behavior and make it stay open by default
-  ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_CollapsingHeader;
+  ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_DefaultOpen;
   if (ImGui::CollapsingHeader("Drawable", flags))
   {
     // Visibility controls

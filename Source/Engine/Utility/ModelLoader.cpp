@@ -102,7 +102,7 @@ std::shared_ptr<Material> buildMaterial(std::shared_ptr<RenderDevice> renderDevi
     aiMaterial->GetTexture(aiTextureType_DIFFUSE, 0, &diffuseTexturePath);
     if (diffuseTexturePath.length != 0)
     {
-      auto diffuseTexture = TextureLoader::loadFromFile2D(renderDevice, filePath + diffuseTexturePath.C_Str(), true);
+      auto diffuseTexture = TextureLoader::loadFromFile2D(renderDevice, filePath + diffuseTexturePath.C_Str(), true, true);
       diffuseTexture->generateMips();
       material->setDiffuseTexture(diffuseTexture);
     }
@@ -114,7 +114,7 @@ std::shared_ptr<Material> buildMaterial(std::shared_ptr<RenderDevice> renderDevi
     aiMaterial->GetTexture(aiTextureType_NORMALS, 0, &normalTexturePath);
     if (normalTexturePath.length != 0)
     {
-      auto normalTexture = TextureLoader::loadFromFile2D(renderDevice, filePath + normalTexturePath.C_Str());
+      auto normalTexture = TextureLoader::loadFromFile2D(renderDevice, filePath + normalTexturePath.C_Str(), true, false);
       normalTexture->generateMips();
       material->setNormalTexture(normalTexture);
     }
@@ -126,7 +126,7 @@ std::shared_ptr<Material> buildMaterial(std::shared_ptr<RenderDevice> renderDevi
     aiMaterial->GetTexture(aiTextureType_SPECULAR, 0, &specularTexturePath);
     if (specularTexturePath.length != 0)
     {
-      auto specularTexture = TextureLoader::loadFromFile2D(renderDevice, filePath + specularTexturePath.C_Str());
+      auto specularTexture = TextureLoader::loadFromFile2D(renderDevice, filePath + specularTexturePath.C_Str(), true, false);
       specularTexture->generateMips();
       material->setMetallicTexture(specularTexture);
     }
@@ -138,7 +138,7 @@ std::shared_ptr<Material> buildMaterial(std::shared_ptr<RenderDevice> renderDevi
     aiMaterial->GetTexture(aiTextureType_SHININESS, 0, &texturePath);
     if (texturePath.length != 0)
     {
-      auto texture = TextureLoader::loadFromFile2D(renderDevice, filePath + texturePath.C_Str());
+      auto texture = TextureLoader::loadFromFile2D(renderDevice, filePath + texturePath.C_Str(), true, false);
       texture->generateMips();
       material->setRoughnessTexture(texture);
     }
@@ -150,7 +150,8 @@ std::shared_ptr<Material> buildMaterial(std::shared_ptr<RenderDevice> renderDevi
     aiMaterial->GetTexture(aiTextureType_OPACITY, 0, &opacityTexturePath);
     if (opacityTexturePath.length != 0)
     {
-      auto opacityTexture = TextureLoader::loadFromFile2D(renderDevice, filePath + opacityTexturePath.C_Str());
+      auto opacityTexture = TextureLoader::loadFromFile2D(renderDevice, filePath + opacityTexturePath.C_Str(), true, false);
+      opacityTexture->generateMips();
       material->setOpacityTexture(opacityTexture);
     }
   }

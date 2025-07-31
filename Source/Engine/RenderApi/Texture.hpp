@@ -1,6 +1,7 @@
 #pragma once
 #include <memory>
 #include "../Image/ImageData.hpp"
+#include "ResourceHandle.hpp"
 
 enum class TextureFormat
 {
@@ -59,7 +60,7 @@ struct TextureDesc
   TextureUsage Usage = TextureUsage::Default;
 };
 
-class Texture
+class Texture : public ResourceHandle
 {
 public:
   Texture(const TextureDesc &desc, bool gammaCorrected) : _desc(desc), _gammaCorrected(gammaCorrected), _isInitialized(false) {}

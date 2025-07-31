@@ -1,5 +1,6 @@
 #pragma once
 #include "../Maths/Colour.hpp"
+#include "ResourceHandle.hpp"
 
 enum class TextureAddressMode
 {
@@ -40,15 +41,18 @@ struct SamplerStateDesc
   /// @brief The texture magnification function is used when the pixel being textured maps to an area less than or equal to one texture element.
   TextureFilteringMode MagFiltering = TextureFilteringMode::Nearest;
   Colour BorderColour = Colour::Black;
+  /// @brief Maximum anisotropy level for anisotropic filtering (1.0f = disabled, higher values = better quality)
+  float MaxAnisotropy = 1.0f;
 };
 
-class SamplerState
+class SamplerState : public ResourceHandle
 {
 public:
   AddressingMode getAddressingMode() const { return _desc.AddressingMode; }
   TextureFilteringMode getMinFilteringMode() const { return _desc.MinFiltering; }
   TextureFilteringMode getMagFilteringMode() const { return _desc.MagFiltering; }
   Colour getBorderColour() const { return _desc.BorderColour; }
+  float getMaxAnisotropy() const { return _desc.MaxAnisotropy; }
 
 protected:
   SamplerState(const SamplerStateDesc &desc) : _desc(desc) {}
