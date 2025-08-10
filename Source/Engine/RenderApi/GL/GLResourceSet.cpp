@@ -12,12 +12,13 @@ void GLResourceSetLayout::addBinding(uint32 binding, ResourceType type, uint32 c
 {
   assert(!mIsBuilt && "Cannot add bindings after layout is built");
 
-  // Check for duplicate bindings
+  // Check for duplicate bindings of the same type at the same slot
+  // Different resource types can share the same binding slot (e.g., texture and sampler at binding 0)
   auto it = std::find_if(mBindings.begin(), mBindings.end(),
-                         [binding](const BindingInfo &info)
-                         { return info.binding == binding; });
+                         [binding, type](const BindingInfo &info)
+                         { return info.binding == binding && info.type == type; });
 
-  assert(it == mBindings.end() && "Binding slot already used");
+  assert(it == mBindings.end() && "Binding slot already used for this resource type");
 
   mBindings.push_back({binding, type, count});
 }

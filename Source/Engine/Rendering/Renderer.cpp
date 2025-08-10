@@ -22,6 +22,7 @@ static std::mt19937 g_ssaoGenerator(0);
 #include "../RenderApi/Texture.hpp"
 #include "../RenderApi/VertexBuffer.hpp"
 #include "../RenderApi/VertexLayout.hpp"
+#include "../RenderApi/CommandBuffer.hpp"
 #include "../UI/ImGui/imgui.h"
 #include "../Utility/Assert.hpp"
 #include "../Utility/String.hpp"
@@ -323,6 +324,9 @@ bool Renderer::init(const std::shared_ptr<RenderDevice> &renderDevice)
 
     // Initialize resource sets after all resources are created
     initResourceSets(renderDevice);
+
+    // Initialize command buffers after all other resources are ready
+    initCommandBuffers(renderDevice);
   }
   catch (const std::exception &e)
   {
@@ -851,6 +855,20 @@ void Renderer::initResourceSets(const std::shared_ptr<RenderDevice> &renderDevic
   updateResourceSets(renderDevice);
 }
 
+void Renderer::initCommandBuffers(const std::shared_ptr<RenderDevice> &renderDevice)
+{
+  // Create command buffers for each render pass
+  _shadowCommandBuffer = renderDevice->createCommandBuffer();
+  _pointLightDepthCommandBuffer = renderDevice->createCommandBuffer();
+  _gbufferCommandBuffer = renderDevice->createCommandBuffer();
+  _transparencyCommandBuffer = renderDevice->createCommandBuffer();
+  _ssaoCommandBuffer = renderDevice->createCommandBuffer();
+  _lightingCommandBuffer = renderDevice->createCommandBuffer();
+  _bloomCommandBuffer = renderDevice->createCommandBuffer();
+  _toneMappingCommandBuffer = renderDevice->createCommandBuffer();
+  _debugCommandBuffer = renderDevice->createCommandBuffer();
+}
+
 void Renderer::updateResourceSets(const std::shared_ptr<RenderDevice> &renderDevice)
 {
   // Reset and rebuild shadow pass resource set
@@ -955,7 +973,10 @@ void Renderer::drawFrame(const std::shared_ptr<RenderDevice> &renderDevice,
   if (directionalLight)
     directionalLightDepthPass(renderDevice, allDrawables, directionalLight, camera);
   pointLightDepthPass(renderDevice, allDrawables, sortedLights, camera);
+
+  // G-Buffer pass for deferred rendering
   gbufferPass(renderDevice, opaqueDrawables, camera);
+
   transparencyPass(renderDevice, transparentDrawables, camera);
   // if (directionalLight) shadowPass(renderDevice);  // Commented out - using direct shadows now
   ssaoPass(renderDevice, camera);
@@ -1737,44 +1758,61 @@ void Renderer::directionalLightDepthPass(const std::shared_ptr<RenderDevice> &re
   }
   _shadowQueue->sort(*camera);
 
-  renderDevice->setPipelineState(_shadowMapPso);
+  // Begin command buffer recording
+  _shadowCommandBuffer->begin(CommandBufferUsage::OneTimeSubmit);
 
+  // Set pipeline state first (to match original order)
+  _shadowCommandBuffer->setPipelineState(_shadowMapPso);
+
+  // Set viewport before beginning render pass
   ViewportDesc viewportDesc;
   viewportDesc.Height = _shadowMapResolution;
   viewportDesc.Width = _shadowMapResolution;
-  renderDevice->setViewport(viewportDesc);
-  renderDevice->setRenderTarget(_shadowMapRto);
-  renderDevice->clearBuffers(RTT_Depth);
+  _shadowCommandBuffer->setViewport(viewportDesc);
 
-  renderDevice->bindResourceSet(_shadowPassResourceSet, 0);
+  // Begin render pass
+  _shadowCommandBuffer->beginRenderPass(_shadowMapRto, false, true, false);
+  _shadowCommandBuffer->bindResourceSet(_shadowPassResourceSet, 0);
 
   // Render culled and sorted shadow casters
   for (const auto &drawable : _shadowQueue->getDrawables())
   {
     std::shared_ptr<Material> material(drawable->getMaterial());
-    drawDrawable(renderDevice, drawable, material, camera);
+    drawDrawable(_shadowCommandBuffer, renderDevice, drawable, material, camera);
   }
+
+  // End render pass and command buffer
+  _shadowCommandBuffer->endRenderPass();
+  _shadowCommandBuffer->end();
+  _shadowCommandBuffer->execute();
 
   std::chrono::time_point end = std::chrono::high_resolution_clock::now();
   _renderPassTimings[0].Duration = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
 }
 
-void Renderer::gbufferPass(std::shared_ptr<RenderDevice> renderDevice,
+void Renderer::gbufferPass(const std::shared_ptr<RenderDevice> &renderDevice,
                            const std::vector<std::shared_ptr<DrawableComponent>> &drawables,
                            const std::shared_ptr<CameraComponent> &camera)
 {
   std::chrono::time_point start = std::chrono::high_resolution_clock::now();
 
+  // Begin command buffer recording
+  _gbufferCommandBuffer->begin(CommandBufferUsage::OneTimeSubmit);
+
+  // Begin render pass
+  _gbufferCommandBuffer->beginRenderPass(_gBufferRto, true, true, true);
+
+  // Set viewport
   ViewportDesc viewportDesc;
   viewportDesc.Width = _windowDims.X;
   viewportDesc.Height = _windowDims.Y;
-  renderDevice->setViewport(viewportDesc);
+  _gbufferCommandBuffer->setViewport(viewportDesc);
 
-  renderDevice->setPipelineState(_gBufferPso);
-  renderDevice->setRenderTarget(_gBufferRto);
-  renderDevice->clearBuffers(RTT_Colour | RTT_Depth | RTT_Stencil);
-  renderDevice->bindResourceSet(_gbufferPassResourceSet, 0);
+  // Set pipeline state and bind resource sets
+  _gbufferCommandBuffer->setPipelineState(_gBufferPso);
+  _gbufferCommandBuffer->bindResourceSet(_gbufferPassResourceSet, 0);
 
+  // Draw all drawables
   for (const auto &drawable : drawables)
   {
     auto material = drawable->getMaterial();
@@ -1783,10 +1821,15 @@ void Renderer::gbufferPass(std::shared_ptr<RenderDevice> renderDevice,
 
     // Create and bind material resource set
     auto materialResourceSet = createMaterialResourceSet(renderDevice, material);
-    renderDevice->bindResourceSet(materialResourceSet, 1);
+    _gbufferCommandBuffer->bindResourceSet(materialResourceSet, 1);
 
-    drawDrawable(renderDevice, drawable, material, camera);
+    drawDrawable(_gbufferCommandBuffer, renderDevice, drawable, material, camera);
   }
+
+  // End render pass and command buffer
+  _gbufferCommandBuffer->endRenderPass();
+  _gbufferCommandBuffer->end();
+  _gbufferCommandBuffer->execute();
 
   std::chrono::time_point end = std::chrono::high_resolution_clock::now();
   _renderPassTimings[1].Duration = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
@@ -1798,10 +1841,17 @@ void Renderer::transparencyPass(const std::shared_ptr<RenderDevice> &renderDevic
 {
   std::chrono::time_point start = std::chrono::high_resolution_clock::now();
 
-  renderDevice->setPipelineState(_transparencyPso);
-  renderDevice->setRenderTarget(_gBufferRto);
-  renderDevice->bindResourceSet(_gbufferPassResourceSet, 0);
+  // Begin command buffer recording
+  _transparencyCommandBuffer->begin(CommandBufferUsage::OneTimeSubmit);
 
+  // Set pipeline state
+  _transparencyCommandBuffer->setPipelineState(_transparencyPso);
+
+  // Begin render pass (continuing from gbuffer pass)
+  _transparencyCommandBuffer->beginRenderPass(_gBufferRto, false, false, false);
+  _transparencyCommandBuffer->bindResourceSet(_gbufferPassResourceSet, 0);
+
+  // Draw all transparent drawables
   for (const auto &drawable : transparentDrawables)
   {
     auto material = drawable->getMaterial();
@@ -1809,10 +1859,15 @@ void Renderer::transparencyPass(const std::shared_ptr<RenderDevice> &renderDevic
       continue;
 
     auto materialResourceSet = createMaterialResourceSet(renderDevice, material);
-    renderDevice->bindResourceSet(materialResourceSet, 1);
+    _transparencyCommandBuffer->bindResourceSet(materialResourceSet, 1);
 
-    drawDrawable(renderDevice, drawable, material, camera);
+    drawDrawable(_transparencyCommandBuffer, renderDevice, drawable, material, camera);
   }
+
+  // End render pass and command buffer
+  _transparencyCommandBuffer->endRenderPass();
+  _transparencyCommandBuffer->end();
+  _transparencyCommandBuffer->execute();
 
   std::chrono::time_point end = std::chrono::high_resolution_clock::now();
   _renderPassTimings[2].Duration = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
@@ -1829,17 +1884,28 @@ void Renderer::ssaoPass(const std::shared_ptr<RenderDevice> &renderDevice,
     _ssaoSettingsModified = false;
   }
 
-  renderDevice->setPipelineState(_ssaoPso);
-  renderDevice->setRenderTarget(_ssaoRto);
-  renderDevice->bindResourceSet(_ssaoPassResourceSet, 0);
-  renderDevice->setVertexBuffer(_fsQuadVertexBuffer);
-  renderDevice->draw(6, 0);
+  // Begin command buffer recording
+  _ssaoCommandBuffer->begin(CommandBufferUsage::OneTimeSubmit);
 
-  renderDevice->setPipelineState(_ssaoBlurPso);
-  renderDevice->setRenderTarget(_ssaoBlurRto);
-  renderDevice->bindResourceSet(_ssaoBlurPassResourceSet, 0);
-  renderDevice->setVertexBuffer(_fsQuadVertexBuffer);
-  renderDevice->draw(6, 0);
+  // SSAO generation pass
+  _ssaoCommandBuffer->setPipelineState(_ssaoPso);
+  _ssaoCommandBuffer->beginRenderPass(_ssaoRto, true, false, false);
+  _ssaoCommandBuffer->bindResourceSet(_ssaoPassResourceSet, 0);
+  _ssaoCommandBuffer->bindVertexBuffer(_fsQuadVertexBuffer);
+  _ssaoCommandBuffer->draw(6, 0);
+  _ssaoCommandBuffer->endRenderPass();
+
+  // SSAO blur pass
+  _ssaoCommandBuffer->setPipelineState(_ssaoBlurPso);
+  _ssaoCommandBuffer->beginRenderPass(_ssaoBlurRto, true, false, false);
+  _ssaoCommandBuffer->bindResourceSet(_ssaoBlurPassResourceSet, 0);
+  _ssaoCommandBuffer->bindVertexBuffer(_fsQuadVertexBuffer);
+  _ssaoCommandBuffer->draw(6, 0);
+  _ssaoCommandBuffer->endRenderPass();
+
+  // End command buffer and execute
+  _ssaoCommandBuffer->end();
+  _ssaoCommandBuffer->execute();
 
   std::chrono::time_point end = std::chrono::high_resolution_clock::now();
   _renderPassTimings[4].Duration = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
@@ -1851,11 +1917,22 @@ void Renderer::lightingPass(const std::shared_ptr<RenderDevice> &renderDevice,
 {
   std::chrono::time_point start = std::chrono::high_resolution_clock::now();
 
-  renderDevice->setPipelineState(_lightingPso);
-  renderDevice->setRenderTarget(_lightingPassRto);
-  renderDevice->bindResourceSet(_lightingPassResourceSet, 0);
-  renderDevice->setVertexBuffer(_fsQuadVertexBuffer);
-  renderDevice->draw(6, 0);
+  // Begin command buffer recording
+  _lightingCommandBuffer->begin(CommandBufferUsage::OneTimeSubmit);
+
+  // Set pipeline state
+  _lightingCommandBuffer->setPipelineState(_lightingPso);
+
+  // Begin render pass
+  _lightingCommandBuffer->beginRenderPass(_lightingPassRto, true, false, false);
+  _lightingCommandBuffer->bindResourceSet(_lightingPassResourceSet, 0);
+  _lightingCommandBuffer->bindVertexBuffer(_fsQuadVertexBuffer);
+  _lightingCommandBuffer->draw(6, 0);
+
+  // End render pass and command buffer
+  _lightingCommandBuffer->endRenderPass();
+  _lightingCommandBuffer->end();
+  _lightingCommandBuffer->execute();
 
   std::chrono::time_point end = std::chrono::high_resolution_clock::now();
   _renderPassTimings[5].Duration = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
@@ -1865,7 +1942,11 @@ void Renderer::bloomPass(const std::shared_ptr<RenderDevice> &renderDevice)
 {
   std::chrono::time_point start = std::chrono::high_resolution_clock::now();
 
-  renderDevice->setPipelineState(_bloomDownSamplePso);
+  // Begin command buffer recording
+  _bloomCommandBuffer->begin(CommandBufferUsage::OneTimeSubmit);
+
+  // Downsample pass
+  _bloomCommandBuffer->setPipelineState(_bloomDownSamplePso);
 
   // Progressively downsample through the bloom mip chain.
   for (size_t i = 0; i < _bloomDownSampleRtos.size(); ++i)
@@ -1875,7 +1956,7 @@ void Renderer::bloomPass(const std::shared_ptr<RenderDevice> &renderDevice)
     ViewportDesc viewportDesc;
     viewportDesc.Width = bloomDownSampleRto->getDesc().Width;
     viewportDesc.Height = bloomDownSampleRto->getDesc().Height;
-    renderDevice->setViewport(viewportDesc);
+    _bloomCommandBuffer->setViewport(viewportDesc);
 
     BloomBuffer bufferData;
     bufferData.FilterRadius = _bloomFilter;
@@ -1898,14 +1979,15 @@ void Renderer::bloomPass(const std::shared_ptr<RenderDevice> &renderDevice)
     _bloomDownSamplePassResourceSet->addSampler(0, _bloomSamplerState);
     _bloomDownSamplePassResourceSet->build(renderDevice);
 
-    renderDevice->setRenderTarget(bloomDownSampleRto);
-    renderDevice->bindResourceSet(_bloomDownSamplePassResourceSet, 0);
-    renderDevice->setVertexBuffer(_fsQuadVertexBuffer);
-    renderDevice->draw(6, 0);
+    _bloomCommandBuffer->beginRenderPass(bloomDownSampleRto, true, false, false);
+    _bloomCommandBuffer->bindResourceSet(_bloomDownSamplePassResourceSet, 0);
+    _bloomCommandBuffer->bindVertexBuffer(_fsQuadVertexBuffer);
+    _bloomCommandBuffer->draw(6, 0);
+    _bloomCommandBuffer->endRenderPass();
   }
 
-  // Repeat the process but instead upsample from the back to front of the mip chain.
-  renderDevice->setPipelineState(_bloomUpSamplePso);
+  // Upsample pass
+  _bloomCommandBuffer->setPipelineState(_bloomUpSamplePso);
 
   for (uint32 i = _bloomDownSampleRtos.size() - 1; i > 0; i--)
   {
@@ -1922,17 +2004,23 @@ void Renderer::bloomPass(const std::shared_ptr<RenderDevice> &renderDevice)
     ViewportDesc viewportDesc{};
     viewportDesc.Width = nextRto->getDesc().Width;
     viewportDesc.Height = nextRto->getDesc().Height;
-    renderDevice->setViewport(viewportDesc);
-    renderDevice->setRenderTarget(nextRto);
-    renderDevice->bindResourceSet(_bloomUpSamplePassResourceSet, 0);
-    renderDevice->setVertexBuffer(_fsQuadVertexBuffer);
-    renderDevice->draw(6, 0);
+    _bloomCommandBuffer->setViewport(viewportDesc);
+    _bloomCommandBuffer->beginRenderPass(nextRto, false, false, false);
+    _bloomCommandBuffer->bindResourceSet(_bloomUpSamplePassResourceSet, 0);
+    _bloomCommandBuffer->bindVertexBuffer(_fsQuadVertexBuffer);
+    _bloomCommandBuffer->draw(6, 0);
+    _bloomCommandBuffer->endRenderPass();
   }
 
+  // Reset viewport to window dimensions
   ViewportDesc viewportDesc;
   viewportDesc.Width = _windowDims.X;
   viewportDesc.Height = _windowDims.Y;
-  renderDevice->setViewport(viewportDesc);
+  _bloomCommandBuffer->setViewport(viewportDesc);
+
+  // End command buffer and execute
+  _bloomCommandBuffer->end();
+  _bloomCommandBuffer->execute();
 
   std::chrono::time_point end = std::chrono::high_resolution_clock::now();
   _renderPassTimings[6].Duration = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
@@ -1942,11 +2030,22 @@ void Renderer::toneMappingPass(const std::shared_ptr<RenderDevice> &renderDevice
 {
   std::chrono::time_point start = std::chrono::high_resolution_clock::now();
 
-  renderDevice->setPipelineState(_toneMappingPso);
-  renderDevice->setRenderTarget(_toneMappingRto);
-  renderDevice->bindResourceSet(_toneMappingPassResourceSet, 0);
-  renderDevice->setVertexBuffer(_fsQuadVertexBuffer);
-  renderDevice->draw(6, 0);
+  // Begin command buffer recording
+  _toneMappingCommandBuffer->begin(CommandBufferUsage::OneTimeSubmit);
+
+  // Set pipeline state
+  _toneMappingCommandBuffer->setPipelineState(_toneMappingPso);
+
+  // Begin render pass
+  _toneMappingCommandBuffer->beginRenderPass(_toneMappingRto, true, false, false);
+  _toneMappingCommandBuffer->bindResourceSet(_toneMappingPassResourceSet, 0);
+  _toneMappingCommandBuffer->bindVertexBuffer(_fsQuadVertexBuffer);
+  _toneMappingCommandBuffer->draw(6, 0);
+
+  // End render pass and command buffer
+  _toneMappingCommandBuffer->endRenderPass();
+  _toneMappingCommandBuffer->end();
+  _toneMappingCommandBuffer->execute();
 
   std::chrono::time_point end = std::chrono::high_resolution_clock::now();
   _renderPassTimings[7].Duration = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
@@ -1956,90 +2055,145 @@ void Renderer::debugPass(const std::shared_ptr<RenderDevice> &renderDevice,
                          const std::vector<std::shared_ptr<DrawableComponent>> &aabbDrawables,
                          const std::shared_ptr<CameraComponent> &camera)
 {
+  // Handle debug visualization based on display type
   switch (_debugDisplayType)
   {
   case DebugDisplayType::Disabled:
-  {
-    drawDebugRenderTarget(renderDevice, _toneMappingRto->getColourTarget(0), camera);
+    renderToneMappedResult(renderDevice, camera);
     break;
-  }
   case DebugDisplayType::ShadowDepth:
-  {
     drawDebugRenderTarget(renderDevice, _shadowMapRto->getDepthStencilTarget(), camera, false, true);
     break;
-  }
-
   case DebugDisplayType::Diffuse:
-  {
     drawDebugRenderTarget(renderDevice, _gBufferRto->getColourTarget(0), camera);
     break;
-  }
   case DebugDisplayType::Normal:
-  {
     drawDebugRenderTarget(renderDevice, _gBufferRto->getColourTarget(1), camera);
     break;
-  }
   case DebugDisplayType::Specular:
-  {
     drawDebugRenderTarget(renderDevice, _gBufferRto->getColourTarget(2), camera);
     break;
-  }
   case DebugDisplayType::Depth:
-  {
     drawDebugRenderTarget(renderDevice, _gBufferRto->getDepthStencilTarget(), camera);
     break;
-  }
-  case DebugDisplayType::Shadows:
-  {
-    // Show point light shadow cube maps - need to handle cube array differently
-    TexturedQuadBuffer texturedQuadBufferData{};
-    texturedQuadBufferData.NearClip = camera->getNear();
-    texturedQuadBufferData.FarClip = camera->getFar();
-    texturedQuadBufferData.SingleChannel = true;
-    texturedQuadBufferData.ArraySlice = _pointLightCubeMapToDraw;
-    texturedQuadBufferData.TextureArray = false; // Not a regular array
-    texturedQuadBufferData.OrthographicDepth = false;
-    texturedQuadBufferData.PerspectiveDepth = true;
-    texturedQuadBufferData.CubeArray = true; // This is a cube array
-
-    renderDevice->setPipelineState(_editorDrawTexturedQuadPso);
-
-    // Reset and configure debug pass resource set for cube array
-    _debugPassResourceSet->reset();
-    _debugPassResourceSet->addUniformBuffer(0, _fullscreenQuadBuffer);
-    _debugPassResourceSet->addTexture(0, getDefaultWhiteTexture());                     // Placeholder for Texture
-    _debugPassResourceSet->addTexture(1, getDefaultWhiteTexture());                     // Placeholder for TextureArray
-    _debugPassResourceSet->addTexture(2, _pointLightDepthRto->getDepthStencilTarget()); // TextureCubeArray (slot 2)
-    _debugPassResourceSet->addSampler(0, _noMipSamplerState);
-    _debugPassResourceSet->addSampler(1, _noMipSamplerState);
-    _debugPassResourceSet->addSampler(2, _noMipSamplerState);
-
-    _fullscreenQuadBuffer->writeData(0, sizeof(TexturedQuadBuffer), &texturedQuadBufferData, AccessType::WriteOnlyDiscard);
-    _debugPassResourceSet->build(renderDevice);
-
-    renderDevice->bindResourceSet(_debugPassResourceSet, 0);
-    renderDevice->setRenderTarget(nullptr);
-    renderDevice->clearBuffers(RTT_Colour | RTT_Depth);
-    renderDevice->setVertexBuffer(_fsQuadVertexBuffer);
-    renderDevice->draw(6, 0);
-    break;
-  }
   case DebugDisplayType::Lighting:
-  {
     drawDebugRenderTarget(renderDevice, _lightingPassRto->getColourTarget(0), camera);
     break;
-  }
   case DebugDisplayType::Occulsion:
-  {
     drawDebugRenderTarget(renderDevice, _ssaoBlurRto->getColourTarget(0), camera, true);
     break;
-  }
+  case DebugDisplayType::Shadows:
+    renderShadowDebugVisualization(renderDevice, camera);
+    break;
+  default:
+    // Fallback to tone mapped result for unknown debug types
+    renderToneMappedResult(renderDevice, camera);
+    break;
   }
 
+  // Always draw AABBs last to overlay on top of debug visualization
   drawAabb(renderDevice, aabbDrawables, camera);
 }
 
-void Renderer::drawDrawable(const std::shared_ptr<RenderDevice> &renderDevice,
+void Renderer::renderToneMappedResult(const std::shared_ptr<RenderDevice> &renderDevice,
+                                      const std::shared_ptr<CameraComponent> &camera)
+{
+  // Render the tone mapped result to the screen
+  auto debugCommandBuffer = renderDevice->createCommandBuffer();
+  debugCommandBuffer->begin(CommandBufferUsage::OneTimeSubmit);
+  debugCommandBuffer->setPipelineState(_editorDrawTexturedQuadPso);
+
+  // Configure resource set and uniform buffer for final output
+  TexturedQuadBuffer texturedQuadBufferData{};
+  texturedQuadBufferData.NearClip = camera->getNear();
+  texturedQuadBufferData.FarClip = camera->getFar();
+  texturedQuadBufferData.SingleChannel = false;
+  texturedQuadBufferData.ArraySlice = 0;
+  texturedQuadBufferData.TextureArray = false;
+  texturedQuadBufferData.OrthographicDepth = false;
+  texturedQuadBufferData.PerspectiveDepth = false;
+  texturedQuadBufferData.CubeArray = false;
+
+  _debugPassResourceSet->reset();
+  _debugPassResourceSet->addUniformBuffer(0, _fullscreenQuadBuffer);
+  _debugPassResourceSet->addTexture(0, _toneMappingRto->getColourTarget(0));
+  _debugPassResourceSet->addTexture(1, getDefaultWhiteTexture());
+  _debugPassResourceSet->addTexture(2, getDefaultWhiteTexture());
+  _debugPassResourceSet->addSampler(0, _noMipSamplerState);
+  _debugPassResourceSet->addSampler(1, _noMipSamplerState);
+  _debugPassResourceSet->addSampler(2, _noMipSamplerState);
+
+  _fullscreenQuadBuffer->writeData(0, sizeof(TexturedQuadBuffer), &texturedQuadBufferData, AccessType::WriteOnlyDiscard);
+  _debugPassResourceSet->build(renderDevice);
+
+  // Render to default framebuffer with viewport
+  debugCommandBuffer->beginRenderPass(nullptr, true, true, false);
+
+  ViewportDesc viewportDesc;
+  viewportDesc.Width = _windowDims.X;
+  viewportDesc.Height = _windowDims.Y;
+  debugCommandBuffer->setViewport(viewportDesc);
+
+  debugCommandBuffer->bindResourceSet(_debugPassResourceSet, 0);
+  debugCommandBuffer->bindVertexBuffer(_fsQuadVertexBuffer);
+  debugCommandBuffer->draw(6, 1, 0, 0);
+  debugCommandBuffer->endRenderPass();
+  debugCommandBuffer->end();
+  debugCommandBuffer->execute();
+}
+
+void Renderer::renderShadowDebugVisualization(const std::shared_ptr<RenderDevice> &renderDevice,
+                                              const std::shared_ptr<CameraComponent> &camera)
+{
+  // Create command buffer for shadow debug visualization
+  auto shadowDebugCommandBuffer = renderDevice->createCommandBuffer();
+  shadowDebugCommandBuffer->begin(CommandBufferUsage::OneTimeSubmit);
+
+  TexturedQuadBuffer texturedQuadBufferData{};
+  texturedQuadBufferData.NearClip = camera->getNear();
+  texturedQuadBufferData.FarClip = camera->getFar();
+  texturedQuadBufferData.SingleChannel = true;
+  texturedQuadBufferData.ArraySlice = _pointLightCubeMapToDraw;
+  texturedQuadBufferData.TextureArray = false;
+  texturedQuadBufferData.OrthographicDepth = false;
+  texturedQuadBufferData.PerspectiveDepth = true;
+  texturedQuadBufferData.CubeArray = true;
+
+  shadowDebugCommandBuffer->setPipelineState(_editorDrawTexturedQuadPso);
+
+  _debugPassResourceSet->reset();
+  _debugPassResourceSet->addUniformBuffer(0, _fullscreenQuadBuffer);
+  _debugPassResourceSet->addTexture(0, getDefaultWhiteTexture());
+  _debugPassResourceSet->addTexture(1, getDefaultWhiteTexture());
+  _debugPassResourceSet->addTexture(2, _pointLightDepthRto->getDepthStencilTarget());
+  _debugPassResourceSet->addSampler(0, _noMipSamplerState);
+  _debugPassResourceSet->addSampler(1, _noMipSamplerState);
+  _debugPassResourceSet->addSampler(2, _noMipSamplerState);
+
+  _fullscreenQuadBuffer->writeData(0, sizeof(TexturedQuadBuffer), &texturedQuadBufferData, AccessType::WriteOnlyDiscard);
+  _debugPassResourceSet->build(renderDevice);
+
+  // Begin render pass with clear
+  shadowDebugCommandBuffer->beginRenderPass(nullptr, true, true, false);
+
+  // Set viewport
+  ViewportDesc viewportDesc;
+  viewportDesc.Width = _windowDims.X;
+  viewportDesc.Height = _windowDims.Y;
+  shadowDebugCommandBuffer->setViewport(viewportDesc);
+
+  // Bind resource set and vertex buffer, then draw
+  shadowDebugCommandBuffer->bindResourceSet(_debugPassResourceSet, 0);
+  shadowDebugCommandBuffer->bindVertexBuffer(_fsQuadVertexBuffer);
+  shadowDebugCommandBuffer->draw(6, 1, 0, 0);
+
+  shadowDebugCommandBuffer->endRenderPass();
+  shadowDebugCommandBuffer->end();
+  shadowDebugCommandBuffer->execute();
+}
+
+void Renderer::drawDrawable(const std::unique_ptr<ICommandBuffer> &commandBuffer,
+                            const std::shared_ptr<RenderDevice> &renderDevice,
                             const std::shared_ptr<DrawableComponent> &drawable,
                             const std::shared_ptr<Material> &material,
                             const std::shared_ptr<CameraComponent> &camera)
@@ -2047,18 +2201,18 @@ void Renderer::drawDrawable(const std::shared_ptr<RenderDevice> &renderDevice,
   writePerObjectConstantData(drawable, material, camera);
 
   std::shared_ptr<StaticMesh> mesh = drawable->getMesh();
-  renderDevice->setVertexBuffer(mesh->getVertexData(renderDevice));
+  commandBuffer->bindVertexBuffer(mesh->getVertexData(renderDevice));
 
   if (mesh->isIndexed())
   {
     auto indexCount = mesh->getIndexCount();
-    renderDevice->setIndexBuffer(mesh->getIndexData(renderDevice));
-    renderDevice->drawIndexed(indexCount, 0, 0);
+    commandBuffer->bindIndexBuffer(mesh->getIndexData(renderDevice));
+    commandBuffer->drawIndexed(indexCount, 1, 0, 0, 0);
   }
   else
   {
     auto vertexCount = mesh->getVertexCount();
-    renderDevice->draw(vertexCount, 0);
+    commandBuffer->draw(vertexCount, 1, 0, 0);
   }
 }
 
@@ -2066,29 +2220,55 @@ void Renderer::drawAabb(const std::shared_ptr<RenderDevice> &renderDevice,
                         const std::vector<std::shared_ptr<DrawableComponent>> &aabbDrawables,
                         const std::shared_ptr<CameraComponent> &camera)
 {
+  if (aabbDrawables.empty())
+    return;
+
+  // Copy depth buffer from G-Buffer to default framebuffer for depth testing
   _gBufferRto->copy(nullptr);
 
-  renderDevice->setPipelineState(_drawAabbPso);
+  // Begin command buffer recording for AABB rendering
+  auto aabbCommandBuffer = renderDevice->createCommandBuffer();
+  aabbCommandBuffer->begin(CommandBufferUsage::OneTimeSubmit);
+
+  // Begin render pass to default framebuffer (no clear - preserve existing content)
+  aabbCommandBuffer->beginRenderPass(nullptr, false, false, false);
+
+  // Set pipeline state and viewport
+  aabbCommandBuffer->setPipelineState(_drawAabbPso);
+  ViewportDesc viewportDesc;
+  viewportDesc.Width = _windowDims.X;
+  viewportDesc.Height = _windowDims.Y;
+  aabbCommandBuffer->setViewport(viewportDesc);
+
+  // Bind the AABB vertex buffer once
+  aabbCommandBuffer->bindVertexBuffer(_aabbVertexBuffer);
+
+  // Draw each AABB
   for (auto drawable : aabbDrawables)
   {
     auto &aabb = drawable->getAabb();
 
+    // Update per-object buffer for this AABB
     PerObjectBufferData objectBufferData;
-    // Use the world AABB center and extents directly since getAabb() returns world bounds
     objectBufferData.Model = Matrix4::Translation(aabb.getCenter()) * Matrix4::Scaling(aabb.getExtents());
     objectBufferData.ModelView = camera->getView() * objectBufferData.Model;
     objectBufferData.ModelViewProjection = camera->getProj() * objectBufferData.ModelView;
     _perObjectBuffer->writeData(0, sizeof(PerObjectBufferData), &objectBufferData, AccessType::WriteOnlyDiscard);
 
-    // Reset and configure AABB pass resource set
+    // Reset and configure AABB pass resource set for this drawable
     _aabbPassResourceSet->reset();
     _aabbPassResourceSet->addUniformBuffer(0, _perObjectBuffer);
     _aabbPassResourceSet->build(renderDevice);
 
-    renderDevice->bindResourceSet(_aabbPassResourceSet, 0);
-    renderDevice->setVertexBuffer(_aabbVertexBuffer);
-    renderDevice->draw(AabbCoords.size(), 0);
+    // Bind resource set and draw
+    aabbCommandBuffer->bindResourceSet(_aabbPassResourceSet, 0);
+    aabbCommandBuffer->draw(AabbCoords.size(), 1, 0, 0);
   }
+
+  // End render pass and command buffer
+  aabbCommandBuffer->endRenderPass();
+  aabbCommandBuffer->end();
+  aabbCommandBuffer->execute();
 }
 
 void Renderer::drawDebugRenderTarget(std::shared_ptr<RenderDevice> renderDevice,
@@ -2103,7 +2283,12 @@ void Renderer::drawDebugRenderTarget(std::shared_ptr<RenderDevice> renderDevice,
   texturedQuadBufferData.SingleChannel = singleChannel;
   texturedQuadBufferData.ArraySlice = _shadowMapLayerToDraw;
 
-  renderDevice->setPipelineState(_editorDrawTexturedQuadPso);
+  // Begin command buffer recording
+  auto debugCommandBuffer = renderDevice->createCommandBuffer();
+  debugCommandBuffer->begin(CommandBufferUsage::OneTimeSubmit);
+
+  // Set pipeline state
+  debugCommandBuffer->setPipelineState(_editorDrawTexturedQuadPso);
 
   // Reset and configure debug pass resource set
   _debugPassResourceSet->reset();
@@ -2155,11 +2340,15 @@ void Renderer::drawDebugRenderTarget(std::shared_ptr<RenderDevice> renderDevice,
     }
     else
     {
+      // Unsupported texture type - clean up and return
+      debugCommandBuffer->end();
       return;
     }
   }
   else
   {
+    // Unsupported texture usage - clean up and return
+    debugCommandBuffer->end();
     return;
   }
 
@@ -2167,12 +2356,24 @@ void Renderer::drawDebugRenderTarget(std::shared_ptr<RenderDevice> renderDevice,
   _fullscreenQuadBuffer->writeData(0, sizeof(TexturedQuadBuffer), &texturedQuadBufferData, AccessType::WriteOnlyDiscard);
   _debugPassResourceSet->build(renderDevice);
 
-  // Bind resource set and draw
-  renderDevice->bindResourceSet(_debugPassResourceSet, 0);
-  renderDevice->setRenderTarget(nullptr);
-  renderDevice->clearBuffers(RTT_Colour | RTT_Depth);
-  renderDevice->setVertexBuffer(_fsQuadVertexBuffer);
-  renderDevice->draw(6, 0);
+  // Begin render pass to default framebuffer with clear
+  debugCommandBuffer->beginRenderPass(nullptr, true, true, false);
+
+  // Set viewport
+  ViewportDesc viewportDesc;
+  viewportDesc.Width = _windowDims.X;
+  viewportDesc.Height = _windowDims.Y;
+  debugCommandBuffer->setViewport(viewportDesc);
+
+  // Bind resource set and vertex buffer, then draw
+  debugCommandBuffer->bindResourceSet(_debugPassResourceSet, 0);
+  debugCommandBuffer->bindVertexBuffer(_fsQuadVertexBuffer);
+  debugCommandBuffer->draw(6, 1, 0, 0);
+
+  // End render pass and command buffer
+  debugCommandBuffer->endRenderPass();
+  debugCommandBuffer->end();
+  debugCommandBuffer->execute();
 }
 
 std::vector<Matrix4> Renderer::calculateCameraCascadeProjections(const std::shared_ptr<CameraComponent> &camera) const
@@ -2552,14 +2753,21 @@ void Renderer::pointLightDepthPass(const std::shared_ptr<RenderDevice> &renderDe
                                    const std::vector<std::shared_ptr<LightComponent>> &lights,
                                    const std::shared_ptr<CameraComponent> &camera)
 {
+  // Begin command buffer recording
+  _pointLightDepthCommandBuffer->begin(CommandBufferUsage::OneTimeSubmit);
+
+  // Set viewport
   ViewportDesc viewportDesc;
   viewportDesc.Height = _pointLightShadowMapResolution;
   viewportDesc.Width = _pointLightShadowMapResolution;
-  renderDevice->setViewport(viewportDesc);
-  renderDevice->setPipelineState(_pointLightDepthPso);
-  renderDevice->setRenderTarget(_pointLightDepthRto);
-  renderDevice->clearBuffers(RTT_Depth);
-  renderDevice->bindResourceSet(_pointLightDepthPassResourceSet, 0);
+  _pointLightDepthCommandBuffer->setViewport(viewportDesc);
+
+  // Set pipeline state
+  _pointLightDepthCommandBuffer->setPipelineState(_pointLightDepthPso);
+
+  // Begin render pass
+  _pointLightDepthCommandBuffer->beginRenderPass(_pointLightDepthRto, false, true, false);
+  _pointLightDepthCommandBuffer->bindResourceSet(_pointLightDepthPassResourceSet, 0);
 
   // Lights are already sorted by sortLightsForRendering(), so process sequentially
   // Track the index in the filtered non-directional lights array for shader consistency
@@ -2602,10 +2810,10 @@ void Renderer::pointLightDepthPass(const std::shared_ptr<RenderDevice> &renderDe
                                            Vector3(0, -1, 0), Vector3(0, -1, 0)}};
       std::array<Matrix4, 6> shadowMatrices;
       Matrix4 proj = Matrix4::Perspective(Degree(90.0f), 1.0f, nearPlane, farPlane);
-      for (int i = 0; i < 6; ++i)
+      for (int j = 0; j < 6; ++j)
       {
-        Matrix4 view = Matrix4::LookAt(pos, pos + dirs[i], ups[i]);
-        shadowMatrices[i] = proj * view;
+        Matrix4 view = Matrix4::LookAt(pos, pos + dirs[j], ups[j]);
+        shadowMatrices[j] = proj * view;
       }
 
       // Use filteredLightIndex to match Constants.Lights[] array indexing
@@ -2642,11 +2850,11 @@ void Renderer::pointLightDepthPass(const std::shared_ptr<RenderDevice> &renderDe
         finalObjects = cullingResult.sphereCulled;
       }
 
-      // Render the final culled objects
+      // Render the final culled objects using command buffer
       for (const auto &drawable : finalObjects)
       {
         std::shared_ptr<Material> material(drawable->getMaterial());
-        drawDrawable(renderDevice, drawable, material, camera);
+        drawDrawable(_pointLightDepthCommandBuffer, renderDevice, drawable, material, camera);
       }
     }
 
@@ -2656,4 +2864,9 @@ void Renderer::pointLightDepthPass(const std::shared_ptr<RenderDevice> &renderDe
     // Handle other light types (spots, etc.) here if needed
     // For now, just increment the counter to maintain consistency
   }
+
+  // End render pass and command buffer
+  _pointLightDepthCommandBuffer->endRenderPass();
+  _pointLightDepthCommandBuffer->end();
+  _pointLightDepthCommandBuffer->execute();
 }

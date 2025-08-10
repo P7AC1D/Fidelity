@@ -12,6 +12,7 @@
 #include "../Maths/Radian.hpp"
 #include "../RenderApi/GL/GLTexture.hpp"
 #include "../RenderApi/RenderDevice.hpp"
+#include "../RenderApi/CommandBuffer.hpp"
 #include "../Utility/String.hpp"
 #include "ImGui/imgui.h"
 #include "ImGui/imgui_impl_glfw.h"
@@ -88,9 +89,6 @@ void UiManager::update(Scene &scene)
 
 void UiManager::draw(ImDrawData *drawData)
 {
-  auto currentScissorDim = _renderDevice->getScissorDimensions();
-  auto currentViewport = _renderDevice->getViewport();
-
   int32 fbWidth = (int32)(drawData->DisplaySize.x * _io->DisplayFramebufferScale.x);
   int32 fbHeight = (int32)(drawData->DisplaySize.y * _io->DisplayFramebufferScale.y);
   if (fbWidth <= 0 || fbHeight <= 0)
@@ -105,13 +103,7 @@ void UiManager::draw(ImDrawData *drawData)
   float32 B = drawData->DisplayPos.y + drawData->DisplaySize.y;
   auto orthProj = Matrix4::Orthographic(L, R, B, T, -1.0f, 1.0f);
 
-  ViewportDesc newViewport;
-  newViewport.TopLeftX = 0;
-  newViewport.TopLeftY = 0;
-  newViewport.Width = fbWidth;
-  newViewport.Height = fbHeight;
-  _renderDevice->setViewport(newViewport);
-
+  // Create constant buffer data
   GpuBufferDesc constBufferDesc;
   constBufferDesc.BufferType = BufferType::Constant;
   constBufferDesc.BufferUsage = BufferUsage::Dynamic;
@@ -119,6 +111,7 @@ void UiManager::draw(ImDrawData *drawData)
   _constBuffer = _renderDevice->createGpuBuffer(constBufferDesc);
   _constBuffer->writeData(0, constBufferDesc.ByteCount, &orthProj[0][0], AccessType::WriteOnlyDiscardRange);
 
+  // Ensure vertex buffer is large enough
   if (!_vertBuffer || _vertBuffSize < drawData->TotalVtxCount)
   {
     _vertBuffSize = drawData->TotalVtxCount + 5000;
@@ -130,6 +123,7 @@ void UiManager::draw(ImDrawData *drawData)
     _vertBuffer = _renderDevice->createVertexBuffer(vertBufferDesc);
   }
 
+  // Ensure index buffer is large enough
   if (!_idxBuffer || _idxBuffSize < drawData->TotalIdxCount)
   {
     _idxBuffSize = drawData->TotalIdxCount + 10000;
@@ -141,6 +135,7 @@ void UiManager::draw(ImDrawData *drawData)
     _idxBuffer = _renderDevice->createIndexBuffer(idxBufferDesc);
   }
 
+  // Upload vertex and index data
   uint64 vertByteOffset = 0;
   uint64 idxByteOffset = 0;
   for (int32 n = 0; n < drawData->CmdListsCount; n++)
@@ -156,9 +151,32 @@ void UiManager::draw(ImDrawData *drawData)
     idxByteOffset += idxByteCount;
   }
 
+  // Begin command buffer recording
+  _uiCommandBuffer->begin(CommandBufferUsage::OneTimeSubmit);
+
+  // Begin render pass to default framebuffer (no clear - preserve existing content)
+  _uiCommandBuffer->beginRenderPass(nullptr, false, false, false);
+
+  // Set viewport for UI rendering
+  ViewportDesc uiViewport;
+  uiViewport.TopLeftX = 0;
+  uiViewport.TopLeftY = 0;
+  uiViewport.Width = fbWidth;
+  uiViewport.Height = fbHeight;
+  _uiCommandBuffer->setViewport(uiViewport);
+
+  // Set pipeline state
+  _uiCommandBuffer->setPipelineState(_pipelineState);
+
+  // Bind vertex and index buffers
+  _uiCommandBuffer->bindVertexBuffer(_vertBuffer);
+  _uiCommandBuffer->bindIndexBuffer(_idxBuffer);
+
+  // Render command lists
   uint64 vertOffset = 0;
   uint64 idxOffset = 0;
   ImVec2 pos = drawData->DisplayPos;
+
   for (int32 n = 0; n < drawData->CmdListsCount; n++)
   {
     const ImDrawList *cmdList = drawData->CmdLists[n];
@@ -167,12 +185,13 @@ void UiManager::draw(ImDrawData *drawData)
       const ImDrawCmd *pCmd = &cmdList->CmdBuffer[i];
       ImVec4 clipRect(pCmd->ClipRect.x - pos.x, pCmd->ClipRect.y - pos.y, pCmd->ClipRect.z - pos.x, pCmd->ClipRect.w - pos.y);
 
-      ScissorDesc newScissorDim;
-      newScissorDim.X = clipRect.x;
-      newScissorDim.Y = _renderDevice->getRenderHeight() - clipRect.w;
-      newScissorDim.W = clipRect.z - clipRect.x;
-      newScissorDim.H = clipRect.w - clipRect.y;
-      _renderDevice->setScissorDimensions(newScissorDim);
+      // Set scissor for this draw command
+      ScissorDesc scissor;
+      scissor.X = clipRect.x;
+      scissor.Y = _renderDevice->getRenderHeight() - clipRect.w;
+      scissor.W = clipRect.z - clipRect.x;
+      scissor.H = clipRect.w - clipRect.y;
+      _uiCommandBuffer->setScissor(scissor);
 
       // Determine which texture to use
       auto texture = TEXTURE_MAP[reinterpret_cast<uint64>(pCmd->TextureId)];
@@ -185,24 +204,21 @@ void UiManager::draw(ImDrawData *drawData)
       _uiResourceSet->addSampler(0, _noMipSamplerState);
       _uiResourceSet->build(_renderDevice);
 
-      _renderDevice->setPipelineState(_pipelineState);
-      _renderDevice->bindResourceSet(_uiResourceSet, 0);
-
-      // Set vertex and index buffers for rendering
-      _renderDevice->setVertexBuffer(_vertBuffer);
-      _renderDevice->setIndexBuffer(_idxBuffer);
-
-      // Execute the draw call with proper offsets
-      _renderDevice->drawIndexed(pCmd->ElemCount,
-                                 static_cast<uint32>(idxOffset + pCmd->IdxOffset),
-                                 static_cast<uint32>(vertOffset + pCmd->VtxOffset));
+      // Bind resource set and execute draw call
+      _uiCommandBuffer->bindResourceSet(_uiResourceSet, 0);
+      _uiCommandBuffer->drawIndexed(pCmd->ElemCount,
+                                    1,
+                                    static_cast<uint32>(idxOffset + pCmd->IdxOffset),
+                                    static_cast<uint32>(vertOffset + pCmd->VtxOffset));
     }
     vertOffset += cmdList->VtxBuffer.Size;
     idxOffset += cmdList->IdxBuffer.Size;
   }
 
-  _renderDevice->setScissorDimensions(currentScissorDim);
-  _renderDevice->setViewport(currentViewport);
+  // End render pass and command buffer
+  _uiCommandBuffer->endRenderPass();
+  _uiCommandBuffer->end();
+  _uiCommandBuffer->execute();
 }
 
 void UiManager::initialize(std::shared_ptr<RenderDevice> renderDevice)
@@ -210,6 +226,9 @@ void UiManager::initialize(std::shared_ptr<RenderDevice> renderDevice)
   if (!_initialized)
   {
     _renderDevice = renderDevice;
+
+    // Create UI command buffer
+    _uiCommandBuffer = _renderDevice->createCommandBuffer();
 
     setupRenderer();
     setupFontAtlas();

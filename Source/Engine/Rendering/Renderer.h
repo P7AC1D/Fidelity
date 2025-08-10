@@ -10,6 +10,7 @@
 #include "../Core/Maths.h"
 #include "../Core/Types.hpp"
 #include "../RenderApi/ResourceSet.hpp"
+#include "../RenderApi/CommandBuffer.hpp"
 
 class GpuBuffer;
 class Material;
@@ -20,6 +21,7 @@ class RenderTarget;
 class SamplerState;
 class Texture;
 class VertexBuffer;
+class ICommandBuffer;
 
 // Forward declarations that need full definitions for unique_ptr
 #include "ShadowFrustum.h"
@@ -69,6 +71,7 @@ private:
   void initTextures(const std::shared_ptr<RenderDevice> &renderDevice);
   void initResourceSets(const std::shared_ptr<RenderDevice> &renderDevice);
   void updateResourceSets(const std::shared_ptr<RenderDevice> &renderDevice);
+  void initCommandBuffers(const std::shared_ptr<RenderDevice> &renderDevice);
 
   void initDirectionalLightDepthPass(const std::shared_ptr<RenderDevice> &renderDevice);
   void initPointLightDepthPass(const std::shared_ptr<RenderDevice> &renderDevice);
@@ -81,33 +84,100 @@ private:
   void initToneMappingPass(const std::shared_ptr<RenderDevice> &renderDevice);
   void initDebugPass(const std::shared_ptr<RenderDevice> &renderDevice);
 
+  /**
+   * @brief Directional light depth pass for shadow mapping
+   * @param renderDevice The render device for resource creation
+   * @param drawables The drawable components to render
+   * @param directionalLight The directional light for shadow mapping
+   * @param camera The camera for transformation matrices
+   */
   void directionalLightDepthPass(const std::shared_ptr<RenderDevice> &renderDevice,
                                  const std::vector<std::shared_ptr<DrawableComponent>> &drawables,
                                  const std::shared_ptr<LightComponent> &directionalLight,
                                  const std::shared_ptr<CameraComponent> &camera);
+
+  /**
+   * @brief Point light depth pass for shadow mapping
+   * @param renderDevice The render device for resource creation
+   * @param drawables The drawable components to render
+   * @param lights The light components for shadow mapping
+   * @param camera The camera for transformation matrices
+   */
   void pointLightDepthPass(const std::shared_ptr<RenderDevice> &renderDevice,
                            const std::vector<std::shared_ptr<DrawableComponent>> &drawables,
                            const std::vector<std::shared_ptr<LightComponent>> &lights,
                            const std::shared_ptr<CameraComponent> &camera);
 
-  void gbufferPass(std::shared_ptr<RenderDevice> renderDevice,
+  /**
+   * @brief G-Buffer pass for deferred rendering
+   * @param renderDevice The render device for resource creation
+   * @param drawables The drawable components to render
+   * @param camera The camera for transformation matrices
+   */
+  void gbufferPass(const std::shared_ptr<RenderDevice> &renderDevice,
                    const std::vector<std::shared_ptr<DrawableComponent>> &drawables,
                    const std::shared_ptr<CameraComponent> &camera);
+
+  /**
+   * @brief Transparency pass for transparent objects
+   * @param renderDevice The render device for resource creation
+   * @param transparentDrawables The transparent drawable components to render
+   * @param camera The camera for transformation matrices
+   */
   void transparencyPass(const std::shared_ptr<RenderDevice> &renderDevice,
                         const std::vector<std::shared_ptr<DrawableComponent>> &transparentDrawables,
                         const std::shared_ptr<CameraComponent> &camera);
+
+  /**
+   * @brief Screen Space Ambient Occlusion pass
+   * @param renderDevice The render device for resource creation
+   * @param camera The camera for transformation matrices
+   */
   void ssaoPass(const std::shared_ptr<RenderDevice> &renderDevice,
                 const std::shared_ptr<CameraComponent> &camera);
+
+  /**
+   * @brief Deferred lighting pass
+   * @param renderDevice The render device for resource creation
+   * @param lights The light components for rendering
+   * @param camera The camera for transformation matrices
+   */
   void lightingPass(const std::shared_ptr<RenderDevice> &renderDevice,
                     const std::vector<std::shared_ptr<LightComponent>> &lights,
                     const std::shared_ptr<CameraComponent> &camera);
-  void bloomPass(const std::shared_ptr<RenderDevice> &rendereDevice);
+
+  /**
+   * @brief Bloom post-processing pass
+   * @param renderDevice The render device for resource creation
+   */
+  void bloomPass(const std::shared_ptr<RenderDevice> &renderDevice);
+
+  /**
+   * @brief Tone mapping pass for HDR to LDR conversion
+   * @param renderDevice The render device for resource creation
+   */
   void toneMappingPass(const std::shared_ptr<RenderDevice> &renderDevice);
+
+  /**
+   * @brief Debug pass for visualization helpers
+   * @param renderDevice The render device for resource creation
+   * @param aabbDrawables The AABB drawable components for debug visualization
+   * @param camera The camera for transformation matrices
+   */
   void debugPass(const std::shared_ptr<RenderDevice> &renderDevice,
                  const std::vector<std::shared_ptr<DrawableComponent>> &aabbDrawables,
                  const std::shared_ptr<CameraComponent> &camera);
 
-  void drawDrawable(const std::shared_ptr<RenderDevice> &renderDevice,
+  /**
+   * @brief Draw a single drawable using command buffer recording
+   * @param commandBuffer Command buffer to record draw commands into
+   * @param renderDevice The render device for resource creation
+   * @param drawable The drawable component to render
+   * @param material The material to use for rendering
+   * @param camera The camera for transformation matrices
+   */
+  void drawDrawable(const std::unique_ptr<ICommandBuffer> &commandBuffer,
+                    const std::shared_ptr<RenderDevice> &renderDevice,
                     const std::shared_ptr<DrawableComponent> &drawable,
                     const std::shared_ptr<Material> &material,
                     const std::shared_ptr<CameraComponent> &camera);
@@ -121,6 +191,12 @@ private:
                              const std::shared_ptr<CameraComponent> &camera,
                              bool singleChannel = false,
                              bool orthographicDepth = false);
+
+  void renderToneMappedResult(const std::shared_ptr<RenderDevice> &renderDevice,
+                              const std::shared_ptr<CameraComponent> &camera);
+
+  void renderShadowDebugVisualization(const std::shared_ptr<RenderDevice> &renderDevice,
+                                      const std::shared_ptr<CameraComponent> &camera);
 
   std::vector<Matrix4> calculateCameraCascadeProjections(const std::shared_ptr<CameraComponent> &camera) const;
   std::vector<float32> calculateCascadeLevels(float32 nearClip, float32 farClip) const;
@@ -246,6 +322,17 @@ private:
   std::vector<std::shared_ptr<DrawableComponent>> _cachedOpaqueDrawables;
   std::vector<std::shared_ptr<DrawableComponent>> _cachedTransparentDrawables;
   std::vector<std::shared_ptr<DrawableComponent>> _cachedAabbDrawables;
+
+  // Command Buffers for render passes
+  std::unique_ptr<ICommandBuffer> _shadowCommandBuffer;
+  std::unique_ptr<ICommandBuffer> _pointLightDepthCommandBuffer;
+  std::unique_ptr<ICommandBuffer> _gbufferCommandBuffer;
+  std::unique_ptr<ICommandBuffer> _transparencyCommandBuffer;
+  std::unique_ptr<ICommandBuffer> _ssaoCommandBuffer;
+  std::unique_ptr<ICommandBuffer> _lightingCommandBuffer;
+  std::unique_ptr<ICommandBuffer> _bloomCommandBuffer;
+  std::unique_ptr<ICommandBuffer> _toneMappingCommandBuffer;
+  std::unique_ptr<ICommandBuffer> _debugCommandBuffer;
 
   // Resource Set Layouts
   std::unique_ptr<IResourceSetLayout> _shadowPassLayout;

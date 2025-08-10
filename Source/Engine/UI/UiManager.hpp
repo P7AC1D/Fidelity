@@ -15,6 +15,7 @@ class RenderDevice;
 class SamplerState;
 class Texture;
 class VertexBuffer;
+class ICommandBuffer;
 struct ImDrawData;
 struct ImGuiIO;
 struct GLFWwindow;
@@ -60,4 +61,7 @@ private:
   // Resource Set Layouts and Sets
   std::unique_ptr<IResourceSetLayout> _uiResourceSetLayout;
   std::unique_ptr<IResourceSet> _uiResourceSet;
+
+  // Command buffer for UI rendering
+  std::unique_ptr<ICommandBuffer> _uiCommandBuffer;
 };
