@@ -11,6 +11,9 @@ class Shader;
 class VertexLayout;
 enum class PixelFormat;
 
+/**
+ * @brief Legacy primitive topology enum (see PrimitiveTopology.hpp for the modern type).
+ */
 enum class PrimitiveTopology
 {
   TriangleList,
@@ -20,6 +23,9 @@ enum class PrimitiveTopology
   PatchList
 };
 
+/**
+ * @brief Legacy pipeline state description.
+ */
 struct PipelineStateDesc
 {
   std::shared_ptr<Shader> VS;
@@ -35,6 +41,9 @@ struct PipelineStateDesc
   PrimitiveTopology Topology = PrimitiveTopology::TriangleList;
 };
 
+/**
+ * @brief Legacy pipeline state object.
+ */
 class PipelineState
 {
   friend class RenderDevice;

@@ -2,6 +2,9 @@
 #include "../Maths/Colour.hpp"
 #include "ResourceHandle.hpp"
 
+/**
+ * @brief Texture UV addressing behavior for out-of-range coordinates.
+ */
 enum class TextureAddressMode
 {
   Repeat,
@@ -10,6 +13,9 @@ enum class TextureAddressMode
   ClampToBorder
 };
 
+/**
+ * @brief Texture filtering options for minification/magnification and mipmaps.
+ */
 enum class TextureFilteringMode
 {
   /// @brief Returns the value of the texture element that is nearest (in Manhattan distance) to the center of the pixel being textured.
@@ -26,6 +32,9 @@ enum class TextureFilteringMode
   LinearMipLinear
 };
 
+/**
+ * @brief Per-axis texture coordinate addressing modes.
+ */
 struct AddressingMode
 {
   TextureAddressMode U = TextureAddressMode::ClampToEdge;
@@ -33,6 +42,9 @@ struct AddressingMode
   TextureAddressMode W = TextureAddressMode::ClampToEdge;
 };
 
+/**
+ * @brief Sampler state description.
+ */
 struct SamplerStateDesc
 {
   AddressingMode AddressingMode;
@@ -45,6 +57,9 @@ struct SamplerStateDesc
   float MaxAnisotropy = 1.0f;
 };
 
+/**
+ * @brief Immutable sampler state object.
+ */
 class SamplerState : public ResourceHandle
 {
 public:

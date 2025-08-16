@@ -1,6 +1,7 @@
 #include "GLResourceSet.hpp"
 #include "RenderApi/RenderDevice.hpp"
 #include "RenderApi/Texture.hpp"
+#include "RenderApi/ImageView.hpp"
 #include "RenderApi/GpuBuffer.hpp"
 #include "RenderApi/SamplerState.hpp"
 #include "GLCommon.hpp"
@@ -48,6 +49,19 @@ void GLResourceSet::addTexture(uint32 binding, const sptr<Texture> &texture)
   mBindings.push_back({ResourceType::TEXTURE_2D,
                        binding,
                        {texture.get()},
+                       1});
+}
+
+void GLResourceSet::addImageView(uint32 binding, const sptr<ImageView> &view)
+{
+  assert(!mIsBuilt && "Cannot add resources after resource set is built");
+  // Treat as a texture binding in GL; aspect/range not supported at bind time.
+  assert(validateBinding(binding, ResourceType::TEXTURE_2D, 1) && "Invalid binding for image view");
+
+  // Store the ImageView pointer to keep API semantics; bind step unwraps handle
+  mBindings.push_back({ResourceType::TEXTURE_2D,
+                       binding,
+                       {const_cast<ImageView *>(view.get())},
                        1});
 }
 
@@ -146,8 +160,31 @@ void GLResourceSet::bindTexture(uint32 binding, const std::vector<void *> &textu
 {
   for (size_t i = 0; i < textures.size(); ++i)
   {
-    const Texture *texture = static_cast<const Texture *>(textures[i]);
-    if (texture)
+    // Accept either Texture* or ImageView* and unwrap to underlying texture
+    const void *res = textures[i];
+    const Texture *texture = nullptr;
+
+    if (res)
+    {
+      // First cast through the polymorphic base to enable safe RTTI use
+      const ResourceHandle *rh = static_cast<const ResourceHandle *>(res);
+      if (rh && rh->isValid())
+      {
+        // Try direct Texture*
+        if (!texture)
+          texture = dynamic_cast<const Texture *>(rh);
+
+        // Fallback: try ImageView* and unwrap underlying image
+        if (!texture)
+        {
+          const ImageView *iv = dynamic_cast<const ImageView *>(rh);
+          if (iv)
+            texture = iv->getDesc().image;
+        }
+      }
+    }
+
+    if (texture && texture->isValid())
     {
       glCall(glActiveTexture(GL_TEXTURE0 + binding + static_cast<uint32>(i)));
       glCall(glBindTexture(getTextureTargetFromType(texture->getTextureType()), static_cast<GLuint>(reinterpret_cast<uintptr_t>(texture->getNativeHandle()))));
@@ -160,6 +197,7 @@ void GLResourceSet::bindUniformBuffer(uint32 binding, void *buffer) const
   const GpuBuffer *uniformBuffer = static_cast<const GpuBuffer *>(buffer);
   if (uniformBuffer)
   {
+    // TODO: Support dynamic offsets by switching to glBindBufferRange with an offset passed from bindDescriptorSets
     glCall(glBindBufferBase(GL_UNIFORM_BUFFER, binding, static_cast<GLuint>(reinterpret_cast<uintptr_t>(uniformBuffer->getNativeHandle()))));
   }
 }

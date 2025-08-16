@@ -5,6 +5,8 @@
 #include "../VertexLayout.hpp"
 #include "GLVertexBuffer.hpp"
 #include "GL.hpp"
+#include "../GraphicsPipelineState.hpp"
+#include "../VertexInput.hpp"
 
 GLenum getComponentType(SemanticFormat format)
 {
@@ -144,6 +146,116 @@ std::shared_ptr<GLVertexArrayObject> GLVertexArrayObjectCollection::getVao(const
 
     offset += compSize * getComponentByteCount(layouts[i].Format);
   }
+  glCall(glBindVertexArray(0));
+  glCall(glBindBuffer(GL_ARRAY_BUFFER, 0));
+
+  std::shared_ptr<GLVertexArrayObject> vao(new GLVertexArrayObject(vaoId, boundBuffer));
+  boundBuffer->_vao = vao;
+  return vao;
+}
+
+static inline GLuint componentTypeFromFormat(SemanticFormat fmt)
+{
+  return getComponentType(fmt);
+}
+
+static inline GLint componentCountFromFormat(SemanticFormat fmt)
+{
+  return getComponentCount(fmt);
+}
+
+static inline GLboolean normalizedFromFormat(SemanticFormat fmt, bool normalizedFlag)
+{
+  switch (fmt)
+  {
+  case SemanticFormat::Byte:
+  case SemanticFormat::Byte2:
+  case SemanticFormat::Byte3:
+  case SemanticFormat::Byte4:
+  case SemanticFormat::Ubyte:
+  case SemanticFormat::Ubyte2:
+  case SemanticFormat::Ubyte3:
+  case SemanticFormat::Ubyte4:
+    return normalizedFlag ? GL_TRUE : GL_FALSE;
+  default:
+    return GL_FALSE;
+  }
+}
+
+std::shared_ptr<GLVertexArrayObject> GLVertexArrayObjectCollection::getVaoModern(const std::vector<VertexBindingDesc> &bindings,
+                                                                                 const std::vector<VertexAttributeDesc> &attributes,
+                                                                                 const std::shared_ptr<GLVertexBuffer> &boundBuffer)
+{
+  // Simple single-VAO cache per GLVertexBuffer for modern path as well
+  if (boundBuffer->_vao)
+  {
+    return boundBuffer->_vao;
+  }
+
+  GLuint vaoId = 0;
+  glCall(glGenVertexArrays(1, &vaoId));
+  ASSERT_TRUE(vaoId != 0, "Unable to create OpenGL vertex array object (modern)");
+  glCall(glBindVertexArray(vaoId));
+
+  glCall(glBindBuffer(GL_ARRAY_BUFFER, boundBuffer->GetId()));
+
+  // Determine per-binding stride and input rate; GL 4.1 supports a single GL_ARRAY_BUFFER binding.
+  // We still compute the values from binding 0 to honor API intent.
+  uint32 binding0Stride = 0;
+  VertexInputRate binding0Rate = VertexInputRate::PerVertex;
+  for (const auto &b : bindings)
+  {
+    if (b.binding == 0)
+    {
+      binding0Stride = b.stride;
+      binding0Rate = b.inputRate;
+      break;
+    }
+  }
+  // If no stride on binding, infer tight packing from attributes on binding 0
+  if (binding0Stride == 0)
+  {
+    uint32 maxExtent = 0;
+    for (const auto &a : attributes)
+    {
+      if (a.binding != 0)
+        continue;
+      uint32 compBytes = static_cast<uint32>(getComponentByteCount(a.format));
+      uint32 comps = static_cast<uint32>(getComponentCount(a.format));
+      uint32 end = a.offset + compBytes * comps;
+      if (end > maxExtent)
+        maxExtent = end;
+    }
+    binding0Stride = maxExtent;
+  }
+
+  for (const auto &a : attributes)
+  {
+    if (a.binding != 0)
+    {
+      // GL 4.1 path only supports binding 0; ignore others
+      continue;
+    }
+    GLuint loc = static_cast<GLuint>(a.location);
+    GLint compSize = componentCountFromFormat(a.format);
+    GLenum compType = componentTypeFromFormat(a.format);
+    GLboolean norm = normalizedFromFormat(a.format, a.normalized);
+    const GLvoid *ptr = reinterpret_cast<const GLvoid *>(static_cast<uintptr_t>(a.offset));
+    const GLsizei stride = (a.stride != 0) ? static_cast<GLsizei>(a.stride) : static_cast<GLsizei>(binding0Stride);
+    glCall(glVertexAttribPointer(loc, compSize, compType, norm, stride, ptr));
+    glCall(glEnableVertexAttribArray(loc));
+    // Divisors: if binding is per-instance, set divisor to 1; otherwise 0
+    if (binding0Rate == VertexInputRate::PerInstance)
+    {
+      glCall(glVertexAttribDivisor(loc, 1));
+    }
+    else
+    {
+      // Ensure default divisor for safety in case VAO was reused
+      glCall(glVertexAttribDivisor(loc, 0));
+    }
+  }
+
   glCall(glBindVertexArray(0));
   glCall(glBindBuffer(GL_ARRAY_BUFFER, 0));
 

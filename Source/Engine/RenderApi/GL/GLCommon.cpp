@@ -1,4 +1,5 @@
 #include "GLCommon.hpp"
+using namespace MemoryDeps;
 
 GLenum getTextureTargetFromType(TextureType textureType)
 {
@@ -138,4 +139,62 @@ GLenum getBlendOp(BlendOperation op)
   default:
     return GL_FUNC_ADD;
   }
+}
+
+bool glMemoryBarrierAvailable()
+{
+#if defined(GL_VERSION_4_2)
+  // Only available when compiled with GL 4.2 headers and runtime exposes 4.2
+  return GLAD_GL_VERSION_4_2 != 0;
+#else
+  // With a GL 4.1-only loader, glMemoryBarrier is not declared; treat as unavailable
+  return false;
+#endif
+}
+
+GLbitfield mapMemoryDepsToGL(uint32 memoryDeps)
+{
+  GLbitfield bits = 0;
+#if defined(GL_VERSION_4_2) && defined(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT)
+  if (memoryDeps & (ShaderWrite | StorageWrite | StorageRead))
+    bits |= GL_SHADER_IMAGE_ACCESS_BARRIER_BIT;
+#endif
+#if defined(GL_VERSION_4_2) && defined(GL_UNIFORM_BARRIER_BIT)
+  if (memoryDeps & (UniformRead))
+    bits |= GL_UNIFORM_BARRIER_BIT;
+#endif
+#if defined(GL_VERSION_4_2) && defined(GL_SHADER_STORAGE_BARRIER_BIT)
+  if (memoryDeps & (ShaderRead | ShaderWrite | StorageRead | StorageWrite))
+    bits |= GL_SHADER_STORAGE_BARRIER_BIT;
+#endif
+#if defined(GL_VERSION_4_2) && defined(GL_TEXTURE_FETCH_BARRIER_BIT)
+  if (memoryDeps & (ShaderRead))
+    bits |= GL_TEXTURE_FETCH_BARRIER_BIT;
+#endif
+#if defined(GL_VERSION_4_2) && defined(GL_FRAMEBUFFER_BARRIER_BIT)
+  if (memoryDeps & (ColorAttachmentRead | ColorAttachmentWrite | DepthStencilRead | DepthStencilWrite))
+    bits |= GL_FRAMEBUFFER_BARRIER_BIT;
+#endif
+#if defined(GL_VERSION_4_2) && defined(GL_ELEMENT_ARRAY_BARRIER_BIT)
+  if (memoryDeps & (TransferRead | TransferWrite))
+    bits |= GL_ELEMENT_ARRAY_BARRIER_BIT;
+#endif
+#if defined(GL_VERSION_4_2) && defined(GL_PIXEL_BUFFER_BARRIER_BIT)
+  if (memoryDeps & (TransferRead | TransferWrite))
+    bits |= GL_PIXEL_BUFFER_BARRIER_BIT;
+#endif
+#if defined(GL_VERSION_4_2) && defined(GL_BUFFER_UPDATE_BARRIER_BIT)
+  if (memoryDeps & (TransferWrite))
+    bits |= GL_BUFFER_UPDATE_BARRIER_BIT;
+#endif
+#if defined(GL_VERSION_4_2) && defined(GL_CLIENT_MAPPED_BUFFER_BARRIER_BIT)
+  if (memoryDeps & Host)
+    bits |= GL_CLIENT_MAPPED_BUFFER_BARRIER_BIT;
+#endif
+#if defined(GL_VERSION_4_2) && defined(GL_ALL_BARRIER_BITS)
+  // If nothing mapped but deps requested, return ALL to be safe
+  if (bits == 0 && memoryDeps != 0)
+    bits = GL_ALL_BARRIER_BITS;
+#endif
+  return bits;
 }

@@ -4,7 +4,8 @@
 
 static const uint32 MaxColourTargets = 8;
 
-struct RenderTargetDesc
+// Deprecated legacy render target description. Use FramebufferDesc instead.
+struct [[deprecated("RenderTargetDesc is deprecated. Build FramebufferDesc with attachments instead.")]] RenderTargetDesc
 {
   uint32 Width;
   uint32 Height;
@@ -12,7 +13,11 @@ struct RenderTargetDesc
   std::shared_ptr<Texture> DepthStencilTarget;
 };
 
-class RenderTarget
+/**
+ * Deprecated legacy RenderTarget abstraction.
+ * Use Framebuffer + FramebufferDesc and RenderPassBeginInfo.
+ */
+class [[deprecated("RenderTarget is deprecated. Replace with Framebuffer ownership and FramebufferDesc.")]] RenderTarget
 {
 public:
   virtual void copy(const std::shared_ptr<RenderTarget> &target) = 0;

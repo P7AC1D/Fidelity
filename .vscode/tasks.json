@@ -1,0 +1,64 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Build: Release (build-windows.ps1)",
+			"type": "shell",
+			"command": "pwsh",
+			"args": [
+				"-NoProfile",
+				"-ExecutionPolicy",
+				"Bypass",
+				"-File",
+				"${workspaceFolder}\\build-windows.ps1"
+			],
+			"options": {
+				"cwd": "${workspaceFolder}"
+			},
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+			"presentation": {
+				"reveal": "always",
+				"panel": "dedicated"
+			},
+			"problemMatcher": []
+		},
+		{
+			"label": "Tests: Build Release and Run",
+			"type": "shell",
+			"command": ".\\Tests.exe",
+			"options": {
+				"cwd": "${workspaceFolder}\\build\\release\\bin\\Release"
+			},
+			"dependsOn": [
+				"Build: Release (build-windows.ps1)"
+			],
+			"dependsOrder": "sequence",
+			"group": "test",
+			"presentation": {
+				"reveal": "always",
+				"panel": "dedicated"
+			},
+			"problemMatcher": []
+		},
+		{
+			"label": "Sponza: Build Release and Run",
+			"type": "shell",
+			"command": ".\\Sponza.exe",
+			"options": {
+				"cwd": "${workspaceFolder}\\build\\release\\bin\\Release"
+			},
+			"dependsOn": [
+				"Build: Release (build-windows.ps1)"
+			],
+			"dependsOrder": "sequence",
+			"presentation": {
+				"reveal": "always",
+				"panel": "dedicated"
+			},
+			"problemMatcher": []
+		}
+	]
+}

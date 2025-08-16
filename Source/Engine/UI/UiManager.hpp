@@ -10,7 +10,7 @@
 
 class GpuBuffer;
 class IndexBuffer;
-class PipelineState;
+class GraphicsPipelineState;
 class RenderDevice;
 class SamplerState;
 class Texture;
@@ -50,7 +50,7 @@ private:
   uint64 _idxBuffSize;
 
   std::shared_ptr<RenderDevice> _renderDevice;
-  std::shared_ptr<PipelineState> _pipelineState;
+  std::shared_ptr<GraphicsPipelineState> _pipelineState;
   std::shared_ptr<Texture> _textureAtlas;
   std::shared_ptr<SamplerState> _samplerState;
   std::shared_ptr<SamplerState> _noMipSamplerState;

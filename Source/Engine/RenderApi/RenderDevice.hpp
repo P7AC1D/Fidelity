@@ -3,18 +3,24 @@
 #include "DepthStencilState.hpp"
 #include "GpuBuffer.hpp"
 #include "IndexBuffer.hpp"
-#include "PipelineState.hpp"
+#include "PrimitiveTopology.hpp"
 #include "RasterizerState.hpp"
 #include "ResourceSet.hpp"
-#include "RenderTarget.hpp"
 #include "SamplerState.hpp"
 #include "Shader.hpp"
 #include "Texture.hpp"
 #include "VertexBuffer.hpp"
 #include "VertexLayout.hpp"
+#include "Query.hpp"
+#include "PresentMode.hpp"
+#include "Surface.hpp"
 
 // Forward declarations
 class ICommandBuffer;
+class IQueue;
+class IFence;
+class ISemaphore;
+class ICommandPool;
 
 /**
  * @brief Defines the viewport transformation parameters for rendering
@@ -75,19 +81,12 @@ enum RenderTargetType
 };
 
 /**
- * @brief Abstract base class for graphics API abstraction
+ * @brief Abstract device for creating and managing GPU resources.
  *
- * RenderDevice provides a unified interface for creating and managing GPU resources
- * across different graphics APIs (OpenGL, Vulkan, DirectX 12, Metal). It follows
- * an immediate-mode rendering model while providing the foundation for transitioning
- * to command-buffer based rendering.
- *
- * The device manages the lifecycle of GPU resources and provides methods for
- * configuring the rendering pipeline state. All resource creation methods return
- * shared pointers to ensure proper memory management across the rendering system.
- *
- * @note This class is abstract and must be implemented by concrete graphics API backends
- * @note All virtual methods must be implemented by derived classes
+ * RenderDevice exposes a unified, API-agnostic interface for resource creation,
+ * pipeline configuration, and command submission. Implementations provide the
+ * concrete interaction with the underlying graphics API while keeping callers
+ * independent of backend specifics.
  */
 class RenderDevice
 {
@@ -133,13 +132,7 @@ public:
    */
   virtual std::shared_ptr<Texture> createTexture(const TextureDesc &desc, bool gammaCorrected = false) = 0;
 
-  /**
-   * @brief Creates a render target for off-screen rendering
-   * @param desc Render target description specifying color and depth attachments
-   * @return Shared pointer to the created render target
-   * @note Render targets allow rendering to textures instead of the main framebuffer
-   */
-  virtual std::shared_ptr<RenderTarget> createRenderTarget(const RenderTargetDesc &desc) = 0;
+  // Legacy RenderTarget removed. Use textures + Framebuffer instead.
 
   /**
    * @brief Creates a generic GPU buffer for various purposes
@@ -175,10 +168,87 @@ public:
   /**
    * @brief Creates a command buffer for recording rendering commands
    * @return Unique pointer to the created command buffer
-   * @note Command buffers provide deferred command recording for modern graphics APIs
-   * @note OpenGL implementation provides immediate mode fallback
    */
   virtual std::unique_ptr<ICommandBuffer> createCommandBuffer() = 0;
+
+  /**
+   * @brief Create a query pool for timestamps/elapsed/samples.
+   * @return nullptr by default; backends may override.
+   */
+  virtual std::shared_ptr<IQueryPool> createQueryPool(const QueryPoolDesc &desc)
+  {
+    (void)desc;
+    return nullptr;
+  }
+
+  /** Create a presentation surface from a native window handle. */
+  virtual std::shared_ptr<ISurface> createSurface(void *nativeWindowHandle)
+  {
+    (void)nativeWindowHandle;
+    return nullptr;
+  }
+  /** Create a swapchain for a surface with the given description. */
+  virtual std::shared_ptr<ISwapchain> createSwapchain(const std::shared_ptr<ISurface> &surface, const SwapchainDesc &desc)
+  {
+    (void)surface;
+    (void)desc;
+    return nullptr;
+  }
+
+  // Debug/Validation Utilities
+
+  /**
+   * @brief Begin a GPU debug marker region (no-op if unsupported)
+   * @param label Null-terminated label for the marker
+   */
+  virtual void beginDebugMarker(const char *label) { (void)label; }
+
+  /**
+   * @brief Insert a single GPU debug marker (no-op if unsupported)
+   * @param label Null-terminated label for the marker
+   */
+  virtual void insertDebugMarker(const char *label) { (void)label; }
+
+  /**
+   * @brief End the current GPU debug marker region (no-op if unsupported)
+   */
+  virtual void endDebugMarker() {}
+
+  /**
+   * @brief Log GPU capabilities and selected device properties once at startup (no-op by default)
+   */
+  virtual void logCapabilities() const {}
+
+  // Submission and synchronization primitives (safe defaults)
+
+  /**
+   * @brief Get the default graphics queue (nullptr if not implemented)
+   */
+  virtual std::shared_ptr<IQueue> getGraphicsQueue() { return nullptr; }
+
+  /**
+   * @brief Create a fence (nullptr if not implemented)
+   */
+  virtual std::shared_ptr<IFence> createFence(bool signaled = false)
+  {
+    (void)signaled;
+    return nullptr;
+  }
+
+  /**
+   * @brief Create a semaphore (nullptr if not implemented)
+   */
+  virtual std::shared_ptr<ISemaphore> createSemaphore(bool timeline = false, uint64 initialValue = 0)
+  {
+    (void)timeline;
+    (void)initialValue;
+    return nullptr;
+  }
+
+  /**
+   * @brief Create a command pool (nullptr if not implemented)
+   */
+  virtual std::shared_ptr<ICommandPool> createCommandPool() { return nullptr; }
 
   // State Query Methods
 
@@ -224,10 +294,6 @@ public:
    * @return Shared pointer to the created pipeline state
    * @note Provides default implementation using protected constructor
    */
-  virtual std::shared_ptr<PipelineState> createPipelineState(const PipelineStateDesc &desc)
-  {
-    return std::shared_ptr<PipelineState>(new PipelineState(desc));
-  }
 
   /**
    * @brief Creates a rasterizer state with the specified configuration

@@ -4,7 +4,8 @@
 #include "../BlendState.hpp"
 #include "../DepthStencilState.hpp"
 #include "../Texture.hpp"
-#include "../PipelineState.hpp"
+#include "../PrimitiveTopology.hpp"
+#include "../ResourceState.hpp"
 
 /**
  * @brief Converts a TextureType enumeration value to the corresponding OpenGL texture target.
@@ -72,3 +73,17 @@ GLenum getBlendFactor(BlendFactor factor);
  * @return GLenum The corresponding OpenGL blend equation constant
  */
 GLenum getBlendOp(BlendOperation op);
+
+/**
+ * @brief Returns true if glMemoryBarrier is available at runtime (GL 4.2 or ARB_shader_image_load_store).
+ */
+bool glMemoryBarrierAvailable();
+
+/**
+ * @brief Maps engine MemoryDeps bits to OpenGL glMemoryBarrier bits (best-effort on older GL).
+ *
+ * If specific bits are not supported on the current GL version, this function
+ * falls back to broader/safe bits or zero. Callers should use GL_ALL_BARRIER_BITS
+ * when the returned value is zero but a barrier is still required.
+ */
+GLbitfield mapMemoryDepsToGL(uint32 memoryDeps);

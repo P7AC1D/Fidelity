@@ -100,6 +100,22 @@ void GLGpuBuffer::Initialize()
     return;
   }
 
+  // Phase 5: validate usage flags best-effort on GL 4.1
+  // GL has separate targets for Vertex/Index/Uniform. Other usages are best-effort.
+  // We don't fail creation; just assert for clearly incompatible combos.
+  if (_desc.UsageFlags & GpuBufferUsage::Vertex)
+  {
+    ASSERT_TRUE(_desc.BufferType == BufferType::Vertex, "Vertex usage requires BufferType::Vertex");
+  }
+  if (_desc.UsageFlags & GpuBufferUsage::Index)
+  {
+    ASSERT_TRUE(_desc.BufferType == BufferType::Index, "Index usage requires BufferType::Index");
+  }
+  if (_desc.UsageFlags & GpuBufferUsage::Uniform)
+  {
+    ASSERT_TRUE(_desc.BufferType == BufferType::Constant, "Uniform usage requires BufferType::Constant");
+  }
+
   glCall(glGenBuffers(1, &_id));
   ASSERT_FALSE(_id == 0, "Could not generate buffer object");
 

@@ -5,6 +5,7 @@
 #include <assimp/Importer.hpp>
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
+#include <assimp/config.h>
 
 #include "../Maths/Math.hpp"
 #include "../Core/TransformComponent.h"
@@ -24,6 +25,8 @@ void offsetVertices(std::vector<Vector3> &vertices, const Vector3 &midPoint);
 void buildIndexData(const aiFace *faces, uint32 indexCount, std::vector<uint32> &indicesOut);
 void buildTexCoordData(const aiVector3D *texCoords, uint32 texCoordCount, std::vector<Vector2> &texCoordsOut);
 void buildNormalData(const aiVector3D *normals, uint32 normalCount, std::vector<Vector3> &normalsOut);
+void buildTangentData(const aiVector3D *tangents, uint32 count, std::vector<Vector3> &tangentsOut);
+void buildBitangentData(const aiVector3D *bitangents, uint32 count, std::vector<Vector3> &bitangentsOut);
 
 Vector3 toVector3(aiVector3D input)
 {
@@ -40,7 +43,8 @@ void offsetVertices(std::vector<Vector3> &vertices, const Vector3 &midPoint)
 
 void buildIndexData(const aiFace *faces, uint32 indexCount, std::vector<uint32> &indicesOut)
 {
-  indicesOut.reserve(indexCount);
+  // Reserve for triangles (3 indices per face)
+  indicesOut.reserve(indexCount * 3);
   for (uint32 i = 0; i < indexCount; i++)
   {
     auto face = faces + i;
@@ -102,8 +106,8 @@ std::shared_ptr<Material> buildMaterial(std::shared_ptr<RenderDevice> renderDevi
     aiMaterial->GetTexture(aiTextureType_DIFFUSE, 0, &diffuseTexturePath);
     if (diffuseTexturePath.length != 0)
     {
+      // TextureLoader can generate mips; avoid duplicate generation here
       auto diffuseTexture = TextureLoader::loadFromFile2D(renderDevice, filePath + diffuseTexturePath.C_Str(), true, true);
-      diffuseTexture->generateMips();
       material->setDiffuseTexture(diffuseTexture);
     }
   }
@@ -115,7 +119,6 @@ std::shared_ptr<Material> buildMaterial(std::shared_ptr<RenderDevice> renderDevi
     if (normalTexturePath.length != 0)
     {
       auto normalTexture = TextureLoader::loadFromFile2D(renderDevice, filePath + normalTexturePath.C_Str(), true, false);
-      normalTexture->generateMips();
       material->setNormalTexture(normalTexture);
     }
   }
@@ -127,7 +130,6 @@ std::shared_ptr<Material> buildMaterial(std::shared_ptr<RenderDevice> renderDevi
     if (specularTexturePath.length != 0)
     {
       auto specularTexture = TextureLoader::loadFromFile2D(renderDevice, filePath + specularTexturePath.C_Str(), true, false);
-      specularTexture->generateMips();
       material->setMetallicTexture(specularTexture);
     }
   }
@@ -139,7 +141,6 @@ std::shared_ptr<Material> buildMaterial(std::shared_ptr<RenderDevice> renderDevi
     if (texturePath.length != 0)
     {
       auto texture = TextureLoader::loadFromFile2D(renderDevice, filePath + texturePath.C_Str(), true, false);
-      texture->generateMips();
       material->setRoughnessTexture(texture);
     }
   }
@@ -151,7 +152,6 @@ std::shared_ptr<Material> buildMaterial(std::shared_ptr<RenderDevice> renderDevi
     if (opacityTexturePath.length != 0)
     {
       auto opacityTexture = TextureLoader::loadFromFile2D(renderDevice, filePath + opacityTexturePath.C_Str(), true, false);
-      opacityTexture->generateMips();
       material->setOpacityTexture(opacityTexture);
     }
   }
@@ -162,7 +162,7 @@ Vector3 calculateCentroid(const aiMesh *mesh)
 {
   float32 areaSum = 0.0f;
   Vector3 centroid = Vector3::Zero;
-  for (int i = 0; i < mesh->mNumFaces; i++)
+  for (uint32 i = 0; i < mesh->mNumFaces; i++)
   {
     auto face = mesh->mFaces[i];
     auto p0 = toVector3(mesh->mVertices[face.mIndices[0]]);
@@ -177,7 +177,7 @@ Vector3 calculateCentroid(const aiMesh *mesh)
   return centroid / areaSum;
 }
 
-std::shared_ptr<StaticMesh> buildMesh(const std::string &filePath, const aiMesh *aiMesh, bool reconstructWorldTransforms, Vector3 &offset)
+std::shared_ptr<StaticMesh> buildMesh(const aiMesh *aiMesh, bool reconstructWorldTransforms, Vector3 &offset)
 {
   if (!aiMesh->HasPositions() || !aiMesh->HasNormals())
   {
@@ -228,7 +228,20 @@ std::shared_ptr<StaticMesh> buildMesh(const std::string &filePath, const aiMesh 
     mesh->setIndexData(indices);
   }
 
-  mesh->generateTangents();
+  // Prefer tangents/bitangents from importer if available; otherwise compute
+  if (aiMesh->HasTangentsAndBitangents())
+  {
+    std::vector<Vector3> tangents;
+    std::vector<Vector3> bitangents;
+    buildTangentData(aiMesh->mTangents, aiMesh->mNumVertices, tangents);
+    buildBitangentData(aiMesh->mBitangents, aiMesh->mNumVertices, bitangents);
+    mesh->setTangentVertexData(tangents);
+    mesh->setBitangentVertexData(bitangents);
+  }
+  else
+  {
+    mesh->generateTangents();
+  }
   return mesh;
 }
 
@@ -253,7 +266,7 @@ GameObject &buildModel(Scene &scene, const std::string &fileFolder, const aiScen
 
     Vector3 offset;
     drawableComp.setMaterial(materials[aiMesh->mMaterialIndex]);
-    drawableComp.setMesh(buildMesh(fileFolder, aiMesh, reconstructWorldTransforms, offset));
+    drawableComp.setMesh(buildMesh(aiMesh, reconstructWorldTransforms, offset));
     currentObject.transform().setPosition(offset);
   }
 
@@ -263,11 +276,53 @@ GameObject &buildModel(Scene &scene, const std::string &fileFolder, const aiScen
 GameObject &ModelLoader::fromFile(Scene &scene, const std::string &filePath, bool reconstructWorldTransforms)
 {
   Assimp::Importer importer;
-  auto aiScene = importer.ReadFile(filePath, aiProcess_Triangulate | aiProcess_GenNormals | aiProcess_GenUVCoords);
+  // Remove heavy/unused components to speed up import
+  importer.SetPropertyInteger(AI_CONFIG_PP_RVC_FLAGS,
+                              aiComponent_ANIMATIONS |
+                                  aiComponent_BONEWEIGHTS |
+                                  aiComponent_CAMERAS |
+                                  aiComponent_LIGHTS |
+                                  aiComponent_COLORS);
+
+  // Prefer smooth normals and tangent space from Assimp to avoid doing it ourselves
+  importer.SetPropertyFloat(AI_CONFIG_PP_GSN_MAX_SMOOTHING_ANGLE, 80.0f);
+  // Remove lines/points after sorting by primitive type to keep only triangles
+  importer.SetPropertyInteger(AI_CONFIG_PP_SBP_REMOVE, aiPrimitiveType_LINE | aiPrimitiveType_POINT);
+
+  unsigned int ppFlags = aiProcess_Triangulate |
+                         aiProcess_GenUVCoords |
+                         aiProcess_GenSmoothNormals |
+                         aiProcess_CalcTangentSpace |
+                         aiProcess_RemoveComponent |
+                         aiProcess_JoinIdenticalVertices |
+                         aiProcess_ImproveCacheLocality |
+                         aiProcess_SortByPType |
+                         aiProcess_FindInvalidData |
+                         aiProcess_RemoveRedundantMaterials;
+
+  auto aiScene = importer.ReadFile(filePath, ppFlags);
   ASSERT_TRUE(aiScene, "failed to load model from " + filePath);
 
   auto splitPath = String::split(filePath, '/');
   splitPath.pop_back();
   auto fileFolder = String::join(splitPath, '/');
   return buildModel(scene, fileFolder, aiScene, reconstructWorldTransforms);
+}
+
+void buildTangentData(const aiVector3D *tangents, uint32 count, std::vector<Vector3> &tangentsOut)
+{
+  tangentsOut.reserve(count);
+  for (uint32 i = 0; i < count; i++)
+  {
+    tangentsOut.emplace_back(tangents[i].x, tangents[i].y, tangents[i].z);
+  }
+}
+
+void buildBitangentData(const aiVector3D *bitangents, uint32 count, std::vector<Vector3> &bitangentsOut)
+{
+  bitangentsOut.reserve(count);
+  for (uint32 i = 0; i < count; i++)
+  {
+    bitangentsOut.emplace_back(bitangents[i].x, bitangents[i].y, bitangents[i].z);
+  }
 }

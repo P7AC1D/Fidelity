@@ -6,7 +6,6 @@
 #include "GLCommandBuffer.hpp"
 #include "GLGpuBuffer.hpp"
 #include "GLIndexBuffer.hpp"
-#include "GLRenderTarget.hpp"
 #include "GLResourceSet.hpp"
 #include "GLSamplerState.hpp"
 #include "GLShader.hpp"
@@ -15,6 +14,14 @@
 #include "GLTexture.hpp"
 #include "GLVertexBuffer.hpp"
 #include "GLVertexArrayCollection.hpp"
+#include "GLSyncPrimitives.hpp"
+#include "GLCommandPool.hpp"
+#include "../Query.hpp"
+#include "../Surface.hpp"
+#include "../PresentMode.hpp"
+#include "GLSurface.hpp"
+#include "GLSwapchain.hpp"
+#include <GLFW/glfw3.h>
 
 GLRenderDevice::GLRenderDevice(const RenderDeviceDesc &desc) : RenderDevice(desc),
                                                                _shaderStateChanged(true),
@@ -31,6 +38,9 @@ GLRenderDevice::GLRenderDevice(const RenderDeviceDesc &desc) : RenderDevice(desc
   // Set OpenGL state to match initial values
   glCall(glViewport(_viewportDesc.TopLeftX, _viewportDesc.TopLeftY, _viewportDesc.Width, _viewportDesc.Height));
   glCall(glScissor(_scissorDesc.X, _scissorDesc.Y, _scissorDesc.W, _scissorDesc.H));
+
+  // Emit a capability summary once on device creation
+  logCapabilities();
 }
 
 std::shared_ptr<Shader> GLRenderDevice::createShader(const ShaderDesc &desc)
@@ -45,10 +55,7 @@ std::shared_ptr<VertexBuffer> GLRenderDevice::createVertexBuffer(const VertexBuf
   return std::make_shared<GLVertexBuffer>(desc);
 }
 
-std::shared_ptr<RenderTarget> GLRenderDevice::createRenderTarget(const RenderTargetDesc &desc)
-{
-  return std::shared_ptr<GLRenderTarget>(new GLRenderTarget(desc));
-}
+// Legacy RenderTarget creation removed. Framebuffer usage replaces it.
 
 std::shared_ptr<IndexBuffer> GLRenderDevice::createIndexBuffer(const IndexBufferDesc &desc)
 {
@@ -85,6 +92,35 @@ std::unique_ptr<ICommandBuffer> GLRenderDevice::createCommandBuffer()
   return std::make_unique<GLCommandBuffer>(shared_from_this());
 }
 
+std::shared_ptr<IQueryPool> GLRenderDevice::createQueryPool(const QueryPoolDesc &desc)
+{
+  return std::make_shared<GLQueryPool>(desc);
+}
+
+std::shared_ptr<IQueue> GLRenderDevice::getGraphicsQueue()
+{
+  if (!_graphicsQueue)
+  {
+    _graphicsQueue = std::make_shared<GLQueue>(shared_from_this());
+  }
+  return _graphicsQueue;
+}
+
+std::shared_ptr<IFence> GLRenderDevice::createFence(bool signaled)
+{
+  return std::make_shared<GLFence>(signaled);
+}
+
+std::shared_ptr<ISemaphore> GLRenderDevice::createSemaphore(bool timeline, uint64 initialValue)
+{
+  return std::make_shared<GLSemaphore>(timeline, initialValue);
+}
+
+std::shared_ptr<ICommandPool> GLRenderDevice::createCommandPool()
+{
+  return std::make_shared<GLCommandPoolStub>(shared_from_this());
+}
+
 const ViewportDesc &GLRenderDevice::getViewport() const
 {
   return _viewportDesc;
@@ -93,6 +129,75 @@ const ViewportDesc &GLRenderDevice::getViewport() const
 ScissorDesc GLRenderDevice::getScissorDimensions() const
 {
   return _scissorDesc;
+}
+
+void GLRenderDevice::beginDebugMarker(const char *label) { (void)label; }
+
+void GLRenderDevice::insertDebugMarker(const char *label) { (void)label; }
+
+void GLRenderDevice::endDebugMarker() {}
+
+void GLRenderDevice::logCapabilities() const
+{
+  const GLubyte *vendor = glGetString(GL_VENDOR);
+  const GLubyte *renderer = glGetString(GL_RENDERER);
+  const GLubyte *version = glGetString(GL_VERSION);
+  const GLubyte *glsl = glGetString(GL_SHADING_LANGUAGE_VERSION);
+
+  std::cout << "[GL Caps] Vendor: " << (vendor ? reinterpret_cast<const char *>(vendor) : "?") << "\n";
+  std::cout << "[GL Caps] Renderer: " << (renderer ? reinterpret_cast<const char *>(renderer) : "?") << "\n";
+  std::cout << "[GL Caps] Version: " << (version ? reinterpret_cast<const char *>(version) : "?") << "\n";
+  std::cout << "[GL Caps] GLSL: " << (glsl ? reinterpret_cast<const char *>(glsl) : "?") << "\n";
+
+  GLint maxUBOSize = 0, maxUBOBindings = 0, maxSSBOBindings = 0, maxTextureUnits = 0;
+  glGetIntegerv(GL_MAX_UNIFORM_BLOCK_SIZE, &maxUBOSize);
+  glGetIntegerv(GL_MAX_UNIFORM_BUFFER_BINDINGS, &maxUBOBindings);
+#ifdef GL_MAX_SHADER_STORAGE_BUFFER_BINDINGS
+  glGetIntegerv(GL_MAX_SHADER_STORAGE_BUFFER_BINDINGS, &maxSSBOBindings);
+#endif
+  glGetIntegerv(GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS, &maxTextureUnits);
+
+  std::cout << "[GL Caps] UBO: max size = " << maxUBOSize << ", bindings = " << maxUBOBindings << "\n";
+  std::cout << "[GL Caps] SSBO: bindings = " << maxSSBOBindings << "\n";
+  std::cout << "[GL Caps] Combined texture units = " << maxTextureUnits << "\n";
+}
+
+// Phase 8: Surfaces/Swapchain implementation
+std::shared_ptr<ISurface> GLRenderDevice::createSurface(void *nativeWindowHandle)
+{
+  // Expect GLFWwindow* from Application
+  GLFWwindow *win = reinterpret_cast<GLFWwindow *>(nativeWindowHandle);
+  if (!win)
+    return nullptr;
+  int w = 0, h = 0;
+  glfwGetFramebufferSize(win, &w, &h);
+  return std::make_shared<GLSurface>(win, static_cast<uint32>(w), static_cast<uint32>(h));
+}
+
+std::shared_ptr<ISwapchain> GLRenderDevice::createSwapchain(const std::shared_ptr<ISurface> &surface, const SwapchainDesc &desc)
+{
+  auto glSurf = std::dynamic_pointer_cast<GLSurface>(surface);
+  if (!glSurf)
+    return nullptr;
+  // Map uint presentMode into PresentMode enum safely
+  PresentMode mode = PresentMode::Fifo;
+  switch (desc.presentMode)
+  {
+  default:
+  case 0:
+    mode = PresentMode::Fifo;
+    break;
+  case 1:
+    mode = PresentMode::Mailbox;
+    break;
+  case 2:
+    mode = PresentMode::Immediate;
+    break;
+  case 3:
+    mode = PresentMode::Tearing;
+    break;
+  }
+  return std::make_shared<GLSwapchain>(glSurf, desc, mode);
 }
 
 void GLRenderDevice::setRasterizerState(const std::shared_ptr<RasterizerState> &rasterizerState)

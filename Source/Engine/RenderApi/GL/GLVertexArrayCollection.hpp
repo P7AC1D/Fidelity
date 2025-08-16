@@ -5,6 +5,9 @@
 
 class GLVertexBuffer;
 class VertexLayout;
+struct VertexBindingDesc;
+struct VertexAttributeDesc;
+class GraphicsPipelineState;
 
 class GLVertexArrayObject
 {
@@ -26,4 +29,7 @@ class GLVertexArrayObjectCollection
 {
 public:
   static std::shared_ptr<GLVertexArrayObject> getVao(const std::shared_ptr<VertexLayout> &vertexLayout, const std::shared_ptr<GLVertexBuffer> &boundBuffer);
+  static std::shared_ptr<GLVertexArrayObject> getVaoModern(const std::vector<VertexBindingDesc> &bindings,
+                                                           const std::vector<VertexAttributeDesc> &attributes,
+                                                           const std::shared_ptr<GLVertexBuffer> &boundBuffer);
 };

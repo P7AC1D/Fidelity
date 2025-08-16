@@ -2,6 +2,7 @@
 #include "Renderer.h"
 #include "../Core/ComponentBase.inl"
 #include <random> // for mt19937 and uniform distributions
+#include <algorithm>
 #include <chrono>
 #include <iostream>
 #include <stdexcept>
@@ -13,8 +14,8 @@ static std::mt19937 g_ssaoGenerator(0);
 #include "../RenderApi/BlendState.hpp"
 #include "../RenderApi/DepthStencilState.hpp"
 #include "../RenderApi/Shader.hpp"
-#include "../RenderApi/PipelineState.hpp"
-#include "../RenderApi/RenderTarget.hpp"
+#include "../RenderApi/GraphicsPipelineState.hpp"
+// Renderer migrated to Framebuffer API; legacy RenderTarget removed
 #include "../RenderApi/RasterizerState.hpp"
 #include "../RenderApi/RenderDevice.hpp"
 #include "../RenderApi/SamplerState.hpp"
@@ -27,10 +28,14 @@ static std::mt19937 g_ssaoGenerator(0);
 #include "../Utility/Assert.hpp"
 #include "../Utility/String.hpp"
 #include "CameraComponent.h"
+#include "../RenderApi/RenderPass.hpp"
+#include "../RenderApi/Framebuffer.hpp"
 #include "DrawableComponent.h"
 #include "LightComponent.h"
 #include "Material.h"
 #include "StaticMesh.h"
+#include "RenderQueue.h"
+#include "../RenderApi/Queue.hpp"
 
 const static uint32 RANDOM_ROTATION_TEXTURE_SIZE = 64;
 const static uint32 SSAO_NOISE_TEXTURE_SIZE = 4;
@@ -176,6 +181,22 @@ std::vector<FullscreenQuadVertex> FullscreenQuadVertices{
     FullscreenQuadVertex(Vector2(1.0f, 1.0f), Vector2(1.0f, 1.0f)),
     FullscreenQuadVertex(Vector2(-1.0f, 1.0f), Vector2(0.0f, 1.0f))};
 
+// No adapter needed; use owned Framebuffer + textures per pass
+
+// Helper: submit a recorded command buffer via the device graphics queue
+static inline void SubmitRecorded(std::shared_ptr<RenderDevice> device, const std::unique_ptr<ICommandBuffer> &cmd)
+{
+  if (!cmd)
+    return;
+  auto q = device ? device->getGraphicsQueue() : nullptr;
+  Assert::throwIfFalse(q != nullptr, "RenderDevice must provide a graphics queue");
+  std::vector<std::shared_ptr<ICommandBuffer>> cbs;
+  cbs.emplace_back(cmd.get(), [](ICommandBuffer *) {});
+  SubmitInfo info{};
+  info.commandBuffers = &cbs;
+  q->submit(info);
+}
+
 float32 calculateCascadeRadius(const std::vector<Vector3> &frustrumCorners, const Vector3 &frustrumCenter)
 {
   Assert::throwIfFalse(frustrumCorners.size() == 8, "Invalid size of supplied frustrum corners.");
@@ -268,12 +289,12 @@ Renderer::Renderer(const Vector2I &windowDims) : _windowDims(windowDims),
   _renderPassTimings.push_back({0, "Tone Mapping"});
 
   // Initialize render queues
-  _opaqueQueue = std::make_unique<RenderQueue>(QueueType::Opaque);
-  _transparentQueue = std::make_unique<RenderQueue>(QueueType::Transparent);
+  _opaqueQueue = std::make_unique<RenderQueue>(RenderListType::Opaque);
+  _transparentQueue = std::make_unique<RenderQueue>(RenderListType::Transparent);
 
   // Initialize shadow culling system
   _shadowFrustum = std::make_unique<ShadowFrustum>();
-  _shadowQueue = std::make_unique<RenderQueue>(QueueType::Shadow);
+  _shadowQueue = std::make_unique<RenderQueue>(RenderListType::Shadow);
 
   // Initialize point light culling system
   _pointLightCuller = std::make_unique<PointLightCuller>();
@@ -345,7 +366,12 @@ void Renderer::drawDebugUi()
     float32 rawCol[]{_ambientColour[0], _ambientColour[1], _ambientColour[2]};
     if (ImGui::ColorEdit3("Colour", rawCol))
     {
-      _ambientColour = Colour(rawCol[0] * 255, rawCol[1] * 255, rawCol[2] * 255);
+      auto toByte = [](float32 v) -> uint8
+      {
+        v = std::clamp(v, 0.0f, 1.0f);
+        return static_cast<uint8>(v * 255.0f + 0.5f);
+      };
+      _ambientColour = Colour(toByte(rawCol[0]), toByte(rawCol[1]), toByte(rawCol[2]));
     }
 
     float32 ambientIntensity = _ambientIntensity;
@@ -893,48 +919,48 @@ void Renderer::updateResourceSets(const std::shared_ptr<RenderDevice> &renderDev
   _ssaoPassResourceSet->reset();
   _ssaoPassResourceSet->addUniformBuffer(0, _ssaoConstantsBuffer);
   _ssaoPassResourceSet->addUniformBuffer(1, _perFrameBuffer);
-  _ssaoPassResourceSet->addTexture(0, _gBufferRto->getDepthStencilTarget()); // DepthMap (shader slot 0)
-  _ssaoPassResourceSet->addTexture(1, _gBufferRto->getColourTarget(1));      // NormalMap (shader slot 1)
-  _ssaoPassResourceSet->addTexture(2, _ssaoNoiseTexture);                    // NoiseMap (shader slot 2)
-  _ssaoPassResourceSet->addSampler(0, _noMipSamplerState);                   // DepthMap sampler
-  _ssaoPassResourceSet->addSampler(1, _noMipSamplerState);                   // NormalMap sampler
-  _ssaoPassResourceSet->addSampler(2, _ssaoNoiseSampler);                    // NoiseMap sampler
+  _ssaoPassResourceSet->addTexture(0, _gBufferDepthTex);   // DepthMap (shader slot 0)
+  _ssaoPassResourceSet->addTexture(1, _gBufferNormalTex);  // NormalMap (shader slot 1)
+  _ssaoPassResourceSet->addTexture(2, _ssaoNoiseTexture);  // NoiseMap (shader slot 2)
+  _ssaoPassResourceSet->addSampler(0, _noMipSamplerState); // DepthMap sampler
+  _ssaoPassResourceSet->addSampler(1, _noMipSamplerState); // NormalMap sampler
+  _ssaoPassResourceSet->addSampler(2, _ssaoNoiseSampler);  // NoiseMap sampler
   _ssaoPassResourceSet->build(renderDevice);
 
   // Reset and rebuild SSAO blur pass resource set
   _ssaoBlurPassResourceSet->reset();
-  _ssaoBlurPassResourceSet->addTexture(0, _ssaoRto->getColourTarget(0)); // SsaoMap (shader slot 0)
-  _ssaoBlurPassResourceSet->addSampler(0, _noMipSamplerState);           // SsaoMap sampler
+  _ssaoBlurPassResourceSet->addTexture(0, _ssaoTex);           // SsaoMap (shader slot 0)
+  _ssaoBlurPassResourceSet->addSampler(0, _noMipSamplerState); // SsaoMap sampler
   _ssaoBlurPassResourceSet->build(renderDevice);
 
   // Reset and rebuild lighting pass resource set
   _lightingPassResourceSet->reset();
-  _lightingPassResourceSet->addUniformBuffer(1, _perFrameBuffer);                        // PerFrameBuffer (slot 1)
-  _lightingPassResourceSet->addUniformBuffer(2, _perFrameBuffer);                        // CascadeShadowMapBuffer (slot 2, same data as PerFrameBuffer)
-  _lightingPassResourceSet->addTexture(0, _gBufferRto->getColourTarget(0));              // AlbedoMap (slot 0)
-  _lightingPassResourceSet->addTexture(1, _gBufferRto->getDepthStencilTarget());         // DepthMap (slot 1)
-  _lightingPassResourceSet->addTexture(2, _gBufferRto->getColourTarget(1));              // NormalMap (slot 2)
-  _lightingPassResourceSet->addTexture(3, _gBufferRto->getColourTarget(2));              // MaterialMap (slot 3)
-  _lightingPassResourceSet->addTexture(4, _shadowMapRto->getDepthStencilTarget());       // ShadowMap (slot 4)
-  _lightingPassResourceSet->addTexture(5, _ssaoBlurRto->getColourTarget(0));             // OcclusionMap (slot 5)
-  _lightingPassResourceSet->addTexture(6, _shadowMapRto->getDepthStencilTarget());       // ShadowMask (slot 6, same as ShadowMap)
-  _lightingPassResourceSet->addTexture(7, _pointLightDepthRto->getDepthStencilTarget()); // PointShadowMaps (slot 7)
-  _lightingPassResourceSet->addTexture(8, _randomRotationsMap);                          // RandomRotationsMap (slot 8)
-  _lightingPassResourceSet->addSampler(0, _linearNoMipSamplerState);                     // AlbedoMap sampler (slot 0)
-  _lightingPassResourceSet->addSampler(1, _noMipSamplerState);                           // DepthMap sampler (slot 1)
-  _lightingPassResourceSet->addSampler(2, _linearNoMipSamplerState);                     // NormalMap sampler (slot 2)
-  _lightingPassResourceSet->addSampler(3, _linearNoMipSamplerState);                     // MaterialMap sampler (slot 3)
-  _lightingPassResourceSet->addSampler(4, _shadowMapSamplerState);                       // ShadowMap sampler (slot 4)
-  _lightingPassResourceSet->addSampler(5, _linearNoMipSamplerState);                     // OcclusionMap sampler (slot 5)
-  _lightingPassResourceSet->addSampler(6, _shadowMapSamplerState);                       // ShadowMask sampler (slot 6)
-  _lightingPassResourceSet->addSampler(7, _shadowMapSamplerState);                       // PointShadowMaps sampler (slot 7)
-  _lightingPassResourceSet->addSampler(8, _linearNoMipSamplerState);                     // RandomRotationsMap sampler (slot 8)
+  _lightingPassResourceSet->addUniformBuffer(1, _perFrameBuffer);    // PerFrameBuffer (slot 1)
+  _lightingPassResourceSet->addUniformBuffer(2, _perFrameBuffer);    // CascadeShadowMapBuffer (slot 2)
+  _lightingPassResourceSet->addTexture(0, _gBufferAlbedoTex);        // AlbedoMap (slot 0)
+  _lightingPassResourceSet->addTexture(1, _gBufferDepthTex);         // DepthMap (slot 1)
+  _lightingPassResourceSet->addTexture(2, _gBufferNormalTex);        // NormalMap (slot 2)
+  _lightingPassResourceSet->addTexture(3, _gBufferMaterialTex);      // MaterialMap (slot 3)
+  _lightingPassResourceSet->addTexture(4, _shadowMapDepthTex);       // ShadowMap (slot 4)
+  _lightingPassResourceSet->addTexture(5, _ssaoBlurTex);             // OcclusionMap (slot 5)
+  _lightingPassResourceSet->addTexture(6, _shadowMapDepthTex);       // ShadowMask (slot 6)
+  _lightingPassResourceSet->addTexture(7, _pointLightDepthTex);      // PointShadowMaps (slot 7)
+  _lightingPassResourceSet->addTexture(8, _randomRotationsMap);      // RandomRotationsMap (slot 8)
+  _lightingPassResourceSet->addSampler(0, _linearNoMipSamplerState); // AlbedoMap sampler (slot 0)
+  _lightingPassResourceSet->addSampler(1, _noMipSamplerState);       // DepthMap sampler (slot 1)
+  _lightingPassResourceSet->addSampler(2, _linearNoMipSamplerState); // NormalMap sampler (slot 2)
+  _lightingPassResourceSet->addSampler(3, _linearNoMipSamplerState); // MaterialMap sampler (slot 3)
+  _lightingPassResourceSet->addSampler(4, _shadowMapSamplerState);   // ShadowMap sampler (slot 4)
+  _lightingPassResourceSet->addSampler(5, _linearNoMipSamplerState); // OcclusionMap sampler (slot 5)
+  _lightingPassResourceSet->addSampler(6, _shadowMapSamplerState);   // ShadowMask sampler (slot 6)
+  _lightingPassResourceSet->addSampler(7, _shadowMapSamplerState);   // PointShadowMaps sampler (slot 7)
+  _lightingPassResourceSet->addSampler(8, _linearNoMipSamplerState); // RandomRotationsMap sampler (slot 8)
   _lightingPassResourceSet->build(renderDevice);
 
   // Reset and rebuild tone mapping pass resource set
   _toneMappingPassResourceSet->reset();
-  _toneMappingPassResourceSet->addTexture(0, _lightingPassRto->getColourTarget(0));
-  _toneMappingPassResourceSet->addTexture(1, _bloomDownSampleRtos[0]->getColourTarget(0));
+  _toneMappingPassResourceSet->addTexture(0, _lightingColorTex);
+  _toneMappingPassResourceSet->addTexture(1, _bloomDownSampleTex[0]);
   _toneMappingPassResourceSet->addSampler(2, _noMipSamplerState);
   _toneMappingPassResourceSet->addSampler(3, _noMipSamplerState);
   _toneMappingPassResourceSet->addUniformBuffer(0, _perFrameBuffer);
@@ -1115,13 +1141,16 @@ void Renderer::initDirectionalLightDepthPass(const std::shared_ptr<RenderDevice>
   shadowMapDesc.Type = TextureType::Texture2DArray;
   shadowMapDesc.Format = TextureFormat::D32F;
   shadowMapDesc.Count = _cascadeCount;
-
-  RenderTargetDesc rtDesc;
-  rtDesc.DepthStencilTarget = renderDevice->createTexture(shadowMapDesc);
-  rtDesc.Height = _shadowMapResolution;
-  rtDesc.Width = _shadowMapResolution;
-
-  _shadowMapRto = renderDevice->createRenderTarget(rtDesc);
+  _shadowMapDepthTex = renderDevice->createTexture(shadowMapDesc);
+  {
+    FramebufferDesc fb{};
+    fb.width = _shadowMapResolution;
+    fb.height = _shadowMapResolution;
+    fb.samples = 1;
+    fb.depthStencilAttachment = FramebufferAttachment{_shadowMapDepthTex};
+    fb.hasDepthStencilAttachment = true;
+    _shadowMapFb = std::make_shared<Framebuffer>(fb);
+  }
 
   ShaderDesc vsDesc;
   vsDesc.ShaderType = ShaderType::Vertex;
@@ -1150,17 +1179,19 @@ void Renderer::initDirectionalLightDepthPass(const std::shared_ptr<RenderDevice>
   RasterizerStateDesc rasterizerStateDesc;
   rasterizerStateDesc.CullMode = CullMode::Clockwise;
 
-  PipelineStateDesc pipelineDesc;
-  pipelineDesc.VS = renderDevice->createShader(vsDesc);
-  pipelineDesc.GS = renderDevice->createShader(gsDesc);
-  pipelineDesc.FS = renderDevice->createShader(psDesc);
-  pipelineDesc.BlendState = renderDevice->createBlendState(BlendStateDesc{});
-  pipelineDesc.RasterizerState = renderDevice->createRasterizerState(rasterizerStateDesc);
-  pipelineDesc.DepthStencilState = renderDevice->createDepthStencilState(DepthStencilStateDesc());
-  pipelineDesc.VertexLayout = renderDevice->createVertexLayout(vertexLayoutDesc);
-  pipelineDesc.ShaderParams = shaderParams;
-
-  _shadowMapPso = renderDevice->createPipelineState(pipelineDesc);
+  GraphicsPipelineStateDesc shadowDesc{};
+  shadowDesc.VS = renderDevice->createShader(vsDesc);
+  shadowDesc.GS = renderDevice->createShader(gsDesc);
+  shadowDesc.FS = renderDevice->createShader(psDesc);
+  shadowDesc.Blend = renderDevice->createBlendState(BlendStateDesc{});
+  shadowDesc.Rasterizer = renderDevice->createRasterizerState(rasterizerStateDesc);
+  shadowDesc.DepthStencil = renderDevice->createDepthStencilState(DepthStencilStateDesc());
+  shadowDesc.VertexLayoutDef = renderDevice->createVertexLayout(vertexLayoutDesc);
+  shadowDesc.ShaderParamReflection = shaderParams;
+  shadowDesc.Topology = PrimitiveTopology::TriangleList;
+  shadowDesc.HasDepthStencil = true;
+  shadowDesc.Samples = 1;
+  _shadowMapPso = std::make_shared<GraphicsPipelineState>(shadowDesc);
 }
 
 void Renderer::initPointLightDepthPass(const std::shared_ptr<RenderDevice> &renderDevice)
@@ -1172,13 +1203,16 @@ void Renderer::initPointLightDepthPass(const std::shared_ptr<RenderDevice> &rend
   shadowMapDesc.Type = TextureType::TextureCubeArray;
   shadowMapDesc.Format = TextureFormat::D32F;
   shadowMapDesc.Count = MAX_POINT_LIGHT_SHADOW_CASTERS;
-
-  RenderTargetDesc rtDesc;
-  rtDesc.DepthStencilTarget = renderDevice->createTexture(shadowMapDesc);
-  rtDesc.Height = _pointLightShadowMapResolution;
-  rtDesc.Width = _pointLightShadowMapResolution;
-
-  _pointLightDepthRto = renderDevice->createRenderTarget(rtDesc);
+  _pointLightDepthTex = renderDevice->createTexture(shadowMapDesc);
+  {
+    FramebufferDesc fb{};
+    fb.width = _pointLightShadowMapResolution;
+    fb.height = _pointLightShadowMapResolution;
+    fb.samples = 1;
+    fb.depthStencilAttachment = FramebufferAttachment{_pointLightDepthTex};
+    fb.hasDepthStencilAttachment = true;
+    _pointLightDepthFb = std::make_shared<Framebuffer>(fb);
+  }
 
   ShaderDesc vsDesc;
   vsDesc.ShaderType = ShaderType::Vertex;
@@ -1207,17 +1241,18 @@ void Renderer::initPointLightDepthPass(const std::shared_ptr<RenderDevice> &rend
   RasterizerStateDesc rasterizerStateDesc;
   rasterizerStateDesc.CullMode = CullMode::Clockwise;
 
-  PipelineStateDesc pipelineDesc;
-  pipelineDesc.VS = renderDevice->createShader(vsDesc);
-  pipelineDesc.GS = renderDevice->createShader(gsDesc);
-  pipelineDesc.FS = renderDevice->createShader(psDesc);
-  pipelineDesc.BlendState = renderDevice->createBlendState(BlendStateDesc{});
-  pipelineDesc.RasterizerState = renderDevice->createRasterizerState(rasterizerStateDesc);
-  pipelineDesc.DepthStencilState = renderDevice->createDepthStencilState(DepthStencilStateDesc());
-  pipelineDesc.VertexLayout = renderDevice->createVertexLayout(vertexLayoutDesc);
-  pipelineDesc.ShaderParams = shaderParams;
-
-  _pointLightDepthPso = renderDevice->createPipelineState(pipelineDesc);
+  GraphicsPipelineStateDesc pointShadowDesc{};
+  pointShadowDesc.VS = renderDevice->createShader(vsDesc);
+  pointShadowDesc.GS = renderDevice->createShader(gsDesc);
+  pointShadowDesc.FS = renderDevice->createShader(psDesc);
+  pointShadowDesc.Blend = renderDevice->createBlendState(BlendStateDesc{});
+  pointShadowDesc.Rasterizer = renderDevice->createRasterizerState(rasterizerStateDesc);
+  pointShadowDesc.DepthStencil = renderDevice->createDepthStencilState(DepthStencilStateDesc());
+  pointShadowDesc.VertexLayoutDef = renderDevice->createVertexLayout(vertexLayoutDesc);
+  pointShadowDesc.ShaderParamReflection = shaderParams;
+  pointShadowDesc.Topology = PrimitiveTopology::TriangleList;
+  pointShadowDesc.HasDepthStencil = true;
+  _pointLightDepthPso = std::make_shared<GraphicsPipelineState>(pointShadowDesc);
 }
 
 void Renderer::initGbufferPass(const std::shared_ptr<RenderDevice> &renderDevice)
@@ -1251,16 +1286,17 @@ void Renderer::initGbufferPass(const std::shared_ptr<RenderDevice> &renderDevice
 
   BlendStateDesc blendStateDesc{};
 
-  PipelineStateDesc pipelineDesc;
-  pipelineDesc.VS = renderDevice->createShader(vsDesc);
-  pipelineDesc.FS = renderDevice->createShader(psDesc);
-  pipelineDesc.BlendState = renderDevice->createBlendState(blendStateDesc);
-  pipelineDesc.RasterizerState = renderDevice->createRasterizerState(rasterizerStateDesc);
-  pipelineDesc.DepthStencilState = renderDevice->createDepthStencilState(DepthStencilStateDesc());
-  pipelineDesc.VertexLayout = renderDevice->createVertexLayout(vertexLayoutDesc);
-  pipelineDesc.ShaderParams = shaderParams;
-
-  _gBufferPso = renderDevice->createPipelineState(pipelineDesc);
+  GraphicsPipelineStateDesc gbufferDesc{};
+  gbufferDesc.VS = renderDevice->createShader(vsDesc);
+  gbufferDesc.FS = renderDevice->createShader(psDesc);
+  gbufferDesc.Blend = renderDevice->createBlendState(blendStateDesc);
+  gbufferDesc.Rasterizer = renderDevice->createRasterizerState(rasterizerStateDesc);
+  gbufferDesc.DepthStencil = renderDevice->createDepthStencilState(DepthStencilStateDesc());
+  gbufferDesc.VertexLayoutDef = renderDevice->createVertexLayout(vertexLayoutDesc);
+  gbufferDesc.ShaderParamReflection = shaderParams;
+  gbufferDesc.Topology = PrimitiveTopology::TriangleList;
+  gbufferDesc.HasDepthStencil = true;
+  _gBufferPso = std::make_shared<GraphicsPipelineState>(gbufferDesc);
 
   TextureDesc colourTexDesc;
   colourTexDesc.Width = _windowDims.X;
@@ -1280,15 +1316,23 @@ void Renderer::initGbufferPass(const std::shared_ptr<RenderDevice> &renderDevice
   depthStencilDesc.Type = TextureType::Texture2D;
   depthStencilDesc.Format = TextureFormat::D24;
 
-  RenderTargetDesc rtDesc;
-  rtDesc.ColourTargets[0] = renderDevice->createTexture(albedoTexDesc); // Albedo with higher precision
-  rtDesc.ColourTargets[1] = renderDevice->createTexture(colourTexDesc); // Normal
-  rtDesc.ColourTargets[2] = renderDevice->createTexture(colourTexDesc); // Material
-  rtDesc.DepthStencilTarget = renderDevice->createTexture(depthStencilDesc);
-  rtDesc.Height = _windowDims.Y;
-  rtDesc.Width = _windowDims.X;
-
-  _gBufferRto = renderDevice->createRenderTarget(rtDesc);
+  _gBufferAlbedoTex = renderDevice->createTexture(albedoTexDesc);
+  _gBufferNormalTex = renderDevice->createTexture(colourTexDesc);
+  _gBufferMaterialTex = renderDevice->createTexture(colourTexDesc);
+  _gBufferDepthTex = renderDevice->createTexture(depthStencilDesc);
+  {
+    FramebufferDesc fb{};
+    fb.width = _windowDims.X;
+    fb.height = _windowDims.Y;
+    fb.samples = 1;
+    fb.colorAttachments = {
+        FramebufferAttachment{_gBufferAlbedoTex},
+        FramebufferAttachment{_gBufferNormalTex},
+        FramebufferAttachment{_gBufferMaterialTex}};
+    fb.depthStencilAttachment = FramebufferAttachment{_gBufferDepthTex};
+    fb.hasDepthStencilAttachment = true;
+    _gBufferFb = std::make_shared<Framebuffer>(fb);
+  }
 }
 
 void Renderer::initTransparencyPass(const std::shared_ptr<RenderDevice> &renderDevice)
@@ -1324,16 +1368,17 @@ void Renderer::initTransparencyPass(const std::shared_ptr<RenderDevice> &renderD
   blendStateDesc.RTBlendState[0].BlendEnabled = true;
   blendStateDesc.RTBlendState[0].BlendAlpha = BlendDesc(BlendFactor::SrcAlpha, BlendFactor::InvSrcAlpha, BlendOperation::Add);
 
-  PipelineStateDesc pipelineDesc;
-  pipelineDesc.VS = renderDevice->createShader(vsDesc);
-  pipelineDesc.FS = renderDevice->createShader(psDesc);
-  pipelineDesc.BlendState = renderDevice->createBlendState(blendStateDesc);
-  pipelineDesc.RasterizerState = renderDevice->createRasterizerState(rasterizerStateDesc);
-  pipelineDesc.DepthStencilState = renderDevice->createDepthStencilState(DepthStencilStateDesc());
-  pipelineDesc.VertexLayout = renderDevice->createVertexLayout(vertexLayoutDesc);
-  pipelineDesc.ShaderParams = shaderParams;
-
-  _transparencyPso = renderDevice->createPipelineState(pipelineDesc);
+  GraphicsPipelineStateDesc transparencyDesc{};
+  transparencyDesc.VS = renderDevice->createShader(vsDesc);
+  transparencyDesc.FS = renderDevice->createShader(psDesc);
+  transparencyDesc.Blend = renderDevice->createBlendState(blendStateDesc);
+  transparencyDesc.Rasterizer = renderDevice->createRasterizerState(rasterizerStateDesc);
+  transparencyDesc.DepthStencil = renderDevice->createDepthStencilState(DepthStencilStateDesc());
+  transparencyDesc.VertexLayoutDef = renderDevice->createVertexLayout(vertexLayoutDesc);
+  transparencyDesc.ShaderParamReflection = shaderParams;
+  transparencyDesc.Topology = PrimitiveTopology::TriangleList;
+  transparencyDesc.HasDepthStencil = true;
+  _transparencyPso = std::make_shared<GraphicsPipelineState>(transparencyDesc);
 }
 
 void Renderer::initSsaoPass(const std::shared_ptr<RenderDevice> &renderDevice)
@@ -1366,16 +1411,17 @@ void Renderer::initSsaoPass(const std::shared_ptr<RenderDevice> &renderDevice)
     depthStencilStateDesc.DepthReadEnabled = false;
     depthStencilStateDesc.DepthWriteEnabled = false;
 
-    PipelineStateDesc pipelineDesc;
-    pipelineDesc.VS = renderDevice->createShader(vsDesc);
-    pipelineDesc.FS = renderDevice->createShader(psDesc);
-    pipelineDesc.BlendState = renderDevice->createBlendState(blendStateDesc);
-    pipelineDesc.RasterizerState = renderDevice->createRasterizerState(rasterizerStateDesc);
-    pipelineDesc.DepthStencilState = renderDevice->createDepthStencilState(depthStencilStateDesc);
-    pipelineDesc.VertexLayout = renderDevice->createVertexLayout(vertexLayoutDesc);
-    pipelineDesc.ShaderParams = shaderParams;
-
-    _ssaoPso = renderDevice->createPipelineState(pipelineDesc);
+    GraphicsPipelineStateDesc ssaoDesc{};
+    ssaoDesc.VS = renderDevice->createShader(vsDesc);
+    ssaoDesc.FS = renderDevice->createShader(psDesc);
+    ssaoDesc.Blend = renderDevice->createBlendState(blendStateDesc);
+    ssaoDesc.Rasterizer = renderDevice->createRasterizerState(rasterizerStateDesc);
+    ssaoDesc.DepthStencil = renderDevice->createDepthStencilState(depthStencilStateDesc);
+    ssaoDesc.VertexLayoutDef = renderDevice->createVertexLayout(vertexLayoutDesc);
+    ssaoDesc.ShaderParamReflection = shaderParams;
+    ssaoDesc.Topology = PrimitiveTopology::TriangleList;
+    ssaoDesc.HasDepthStencil = true;
+    _ssaoPso = std::make_shared<GraphicsPipelineState>(ssaoDesc);
   }
   {
     ShaderDesc vsDesc;
@@ -1401,16 +1447,17 @@ void Renderer::initSsaoPass(const std::shared_ptr<RenderDevice> &renderDevice)
     depthStencilStateDesc.DepthReadEnabled = false;
     depthStencilStateDesc.DepthWriteEnabled = false;
 
-    PipelineStateDesc pipelineDesc;
-    pipelineDesc.VS = renderDevice->createShader(vsDesc);
-    pipelineDesc.FS = renderDevice->createShader(psDesc);
-    pipelineDesc.BlendState = renderDevice->createBlendState(blendStateDesc);
-    pipelineDesc.RasterizerState = renderDevice->createRasterizerState(rasterizerStateDesc);
-    pipelineDesc.DepthStencilState = renderDevice->createDepthStencilState(depthStencilStateDesc);
-    pipelineDesc.VertexLayout = renderDevice->createVertexLayout(vertexLayoutDesc);
-    pipelineDesc.ShaderParams = shaderParams;
-
-    _ssaoBlurPso = renderDevice->createPipelineState(pipelineDesc);
+    GraphicsPipelineStateDesc ssaoBlurDesc{};
+    ssaoBlurDesc.VS = renderDevice->createShader(vsDesc);
+    ssaoBlurDesc.FS = renderDevice->createShader(psDesc);
+    ssaoBlurDesc.Blend = renderDevice->createBlendState(blendStateDesc);
+    ssaoBlurDesc.Rasterizer = renderDevice->createRasterizerState(rasterizerStateDesc);
+    ssaoBlurDesc.DepthStencil = renderDevice->createDepthStencilState(depthStencilStateDesc);
+    ssaoBlurDesc.VertexLayoutDef = renderDevice->createVertexLayout(vertexLayoutDesc);
+    ssaoBlurDesc.ShaderParamReflection = shaderParams;
+    ssaoBlurDesc.Topology = PrimitiveTopology::TriangleList;
+    ssaoBlurDesc.HasDepthStencil = true;
+    _ssaoBlurPso = std::make_shared<GraphicsPipelineState>(ssaoBlurDesc);
   }
   TextureDesc colourTexDesc;
   colourTexDesc.Width = _windowDims.X;
@@ -1419,13 +1466,24 @@ void Renderer::initSsaoPass(const std::shared_ptr<RenderDevice> &renderDevice)
   colourTexDesc.Type = TextureType::Texture2D;
   colourTexDesc.Format = TextureFormat::R8;
 
-  RenderTargetDesc rtDesc;
-  rtDesc.ColourTargets[0] = renderDevice->createTexture(colourTexDesc);
-  rtDesc.Width = _windowDims.X;
-  rtDesc.Height = _windowDims.Y;
-
-  _ssaoRto = renderDevice->createRenderTarget(rtDesc);
-  _ssaoBlurRto = renderDevice->createRenderTarget(rtDesc);
+  _ssaoTex = renderDevice->createTexture(colourTexDesc);
+  _ssaoBlurTex = renderDevice->createTexture(colourTexDesc);
+  {
+    FramebufferDesc fb{};
+    fb.width = _windowDims.X;
+    fb.height = _windowDims.Y;
+    fb.samples = 1;
+    fb.colorAttachments = {FramebufferAttachment{_ssaoTex}};
+    _ssaoFb = std::make_shared<Framebuffer>(fb);
+  }
+  {
+    FramebufferDesc fb{};
+    fb.width = _windowDims.X;
+    fb.height = _windowDims.Y;
+    fb.samples = 1;
+    fb.colorAttachments = {FramebufferAttachment{_ssaoBlurTex}};
+    _ssaoBlurFb = std::make_shared<Framebuffer>(fb);
+  }
 }
 
 void Renderer::initLightingPass(const std::shared_ptr<RenderDevice> &renderDevice)
@@ -1469,16 +1527,17 @@ void Renderer::initLightingPass(const std::shared_ptr<RenderDevice> &renderDevic
 
   BlendStateDesc blendStateDesc{};
 
-  PipelineStateDesc pipelineDesc;
-  pipelineDesc.VS = renderDevice->createShader(vsDesc);
-  pipelineDesc.FS = renderDevice->createShader(psDesc);
-  pipelineDesc.BlendState = renderDevice->createBlendState(blendStateDesc);
-  pipelineDesc.RasterizerState = renderDevice->createRasterizerState(rasterizerStateDesc);
-  pipelineDesc.DepthStencilState = renderDevice->createDepthStencilState(depthStencilStateDesc);
-  pipelineDesc.VertexLayout = renderDevice->createVertexLayout(vertexLayoutDesc);
-  pipelineDesc.ShaderParams = shaderParams;
-
-  _lightingPso = renderDevice->createPipelineState(pipelineDesc);
+  GraphicsPipelineStateDesc lightingDesc{};
+  lightingDesc.VS = renderDevice->createShader(vsDesc);
+  lightingDesc.FS = renderDevice->createShader(psDesc);
+  lightingDesc.Blend = renderDevice->createBlendState(blendStateDesc);
+  lightingDesc.Rasterizer = renderDevice->createRasterizerState(rasterizerStateDesc);
+  lightingDesc.DepthStencil = renderDevice->createDepthStencilState(depthStencilStateDesc);
+  lightingDesc.VertexLayoutDef = renderDevice->createVertexLayout(vertexLayoutDesc);
+  lightingDesc.ShaderParamReflection = shaderParams;
+  lightingDesc.Topology = PrimitiveTopology::TriangleList;
+  lightingDesc.HasDepthStencil = true;
+  _lightingPso = std::make_shared<GraphicsPipelineState>(lightingDesc);
   TextureDesc colourTexDesc;
   colourTexDesc.Width = _windowDims.X;
   colourTexDesc.Height = _windowDims.Y;
@@ -1493,13 +1552,16 @@ void Renderer::initLightingPass(const std::shared_ptr<RenderDevice> &renderDevic
   bloomTexDesc.Type = TextureType::Texture2D;
   bloomTexDesc.Format = TextureFormat::RGB16F;
 
-  RenderTargetDesc rtDesc;
-  rtDesc.ColourTargets[0] = renderDevice->createTexture(colourTexDesc);
-  rtDesc.ColourTargets[1] = renderDevice->createTexture(bloomTexDesc);
-  rtDesc.Height = _windowDims.X;
-  rtDesc.Width = _windowDims.Y;
-
-  _lightingPassRto = renderDevice->createRenderTarget(rtDesc);
+  _lightingColorTex = renderDevice->createTexture(colourTexDesc);
+  _lightingBloomTex = renderDevice->createTexture(bloomTexDesc);
+  {
+    FramebufferDesc fb{};
+    fb.width = _windowDims.X;
+    fb.height = _windowDims.Y;
+    fb.samples = 1;
+    fb.colorAttachments = {FramebufferAttachment{_lightingColorTex}, FramebufferAttachment{_lightingBloomTex}};
+    _lightingPassFb = std::make_shared<Framebuffer>(fb);
+  }
 }
 
 void Renderer::initBloomDownSamplePass(const std::shared_ptr<RenderDevice> &renderDevice)
@@ -1529,17 +1591,20 @@ void Renderer::initBloomDownSamplePass(const std::shared_ptr<RenderDevice> &rend
 
   BlendStateDesc blendStateDesc{};
 
-  PipelineStateDesc pipelineDesc;
-  pipelineDesc.VS = renderDevice->createShader(vsDesc);
-  pipelineDesc.FS = renderDevice->createShader(psDesc);
-  pipelineDesc.BlendState = renderDevice->createBlendState(blendStateDesc);
-  pipelineDesc.RasterizerState = renderDevice->createRasterizerState(rasterizerStateDesc);
-  pipelineDesc.DepthStencilState = renderDevice->createDepthStencilState(depthStencilStateDesc);
-  pipelineDesc.VertexLayout = renderDevice->createVertexLayout(vertexLayoutDesc);
-  pipelineDesc.ShaderParams = shaderParams;
+  GraphicsPipelineStateDesc bloomDownDesc{};
+  bloomDownDesc.VS = renderDevice->createShader(vsDesc);
+  bloomDownDesc.FS = renderDevice->createShader(psDesc);
+  bloomDownDesc.Blend = renderDevice->createBlendState(blendStateDesc);
+  bloomDownDesc.Rasterizer = renderDevice->createRasterizerState(rasterizerStateDesc);
+  bloomDownDesc.DepthStencil = renderDevice->createDepthStencilState(depthStencilStateDesc);
+  bloomDownDesc.VertexLayoutDef = renderDevice->createVertexLayout(vertexLayoutDesc);
+  bloomDownDesc.ShaderParamReflection = shaderParams;
+  bloomDownDesc.Topology = PrimitiveTopology::TriangleList;
+  bloomDownDesc.HasDepthStencil = true;
+  _bloomDownSamplePso = std::make_shared<GraphicsPipelineState>(bloomDownDesc);
 
-  _bloomDownSamplePso = renderDevice->createPipelineState(pipelineDesc);
-
+  _bloomDownSampleFbs.clear();
+  _bloomDownSampleTex.clear();
   Vector2I textureSize(_windowDims.X, _windowDims.Y);
   for (uint32 i = 0; i < 6; i++)
   {
@@ -1552,12 +1617,14 @@ void Renderer::initBloomDownSamplePass(const std::shared_ptr<RenderDevice> &rend
     mipTextureDesc.Type = TextureType::Texture2D;
     mipTextureDesc.Format = TextureFormat::RGB16F;
 
-    RenderTargetDesc rtDesc;
-    rtDesc.ColourTargets[0] = renderDevice->createTexture(mipTextureDesc);
-    rtDesc.Width = textureSize.X;
-    rtDesc.Height = textureSize.Y;
-
-    _bloomDownSampleRtos.push_back(renderDevice->createRenderTarget(rtDesc));
+    auto tex = renderDevice->createTexture(mipTextureDesc);
+    _bloomDownSampleTex.push_back(tex);
+    FramebufferDesc fb{};
+    fb.width = textureSize.X;
+    fb.height = textureSize.Y;
+    fb.samples = 1;
+    fb.colorAttachments = {FramebufferAttachment{tex}};
+    _bloomDownSampleFbs.push_back(std::make_shared<Framebuffer>(fb));
   }
 }
 
@@ -1590,16 +1657,17 @@ void Renderer::initBloomUpSamplePass(const std::shared_ptr<RenderDevice> &render
   blendStateDesc.RTBlendState[0].BlendEnabled = true;
   blendStateDesc.RTBlendState[0].Blend = BlendDesc(BlendFactor::One, BlendFactor::One, BlendOperation::Add);
 
-  PipelineStateDesc pipelineDesc;
-  pipelineDesc.VS = renderDevice->createShader(vsDesc);
-  pipelineDesc.FS = renderDevice->createShader(psDesc);
-  pipelineDesc.BlendState = renderDevice->createBlendState(blendStateDesc);
-  pipelineDesc.RasterizerState = renderDevice->createRasterizerState(rasterizerStateDesc);
-  pipelineDesc.DepthStencilState = renderDevice->createDepthStencilState(depthStencilStateDesc);
-  pipelineDesc.VertexLayout = renderDevice->createVertexLayout(vertexLayoutDesc);
-  pipelineDesc.ShaderParams = shaderParams;
-
-  _bloomUpSamplePso = renderDevice->createPipelineState(pipelineDesc);
+  GraphicsPipelineStateDesc bloomUpDesc{};
+  bloomUpDesc.VS = renderDevice->createShader(vsDesc);
+  bloomUpDesc.FS = renderDevice->createShader(psDesc);
+  bloomUpDesc.Blend = renderDevice->createBlendState(blendStateDesc);
+  bloomUpDesc.Rasterizer = renderDevice->createRasterizerState(rasterizerStateDesc);
+  bloomUpDesc.DepthStencil = renderDevice->createDepthStencilState(depthStencilStateDesc);
+  bloomUpDesc.VertexLayoutDef = renderDevice->createVertexLayout(vertexLayoutDesc);
+  bloomUpDesc.ShaderParamReflection = shaderParams;
+  bloomUpDesc.Topology = PrimitiveTopology::TriangleList;
+  bloomUpDesc.HasDepthStencil = true;
+  _bloomUpPso = std::make_shared<GraphicsPipelineState>(bloomUpDesc);
 }
 
 void Renderer::initToneMappingPass(const std::shared_ptr<RenderDevice> &renderDevice)
@@ -1629,16 +1697,17 @@ void Renderer::initToneMappingPass(const std::shared_ptr<RenderDevice> &renderDe
   depthStencilStateDesc.DepthReadEnabled = false;
   depthStencilStateDesc.DepthWriteEnabled = false;
 
-  PipelineStateDesc pipelineDesc;
-  pipelineDesc.VS = renderDevice->createShader(vsDesc);
-  pipelineDesc.FS = renderDevice->createShader(psDesc);
-  pipelineDesc.BlendState = renderDevice->createBlendState(blendStateDesc);
-  pipelineDesc.RasterizerState = renderDevice->createRasterizerState(rasterizerStateDesc);
-  pipelineDesc.DepthStencilState = renderDevice->createDepthStencilState(depthStencilStateDesc);
-  pipelineDesc.VertexLayout = renderDevice->createVertexLayout(vertexLayoutDesc);
-  pipelineDesc.ShaderParams = shaderParams;
-
-  _toneMappingPso = renderDevice->createPipelineState(pipelineDesc);
+  GraphicsPipelineStateDesc toneDesc{};
+  toneDesc.VS = renderDevice->createShader(vsDesc);
+  toneDesc.FS = renderDevice->createShader(psDesc);
+  toneDesc.Blend = renderDevice->createBlendState(blendStateDesc);
+  toneDesc.Rasterizer = renderDevice->createRasterizerState(rasterizerStateDesc);
+  toneDesc.DepthStencil = renderDevice->createDepthStencilState(depthStencilStateDesc);
+  toneDesc.VertexLayoutDef = renderDevice->createVertexLayout(vertexLayoutDesc);
+  toneDesc.ShaderParamReflection = shaderParams;
+  toneDesc.Topology = PrimitiveTopology::TriangleList;
+  toneDesc.HasDepthStencil = true;
+  _toneMappingPso = std::make_shared<GraphicsPipelineState>(toneDesc);
 
   TextureDesc colourTexDesc;
   colourTexDesc.Width = _windowDims.X;
@@ -1647,12 +1716,15 @@ void Renderer::initToneMappingPass(const std::shared_ptr<RenderDevice> &renderDe
   colourTexDesc.Type = TextureType::Texture2D;
   colourTexDesc.Format = TextureFormat::RGB8;
 
-  RenderTargetDesc rtDesc;
-  rtDesc.ColourTargets[0] = renderDevice->createTexture(colourTexDesc);
-  rtDesc.Width = _windowDims.X;
-  rtDesc.Height = _windowDims.Y;
-
-  _toneMappingRto = renderDevice->createRenderTarget(rtDesc);
+  _toneMappingColorTex = renderDevice->createTexture(colourTexDesc);
+  {
+    FramebufferDesc fb{};
+    fb.width = _windowDims.X;
+    fb.height = _windowDims.Y;
+    fb.samples = 1;
+    fb.colorAttachments = {FramebufferAttachment{_toneMappingColorTex}};
+    _toneMappingFb = std::make_shared<Framebuffer>(fb);
+  }
 }
 
 void Renderer::initDebugPass(const std::shared_ptr<RenderDevice> &renderDevice)
@@ -1680,16 +1752,18 @@ void Renderer::initDebugPass(const std::shared_ptr<RenderDevice> &renderDevice)
     RasterizerStateDesc rasterizerStateDesc;
     rasterizerStateDesc.CullMode = CullMode::None;
 
-    PipelineStateDesc pipelineDesc;
-    pipelineDesc.VS = renderDevice->createShader(vsDesc);
-    pipelineDesc.FS = renderDevice->createShader(psDesc);
-    pipelineDesc.BlendState = renderDevice->createBlendState(BlendStateDesc());
-    pipelineDesc.RasterizerState = renderDevice->createRasterizerState(rasterizerStateDesc);
-    pipelineDesc.DepthStencilState = renderDevice->createDepthStencilState(DepthStencilStateDesc());
-    pipelineDesc.VertexLayout = renderDevice->createVertexLayout(vertexLayoutDesc);
-    pipelineDesc.ShaderParams = shaderParams;
-
-    _editorDrawTexturedQuadPso = renderDevice->createPipelineState(pipelineDesc);
+    // legacy pipeline removed - create editor textured quad pipeline state
+    GraphicsPipelineStateDesc editorQuadDesc{};
+    editorQuadDesc.VS = renderDevice->createShader(vsDesc);
+    editorQuadDesc.FS = renderDevice->createShader(psDesc);
+    editorQuadDesc.Blend = renderDevice->createBlendState(BlendStateDesc());
+    editorQuadDesc.Rasterizer = renderDevice->createRasterizerState(rasterizerStateDesc);
+    editorQuadDesc.DepthStencil = renderDevice->createDepthStencilState(DepthStencilStateDesc());
+    editorQuadDesc.VertexLayoutDef = renderDevice->createVertexLayout(vertexLayoutDesc);
+    editorQuadDesc.ShaderParamReflection = shaderParams;
+    editorQuadDesc.Topology = PrimitiveTopology::TriangleList;
+    editorQuadDesc.HasDepthStencil = true;
+    _editorDrawTexturedQuadPso = std::make_shared<GraphicsPipelineState>(editorQuadDesc);
   }
   {
     ShaderDesc vsDesc;
@@ -1715,17 +1789,18 @@ void Renderer::initDebugPass(const std::shared_ptr<RenderDevice> &renderDevice)
 
     BlendStateDesc blendStateDesc{};
 
-    PipelineStateDesc pipelineDesc;
-    pipelineDesc.VS = renderDevice->createShader(vsDesc);
-    pipelineDesc.FS = renderDevice->createShader(psDesc);
-    pipelineDesc.BlendState = renderDevice->createBlendState(blendStateDesc);
-    pipelineDesc.RasterizerState = renderDevice->createRasterizerState(rasterizerStateDesc);
-    pipelineDesc.DepthStencilState = renderDevice->createDepthStencilState(depthStencilStateDesc);
-    pipelineDesc.VertexLayout = renderDevice->createVertexLayout(vertexLayoutDesc);
-    pipelineDesc.ShaderParams = shaderParams;
-    pipelineDesc.Topology = PrimitiveTopology::LineList;
-
-    _drawAabbPso = renderDevice->createPipelineState(pipelineDesc);
+    // legacy pipeline removed - create draw AABB pipeline state
+    GraphicsPipelineStateDesc aabbDesc{};
+    aabbDesc.VS = renderDevice->createShader(vsDesc);
+    aabbDesc.FS = renderDevice->createShader(psDesc);
+    aabbDesc.Blend = renderDevice->createBlendState(blendStateDesc);
+    aabbDesc.Rasterizer = renderDevice->createRasterizerState(rasterizerStateDesc);
+    aabbDesc.DepthStencil = renderDevice->createDepthStencilState(depthStencilStateDesc);
+    aabbDesc.VertexLayoutDef = renderDevice->createVertexLayout(vertexLayoutDesc);
+    aabbDesc.ShaderParamReflection = shaderParams;
+    aabbDesc.Topology = PrimitiveTopology::LineList;
+    aabbDesc.HasDepthStencil = true;
+    _drawAabbPso = std::make_shared<GraphicsPipelineState>(aabbDesc);
   }
 }
 
@@ -1762,7 +1837,7 @@ void Renderer::directionalLightDepthPass(const std::shared_ptr<RenderDevice> &re
   _shadowCommandBuffer->begin(CommandBufferUsage::OneTimeSubmit);
 
   // Set pipeline state first (to match original order)
-  _shadowCommandBuffer->setPipelineState(_shadowMapPso);
+  _shadowCommandBuffer->bindGraphicsPipeline(_shadowMapPso);
 
   // Set viewport before beginning render pass
   ViewportDesc viewportDesc;
@@ -1771,7 +1846,13 @@ void Renderer::directionalLightDepthPass(const std::shared_ptr<RenderDevice> &re
   _shadowCommandBuffer->setViewport(viewportDesc);
 
   // Begin render pass
-  _shadowCommandBuffer->beginRenderPass(_shadowMapRto, false, true, false);
+  {
+    RenderPassBeginInfo rp{};
+    rp.framebuffer = _shadowMapFb;
+    // depth-only clear
+    rp.clearDepthStencil = std::make_unique<ClearDepthStencilValue>(ClearDepthStencilValue{1.0f, 0});
+    _shadowCommandBuffer->beginRenderPass(rp);
+  }
   _shadowCommandBuffer->bindResourceSet(_shadowPassResourceSet, 0);
 
   // Render culled and sorted shadow casters
@@ -1784,7 +1865,7 @@ void Renderer::directionalLightDepthPass(const std::shared_ptr<RenderDevice> &re
   // End render pass and command buffer
   _shadowCommandBuffer->endRenderPass();
   _shadowCommandBuffer->end();
-  _shadowCommandBuffer->execute();
+  SubmitRecorded(renderDevice, _shadowCommandBuffer);
 
   std::chrono::time_point end = std::chrono::high_resolution_clock::now();
   _renderPassTimings[0].Duration = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
@@ -1799,8 +1880,14 @@ void Renderer::gbufferPass(const std::shared_ptr<RenderDevice> &renderDevice,
   // Begin command buffer recording
   _gbufferCommandBuffer->begin(CommandBufferUsage::OneTimeSubmit);
 
-  // Begin render pass
-  _gbufferCommandBuffer->beginRenderPass(_gBufferRto, true, true, true);
+  // Begin render pass (new API path)
+  {
+    RenderPassBeginInfo rp{};
+    rp.framebuffer = _gBufferFb;
+    rp.clearColors = {ClearColorValue{0, 0, 0, 1}}; // clear first color
+    rp.clearDepthStencil = std::make_unique<ClearDepthStencilValue>(ClearDepthStencilValue{1.0f, 0});
+    _gbufferCommandBuffer->beginRenderPass(rp);
+  }
 
   // Set viewport
   ViewportDesc viewportDesc;
@@ -1809,7 +1896,7 @@ void Renderer::gbufferPass(const std::shared_ptr<RenderDevice> &renderDevice,
   _gbufferCommandBuffer->setViewport(viewportDesc);
 
   // Set pipeline state and bind resource sets
-  _gbufferCommandBuffer->setPipelineState(_gBufferPso);
+  _gbufferCommandBuffer->bindGraphicsPipeline(_gBufferPso);
   _gbufferCommandBuffer->bindResourceSet(_gbufferPassResourceSet, 0);
 
   // Draw all drawables
@@ -1829,7 +1916,7 @@ void Renderer::gbufferPass(const std::shared_ptr<RenderDevice> &renderDevice,
   // End render pass and command buffer
   _gbufferCommandBuffer->endRenderPass();
   _gbufferCommandBuffer->end();
-  _gbufferCommandBuffer->execute();
+  SubmitRecorded(renderDevice, _gbufferCommandBuffer);
 
   std::chrono::time_point end = std::chrono::high_resolution_clock::now();
   _renderPassTimings[1].Duration = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
@@ -1845,10 +1932,15 @@ void Renderer::transparencyPass(const std::shared_ptr<RenderDevice> &renderDevic
   _transparencyCommandBuffer->begin(CommandBufferUsage::OneTimeSubmit);
 
   // Set pipeline state
-  _transparencyCommandBuffer->setPipelineState(_transparencyPso);
+  _transparencyCommandBuffer->bindGraphicsPipeline(_transparencyPso);
 
   // Begin render pass (continuing from gbuffer pass)
-  _transparencyCommandBuffer->beginRenderPass(_gBufferRto, false, false, false);
+  {
+    RenderPassBeginInfo rp{};
+    rp.framebuffer = _gBufferFb;
+    // no clears for transparency overlay
+    _transparencyCommandBuffer->beginRenderPass(rp);
+  }
   _transparencyCommandBuffer->bindResourceSet(_gbufferPassResourceSet, 0);
 
   // Draw all transparent drawables
@@ -1867,7 +1959,7 @@ void Renderer::transparencyPass(const std::shared_ptr<RenderDevice> &renderDevic
   // End render pass and command buffer
   _transparencyCommandBuffer->endRenderPass();
   _transparencyCommandBuffer->end();
-  _transparencyCommandBuffer->execute();
+  SubmitRecorded(renderDevice, _transparencyCommandBuffer);
 
   std::chrono::time_point end = std::chrono::high_resolution_clock::now();
   _renderPassTimings[2].Duration = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
@@ -1888,16 +1980,26 @@ void Renderer::ssaoPass(const std::shared_ptr<RenderDevice> &renderDevice,
   _ssaoCommandBuffer->begin(CommandBufferUsage::OneTimeSubmit);
 
   // SSAO generation pass
-  _ssaoCommandBuffer->setPipelineState(_ssaoPso);
-  _ssaoCommandBuffer->beginRenderPass(_ssaoRto, true, false, false);
+  _ssaoCommandBuffer->bindGraphicsPipeline(_ssaoPso);
+  {
+    RenderPassBeginInfo rp{};
+    rp.framebuffer = _ssaoFb;
+    rp.clearColors = {ClearColorValue{0, 0, 0, 0}}; // clear only color
+    _ssaoCommandBuffer->beginRenderPass(rp);
+  }
   _ssaoCommandBuffer->bindResourceSet(_ssaoPassResourceSet, 0);
   _ssaoCommandBuffer->bindVertexBuffer(_fsQuadVertexBuffer);
   _ssaoCommandBuffer->draw(6, 0);
   _ssaoCommandBuffer->endRenderPass();
 
   // SSAO blur pass
-  _ssaoCommandBuffer->setPipelineState(_ssaoBlurPso);
-  _ssaoCommandBuffer->beginRenderPass(_ssaoBlurRto, true, false, false);
+  _ssaoCommandBuffer->bindGraphicsPipeline(_ssaoBlurPso);
+  {
+    RenderPassBeginInfo rp{};
+    rp.framebuffer = _ssaoBlurFb;
+    rp.clearColors = {ClearColorValue{0, 0, 0, 0}}; // clear only color
+    _ssaoCommandBuffer->beginRenderPass(rp);
+  }
   _ssaoCommandBuffer->bindResourceSet(_ssaoBlurPassResourceSet, 0);
   _ssaoCommandBuffer->bindVertexBuffer(_fsQuadVertexBuffer);
   _ssaoCommandBuffer->draw(6, 0);
@@ -1905,7 +2007,7 @@ void Renderer::ssaoPass(const std::shared_ptr<RenderDevice> &renderDevice,
 
   // End command buffer and execute
   _ssaoCommandBuffer->end();
-  _ssaoCommandBuffer->execute();
+  SubmitRecorded(renderDevice, _ssaoCommandBuffer);
 
   std::chrono::time_point end = std::chrono::high_resolution_clock::now();
   _renderPassTimings[4].Duration = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
@@ -1921,10 +2023,15 @@ void Renderer::lightingPass(const std::shared_ptr<RenderDevice> &renderDevice,
   _lightingCommandBuffer->begin(CommandBufferUsage::OneTimeSubmit);
 
   // Set pipeline state
-  _lightingCommandBuffer->setPipelineState(_lightingPso);
+  _lightingCommandBuffer->bindGraphicsPipeline(_lightingPso);
 
   // Begin render pass
-  _lightingCommandBuffer->beginRenderPass(_lightingPassRto, true, false, false);
+  {
+    RenderPassBeginInfo rp{};
+    rp.framebuffer = _lightingPassFb;
+    rp.clearColors = {ClearColorValue{0, 0, 0, 0}, ClearColorValue{0, 0, 0, 0}}; // lighting + bloom targets
+    _lightingCommandBuffer->beginRenderPass(rp);
+  }
   _lightingCommandBuffer->bindResourceSet(_lightingPassResourceSet, 0);
   _lightingCommandBuffer->bindVertexBuffer(_fsQuadVertexBuffer);
   _lightingCommandBuffer->draw(6, 0);
@@ -1932,7 +2039,7 @@ void Renderer::lightingPass(const std::shared_ptr<RenderDevice> &renderDevice,
   // End render pass and command buffer
   _lightingCommandBuffer->endRenderPass();
   _lightingCommandBuffer->end();
-  _lightingCommandBuffer->execute();
+  SubmitRecorded(renderDevice, _lightingCommandBuffer);
 
   std::chrono::time_point end = std::chrono::high_resolution_clock::now();
   _renderPassTimings[5].Duration = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
@@ -1946,16 +2053,16 @@ void Renderer::bloomPass(const std::shared_ptr<RenderDevice> &renderDevice)
   _bloomCommandBuffer->begin(CommandBufferUsage::OneTimeSubmit);
 
   // Downsample pass
-  _bloomCommandBuffer->setPipelineState(_bloomDownSamplePso);
+  _bloomCommandBuffer->bindGraphicsPipeline(_bloomDownSamplePso);
 
   // Progressively downsample through the bloom mip chain.
-  for (size_t i = 0; i < _bloomDownSampleRtos.size(); ++i)
+  for (size_t i = 0; i < _bloomDownSampleFbs.size(); ++i)
   {
-    const auto &bloomDownSampleRto = _bloomDownSampleRtos[i];
+    const auto &bloomDownSampleFb = _bloomDownSampleFbs[i];
 
     ViewportDesc viewportDesc;
-    viewportDesc.Width = bloomDownSampleRto->getDesc().Width;
-    viewportDesc.Height = bloomDownSampleRto->getDesc().Height;
+    viewportDesc.Width = bloomDownSampleFb->getDesc().width;
+    viewportDesc.Height = bloomDownSampleFb->getDesc().height;
     _bloomCommandBuffer->setViewport(viewportDesc);
 
     BloomBuffer bufferData;
@@ -1968,18 +2075,21 @@ void Renderer::bloomPass(const std::shared_ptr<RenderDevice> &renderDevice)
     _bloomDownSamplePassResourceSet->addUniformBuffer(0, _bloomBuffer);
     if (i == 0)
     {
-      // First iteration uses bloom output from lighting pass
-      _bloomDownSamplePassResourceSet->addTexture(0, _lightingPassRto->getColourTarget(1));
+      _bloomDownSamplePassResourceSet->addTexture(0, _lightingBloomTex);
     }
     else
     {
-      // Subsequent iterations use the previous downsample result
-      _bloomDownSamplePassResourceSet->addTexture(0, _bloomDownSampleRtos[i - 1]->getColourTarget(0));
+      _bloomDownSamplePassResourceSet->addTexture(0, _bloomDownSampleTex[i - 1]);
     }
     _bloomDownSamplePassResourceSet->addSampler(0, _bloomSamplerState);
     _bloomDownSamplePassResourceSet->build(renderDevice);
 
-    _bloomCommandBuffer->beginRenderPass(bloomDownSampleRto, true, false, false);
+    {
+      RenderPassBeginInfo rp{};
+      rp.framebuffer = bloomDownSampleFb;
+      rp.clearColors = {ClearColorValue{0, 0, 0, 0}};
+      _bloomCommandBuffer->beginRenderPass(rp);
+    }
     _bloomCommandBuffer->bindResourceSet(_bloomDownSamplePassResourceSet, 0);
     _bloomCommandBuffer->bindVertexBuffer(_fsQuadVertexBuffer);
     _bloomCommandBuffer->draw(6, 0);
@@ -1987,25 +2097,29 @@ void Renderer::bloomPass(const std::shared_ptr<RenderDevice> &renderDevice)
   }
 
   // Upsample pass
-  _bloomCommandBuffer->setPipelineState(_bloomUpSamplePso);
+  _bloomCommandBuffer->bindGraphicsPipeline(_bloomUpPso);
 
-  for (uint32 i = _bloomDownSampleRtos.size() - 1; i > 0; i--)
+  for (uint32 i = static_cast<uint32>(_bloomDownSampleFbs.size()) - 1; i > 0; i--)
   {
-    const auto &currentRto = _bloomDownSampleRtos[i];
-    const auto &nextRto = _bloomDownSampleRtos[i - 1];
+    const auto &currentFb = _bloomDownSampleFbs[i];
+    const auto &nextFb = _bloomDownSampleFbs[i - 1];
 
     // Update and bind resource set for this upsample iteration
     _bloomUpSamplePassResourceSet->reset();
     _bloomUpSamplePassResourceSet->addUniformBuffer(0, _bloomBuffer);
-    _bloomUpSamplePassResourceSet->addTexture(0, currentRto->getColourTarget(0));
+    _bloomUpSamplePassResourceSet->addTexture(0, _bloomDownSampleTex[i]);
     _bloomUpSamplePassResourceSet->addSampler(0, _bloomSamplerState);
     _bloomUpSamplePassResourceSet->build(renderDevice);
 
     ViewportDesc viewportDesc{};
-    viewportDesc.Width = nextRto->getDesc().Width;
-    viewportDesc.Height = nextRto->getDesc().Height;
+    viewportDesc.Width = nextFb->getDesc().width;
+    viewportDesc.Height = nextFb->getDesc().height;
     _bloomCommandBuffer->setViewport(viewportDesc);
-    _bloomCommandBuffer->beginRenderPass(nextRto, false, false, false);
+    {
+      RenderPassBeginInfo rp{};
+      rp.framebuffer = nextFb;
+      _bloomCommandBuffer->beginRenderPass(rp);
+    }
     _bloomCommandBuffer->bindResourceSet(_bloomUpSamplePassResourceSet, 0);
     _bloomCommandBuffer->bindVertexBuffer(_fsQuadVertexBuffer);
     _bloomCommandBuffer->draw(6, 0);
@@ -2020,7 +2134,7 @@ void Renderer::bloomPass(const std::shared_ptr<RenderDevice> &renderDevice)
 
   // End command buffer and execute
   _bloomCommandBuffer->end();
-  _bloomCommandBuffer->execute();
+  SubmitRecorded(renderDevice, _bloomCommandBuffer);
 
   std::chrono::time_point end = std::chrono::high_resolution_clock::now();
   _renderPassTimings[6].Duration = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
@@ -2034,10 +2148,15 @@ void Renderer::toneMappingPass(const std::shared_ptr<RenderDevice> &renderDevice
   _toneMappingCommandBuffer->begin(CommandBufferUsage::OneTimeSubmit);
 
   // Set pipeline state
-  _toneMappingCommandBuffer->setPipelineState(_toneMappingPso);
+  _toneMappingCommandBuffer->bindGraphicsPipeline(_toneMappingPso);
 
-  // Begin render pass
-  _toneMappingCommandBuffer->beginRenderPass(_toneMappingRto, true, false, false);
+  // Begin render pass (new API path)
+  {
+    RenderPassBeginInfo rp{};
+    rp.framebuffer = _toneMappingFb;
+    rp.clearColors = {ClearColorValue{0, 0, 0, 1}};
+    _toneMappingCommandBuffer->beginRenderPass(rp);
+  }
   _toneMappingCommandBuffer->bindResourceSet(_toneMappingPassResourceSet, 0);
   _toneMappingCommandBuffer->bindVertexBuffer(_fsQuadVertexBuffer);
   _toneMappingCommandBuffer->draw(6, 0);
@@ -2045,7 +2164,7 @@ void Renderer::toneMappingPass(const std::shared_ptr<RenderDevice> &renderDevice
   // End render pass and command buffer
   _toneMappingCommandBuffer->endRenderPass();
   _toneMappingCommandBuffer->end();
-  _toneMappingCommandBuffer->execute();
+  SubmitRecorded(renderDevice, _toneMappingCommandBuffer);
 
   std::chrono::time_point end = std::chrono::high_resolution_clock::now();
   _renderPassTimings[7].Duration = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
@@ -2062,25 +2181,25 @@ void Renderer::debugPass(const std::shared_ptr<RenderDevice> &renderDevice,
     renderToneMappedResult(renderDevice, camera);
     break;
   case DebugDisplayType::ShadowDepth:
-    drawDebugRenderTarget(renderDevice, _shadowMapRto->getDepthStencilTarget(), camera, false, true);
+    drawDebugRenderTarget(renderDevice, _shadowMapDepthTex, camera, false, true);
     break;
   case DebugDisplayType::Diffuse:
-    drawDebugRenderTarget(renderDevice, _gBufferRto->getColourTarget(0), camera);
+    drawDebugRenderTarget(renderDevice, _gBufferAlbedoTex, camera);
     break;
   case DebugDisplayType::Normal:
-    drawDebugRenderTarget(renderDevice, _gBufferRto->getColourTarget(1), camera);
+    drawDebugRenderTarget(renderDevice, _gBufferNormalTex, camera);
     break;
   case DebugDisplayType::Specular:
-    drawDebugRenderTarget(renderDevice, _gBufferRto->getColourTarget(2), camera);
+    drawDebugRenderTarget(renderDevice, _gBufferMaterialTex, camera);
     break;
   case DebugDisplayType::Depth:
-    drawDebugRenderTarget(renderDevice, _gBufferRto->getDepthStencilTarget(), camera);
+    drawDebugRenderTarget(renderDevice, _gBufferDepthTex, camera);
     break;
   case DebugDisplayType::Lighting:
-    drawDebugRenderTarget(renderDevice, _lightingPassRto->getColourTarget(0), camera);
+    drawDebugRenderTarget(renderDevice, _lightingColorTex, camera);
     break;
   case DebugDisplayType::Occulsion:
-    drawDebugRenderTarget(renderDevice, _ssaoBlurRto->getColourTarget(0), camera, true);
+    drawDebugRenderTarget(renderDevice, _ssaoBlurTex, camera, true);
     break;
   case DebugDisplayType::Shadows:
     renderShadowDebugVisualization(renderDevice, camera);
@@ -2101,7 +2220,7 @@ void Renderer::renderToneMappedResult(const std::shared_ptr<RenderDevice> &rende
   // Render the tone mapped result to the screen
   auto debugCommandBuffer = renderDevice->createCommandBuffer();
   debugCommandBuffer->begin(CommandBufferUsage::OneTimeSubmit);
-  debugCommandBuffer->setPipelineState(_editorDrawTexturedQuadPso);
+  debugCommandBuffer->bindGraphicsPipeline(_editorDrawTexturedQuadPso);
 
   // Configure resource set and uniform buffer for final output
   TexturedQuadBuffer texturedQuadBufferData{};
@@ -2116,7 +2235,7 @@ void Renderer::renderToneMappedResult(const std::shared_ptr<RenderDevice> &rende
 
   _debugPassResourceSet->reset();
   _debugPassResourceSet->addUniformBuffer(0, _fullscreenQuadBuffer);
-  _debugPassResourceSet->addTexture(0, _toneMappingRto->getColourTarget(0));
+  _debugPassResourceSet->addTexture(0, _toneMappingColorTex);
   _debugPassResourceSet->addTexture(1, getDefaultWhiteTexture());
   _debugPassResourceSet->addTexture(2, getDefaultWhiteTexture());
   _debugPassResourceSet->addSampler(0, _noMipSamplerState);
@@ -2127,7 +2246,12 @@ void Renderer::renderToneMappedResult(const std::shared_ptr<RenderDevice> &rende
   _debugPassResourceSet->build(renderDevice);
 
   // Render to default framebuffer with viewport
-  debugCommandBuffer->beginRenderPass(nullptr, true, true, false);
+  {
+    RenderPassBeginInfo rp{};
+    rp.clearColors = {ClearColorValue{0, 0, 0, 1}}; // clear to black
+    rp.clearDepthStencil = std::make_unique<ClearDepthStencilValue>(ClearDepthStencilValue{1.0f, 0});
+    debugCommandBuffer->beginRenderPass(rp);
+  }
 
   ViewportDesc viewportDesc;
   viewportDesc.Width = _windowDims.X;
@@ -2139,7 +2263,7 @@ void Renderer::renderToneMappedResult(const std::shared_ptr<RenderDevice> &rende
   debugCommandBuffer->draw(6, 1, 0, 0);
   debugCommandBuffer->endRenderPass();
   debugCommandBuffer->end();
-  debugCommandBuffer->execute();
+  SubmitRecorded(renderDevice, debugCommandBuffer);
 }
 
 void Renderer::renderShadowDebugVisualization(const std::shared_ptr<RenderDevice> &renderDevice,
@@ -2159,13 +2283,13 @@ void Renderer::renderShadowDebugVisualization(const std::shared_ptr<RenderDevice
   texturedQuadBufferData.PerspectiveDepth = true;
   texturedQuadBufferData.CubeArray = true;
 
-  shadowDebugCommandBuffer->setPipelineState(_editorDrawTexturedQuadPso);
+  shadowDebugCommandBuffer->bindGraphicsPipeline(_editorDrawTexturedQuadPso);
 
   _debugPassResourceSet->reset();
   _debugPassResourceSet->addUniformBuffer(0, _fullscreenQuadBuffer);
   _debugPassResourceSet->addTexture(0, getDefaultWhiteTexture());
   _debugPassResourceSet->addTexture(1, getDefaultWhiteTexture());
-  _debugPassResourceSet->addTexture(2, _pointLightDepthRto->getDepthStencilTarget());
+  _debugPassResourceSet->addTexture(2, _pointLightDepthTex);
   _debugPassResourceSet->addSampler(0, _noMipSamplerState);
   _debugPassResourceSet->addSampler(1, _noMipSamplerState);
   _debugPassResourceSet->addSampler(2, _noMipSamplerState);
@@ -2174,7 +2298,12 @@ void Renderer::renderShadowDebugVisualization(const std::shared_ptr<RenderDevice
   _debugPassResourceSet->build(renderDevice);
 
   // Begin render pass with clear
-  shadowDebugCommandBuffer->beginRenderPass(nullptr, true, true, false);
+  {
+    RenderPassBeginInfo rp{};
+    rp.clearColors = {ClearColorValue{0, 0, 0, 1}};
+    rp.clearDepthStencil = std::make_unique<ClearDepthStencilValue>(ClearDepthStencilValue{1.0f, 0});
+    shadowDebugCommandBuffer->beginRenderPass(rp);
+  }
 
   // Set viewport
   ViewportDesc viewportDesc;
@@ -2189,7 +2318,7 @@ void Renderer::renderShadowDebugVisualization(const std::shared_ptr<RenderDevice
 
   shadowDebugCommandBuffer->endRenderPass();
   shadowDebugCommandBuffer->end();
-  shadowDebugCommandBuffer->execute();
+  SubmitRecorded(renderDevice, shadowDebugCommandBuffer);
 }
 
 void Renderer::drawDrawable(const std::unique_ptr<ICommandBuffer> &commandBuffer,
@@ -2223,18 +2352,28 @@ void Renderer::drawAabb(const std::shared_ptr<RenderDevice> &renderDevice,
   if (aabbDrawables.empty())
     return;
 
-  // Copy depth buffer from G-Buffer to default framebuffer for depth testing
-  _gBufferRto->copy(nullptr);
+  // Copy depth buffer from G-Buffer to default framebuffer for depth testing using the new command buffer helper
+  {
+    auto copyCmd = renderDevice->createCommandBuffer();
+    copyCmd->begin(CommandBufferUsage::OneTimeSubmit);
+    copyCmd->blitDepthToDefault(_gBufferDepthTex);
+    copyCmd->end();
+    SubmitRecorded(renderDevice, copyCmd);
+  }
 
   // Begin command buffer recording for AABB rendering
   auto aabbCommandBuffer = renderDevice->createCommandBuffer();
   aabbCommandBuffer->begin(CommandBufferUsage::OneTimeSubmit);
 
   // Begin render pass to default framebuffer (no clear - preserve existing content)
-  aabbCommandBuffer->beginRenderPass(nullptr, false, false, false);
+  {
+    RenderPassBeginInfo rp{};
+    // no clears; preserve existing content
+    aabbCommandBuffer->beginRenderPass(rp);
+  }
 
   // Set pipeline state and viewport
-  aabbCommandBuffer->setPipelineState(_drawAabbPso);
+  aabbCommandBuffer->bindGraphicsPipeline(_drawAabbPso);
   ViewportDesc viewportDesc;
   viewportDesc.Width = _windowDims.X;
   viewportDesc.Height = _windowDims.Y;
@@ -2268,7 +2407,7 @@ void Renderer::drawAabb(const std::shared_ptr<RenderDevice> &renderDevice,
   // End render pass and command buffer
   aabbCommandBuffer->endRenderPass();
   aabbCommandBuffer->end();
-  aabbCommandBuffer->execute();
+  SubmitRecorded(renderDevice, aabbCommandBuffer);
 }
 
 void Renderer::drawDebugRenderTarget(std::shared_ptr<RenderDevice> renderDevice,
@@ -2288,7 +2427,7 @@ void Renderer::drawDebugRenderTarget(std::shared_ptr<RenderDevice> renderDevice,
   debugCommandBuffer->begin(CommandBufferUsage::OneTimeSubmit);
 
   // Set pipeline state
-  debugCommandBuffer->setPipelineState(_editorDrawTexturedQuadPso);
+  debugCommandBuffer->bindGraphicsPipeline(_editorDrawTexturedQuadPso);
 
   // Reset and configure debug pass resource set
   _debugPassResourceSet->reset();
@@ -2357,7 +2496,12 @@ void Renderer::drawDebugRenderTarget(std::shared_ptr<RenderDevice> renderDevice,
   _debugPassResourceSet->build(renderDevice);
 
   // Begin render pass to default framebuffer with clear
-  debugCommandBuffer->beginRenderPass(nullptr, true, true, false);
+  {
+    RenderPassBeginInfo rp{};
+    rp.clearColors = {ClearColorValue{0, 0, 0, 1}};
+    rp.clearDepthStencil = std::make_unique<ClearDepthStencilValue>(ClearDepthStencilValue{1.0f, 0});
+    debugCommandBuffer->beginRenderPass(rp);
+  }
 
   // Set viewport
   ViewportDesc viewportDesc;
@@ -2373,7 +2517,7 @@ void Renderer::drawDebugRenderTarget(std::shared_ptr<RenderDevice> renderDevice,
   // End render pass and command buffer
   debugCommandBuffer->endRenderPass();
   debugCommandBuffer->end();
-  debugCommandBuffer->execute();
+  SubmitRecorded(renderDevice, debugCommandBuffer);
 }
 
 std::vector<Matrix4> Renderer::calculateCameraCascadeProjections(const std::shared_ptr<CameraComponent> &camera) const
@@ -2462,13 +2606,16 @@ void Renderer::createDirectionalLightShadowDepthMap(const std::shared_ptr<Render
   shadowMapDesc.Type = TextureType::Texture2DArray;
   shadowMapDesc.Format = TextureFormat::D32F;
   shadowMapDesc.Count = _cascadeCount;
-
-  RenderTargetDesc rtDesc;
-  rtDesc.DepthStencilTarget = renderDevice->createTexture(shadowMapDesc);
-  rtDesc.Height = _shadowMapResolution;
-  rtDesc.Width = _shadowMapResolution;
-
-  _shadowMapRto = renderDevice->createRenderTarget(rtDesc);
+  _shadowMapDepthTex = renderDevice->createTexture(shadowMapDesc);
+  {
+    FramebufferDesc fb{};
+    fb.width = _shadowMapResolution;
+    fb.height = _shadowMapResolution;
+    fb.samples = 1;
+    fb.depthStencilAttachment = FramebufferAttachment{_shadowMapDepthTex};
+    fb.hasDepthStencilAttachment = true;
+    _shadowMapFb = std::make_shared<Framebuffer>(fb);
+  }
   _shadowResolutionChanged = false;
 }
 
@@ -2763,10 +2910,16 @@ void Renderer::pointLightDepthPass(const std::shared_ptr<RenderDevice> &renderDe
   _pointLightDepthCommandBuffer->setViewport(viewportDesc);
 
   // Set pipeline state
-  _pointLightDepthCommandBuffer->setPipelineState(_pointLightDepthPso);
+  _pointLightDepthCommandBuffer->bindGraphicsPipeline(_pointLightDepthPso);
 
   // Begin render pass
-  _pointLightDepthCommandBuffer->beginRenderPass(_pointLightDepthRto, false, true, false);
+  {
+    RenderPassBeginInfo rp{};
+    rp.framebuffer = _pointLightDepthFb;
+    // depth-only clear for cubemap array shadow pass
+    rp.clearDepthStencil = std::make_unique<ClearDepthStencilValue>(ClearDepthStencilValue{1.0f, 0});
+    _pointLightDepthCommandBuffer->beginRenderPass(rp);
+  }
   _pointLightDepthCommandBuffer->bindResourceSet(_pointLightDepthPassResourceSet, 0);
 
   // Lights are already sorted by sortLightsForRendering(), so process sequentially
@@ -2868,5 +3021,5 @@ void Renderer::pointLightDepthPass(const std::shared_ptr<RenderDevice> &renderDe
   // End render pass and command buffer
   _pointLightDepthCommandBuffer->endRenderPass();
   _pointLightDepthCommandBuffer->end();
-  _pointLightDepthCommandBuffer->execute();
+  SubmitRecorded(renderDevice, _pointLightDepthCommandBuffer);
 }

@@ -1,12 +1,18 @@
 #pragma once
 #include "../Core/Types.hpp"
 
+/**
+ * @brief Controls whether depth writes are enabled.
+ */
 enum class DepthWriteMask
 {
   Zero,
   All
 };
 
+/**
+ * @brief Comparison functions used for depth and stencil tests.
+ */
 enum class ComparisonFunction
 {
   Never,
@@ -19,6 +25,9 @@ enum class ComparisonFunction
   Always
 };
 
+/**
+ * @brief Stencil buffer operations when tests pass or fail.
+ */
 enum class StencilOperation
 {
   Keep,
@@ -31,6 +40,9 @@ enum class StencilOperation
   Decr
 };
 
+/**
+ * @brief Stencil operations and function per face.
+ */
 struct StencilOperationDesc
 {
   StencilOperation FailOp = StencilOperation::Keep;
@@ -39,18 +51,24 @@ struct StencilOperationDesc
   ComparisonFunction ComparisonFunc = ComparisonFunction::Never;
 };
 
+/**
+ * @brief Depth and stencil testing configuration.
+ */
 struct DepthStencilStateDesc
 {
   bool DepthWriteEnabled = true;
   bool DepthReadEnabled = true;
   ComparisonFunction DepthFunc = ComparisonFunction::Less;
   bool StencilEnabled = false;
-  byte StencilReadMask = 0xFF;
-  byte StencilWriteMask = 0xFF;
+  byte StencilReadMask = static_cast<byte>(0xFFu);
+  byte StencilWriteMask = static_cast<byte>(0xFFu);
   StencilOperationDesc FrontFace;
   StencilOperationDesc BackFace;
 };
 
+/**
+ * @brief Immutable depth-stencil state object.
+ */
 class DepthStencilState
 {
   friend class RenderDevice;

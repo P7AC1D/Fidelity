@@ -1,6 +1,9 @@
 #pragma once
 #include "GpuBuffer.hpp"
 
+/**
+ * @brief Description of a vertex buffer resource.
+ */
 struct VertexBufferDesc
 {
   uint64 VertexSizeBytes;
@@ -8,6 +11,9 @@ struct VertexBufferDesc
   BufferUsage BufferUsage = BufferUsage::Default;
 };
 
+/**
+ * @brief GPU buffer specialized for vertex data.
+ */
 class VertexBuffer : public GpuBuffer
 {
 public:

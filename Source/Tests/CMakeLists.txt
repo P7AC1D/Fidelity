@@ -55,6 +55,7 @@ target_link_libraries(Tests PRIVATE
     engine
     glm
     assimp
+    glfw
 )
 
 # Include directories
@@ -62,6 +63,8 @@ target_include_directories(Tests PRIVATE
     "${CMAKE_SOURCE_DIR}/Source/Engine"
     "${CMAKE_SOURCE_DIR}/Externals/glm"
     "${CMAKE_SOURCE_DIR}/Externals/assimp/include"
+    "${CMAKE_SOURCE_DIR}/Externals/glfw/include"
+    "${CMAKE_SOURCE_DIR}/Externals/glad/include"
 )
 
 # ============================================================================

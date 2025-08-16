@@ -1,12 +1,16 @@
 #pragma once
 #include "../CommandBuffer.hpp"
 #include "../GpuBuffer.hpp"
-#include "../PipelineState.hpp"
+#include "../PrimitiveTopology.hpp"
+#include "../PipelineLayout.hpp"
+#include "../PushConstants.hpp"
+#include "../GraphicsPipelineState.hpp"
+#include "../ComputePipelineState.hpp"
 #include <memory>
+#include <vector>
 
 // Forward declarations
 class GLRenderDevice;
-class GLRenderTarget;
 class GLPipelineState;
 class GLVertexBuffer;
 class GLIndexBuffer;
@@ -49,15 +53,27 @@ public:
   void reset() override;
 
   // Render Pass Management
-  void beginRenderPass(const std::shared_ptr<RenderTarget> &renderTarget,
-                       bool clearColor = true,
-                       bool clearDepth = true,
-                       bool clearStencil = false) override;
+  // Legacy beginRenderPass(RenderTarget,...) removed; use RenderPassBeginInfo overload
+  void beginRenderPass(const RenderPassBeginInfo &beginInfo) override;
+  void nextSubpass() override;
   void endRenderPass() override;
 
   // Pipeline and Resource Binding
-  void setPipelineState(const std::shared_ptr<PipelineState> &pipelineState) override;
+  // legacy setPipelineState removed
+  void bindGraphicsPipeline(const std::shared_ptr<class GraphicsPipelineState> &pipeline) override;
+  void bindComputePipeline(const std::shared_ptr<class ComputePipelineState> &pipeline) override;
   void bindResourceSet(const std::unique_ptr<IResourceSet> &resourceSet, uint32 setIndex = 0) override;
+  void bindDescriptorSets(PipelineBindPoint bindPoint,
+                          const std::shared_ptr<PipelineLayout> &layout,
+                          uint32 firstSet,
+                          const std::vector<const IResourceSet *> &sets,
+                          const uint32 *dynamicOffsets = nullptr,
+                          uint32 dynamicOffsetCount = 0) override;
+  void pushConstants(const std::shared_ptr<PipelineLayout> &layout,
+                     uint32 stageMask,
+                     uint32 offset,
+                     uint32 size,
+                     const void *data) override;
   void bindVertexBuffer(const std::shared_ptr<VertexBuffer> &vertexBuffer,
                         uint32 bindingIndex = 0,
                         uint64 offset = 0) override;
@@ -86,6 +102,14 @@ public:
                    int32 vertexOffset = 0,
                    uint32 firstInstance = 0) override;
 
+  // Indirect
+  void drawIndirect(const std::shared_ptr<GpuBuffer> &argsBuffer, uint64 offset) override;
+  void drawIndexedIndirect(const std::shared_ptr<GpuBuffer> &argsBuffer, uint64 offset) override;
+
+  // Compute
+  void dispatch(uint32 x, uint32 y, uint32 z) override;
+  void dispatchIndirect(const std::shared_ptr<GpuBuffer> &buffer, uint64 offset) override;
+
   // Resource Operations
   void copyBuffer(const std::shared_ptr<GpuBuffer> &srcBuffer,
                   const std::shared_ptr<GpuBuffer> &dstBuffer,
@@ -103,19 +127,44 @@ public:
                     const void *data,
                     AccessType accessType = AccessType::WriteOnly) override;
 
+  // Texture ops (Phase 7)
+  void copyTexture(const std::shared_ptr<Texture> &src,
+                   const std::shared_ptr<Texture> &dst,
+                   uint32 srcMipLevel = 0,
+                   uint32 dstMipLevel = 0) override;
+  void blitTexture(const std::shared_ptr<Texture> &src,
+                   const std::shared_ptr<Texture> &dst,
+                   bool linearFilter = false,
+                   uint32 srcMipLevel = 0,
+                   uint32 dstMipLevel = 0) override;
+  void resolveTexture(const std::shared_ptr<Texture> &srcMsaa,
+                      const std::shared_ptr<Texture> &dstSingle,
+                      uint32 srcMipLevel = 0,
+                      uint32 dstMipLevel = 0) override;
+  void generateMips(const std::shared_ptr<Texture> &texture) override;
+
+  // Depth-only blit helper
+  void blitDepthToDefault(const std::shared_ptr<Texture> &srcDepth) override;
+
   // Memory Barriers and Synchronization
   void memoryBarrier(uint32 srcStage, uint32 dstStage) override;
+  void pipelineBarrier(uint32 srcStages,
+                       uint32 dstStages,
+                       uint32 memoryDeps,
+                       const std::vector<BufferBarrier> &bufferBarriers,
+                       const std::vector<ImageBarrier> &imageBarriers) override;
+  void transition(const std::shared_ptr<ImageView> &view,
+                  ResourceState oldState,
+                  ResourceState newState,
+                  ImageAspect aspect = ImageAspect::Color) override;
+
+  // Queries & timestamps
+  void writeTimestamp(const std::shared_ptr<IQueryPool> &pool, uint32 index) override;
+  void beginQuery(const std::shared_ptr<IQueryPool> &pool, uint32 index) override;
+  void endQuery(const std::shared_ptr<IQueryPool> &pool, uint32 index) override;
+  void resolveQueryData(const std::shared_ptr<IQueryPool> &pool, uint32 first, uint32 count, uint64 *dst) override;
 
   // Render Target Management (OpenGL-specific)
-
-  /**
-   * @brief Sets the active render target for subsequent draw calls
-   * @param renderTarget The render target to render into, or nullptr for main framebuffer
-   * @note Command buffer must be in InRenderPass state
-   * @note All rendering operations will target the specified render target
-   */
-  void setRenderTarget(const std::shared_ptr<RenderTarget> &renderTarget);
-
   /**
    * @brief Clears the currently bound render target buffers
    * @param buffers Bitwise combination of RenderTargetType flags specifying which buffers to clear
@@ -172,10 +221,11 @@ private:
   void validateOutsideRenderPass(const char *operationName) const;
 
 private:
-  std::shared_ptr<GLRenderDevice> _device;            ///< Parent OpenGL render device
-  CommandBufferState _state;                          ///< Current command buffer state
-  CommandBufferUsage _usage;                          ///< Usage hint for optimization
-  std::shared_ptr<RenderTarget> _currentRenderTarget; ///< Currently active render target
+  std::shared_ptr<GLRenderDevice> _device; ///< Parent OpenGL render device
+  CommandBufferState _state;               ///< Current command buffer state
+  CommandBufferUsage _usage;               ///< Usage hint for optimization
+  uint32 _currentFboId = 0;                ///< Currently bound FBO (0 = default)
+  bool _ownsCurrentFbo = false;            ///< Whether the command buffer created the FBO
 
   // Command buffer owns its rendering state (following modern graphics API patterns)
   PrimitiveTopology _primitiveTopology;                                  ///< Current primitive topology for draw calls
@@ -188,4 +238,9 @@ private:
   bool _hasActivePipeline;     ///< Whether a pipeline state is bound
   bool _hasActiveVertexBuffer; ///< Whether a vertex buffer is bound
   bool _hasActiveIndexBuffer;  ///< Whether an index buffer is bound
+
+  // New pipeline state (migration)
+  std::shared_ptr<GraphicsPipelineState> _boundGraphicsPipeline;
+  std::shared_ptr<ComputePipelineState> _boundComputePipeline; // unused on GL 4.1
+  bool _warnedComputeUnsupported = false;                      // throttle warnings
 };

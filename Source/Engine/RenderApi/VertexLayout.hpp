@@ -3,6 +3,9 @@
 #include <vector>
 #include "../Core/Types.hpp"
 
+/**
+ * @brief Semantic roles for vertex attributes.
+ */
 enum class SemanticType
 {
   Position = 0,
@@ -13,6 +16,9 @@ enum class SemanticType
   Colour = 5
 };
 
+/**
+ * @brief Data formats for vertex attributes.
+ */
 enum class SemanticFormat
 {
   Float4,
@@ -37,6 +43,9 @@ enum class SemanticFormat
   Ubyte
 };
 
+/**
+ * @brief Single vertex attribute description.
+ */
 struct VertexLayoutDesc
 {
   VertexLayoutDesc(SemanticType type, SemanticFormat format, bool normalized = false) : Type(type),
@@ -50,6 +59,9 @@ struct VertexLayoutDesc
   bool Normalised;
 };
 
+/**
+ * @brief Collection of vertex attribute descriptions.
+ */
 class VertexLayout
 {
   friend class RenderDevice;

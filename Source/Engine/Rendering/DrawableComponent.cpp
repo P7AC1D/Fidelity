@@ -1,4 +1,5 @@
 #include "DrawableComponent.h"
+#include <algorithm>
 
 #include "../Core/ComponentBase.inl"
 #include "../Core/TransformComponent.h"
@@ -241,7 +242,12 @@ void DrawableComponent::drawMaterialInspector()
   float32 rawCol[3] = {diffuse[0] / 255.0f, diffuse[1] / 255.0f, diffuse[2] / 255.0f};
   if (ImGui::ColorEdit3("Diffuse", rawCol))
   {
-    _material->setDiffuseColour(Colour(rawCol[0] * 255, rawCol[1] * 255, rawCol[2] * 255));
+    auto toByte = [](float32 v) -> uint8
+    {
+      v = std::clamp(v, 0.0f, 1.0f);
+      return static_cast<uint8>(v * 255.0f + 0.5f);
+    };
+    _material->setDiffuseColour(Colour(toByte(rawCol[0]), toByte(rawCol[1]), toByte(rawCol[2])));
   }
 
   // PBR properties

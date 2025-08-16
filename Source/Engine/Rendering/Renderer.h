@@ -14,14 +14,14 @@
 
 class GpuBuffer;
 class Material;
-class PipelineState;
+#include "../RenderApi/GraphicsPipelineState.hpp"
 class RenderDevice;
 class RenderQueue;
-class RenderTarget;
 class SamplerState;
 class Texture;
 class VertexBuffer;
 class ICommandBuffer;
+class Framebuffer;
 
 // Forward declarations that need full definitions for unique_ptr
 #include "ShadowFrustum.h"
@@ -273,16 +273,34 @@ private:
       _fullscreenQuadBuffer,
       _bloomBuffer,
       _pointLightBuffer;
-  std::shared_ptr<RenderTarget> _shadowMapRto,
-      _pointLightDepthRto,
-      _gBufferRto,
-      _transparencyRto,
-      _ssaoRto,
-      _ssaoBlurRto,
-      _lightingPassRto,
-      _toneMappingRto;
-  std::vector<std::shared_ptr<RenderTarget>> _bloomDownSampleRtos;
-  std::shared_ptr<PipelineState> _shadowMapPso,
+  // Framebuffers and their attachment textures (modern path)
+  std::shared_ptr<Framebuffer> _shadowMapFb;
+  std::shared_ptr<Texture> _shadowMapDepthTex;
+
+  std::shared_ptr<Framebuffer> _pointLightDepthFb;
+  std::shared_ptr<Texture> _pointLightDepthTex;
+
+  std::shared_ptr<Framebuffer> _gBufferFb;
+  std::shared_ptr<Texture> _gBufferAlbedoTex;
+  std::shared_ptr<Texture> _gBufferNormalTex;
+  std::shared_ptr<Texture> _gBufferMaterialTex;
+  std::shared_ptr<Texture> _gBufferDepthTex;
+
+  std::shared_ptr<Framebuffer> _ssaoFb;
+  std::shared_ptr<Texture> _ssaoTex;
+  std::shared_ptr<Framebuffer> _ssaoBlurFb;
+  std::shared_ptr<Texture> _ssaoBlurTex;
+
+  std::shared_ptr<Framebuffer> _lightingPassFb;
+  std::shared_ptr<Texture> _lightingColorTex;
+  std::shared_ptr<Texture> _lightingBloomTex;
+
+  std::shared_ptr<Framebuffer> _toneMappingFb;
+  std::shared_ptr<Texture> _toneMappingColorTex;
+
+  std::vector<std::shared_ptr<Framebuffer>> _bloomDownSampleFbs;
+  std::vector<std::shared_ptr<Texture>> _bloomDownSampleTex;
+  std::shared_ptr<GraphicsPipelineState> _shadowMapPso,
       _pointLightDepthPso,
       _gBufferPso,
       _transparencyPso,
@@ -290,7 +308,7 @@ private:
       _ssaoBlurPso,
       _lightingPso,
       _bloomDownSamplePso,
-      _bloomUpSamplePso,
+      _bloomUpPso,
       _toneMappingPso,
       _drawAabbPso,
       _editorDrawTexturedQuadPso;

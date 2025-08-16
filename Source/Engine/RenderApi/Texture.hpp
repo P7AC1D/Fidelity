@@ -3,6 +3,8 @@
 #include "../Image/ImageData.hpp"
 #include "ResourceHandle.hpp"
 
+// Texture formats and usage flags (kept compatible with existing values).
+
 enum class TextureFormat
 {
   /// 8-bit red channel as unsigned bytes.
@@ -58,6 +60,20 @@ struct TextureDesc
   uint32 Count = 1;
   uint32 MipLevels = 1;
   TextureUsage Usage = TextureUsage::Default;
+  // Additional description fields
+  uint32 Samples = 1; // MSAA sample count
+  // New usage flags (bitmask) to model modern API usages
+  enum UsageFlags : uint32
+  {
+    UF_None = 0,
+    UF_Sampled = 1u << 0,
+    UF_Storage = 1u << 1,
+    UF_ColorAttachment = 1u << 2,
+    UF_DepthStencilAttachment = 1u << 3,
+    UF_TransferSrc = 1u << 4,
+    UF_TransferDst = 1u << 5,
+  };
+  uint32 Flags = UF_None;
 };
 
 class Texture : public ResourceHandle

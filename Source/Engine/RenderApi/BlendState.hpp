@@ -1,6 +1,9 @@
 #pragma once
 #include "../Core/Types.hpp"
 
+/**
+ * @brief Blend factors used when combining source and destination colors.
+ */
 enum class BlendFactor
 {
   Zero,
@@ -15,6 +18,9 @@ enum class BlendFactor
   InvDestColour
 };
 
+/**
+ * @brief Blend operations used to combine source and destination terms.
+ */
 enum class BlendOperation
 {
   Add,
@@ -24,6 +30,9 @@ enum class BlendOperation
   Max
 };
 
+/**
+ * @brief Color channel write mask.
+ */
 enum ColourWrite
 {
   COLOUR_WRITE_DISABLE = 0,
@@ -34,6 +43,9 @@ enum ColourWrite
   COLOUR_WRITE_ENABLE_ALL = (((COLOUR_WRITE_ENABLE_RED | COLOUR_WRITE_ENABLE_GREEN) | COLOUR_WRITE_ENABLE_BLUE) | COLOUR_WRITE_ENABLE_ALPHA)
 };
 
+/**
+ * @brief Per-channel blend function description.
+ */
 struct BlendDesc
 {
   BlendFactor Source;
@@ -43,6 +55,9 @@ struct BlendDesc
   BlendDesc(BlendFactor src, BlendFactor dst, BlendOperation op) : Source(src), Destination(dst), Operation(op) {}
 };
 
+/**
+ * @brief Render target blend state configuration.
+ */
 struct RTBlendStateDesc
 {
   bool BlendEnabled = false;
@@ -51,6 +66,9 @@ struct RTBlendStateDesc
   byte RTWriteMask = COLOUR_WRITE_ENABLE_ALL;
 };
 
+/**
+ * @brief Global blend state configuration for a pipeline.
+ */
 struct BlendStateDesc
 {
   bool AlphaToCoverageEnable = false;
@@ -58,6 +76,9 @@ struct BlendStateDesc
   RTBlendStateDesc RTBlendState[8];
 };
 
+/**
+ * @brief Immutable blend state object.
+ */
 class BlendState
 {
   friend class RenderDevice;

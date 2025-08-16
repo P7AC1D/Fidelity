@@ -3,21 +3,41 @@
 
 #include <iostream>
 #include <utility>
+#include <cmath>
 #include "../RenderApi/GL/GLRenderDevice.hpp"
 #include "../RenderApi/Texture.hpp"
 #include "../Utility/TextureLoader.hpp"
 #include "InputHandler.h"
+#include "../RenderApi/Surface.hpp"
+#include "../RenderApi/PresentMode.hpp"
 
 static std::shared_ptr<InputHandler> INPUT_HANDLER = nullptr;
 static std::shared_ptr<UiManager> DEBUG_UI = nullptr;
 
-void errorCallback(int error, const char *description)
+void errorCallback([[maybe_unused]] int error, const char *description)
 {
   std::cerr << "GLFW Error: " << description << std::endl;
 }
 
+static void windowCloseCallback(GLFWwindow *window)
+{
+  // Retrieve Application instance and request shutdown so _isRunning becomes false
+  if (auto *app = reinterpret_cast<Application *>(glfwGetWindowUserPointer(window)))
+  {
+    app->requestShutdown();
+  }
+  else
+  {
+    // Fallback: still flag the window to close
+    glfwSetWindowShouldClose(window, GLFW_TRUE);
+  }
+}
+
 void keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods)
 {
+  (void)window;
+  (void)scancode;
+  (void)mods;
   switch (action)
   {
   case GLFW_PRESS:
@@ -40,6 +60,8 @@ void keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods
 
 void mouseButtonCallback(GLFWwindow *window, int button, int action, int mods)
 {
+  (void)window;
+  (void)mods;
   // Always process left mouse button for object picking, even if ImGui has mouse capture
   // This allows object selection to work when debug panels are open
   bool isLeftMouseButton = (button == GLFW_MOUSE_BUTTON_LEFT);
@@ -66,11 +88,13 @@ void mouseButtonCallback(GLFWwindow *window, int button, int action, int mods)
 
 void cursorPositionCallback(GLFWwindow *window, float64 xpos, float64 ypos)
 {
+  (void)window;
   INPUT_HANDLER->setAxisState(Axis::MouseXY, Vector2I(static_cast<int32>(xpos), static_cast<int32>(ypos)));
 }
 
 void scrollCallback(GLFWwindow *window, float64 xoffset, float64 yoffset)
 {
+  (void)window;
   if (DEBUG_UI->hasMouseCapture())
   {
     return;
@@ -302,7 +326,37 @@ Button GlfwMouseButtonToButton(int32 button)
 
 Application::~Application()
 {
-  glfwDestroyWindow(_window);
+  // Ensure a valid context is current while destroying GL-backed resources
+  if (_window)
+  {
+    glfwMakeContextCurrent(_window);
+  }
+
+  // Release UI first (depends on GLFW & GL context)
+  if (_debugUi)
+  {
+    _debugUi.reset();
+  }
+  // Clear static alias to UI
+  DEBUG_UI.reset();
+
+  // Release renderer next (may delete GL resources)
+  _renderer.reset();
+
+  // Release render device while context is still alive
+  _renderDevice.reset();
+
+  // Clear static alias to input handler to avoid dangling refs
+  INPUT_HANDLER.reset();
+
+  // Destroy window after dependents are shutdown
+  if (_window)
+  {
+    glfwDestroyWindow(_window);
+    _window = nullptr;
+  }
+
+  // Finally terminate GLFW
   glfwTerminate();
 }
 
@@ -330,17 +384,23 @@ int32 Application::run()
       _currentMousePos = _inputHandler->getAxisState(Axis::MouseXY);
 
       // To handle DPI scaling where the window size is not the same as the framebuffer size
-      _scene.setMouseCoordinates(Vector2I(_windowToFramebufferRatio * static_cast<float32>(_currentMousePos.X),
-                                          _windowToFramebufferRatio * static_cast<float32>(_currentMousePos.Y)));
+      // Convert scaled mouse coordinates back to integer framebuffer coords with rounding
+      {
+        const float32 scaledX = _windowToFramebufferRatio * static_cast<float32>(_currentMousePos.X);
+        const float32 scaledY = _windowToFramebufferRatio * static_cast<float32>(_currentMousePos.Y);
+        _scene.setMouseCoordinates(
+            Vector2I(static_cast<int32>(std::lroundf(scaledX)),
+                     static_cast<int32>(std::lroundf(scaledY))));
+      }
 
-      _scene.update(dtMs);
-      
+      _scene.update(static_cast<float32>(dtMs));
+
       // Only perform object picking if UI doesn't have mouse capture
       if (!_debugUi->hasMouseCapture())
       {
         _scene.updateObjectPicking();
       }
-      
+
       _scene.drawFrame();
       _debugUi->update(_scene);
 
@@ -351,16 +411,50 @@ int32 Application::run()
       // Update input handler previous states for next frame
       _inputHandler->updatePreviousStates();
 
-      glfwSwapBuffers(_window);
+      // Phase 8: present via RenderApi when available
+      if (_renderDevice)
+      {
+        static std::shared_ptr<ISwapchain> sSwapchain;
+        static bool sInitSwapchain = false;
+        if (!sInitSwapchain)
+        {
+          auto surface = _renderDevice->createSurface(static_cast<void *>(_window));
+          if (surface)
+          {
+            SwapchainDesc scDesc{};
+            scDesc.width = static_cast<uint32>(getWidth());
+            scDesc.height = static_cast<uint32>(getHeight());
+            scDesc.imageCount = 2;
+            scDesc.sRGB = true;
+            scDesc.presentMode = static_cast<uint32>(PresentMode::Fifo);
+            sSwapchain = _renderDevice->createSwapchain(surface, scDesc);
+          }
+          sInitSwapchain = true;
+        }
+        if (sSwapchain)
+        {
+          (void)sSwapchain->acquireNextImage();
+          sSwapchain->present(0);
+        }
+        else
+        {
+          // Fallback to GLFW swap if swapchain is not available
+          glfwSwapBuffers(_window);
+        }
+      }
+      else
+      {
+        glfwSwapBuffers(_window);
+      }
       glfwPollEvents();
     }
   }
   catch (const std::exception &e)
   {
     std::cerr << e.what() << '\n';
+    return EXIT_FAILURE;
   }
-
-  return 0;
+  return EXIT_SUCCESS;
 }
 
 Application::Application(ApplicationDesc desc) : _inputHandler(new InputHandler()),
@@ -458,6 +552,7 @@ bool Application::initialize()
   glfwSetMouseButtonCallback(_window, mouseButtonCallback);
   glfwSetKeyCallback(_window, keyCallback);
   glfwSetScrollCallback(_window, scrollCallback);
+  glfwSetWindowCloseCallback(_window, windowCloseCallback);
 
   if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
   {
@@ -503,8 +598,17 @@ int32 Application::getTickDuration()
   float64 currentTimeInSeconds = glfwGetTime();
   float64 dt = currentTimeInSeconds - lastTimeInSeconds;
   lastTimeInSeconds = currentTimeInSeconds;
-  dtMs = dt * 1000; // convert to mili-seconds
+  dtMs = static_cast<int32>(dt * 1000.0); // convert to milliseconds
   return dtMs;
+}
+
+void Application::requestShutdown()
+{
+  _isRunning = false;
+  if (_window)
+  {
+    glfwSetWindowShouldClose(_window, GLFW_TRUE);
+  }
 }
 
 void Application::fpsCameraLook(int32 deltaX, int32 deltaY, uint32 dtMs)

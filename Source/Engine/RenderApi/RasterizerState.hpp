@@ -1,12 +1,18 @@
 #pragma once
 #include "../Core/Types.hpp"
 
+/**
+ * @brief Polygon fill modes for rasterization.
+ */
 enum class FillMode
 {
   WireFrame,
   Solid
 };
 
+/**
+ * @brief Face culling modes.
+ */
 enum class CullMode
 {
   None,
@@ -14,6 +20,9 @@ enum class CullMode
   CounterClockwise
 };
 
+/**
+ * @brief Rasterizer state configuration controlling triangle setup and culling.
+ */
 struct RasterizerStateDesc
 {
   FillMode FillMode = FillMode::Solid;
@@ -27,6 +36,9 @@ struct RasterizerStateDesc
   bool AntialiasedLineEnable = false;
 };
 
+/**
+ * @brief Immutable rasterizer state object.
+ */
 class RasterizerState
 {
   friend class RenderDevice;

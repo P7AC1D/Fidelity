@@ -8,6 +8,7 @@ class RenderDevice;
 class Texture;
 class GpuBuffer;
 class SamplerState;
+class ImageView;
 
 /**
  * @brief Enumeration of supported resource types that can be bound to shaders
@@ -39,10 +40,7 @@ struct ResourceBinding
  * @brief Interface for a collection of GPU resources that can be bound together
  *
  * Resource sets provide an efficient way to bind multiple GPU resources (textures,
- * buffers, samplers) to shaders with a single API call. This maps to descriptor sets
- * in Vulkan, root signatures in DirectX 12, and argument buffers in Metal.
- *
- * For OpenGL compatibility, the implementation falls back to individual bind calls.
+ * buffers, samplers) to shaders with a single API call.
  *
  * @note Resource sets must be built before they can be bound to the pipeline
  * @note Once built, resource sets are typically immutable for performance reasons
@@ -59,6 +57,8 @@ public:
    * @note Must be called before build()
    */
   virtual void addTexture(uint32 binding, const sptr<Texture> &texture) = 0;
+  // Bind an ImageView (subresource/aspect) when supported by backend.
+  virtual void addImageView(uint32 binding, const sptr<ImageView> &view) = 0;
 
   /**
    * @brief Add a uniform/constant buffer to the resource set
@@ -164,9 +164,7 @@ public:
  * @brief Factory interface for creating resource sets and layouts
  *
  * The factory pattern allows the renderer to create API-specific implementations
- * of resource sets and layouts without coupling to concrete types. Different
- * graphics APIs (OpenGL, Vulkan, DirectX 12, Metal) can provide their own
- * factory implementations.
+ * of resource sets and layouts without coupling to concrete types.
  *
  * @note Factory implementations should be registered with the render device
  */

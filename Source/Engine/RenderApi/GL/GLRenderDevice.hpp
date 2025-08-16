@@ -1,11 +1,23 @@
 #pragma once
 #include <array>
+#include <vector>
+#include <memory>
+#include "GL.hpp"
 #include "../RenderDevice.hpp"
 #include "GLResourceSet.hpp"
+#include "GLSyncPrimitives.hpp"
+#include "../CommandPool.hpp"
+#include "../Query.hpp"
+#include "../Surface.hpp"
+#include "../PresentMode.hpp"
+// Presentation classes moved to separate headers for clarity
+#include "GLSurface.hpp"
+#include "GLSwapchain.hpp"
+#include "GLQueryPool.hpp"
+struct GLFWwindow;
 
 class GLGpuBuffer;
 class GLIndexBuffer;
-class GLRenderTarget;
 class GLSamplerState;
 class GLShaderPipeline;
 class GLShaderPipelineCollection;
@@ -26,7 +38,7 @@ public:
 
   std::shared_ptr<Shader> createShader(const ShaderDesc &desc) override;
   std::shared_ptr<VertexBuffer> createVertexBuffer(const VertexBufferDesc &desc) override;
-  std::shared_ptr<RenderTarget> createRenderTarget(const RenderTargetDesc &desc) override;
+  // Legacy RenderTarget creation removed. Use textures + Framebuffer via command buffers.
   std::shared_ptr<IndexBuffer> createIndexBuffer(const IndexBufferDesc &desc) override;
   std::shared_ptr<GpuBuffer> createGpuBuffer(const GpuBufferDesc &desc) override;
   std::shared_ptr<Texture> createTexture(const TextureDesc &desc, bool gammaCorrected = false) override;
@@ -40,17 +52,35 @@ public:
    * @note OpenGL implementation provides immediate mode command recording
    */
   std::unique_ptr<ICommandBuffer> createCommandBuffer() override;
+  // Phase 7: queries
+  std::shared_ptr<IQueryPool> createQueryPool(const QueryPoolDesc &desc);
+
+  // Phase 8: Surfaces/Swapchain
+  std::shared_ptr<ISurface> createSurface(void *nativeWindowHandle) override;
+  std::shared_ptr<ISwapchain> createSwapchain(const std::shared_ptr<ISurface> &surface, const SwapchainDesc &desc) override;
+
+  // Submission and synchronization primitives
+  std::shared_ptr<IQueue> getGraphicsQueue() override;
+  std::shared_ptr<IFence> createFence(bool signaled = false) override;
+  std::shared_ptr<ISemaphore> createSemaphore(bool timeline = false, uint64 initialValue = 0) override;
+  std::shared_ptr<ICommandPool> createCommandPool() override;
 
   const ViewportDesc &getViewport() const override;
   ScissorDesc getScissorDimensions() const override;
 
+  // Debug markers & capability logging
+  void beginDebugMarker(const char *label) override;
+  void insertDebugMarker(const char *label) override;
+  void endDebugMarker() override;
+  void logCapabilities() const override;
+
   // Make these members accessible to GLCommandBuffer as a friend class
-  std::shared_ptr<PipelineState> _pipelineState;
+  // legacy pipeline state removed
   std::shared_ptr<ShaderParams> _shaderParams;
   std::array<std::shared_ptr<GLGpuBuffer>, MAX_CONSTANT_BUFFERS> _boundConstantBuffers;
   std::array<std::shared_ptr<GLTexture>, MAX_TEXTURE_SLOTS> _boundTextures;
   bool _shaderStateChanged;
-  std::shared_ptr<GLRenderTarget> _boundRenderTarget;
+  // Legacy bound render target removed.
 
   // Viewport and scissor state accessible to command buffer
   ScissorDesc _scissorDesc;
@@ -96,4 +126,10 @@ private:
   std::array<std::shared_ptr<GLSamplerState>, MAX_TEXTURE_SLOTS> _boundSamplers;
 
   std::unique_ptr<GLResourceSetFactory> _resourceSetFactory;
+
+  // Single graphics queue for GL backend
+  std::shared_ptr<GLQueue> _graphicsQueue;
 };
+
+// GL implementation of query pool
+// GLQueryPool is defined in GLQueryPool.hpp

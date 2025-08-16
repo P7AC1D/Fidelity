@@ -34,13 +34,16 @@ class Application
 public:
   virtual ~Application();
   virtual void onStart() {}
-  virtual void onUpdate(uint32 dtMs) {}
+  virtual void onUpdate([[maybe_unused]] uint32 dtMs) {}
 
   std::string getName() const { return _desc.Name; }
   uint32 getWidth() const { return _desc.Width; }
   uint32 getHeight() const { return _desc.Height; }
 
   int32 run();
+
+  // Request application shutdown (safe to call from callbacks)
+  void requestShutdown();
 
 protected:
   Application(ApplicationDesc desc);

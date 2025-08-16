@@ -13,6 +13,7 @@
 #include "../RenderApi/GL/GLTexture.hpp"
 #include "../RenderApi/RenderDevice.hpp"
 #include "../RenderApi/CommandBuffer.hpp"
+#include "../RenderApi/GraphicsPipelineState.hpp"
 #include "../Utility/String.hpp"
 #include "ImGui/imgui.h"
 #include "ImGui/imgui_impl_glfw.h"
@@ -155,7 +156,10 @@ void UiManager::draw(ImDrawData *drawData)
   _uiCommandBuffer->begin(CommandBufferUsage::OneTimeSubmit);
 
   // Begin render pass to default framebuffer (no clear - preserve existing content)
-  _uiCommandBuffer->beginRenderPass(nullptr, false, false, false);
+  {
+    RenderPassBeginInfo rp{};
+    _uiCommandBuffer->beginRenderPass(rp);
+  }
 
   // Set viewport for UI rendering
   ViewportDesc uiViewport;
@@ -165,8 +169,8 @@ void UiManager::draw(ImDrawData *drawData)
   uiViewport.Height = fbHeight;
   _uiCommandBuffer->setViewport(uiViewport);
 
-  // Set pipeline state
-  _uiCommandBuffer->setPipelineState(_pipelineState);
+  // Bind graphics pipeline
+  _uiCommandBuffer->bindGraphicsPipeline(_pipelineState);
 
   // Bind vertex and index buffers
   _uiCommandBuffer->bindVertexBuffer(_vertBuffer);
@@ -270,16 +274,16 @@ void UiManager::setupRenderer()
 
   try
   {
-    PipelineStateDesc pStateDesc;
-    pStateDesc.BlendState = _renderDevice->createBlendState(blendStateDesc);
-    pStateDesc.DepthStencilState = _renderDevice->createDepthStencilState(depthStencilStateDesc);
-    pStateDesc.RasterizerState = _renderDevice->createRasterizerState(rasterizerStateDesc);
-    pStateDesc.VS = _renderDevice->createShader(vsShaderDesc);
-    pStateDesc.FS = _renderDevice->createShader(psShaderDesc);
-    pStateDesc.VertexLayout = _renderDevice->createVertexLayout(vertexLayoutDesc);
-    pStateDesc.ShaderParams = shaderParams;
+    GraphicsPipelineStateDesc gps{};
+    gps.Blend = _renderDevice->createBlendState(blendStateDesc);
+    gps.DepthStencil = _renderDevice->createDepthStencilState(depthStencilStateDesc);
+    gps.Rasterizer = _renderDevice->createRasterizerState(rasterizerStateDesc);
+    gps.VS = _renderDevice->createShader(vsShaderDesc);
+    gps.FS = _renderDevice->createShader(psShaderDesc);
+    gps.VertexLayoutDef = _renderDevice->createVertexLayout(vertexLayoutDesc);
+    gps.ShaderParamReflection = shaderParams;
 
-    _pipelineState = _renderDevice->createPipelineState(pStateDesc);
+    _pipelineState = std::make_shared<GraphicsPipelineState>(gps);
   }
   catch (const std::exception &exception)
   {

@@ -9,6 +9,7 @@ class RenderDevice;
 class Texture;
 class GpuBuffer;
 class SamplerState;
+class ImageView;
 
 /**
  * @brief OpenGL 4.1 implementation of IResourceSetLayout
@@ -57,6 +58,7 @@ public:
   void addStorageBuffer(uint32 binding, const sptr<GpuBuffer> &buffer) override;
   void addSampler(uint32 binding, const sptr<SamplerState> &sampler) override;
   void addTextureArray(uint32 binding, const std::vector<sptr<Texture>> &textures) override;
+  void addImageView(uint32 binding, const sptr<ImageView> &view) override;
 
   bool build(const sptr<RenderDevice> &renderDevice) override;
   void bind(const sptr<RenderDevice> &renderDevice, uint32 setIndex = 0) const override;

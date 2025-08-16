@@ -4,120 +4,142 @@
 #include "Material.h"
 #include <algorithm>
 
-RenderQueue::RenderQueue(QueueType type) : _type(type) {
+RenderQueue::RenderQueue(RenderListType type) : _type(type)
+{
 }
 
-void RenderQueue::clear() {
-    _drawables.clear();
+void RenderQueue::clear()
+{
+  _drawables.clear();
 }
 
-void RenderQueue::add(std::shared_ptr<DrawableComponent> drawable) {
-    _drawables.push_back(drawable);
+void RenderQueue::add(std::shared_ptr<DrawableComponent> drawable)
+{
+  _drawables.push_back(drawable);
 }
 
-void RenderQueue::sort(const CameraComponent& camera) {
-    if (_drawables.empty()) {
-        return;
-    }
-    
-    if (_type == QueueType::Opaque) {
-        std::sort(_drawables.begin(), _drawables.end(), 
-                 [this, &camera](const auto& a, const auto& b) {
-                     return compareOpaque(a, b, camera);
-                 });
-    } else if (_type == QueueType::Transparent) {
-        std::sort(_drawables.begin(), _drawables.end(), 
-                 [this, &camera](const auto& a, const auto& b) {
-                     return compareTransparent(a, b, camera);
-                 });
-    } else if (_type == QueueType::Shadow) {
-        std::sort(_drawables.begin(), _drawables.end(), 
-                 [this, &camera](const auto& a, const auto& b) {
-                     return compareShadow(a, b, camera);
-                 });
-    }
+void RenderQueue::sort(const CameraComponent &camera)
+{
+  if (_drawables.empty())
+  {
+    return;
+  }
+
+  if (_type == RenderListType::Opaque)
+  {
+    std::sort(_drawables.begin(), _drawables.end(),
+              [this, &camera](const auto &a, const auto &b)
+              {
+                return compareOpaque(a, b, camera);
+              });
+  }
+  else if (_type == RenderListType::Transparent)
+  {
+    std::sort(_drawables.begin(), _drawables.end(),
+              [this, &camera](const auto &a, const auto &b)
+              {
+                return compareTransparent(a, b, camera);
+              });
+  }
+  else if (_type == RenderListType::Shadow)
+  {
+    std::sort(_drawables.begin(), _drawables.end(),
+              [this, &camera](const auto &a, const auto &b)
+              {
+                return compareShadow(a, b, camera);
+              });
+  }
 }
 
-bool RenderQueue::compareOpaque(const std::shared_ptr<DrawableComponent>& a, 
-                               const std::shared_ptr<DrawableComponent>& b, 
-                               const CameraComponent& camera) const {
-    auto materialA = a->getMaterial();
-    auto materialB = b->getMaterial();
-    
-    // 1. Sort by shader/material variant first (minimize state changes)
-    uint32 shaderIdA = materialA->getShaderID();
-    uint32 shaderIdB = materialB->getShaderID();
-    if (shaderIdA != shaderIdB) {
-        return shaderIdA < shaderIdB;
-    }
-    
-    // 2. Sort by texture hash second (minimize texture binding)
-    uint64 textureHashA = materialA->getTextureHash();
-    uint64 textureHashB = materialB->getTextureHash();
-    if (textureHashA != textureHashB) {
-        return textureHashA < textureHashB;
-    }
-    
-    // 3. Sort by distance last (front-to-back for Z-rejection)
-    float32 distanceA = camera.distanceFrom(a->getWorldPosition());
-    float32 distanceB = camera.distanceFrom(b->getWorldPosition());
-    return distanceA < distanceB;
+bool RenderQueue::compareOpaque(const std::shared_ptr<DrawableComponent> &a,
+                                const std::shared_ptr<DrawableComponent> &b,
+                                const CameraComponent &camera) const
+{
+  auto materialA = a->getMaterial();
+  auto materialB = b->getMaterial();
+
+  // 1. Sort by shader/material variant first (minimize state changes)
+  uint32 shaderIdA = materialA->getShaderID();
+  uint32 shaderIdB = materialB->getShaderID();
+  if (shaderIdA != shaderIdB)
+  {
+    return shaderIdA < shaderIdB;
+  }
+
+  // 2. Sort by texture hash second (minimize texture binding)
+  uint64 textureHashA = materialA->getTextureHash();
+  uint64 textureHashB = materialB->getTextureHash();
+  if (textureHashA != textureHashB)
+  {
+    return textureHashA < textureHashB;
+  }
+
+  // 3. Sort by distance last (front-to-back for Z-rejection)
+  float32 distanceA = camera.distanceFrom(a->getWorldPosition());
+  float32 distanceB = camera.distanceFrom(b->getWorldPosition());
+  return distanceA < distanceB;
 }
 
-bool RenderQueue::compareTransparent(const std::shared_ptr<DrawableComponent>& a, 
-                                    const std::shared_ptr<DrawableComponent>& b, 
-                                    const CameraComponent& camera) const {
-    auto materialA = a->getMaterial();
-    auto materialB = b->getMaterial();
-    
-    // 1. Sort by shader/material variant first (minimize state changes)
-    uint32 shaderIdA = materialA->getShaderID();
-    uint32 shaderIdB = materialB->getShaderID();
-    if (shaderIdA != shaderIdB) {
-        return shaderIdA < shaderIdB;
-    }
-    
-    // 2. Sort by texture hash second (minimize texture binding)
-    uint64 textureHashA = materialA->getTextureHash();
-    uint64 textureHashB = materialB->getTextureHash();
-    if (textureHashA != textureHashB) {
-        return textureHashA < textureHashB;
-    }
-    
-    // 3. Sort by distance last (back-to-front for proper alpha blending)
-    float32 distanceA = camera.distanceFrom(a->getWorldPosition());
-    float32 distanceB = camera.distanceFrom(b->getWorldPosition());
-    return distanceA > distanceB; // Note: reversed for back-to-front
+bool RenderQueue::compareTransparent(const std::shared_ptr<DrawableComponent> &a,
+                                     const std::shared_ptr<DrawableComponent> &b,
+                                     const CameraComponent &camera) const
+{
+  auto materialA = a->getMaterial();
+  auto materialB = b->getMaterial();
+
+  // 1. Sort by shader/material variant first (minimize state changes)
+  uint32 shaderIdA = materialA->getShaderID();
+  uint32 shaderIdB = materialB->getShaderID();
+  if (shaderIdA != shaderIdB)
+  {
+    return shaderIdA < shaderIdB;
+  }
+
+  // 2. Sort by texture hash second (minimize texture binding)
+  uint64 textureHashA = materialA->getTextureHash();
+  uint64 textureHashB = materialB->getTextureHash();
+  if (textureHashA != textureHashB)
+  {
+    return textureHashA < textureHashB;
+  }
+
+  // 3. Sort by distance last (back-to-front for proper alpha blending)
+  float32 distanceA = camera.distanceFrom(a->getWorldPosition());
+  float32 distanceB = camera.distanceFrom(b->getWorldPosition());
+  return distanceA > distanceB; // Note: reversed for back-to-front
 }
 
-bool RenderQueue::compareShadow(const std::shared_ptr<DrawableComponent>& a, 
-                               const std::shared_ptr<DrawableComponent>& b, 
-                               const CameraComponent& camera) const {
-    auto materialA = a->getMaterial();
-    auto materialB = b->getMaterial();
-    
-    // For shadow passes, prioritize material batching over distance
-    // This minimizes state changes which is more important than depth sorting
-    
-    // 1. Sort by shader/material variant first (minimize state changes)
-    uint32 shaderIdA = materialA->getShaderID();
-    uint32 shaderIdB = materialB->getShaderID();
-    if (shaderIdA != shaderIdB) {
-        return shaderIdA < shaderIdB;
-    }
-    
-    // 2. Sort by texture hash second (minimize texture binding)
-    // Note: For shadows, we often don't need full textures, but this helps
-    // group similar materials together for potential optimizations
-    uint64 textureHashA = materialA->getTextureHash();
-    uint64 textureHashB = materialB->getTextureHash();
-    if (textureHashA != textureHashB) {
-        return textureHashA < textureHashB;
-    }
-    
-    // 3. Sort by distance last (front-to-back for early Z-rejection)
-    // Even in shadow passes, front-to-back can help with depth testing
-    float32 distanceA = camera.distanceFrom(a->getWorldPosition());
-    float32 distanceB = camera.distanceFrom(b->getWorldPosition());
-    return distanceA < distanceB;
+bool RenderQueue::compareShadow(const std::shared_ptr<DrawableComponent> &a,
+                                const std::shared_ptr<DrawableComponent> &b,
+                                const CameraComponent &camera) const
+{
+  auto materialA = a->getMaterial();
+  auto materialB = b->getMaterial();
+
+  // For shadow passes, prioritize material batching over distance
+  // This minimizes state changes which is more important than depth sorting
+
+  // 1. Sort by shader/material variant first (minimize state changes)
+  uint32 shaderIdA = materialA->getShaderID();
+  uint32 shaderIdB = materialB->getShaderID();
+  if (shaderIdA != shaderIdB)
+  {
+    return shaderIdA < shaderIdB;
+  }
+
+  // 2. Sort by texture hash second (minimize texture binding)
+  // Note: For shadows, we often don't need full textures, but this helps
+  // group similar materials together for potential optimizations
+  uint64 textureHashA = materialA->getTextureHash();
+  uint64 textureHashB = materialB->getTextureHash();
+  if (textureHashA != textureHashB)
+  {
+    return textureHashA < textureHashB;
+  }
+
+  // 3. Sort by distance last (front-to-back for early Z-rejection)
+  // Even in shadow passes, front-to-back can help with depth testing
+  float32 distanceA = camera.distanceFrom(a->getWorldPosition());
+  float32 distanceB = camera.distanceFrom(b->getWorldPosition());
+  return distanceA < distanceB;
 }

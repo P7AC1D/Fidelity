@@ -1,12 +1,18 @@
 #pragma once
 #include "GpuBuffer.hpp"
 
+/**
+ * @brief Index element widths supported by the renderer.
+ */
 enum class IndexType
 {
   UInt16,
   UInt32
 };
 
+/**
+ * @brief Description of an index buffer resource.
+ */
 struct IndexBufferDesc
 {
   uint32 IndexCount;
@@ -14,6 +20,9 @@ struct IndexBufferDesc
   BufferUsage BufferUsage = BufferUsage::Default;
 };
 
+/**
+ * @brief GPU buffer specialized for index data.
+ */
 class IndexBuffer : public GpuBuffer
 {
 public:

@@ -3,6 +3,9 @@
 #include <vector>
 #include "../Core/Types.hpp"
 
+/**
+ * @brief Shader stages supported by the renderer.
+ */
 enum class ShaderType
 {
   Vertex,
@@ -12,12 +15,18 @@ enum class ShaderType
   Geometry
 };
 
+/**
+ * @brief Description used to create a shader from source code.
+ */
 struct ShaderDesc
 {
   ShaderType ShaderType;
   std::string Source;
 };
 
+/**
+ * @brief Abstract shader object.
+ */
 class Shader
 {
 public:

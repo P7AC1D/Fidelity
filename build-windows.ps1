@@ -26,25 +26,25 @@
 
 [CmdletBinding()]
 param(    [Parameter()]
-    [ValidateSet("Debug", "Release", "RelWithDebInfo", "MinSizeRel")]
-    [string]$Configuration = "Release",
+  [ValidateSet("Debug", "Release", "RelWithDebInfo", "MinSizeRel")]
+  [string]$Configuration = "Release",
     
-    [Parameter()]
-    [switch]$Clean,
+  [Parameter()]
+  [switch]$Clean,
     
-    [Parameter()]
-    [string]$Generator = "Visual Studio 17 2022",
-      [Parameter()]
-    [int]$Parallel = [Environment]::ProcessorCount,
+  [Parameter()]
+  [string]$Generator = "Visual Studio 17 2022",
+  [Parameter()]
+  [int]$Parallel = [Environment]::ProcessorCount,
     
-    [Parameter()]
-    [switch]$RunTests,
+  [Parameter()]
+  [switch]$RunTests,
     
-    [Parameter()]
-    [switch]$Package,
+  [Parameter()]
+  [switch]$Package,
     
-    [Parameter()]
-    [switch]$Help
+  [Parameter()]
+  [switch]$Help
 )
 
 # Script configuration
@@ -53,7 +53,7 @@ $InformationPreference = "Continue"
 
 # Show help if requested
 if ($Help) {
-    Write-Host @"
+  Write-Host @"
 Fidelity Engine - Windows Build Script
 
 USAGE:
@@ -76,28 +76,28 @@ EXAMPLES:
     .\build-windows.ps1 -Clean -Verbose -Parallel 4
 
 "@ -ForegroundColor Green
-    exit 0
+  exit 0
 }
 
 # Color output functions - Define these before any other code that might use them
 function Write-Success {
-    param([string]$Message)
-    Write-Host "✓ $Message" -ForegroundColor Green
+  param([string]$Message)
+  Write-Host "✓ $Message" -ForegroundColor Green
 }
 
 function Write-Info {
-    param([string]$Message)
-    Write-Host "ℹ $Message" -ForegroundColor Cyan
+  param([string]$Message)
+  Write-Host "ℹ $Message" -ForegroundColor Cyan
 }
 
 function Write-Warning {
-    param([string]$Message)
-    Write-Host "⚠ $Message" -ForegroundColor Yellow
+  param([string]$Message)
+  Write-Host "⚠ $Message" -ForegroundColor Yellow
 }
 
 function Write-ErrorMessage {
-    param([string]$Message)
-    Write-Host "✗ $Message" -ForegroundColor Red
+  param([string]$Message)
+  Write-Host "✗ $Message" -ForegroundColor Red
 }
 
 # Project paths
@@ -106,246 +106,287 @@ $BuildDir = Join-Path $ProjectRoot "build"
 $ConfigBuildDir = Join-Path $BuildDir $Configuration.ToLower()
 
 function Test-Prerequisites {
-    Write-Info "Checking build prerequisites..."
+  Write-Info "Checking build prerequisites..."
     
-    # Check for CMake
-    try {
-        $cmakeVersion = cmake --version | Select-Object -First 1
-        Write-Success "Found CMake: $cmakeVersion"
-    }    catch {
-        Write-ErrorMessage "CMake not found. Please install CMake and add it to PATH."
-        exit 1
-    }
+  # Check for CMake
+  try {
+    $cmakeVersion = cmake --version | Select-Object -First 1
+    Write-Success "Found CMake: $cmakeVersion"
+  }
+  catch {
+    Write-ErrorMessage "CMake not found. Please install CMake and add it to PATH."
+    exit 1
+  }
     
-    # Check for Visual Studio or Build Tools
-    $vsWhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
-    if (Test-Path $vsWhere) {
-        $vsInstances = & $vsWhere -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -format json | ConvertFrom-Json
-        if ($vsInstances) {
-            $vsInstance = $vsInstances | Select-Object -First 1
-            Write-Success "Found Visual Studio: $($vsInstance.displayName) ($($vsInstance.installationVersion))"
-        }
-        else {
-            Write-Warning "Visual Studio with C++ tools not found. Build may fail."
-        }
+  # Check for Visual Studio or Build Tools
+  $vsWhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+  if (Test-Path $vsWhere) {
+    $vsInstances = & $vsWhere -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -format json | ConvertFrom-Json
+    if ($vsInstances) {
+      $vsInstance = $vsInstances | Select-Object -First 1
+      Write-Success "Found Visual Studio: $($vsInstance.displayName) ($($vsInstance.installationVersion))"
     }
     else {
-        Write-Warning "Visual Studio installer not found. Build may fail."
+      Write-Warning "Visual Studio with C++ tools not found. Build may fail."
     }
+  }
+  else {
+    Write-Warning "Visual Studio installer not found. Build may fail."
+  }
     
-    # Check for Vulkan SDK
-    if ($env:VULKAN_SDK) {
-        Write-Success "Found Vulkan SDK: $env:VULKAN_SDK"
-    }
-    else {
-        Write-Warning "VULKAN_SDK environment variable not set. Vulkan features may be disabled."
-    }
+  # Check for Vulkan SDK
+  if ($env:VULKAN_SDK) {
+    Write-Success "Found Vulkan SDK: $env:VULKAN_SDK"
+  }
+  else {
+    Write-Warning "VULKAN_SDK environment variable not set. Vulkan features may be disabled."
+  }
 }
 
 function Initialize-BuildDirectory {
-    if ($Clean -and (Test-Path $BuildDir)) {
-        Write-Info "Cleaning existing build directory..."
-        Remove-Item $BuildDir -Recurse -Force
-        Write-Success "Build directory cleaned"
-    }
+  if ($Clean -and (Test-Path $BuildDir)) {
+    Write-Info "Cleaning existing build directory..."
+    Remove-Item $BuildDir -Recurse -Force
+    Write-Success "Build directory cleaned"
+  }
     
-    if (-not (Test-Path $ConfigBuildDir)) {
-        Write-Info "Creating build directory: $ConfigBuildDir"
-        New-Item -ItemType Directory -Path $ConfigBuildDir -Force | Out-Null
-        Write-Success "Build directory created"
-    }
+  if (-not (Test-Path $ConfigBuildDir)) {
+    Write-Info "Creating build directory: $ConfigBuildDir"
+    New-Item -ItemType Directory -Path $ConfigBuildDir -Force | Out-Null
+    Write-Success "Build directory created"
+  }
 }
 
 function Invoke-CMakeConfigure {
-    Write-Info "Configuring CMake for $Configuration..."
+  Write-Info "Configuring CMake for $Configuration..."
     
-    Push-Location $ConfigBuildDir
-    try {
-        $cmakeArgs = @(
-            "-G", $Generator,
-            "-A", "x64",
-            "-DCMAKE_BUILD_TYPE=$Configuration",
-            "-DCMAKE_CONFIGURATION_TYPES=Debug;Release",
-            $ProjectRoot
-        )
-          if ($VerbosePreference -eq 'Continue') {
-            $cmakeArgs += "--debug-output"
-        }
-        
-        Write-Info "Running: cmake $($cmakeArgs -join ' ')"
-        & cmake @cmakeArgs
-        
-        if ($LASTEXITCODE -ne 0) {
-            throw "CMake configuration failed with exit code $LASTEXITCODE"
-        }
-        
-        Write-Success "CMake configuration completed successfully"
+  Push-Location $ConfigBuildDir
+  try {
+    $cmakeArgs = @(
+      "-G", $Generator,
+      "-A", "x64",
+      "-DCMAKE_BUILD_TYPE=$Configuration",
+      "-DCMAKE_CONFIGURATION_TYPES=Debug;Release",
+      $ProjectRoot
+    )
+    if ($VerbosePreference -eq 'Continue') {
+      $cmakeArgs += "--debug-output"
     }
-    finally {
-        Pop-Location
+        
+    Write-Info "Running: cmake $($cmakeArgs -join ' ')"
+    & cmake @cmakeArgs
+        
+    if ($LASTEXITCODE -ne 0) {
+      throw "CMake configuration failed with exit code $LASTEXITCODE"
     }
+        
+    Write-Success "CMake configuration completed successfully"
+  }
+  finally {
+    Pop-Location
+  }
 }
 
 function Invoke-CMakeBuild {
-    Write-Info "Building project in $Configuration mode..."
+  Write-Info "Building project in $Configuration mode..."
     
-    Push-Location $ConfigBuildDir
-    try {
-        $buildArgs = @(
-            "--build", ".",
-            "--config", $Configuration,
-            "--parallel", $Parallel
-        )
-          if ($VerbosePreference -eq 'Continue') {
-            $buildArgs += "--verbose"
-        }
-        
-        Write-Info "Running: cmake $($buildArgs -join ' ')"
-        & cmake @buildArgs
-        
-        if ($LASTEXITCODE -ne 0) {
-            throw "Build failed with exit code $LASTEXITCODE"
-        }
-        
-        Write-Success "Build completed successfully"
+  Push-Location $ConfigBuildDir
+  try {
+    $buildArgs = @(
+      "--build", ".",
+      "--config", $Configuration,
+      "--parallel", $Parallel
+    )
+    if ($VerbosePreference -eq 'Continue') {
+      $buildArgs += "--verbose"
     }
-    finally {
-        Pop-Location
+        
+    Write-Info "Running: cmake $($buildArgs -join ' ')"
+    & cmake @buildArgs
+        
+    if ($LASTEXITCODE -ne 0) {
+      throw "Build failed with exit code $LASTEXITCODE"
     }
+        
+    Write-Success "Build completed successfully"
+  }
+  finally {
+    Pop-Location
+  }
 }
 
 function Show-BuildSummary {
-    Write-Info "=== Build Summary ==="
-    Write-Info "Configuration: $Configuration"
-    Write-Info "Build Directory: $ConfigBuildDir"
-    Write-Info "Parallel Jobs: $Parallel"
+  Write-Info "=== Build Summary ==="
+  Write-Info "Configuration: $Configuration"
+  Write-Info "Build Directory: $ConfigBuildDir"
+  Write-Info "Parallel Jobs: $Parallel"
     
-    # List built executables
-    $executablesDir = Join-Path $ConfigBuildDir "Source"
-    if (Test-Path $executablesDir) {
-        Write-Info "Built Executables:"
-        Get-ChildItem -Path $executablesDir -Recurse -Include "*.exe" | ForEach-Object {
-            $relPath = $_.FullName.Replace($ConfigBuildDir, "").TrimStart('\')
-            Write-Success "  $relPath"
-        }
+  # List built executables
+  $executablesDir = Join-Path $ConfigBuildDir "Source"
+  if (Test-Path $executablesDir) {
+    Write-Info "Built Executables:"
+    Get-ChildItem -Path $executablesDir -Recurse -Include "*.exe" | ForEach-Object {
+      $relPath = $_.FullName.Replace($ConfigBuildDir, "").TrimStart('\')
+      Write-Success "  $relPath"
     }
+  }
     
-    Write-Success "Build completed successfully! 🎉"
+  Write-Success "Build completed successfully! 🎉"
 }
 
 function Invoke-Tests {
-    if (-not $RunTests) { return }
+  if (-not $RunTests) { return }
     
-    Write-Info "Running tests..."
+  Write-Info "Running tests..."
     
-    # Look for test executable
-    $testExe = Get-ChildItem -Path $ConfigBuildDir -Recurse -Name "Tests.exe" | Select-Object -First 1
-    if ($testExe) {
-        $testPath = Join-Path $ConfigBuildDir $testExe
-        Write-Info "Found test executable: $testPath"
+  # Look for test executable
+  $testExe = Get-ChildItem -Path $ConfigBuildDir -Recurse -Name "Tests.exe" | Select-Object -First 1
+  if ($testExe) {
+    $testPath = Join-Path $ConfigBuildDir $testExe
+    Write-Info "Found test executable: $testPath"
         
-        Push-Location (Split-Path $testPath -Parent)
-        try {
-            & $testPath
-            if ($LASTEXITCODE -eq 0) {
-                Write-Success "All tests passed!"
-            } else {
-                Write-Warning "Some tests failed (exit code: $LASTEXITCODE)"
-            }
-        }
-        catch {
-            Write-ErrorMessage "Failed to run tests: $($_.Exception.Message)"
-        }
-        finally {
-            Pop-Location
-        }
-    } else {
-        Write-Warning "Test executable not found"
+    Push-Location (Split-Path $testPath -Parent)
+    try {
+      & $testPath
+      if ($LASTEXITCODE -eq 0) {
+        Write-Success "All tests passed!"
+      }
+      else {
+        Write-Warning "Some tests failed (exit code: $LASTEXITCODE)"
+      }
     }
+    catch {
+      Write-ErrorMessage "Failed to run tests: $($_.Exception.Message)"
+    }
+    finally {
+      Pop-Location
+    }
+  }
+  else {
+    Write-Warning "Test executable not found"
+  }
 }
 
 function Invoke-Package {
-    if (-not $Package) { return }
+  if (-not $Package) { return }
     
-    Write-Info "Creating installation package..."
+  Write-Info "Creating installation package..."
     
-    Push-Location $ConfigBuildDir
-    try {
-        & cmake --build . --config $Configuration --target package
-        if ($LASTEXITCODE -eq 0) {
-            Write-Success "Package created successfully"
+  Push-Location $ConfigBuildDir
+  try {
+    & cmake --build . --config $Configuration --target package
+    if ($LASTEXITCODE -eq 0) {
+      Write-Success "Package created successfully"
             
-            # List generated packages
-            Get-ChildItem -Path . -Include "*.zip", "*.msi", "*.exe" | ForEach-Object {
-                Write-Success "  Package: $($_.Name)"
-            }
-        } else {
-            Write-Warning "Package creation failed or not configured"
-        }
+      # List generated packages
+      Get-ChildItem -Path . -Include "*.zip", "*.msi", "*.exe" | ForEach-Object {
+        Write-Success "  Package: $($_.Name)"
+      }
     }
-    catch {
-        Write-Warning "Package creation failed: $($_.Exception.Message)"
+    else {
+      Write-Warning "Package creation failed or not configured"
     }
-    finally {
-        Pop-Location
-    }
+  }
+  catch {
+    Write-Warning "Package creation failed: $($_.Exception.Message)"
+  }
+  finally {
+    Pop-Location
+  }
 }
 
 function Copy-Resources {
-    $resourcesSource = Join-Path $ProjectRoot "Resources"
-    $resourcesTarget = Join-Path $ConfigBuildDir "Resources"
-    
-    if ((Test-Path $resourcesSource) -and (-not (Test-Path $resourcesTarget))) {
-        Write-Info "Copying resources to build directory..."
-        try {
-            Copy-Item -Path $resourcesSource -Destination $resourcesTarget -Recurse -Force
-            Write-Success "Resources copied successfully"
-        }
-        catch {
-            Write-Warning "Failed to copy resources: $($_.Exception.Message)"
-        }
+  $resourcesSource = Join-Path $ProjectRoot "Resources"
+  $resourcesTarget = Join-Path $ConfigBuildDir "Resources"
+  
+  if (-not (Test-Path $resourcesSource)) {
+    Write-Warning "Resources directory not found: $resourcesSource"
+    return
+  }
+
+  Write-Info "Syncing resources (incremental copy)..."
+  try {
+    if (-not (Test-Path $resourcesTarget)) {
+      New-Item -ItemType Directory -Path $resourcesTarget -Force | Out-Null
     }
+
+    # Use robocopy for incremental sync: copies only new/changed files by default
+    $mt = [Math]::Max(1, [Math]::Min($Parallel, 128))
+    $baseArgs = @(
+      $resourcesSource,
+      $resourcesTarget,
+      "/E",               # Include subdirs (including empty)
+      "/COPY:DAT",        # Copy Data, Attributes, Timestamps
+      "/DCOPY:DAT",       # Copy directories' timestamps and attributes
+      "/FFT",             # Assume FAT file times (2s granularity) for cross-FS robustness
+      "/R:2", "/W:3",   # Fewer retries/faster failures
+      "/MT:$mt"           # Multithreaded copy
+    )
+
+    if ($VerbosePreference -ne 'Continue') {
+      $baseArgs += @("/NP", "/NFL", "/NDL", "/NJH", "/NJS") # Quieter output unless verbose
+    }
+
+    & robocopy @baseArgs | Out-Null
+    $rc = $LASTEXITCODE
+
+    # Robocopy exit codes < 8 indicate success (0: nothing to do, 1: files copied, etc.)
+    if ($rc -lt 8) {
+      if ($rc -eq 0) {
+        Write-Info "Resources are already up to date"
+      }
+      else {
+        Write-Success "Resources synchronized (robocopy exit code $rc)"
+      }
+    }
+    else {
+      throw "Robocopy failed with exit code $rc"
+    }
+  }
+  catch {
+    Write-Warning "Failed to synchronize resources: $($_.Exception.Message)"
+  }
 }
 
 function Main {
-    Write-Info "=== Fidelity Engine Build Script for Windows ==="
-    Write-Info "Configuration: $Configuration"
-    Write-Info "Generator: $Generator"
-    Write-Info "Clean Build: $Clean"
-    Write-Info "Parallel Jobs: $Parallel"
-    Write-Info "Run Tests: $RunTests"
-    Write-Info "Create Package: $Package"
+  Write-Info "=== Fidelity Engine Build Script for Windows ==="
+  Write-Info "Configuration: $Configuration"
+  Write-Info "Generator: $Generator"
+  Write-Info "Clean Build: $Clean"
+  Write-Info "Parallel Jobs: $Parallel"
+  Write-Info "Run Tests: $RunTests"
+  Write-Info "Create Package: $Package"
+  Write-Info ""
+    
+  $buildStartTime = Get-Date
+    
+  try {
+    Test-Prerequisites
+    Initialize-BuildDirectory
+    Invoke-CMakeConfigure
+    Invoke-CMakeBuild
+    Copy-Resources
+    Invoke-Tests
+    Invoke-Package
+        
+    $buildEndTime = Get-Date
+    $buildDuration = $buildEndTime - $buildStartTime
+        
+    Write-Info "Total build time: $([math]::Round($buildDuration.TotalSeconds, 2)) seconds"
+    Show-BuildSummary
+        
     Write-Info ""
-    
-    $buildStartTime = Get-Date
-    
-    try {
-        Test-Prerequisites
-        Initialize-BuildDirectory
-        Invoke-CMakeConfigure
-        Invoke-CMakeBuild
-        Copy-Resources
-        Invoke-Tests
-        Invoke-Package
+    Write-Info "Next steps:"
+    Write-Info "  • Run demos: Navigate to $ConfigBuildDir and run executables"
+    Write-Info "  • Debug: Open $ConfigBuildDir/*.sln in Visual Studio"
+    Write-Info "  • Package: Use -Package flag to create distribution"
         
-        $buildEndTime = Get-Date
-        $buildDuration = $buildEndTime - $buildStartTime
-        
-        Write-Info "Total build time: $([math]::Round($buildDuration.TotalSeconds, 2)) seconds"
-        Show-BuildSummary
-        
-        Write-Info ""
-        Write-Info "Next steps:"
-        Write-Info "  • Run demos: Navigate to $ConfigBuildDir and run executables"
-        Write-Info "  • Debug: Open $ConfigBuildDir/*.sln in Visual Studio"
-        Write-Info "  • Package: Use -Package flag to create distribution"
-        
-    }
-    catch {
-        Write-ErrorMessage "Build failed: $($_.Exception.Message)"
-        Write-Info "Check the output above for specific error details"
-        exit 1
-    }
+  }
+  catch {
+    Write-ErrorMessage "Build failed: $($_.Exception.Message)"
+    Write-Info "Check the output above for specific error details"
+    exit 1
+  }
 }
 
 # Run main function

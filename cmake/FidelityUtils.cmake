@@ -90,6 +90,36 @@ endfunction()
 
 # Function to copy game resources to build directory
 function(fidelity_copy_resources target_name)
+    # On Windows, prepare a helper script that wraps robocopy and normalizes exit codes
+    if(WIN32)
+        set(_FID_ROBO_SCRIPT_DIR "${CMAKE_BINARY_DIR}/cmake")
+        set(_FID_ROBO_SCRIPT "${_FID_ROBO_SCRIPT_DIR}/robocopy_sync.cmake")
+        file(MAKE_DIRECTORY "${_FID_ROBO_SCRIPT_DIR}")
+        # Write once; safe to overwrite
+        file(WRITE "${_FID_ROBO_SCRIPT}" "# Auto-generated helper to run robocopy with normalized exit codes\n"
+            "if(NOT DEFINED ROBOSRC OR NOT DEFINED ROBODST)\n"
+            "  message(FATAL_ERROR \"ROBOSRC and ROBODST must be provided\")\n"
+            "endif()\n"
+            "set(_threads \"$ENV{NUMBER_OF_PROCESSORS}\")\n"
+            "if(NOT _threads)\n"
+            "  set(_threads 8)\n"
+            "endif()\n"
+            "file(TO_NATIVE_PATH \"\${ROBOSRC}\" _SRC)\n"
+            "file(TO_NATIVE_PATH \"\${ROBODST}\" _DST)\n"
+            "execute_process(\n"
+            "  COMMAND cmd /c robocopy \"\${_SRC}\" \"\${_DST}\" /E /COPY:DAT /DCOPY:DAT /FFT /R:2 /W:3 /NP /NFL /NDL /NJH /NJS /MT:\${_threads}\n"
+            "  RESULT_VARIABLE _rc\n"
+            "  OUTPUT_VARIABLE _out\n"
+            "  ERROR_VARIABLE _err\n"
+            ")\n"
+            "if(_rc LESS 8)\n"
+            "  message(STATUS \"Robocopy OK (\${_rc}) -> \${ROBODST}\")\n"
+            "else()\n"
+            "  message(FATAL_ERROR \"Robocopy failed (\${_rc}) -> \${ROBODST}\\nSTDOUT: \n\${_out}\\nSTDERR: \n\${_err}\")\n"
+            "endif()\n"
+        )
+    endif()
+
     # Create a global resource copying target if it doesn't exist
     if(NOT TARGET copy_fidelity_resources)
         set(RESOURCE_DIRS
@@ -100,21 +130,84 @@ function(fidelity_copy_resources target_name)
         )
 
         set(copy_commands)
+
+        list(LENGTH RESOURCE_DIRS _fid_total_dirs)
+        set(_fid_dir_index 0)
         foreach(resource_dir ${RESOURCE_DIRS})
+            math(EXPR _fid_dir_index "${_fid_dir_index} + 1")
             set(src_path "${CMAKE_SOURCE_DIR}/Resources/${resource_dir}")
-            # Copy to both bin/ and bin/Release to handle different output directories
+            # Copy to bin/, bin/Release and bin/Debug to handle different output directories
             set(dst_path_root "${CMAKE_BINARY_DIR}/bin/${resource_dir}")
             set(dst_path_release "${CMAKE_BINARY_DIR}/bin/Release/${resource_dir}")
             set(dst_path_debug "${CMAKE_BINARY_DIR}/bin/Debug/${resource_dir}")
-            
+
             if(EXISTS "${src_path}")
+                # Count files for a slightly more informative log
+                file(GLOB_RECURSE _fid_files_count
+                    LIST_DIRECTORIES false
+                    "${src_path}/*"
+                )
+                list(LENGTH _fid_files_count _fid_nfiles)
+
+                # Start message for this resource directory
                 list(APPEND copy_commands
+                    COMMAND ${CMAKE_COMMAND} -E echo "-- [${_fid_dir_index}/${_fid_total_dirs}] Syncing '${resource_dir}' (${_fid_nfiles} files)"
+                )
+
+                # Root
+                list(APPEND copy_commands
+                    COMMAND ${CMAKE_COMMAND} -E echo "   -> bin/${resource_dir}"
                     COMMAND ${CMAKE_COMMAND} -E make_directory "${dst_path_root}"
-                    COMMAND ${CMAKE_COMMAND} -E copy_directory "${src_path}" "${dst_path_root}"
+                )
+                if(WIN32)
+                    # Use robocopy via helper script for incremental sync on Windows
+                    list(APPEND copy_commands
+                        COMMAND ${CMAKE_COMMAND} -DROBOSRC="${src_path}" -DROBODST="${dst_path_root}" -P "${_FID_ROBO_SCRIPT}"
+                    )
+                else()
+                    # Fallback: copy entire directory (may overwrite unchanged files)
+                    list(APPEND copy_commands
+                        COMMAND ${CMAKE_COMMAND} -E copy_directory "${src_path}" "${dst_path_root}"
+                    )
+                endif()
+
+                # Release
+                list(APPEND copy_commands
+                    COMMAND ${CMAKE_COMMAND} -E echo "   -> bin/Release/${resource_dir}"
                     COMMAND ${CMAKE_COMMAND} -E make_directory "${dst_path_release}"
-                    COMMAND ${CMAKE_COMMAND} -E copy_directory "${src_path}" "${dst_path_release}"
+                )
+                if(WIN32)
+                    list(APPEND copy_commands
+                        COMMAND ${CMAKE_COMMAND} -DROBOSRC="${src_path}" -DROBODST="${dst_path_release}" -P "${_FID_ROBO_SCRIPT}"
+                    )
+                else()
+                    list(APPEND copy_commands
+                        COMMAND ${CMAKE_COMMAND} -E copy_directory "${src_path}" "${dst_path_release}"
+                    )
+                endif()
+
+                # Debug
+                list(APPEND copy_commands
+                    COMMAND ${CMAKE_COMMAND} -E echo "   -> bin/Debug/${resource_dir}"
                     COMMAND ${CMAKE_COMMAND} -E make_directory "${dst_path_debug}"
-                    COMMAND ${CMAKE_COMMAND} -E copy_directory "${src_path}" "${dst_path_debug}"
+                )
+                if(WIN32)
+                    list(APPEND copy_commands
+                        COMMAND ${CMAKE_COMMAND} -DROBOSRC="${src_path}" -DROBODST="${dst_path_debug}" -P "${_FID_ROBO_SCRIPT}"
+                    )
+                else()
+                    list(APPEND copy_commands
+                        COMMAND ${CMAKE_COMMAND} -E copy_directory "${src_path}" "${dst_path_debug}"
+                    )
+                endif()
+
+                # Done message for this resource directory
+                list(APPEND copy_commands
+                    COMMAND ${CMAKE_COMMAND} -E echo "-- Done '${resource_dir}'"
+                )
+            else()
+                list(APPEND copy_commands
+                    COMMAND ${CMAKE_COMMAND} -E echo "-- [${_fid_dir_index}/${_fid_total_dirs}] Skipping '${resource_dir}' (not found)"
                 )
             endif()
         endforeach()
